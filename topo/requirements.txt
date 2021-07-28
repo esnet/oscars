@@ -1,3 +1,1 @@
-requests==2.21.0
-esnet==0.0.12
-#-e 'git+ssh://git@github.com/esnet/neg-tools.git@v0.0.11#egg=esnet&subdirectory=esnet-python'
+requests==2.26.0

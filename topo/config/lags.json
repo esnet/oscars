@@ -131,13 +131,7 @@
       "enable": true
     }
   },
-  "sunn-cr5": {
-    "lag-10": {
-      "ports": ["10/2/1"],
-      "mbps": 10000,
-      "enable": true
-    }
-  },
+
   "wash-cr5": {
     "lag-10": {
       "ports": ["10/1/3"],

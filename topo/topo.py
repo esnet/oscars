@@ -10,12 +10,7 @@ import errno
 import pprint
 from operator import itemgetter
 from itertools import groupby
-
-from esnet.topology.today_to_devices import get_devices
-from esnet.topology.today_to_isis_graph import get_isis_neighbors, make_isis_graph
-from esnet.topology.today_to_ports import get_ports_by_rtr
-from esnet.topology.today_to_ip_addresses import get_ip_addrs
-from esnet.topology.today_to_vlan import get_vlans
+from today.funcs import get_isis_neighbors, make_isis_graph, get_devices, get_ports_by_rtr, get_ip_addrs, get_vlans
 
 # This script produces an OSCARS-style topology dataset:
 #   devices.json        : the devices inventory with all the ports per device,
@@ -423,6 +418,9 @@ def gather_edge_ports(netbeam_saps=None, netbeam_interfaces=None,
         if '32767' in ifce_name:
             keep = "No"
 
+        if is_nokia_breakout(ifce_name):
+            keep = "No"
+
         if ifce["device"] not in oscars_device_urns:
             keep = "No"
 
@@ -694,6 +692,13 @@ def find_vlan(router, ifce_name, netbeam_interfaces, esdb_vlans):
     else:
         return ifce_name_vlan
 
+
+def is_nokia_breakout(ifce_name):
+    parts = ifce_name.split('/')
+    if len(parts) != 3:
+        return False
+    if 'c' in parts[2]:
+        return True
 
 def validate_oscars_adjacencies(oscars_adjcies=None):
     passes_validation = True
@@ -1047,10 +1052,10 @@ def load_datasets(settings):
             if verbose:
                 print("retrieving {} from {}".format(cache_filename, source))
             r = None
-            if source is 'ESDB':
+            if source == 'ESDB':
                 r = requests.get(settings['URLS']['ESDB'] + dataset['URL'],
                                  headers=dict(Authorization='Token {0}'.format(token)))
-            elif source is 'NETBEAM':
+            elif source == 'NETBEAM':
                 r = requests.get(settings['URLS']['NETBEAM'] + dataset['URL'])
             if r is not None:
                 if r.status_code != requests.codes.ok:
