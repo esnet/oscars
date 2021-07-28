@@ -8,6 +8,8 @@ import os
 import sys
 import errno
 import pprint
+from mergedeep import merge, Strategy
+
 from operator import itemgetter
 from itertools import groupby
 from today.funcs import get_isis_neighbors, make_isis_graph, get_devices, get_ports_by_rtr, get_ip_addrs, get_vlans
@@ -86,6 +88,7 @@ def main():
             'FILES': {
                 'VARS': "vars.json",
                 'LAGS': "lags.json",
+                'OVERRIDES': "overrides.json",
                 'SWITCHES': "switches.json",
             }
         },
@@ -178,8 +181,12 @@ def create_topology(settings, config):
 
     merge_lags(edge_ports, config)
 
-    # merge all this info into the oscars_devices and we are d o n e
+    # merge all this info into the oscars_devices
     merge_edge_ports_vlans(oscars_devices, edge_ports, used_vlans, oscars_vlans, config)
+
+    # finally merge any overrides
+    merge_overrides(oscars_devices, config)
+
     return oscars_adjcies, oscars_devices
 
 
@@ -993,6 +1000,22 @@ def to_oscars_devices(in_devices=None, datasets=None, igp_portmap=None, addrs=No
                 print("did not add not-igp router " + rs["name"])
 
     return out_routers
+
+
+def merge_overrides(in_devices=None, config=None):
+    merged = []
+    if len(config) == 0 or 'devices' not in config['OVERRIDES']:
+        return in_devices
+    device_overrides = config['OVERRIDES']['devices']
+
+    for in_device in in_devices:
+        for entry in device_overrides:
+            ov_dev_urn = entry['urn']
+            if in_device['urn'] == ov_dev_urn:
+                in_device = merge(in_device, entry, strategy=Strategy.ADDITIVE)
+        merged.append(in_device)
+
+    return merged
 
 
 def load_config(settings):
