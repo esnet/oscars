@@ -167,9 +167,9 @@ def get_isis_neighbors(ipv4nets=None, latency_db=None):
                 if "isis_cost" in address_info.keys():
 
                     isis_cost = address_info["isis_cost"]
-                    isis_status = address_info["isis_status"]
+                    isis_status = str(address_info["isis_status"])
 
-                    if isis_status:
+                    if isis_status == '1':
                         isis_neighbor = address_info["isis_neighbor"]
                         latency = latency_of(addr=address, latency_db=latency_db)
                         isis_entry = {
