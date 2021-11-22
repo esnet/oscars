@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
+import json
 import pprint
 
 pp = pprint.PrettyPrinter(indent=2)
@@ -109,6 +110,8 @@ def latency_of(addr=None, latency_db=None):
 
 
 def make_isis_graph(isis=None):
+    routers = []
+
     edges = []
     for addr in isis.keys():
         entry = isis[addr]
@@ -134,7 +137,11 @@ def make_isis_graph(isis=None):
             if "port" in neighbor_entry.keys():
                 edge["z_port"] = neighbor_entry["port"]
 
+            if entry["router"] not in routers:
+                routers.append(entry["router"])
+
             edges.append(edge)
+    print(json.dumps(isis, indent=4))
     return edges
 
 

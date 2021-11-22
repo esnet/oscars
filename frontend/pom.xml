@@ -10,7 +10,7 @@
     <parent>
         <artifactId>oscars</artifactId>
         <groupId>net.es.oscars</groupId>
-        <version>1.0.43</version>
+        <version>1.0.44</version>
     </parent>
     <properties>
         <frontend.version>${project.version}</frontend.version>
