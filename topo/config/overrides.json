@@ -2,23 +2,7 @@
   "devices": [
     {
       "urn": "bnl515-cr6",
-      "ports": [
-        {
-          "urn": "bnl515-cr6:lag-40",
-          "ifces": [],
-          "capabilities": [
-            "ETHERNET"
-          ],
-          "reservableIngressBw": 20000,
-          "reservableEgressBw": 20000,
-          "reservableVlans": [
-            {
-              "floor": 2,
-              "ceiling": 4094
-            }
-          ]
-        }
-      ]
+      "ports": []
     }
   ]
 }
