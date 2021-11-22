@@ -203,7 +203,7 @@ public class MxParamsAdapter {
     public MxPipeResult makePipe(VlanJunction otherJ, List<EroHop> hops, boolean protect,
                                  VlanPipe p, Integer mbps, Connection c) throws PSSException {
         List<MplsHop> mplsHops = new ArrayList<>();
-        if (protect) {
+        if (!protect) {
             mplsHops = miscHelper.mplsHops(hops);
         }
 
