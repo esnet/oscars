@@ -4,7 +4,7 @@ import { observer, inject } from "mobx-react";
 import { toJS } from "mobx";
 import ToggleDisplay from "react-toggle-display";
 
-import chrono from "chrono-node";
+import * as chrono from "chrono-node";
 import Moment from "moment";
 import jstz from "jstz";
 import { size } from "lodash-es";
@@ -32,8 +32,25 @@ const format = "Y/MM/DD HH:mm:ss";
 class ScheduleControls extends Component {
     constructor(props) {
         super(props);
+        this.parser = chrono.casual.clone();
+        this.parser.parsers.push({
+            pattern: () => {
+                return /\basap\b/i;
+            },
+            extract: (context,match) => {
+                let date = new Date();
+                return {
+                    day: date.getDate(),
+                    month: date.getMonth(),
+                    year: date.getFullYear(),
+                    hours: date.getHours(),
+                    minutes: date.getMinutes(),
+                    seconds: date.getSeconds()
+                }
+            }
+        });
+
         this.state = {
-            parser: null
         };
     }
 
@@ -79,7 +96,6 @@ class ScheduleControls extends Component {
             this.props.controlsStore.setParamsForConnection(params);
         }
 
-        this.setState({ parser: this.createCustomParser() });
         this.periodicCheck();
     }
 
@@ -126,45 +142,10 @@ class ScheduleControls extends Component {
         this.props.controlsStore.setParamsForConnection({ schedule: { locked: false } });
     }
 
-    createCustomParser = e => {
-        let asapParser = new chrono.Parser();
-
-        // Provide search pattern
-        asapParser.pattern = function() {
-            return /\basap\b/i;
-        };
-
-        // This function will be called when matched pattern is found
-        asapParser.extract = function(text, ref, match, opt) {
-            if (text.toUpperCase() === "ASAP") {
-                let date = new Date();
-                return new chrono.ParsedResult({
-                    ref: ref,
-                    text: match[0],
-                    index: match.index,
-                    start: {
-                        day: date.getDate(),
-                        month: date.getMonth(),
-                        year: date.getFullYear(),
-                        hours: date.getHours(),
-                        minutes: date.getMinutes(),
-                        seconds: date.getSeconds()
-                    }
-                });
-            }
-        };
-
-        // Create a new custom Chrono
-        let custom = new chrono.Chrono();
-        custom.parsers.push(asapParser);
-
-        return custom;
-    };
-
     onStartDateChange = e => {
         let expr = e.target.value;
         let conn = this.props.controlsStore.connection;
-        let parsed = this.state.parser.parseDate(expr);
+        let parsed = this.parser.parseDate(expr);
 
         let params = {
             schedule: {
@@ -185,7 +166,7 @@ class ScheduleControls extends Component {
             params.schedule.start.choice = expr;
             params.schedule.start.parsed = true;
             params.schedule.end.choice = toJS(conn.schedule.end.choice);
-            this.validateStartEnd(params, this.state.parser);
+            this.validateStartEnd(params);
         } else {
             params.schedule.start.validationText = "Invalid date";
             params.schedule.acceptable = false;
@@ -235,8 +216,8 @@ class ScheduleControls extends Component {
 
         let startChoice = params.schedule.start.choice;
 
-        let startAt = this.state.parser.parseDate(startChoice);
-        let endAt = this.state.parser.parseDate(params.schedule.end.choice);
+        let startAt = this.parser.parseDate(startChoice);
+        let endAt = this.parser.parseDate(params.schedule.end.choice);
 
         let startError = false;
         let endError = false;

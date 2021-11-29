@@ -5,7 +5,7 @@
     <parent>
         <artifactId>oscars</artifactId>
         <groupId>net.es.oscars</groupId>
-        <version>1.0.44</version>
+        <version>1.0.45</version>
     </parent>
 
     <organization>
