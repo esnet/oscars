@@ -1,8 +1,8 @@
 package net.es.oscars.cuke;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.topo.beans.DevicePositions;

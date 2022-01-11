@@ -1,8 +1,8 @@
 package net.es.oscars.cuke;
 
-import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
-import cucumber.api.java.en.When;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.topo.beans.Topology;
@@ -10,14 +10,11 @@ import net.es.oscars.topo.db.DeviceRepository;
 import net.es.oscars.topo.db.AdjcyRepository;
 import net.es.oscars.topo.db.PortRepository;
 import net.es.oscars.topo.db.VersionRepository;
-import net.es.oscars.topo.ent.Device;
-import net.es.oscars.topo.ent.Port;
 import net.es.oscars.topo.pop.TopoPopulator;
 import net.es.oscars.topo.svc.TopoService;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
 @Slf4j

@@ -1,11 +1,9 @@
 package net.es.oscars.cuke;
 
-import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PSSException;
-import net.es.oscars.cuke.CucumberSteps;
-import net.es.oscars.cuke.CucumberWorld;
 import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.dto.topo.DeviceModel;
 import net.es.oscars.ctg.UnitTests;
@@ -19,8 +17,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 @Category({UnitTests.class})
 @Slf4j

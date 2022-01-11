@@ -7,9 +7,9 @@ Feature: PSS task queueing
     Given I have initialized the world
     Given I clear all sets
     When I add a "BUILD" task for "XYZZY" intending "ACTIVE"
-    Then the "waiting" set has 1 entries
-    Then the "running" set has 0 entries
-    Then the "done" set has 0 entries
+    Then the "WAITING" set has 1 entries
+    Then the "RUNNING" set has 0 entries
+    Then the "DONE" set has 0 entries
     Then I did not receive an exception
 
   Scenario: Fully process build
@@ -17,13 +17,13 @@ Feature: PSS task queueing
     Given I clear all sets
     When I add a "BUILD" task for "XYZZY" intending "ACTIVE"
     When I trigger the queue processor
-    Then the "waiting" set has 0 entries
-    Then the "running" set has 1 entries
-    Then the "done" set has 0 entries
-    When I make all running tasks complete
-    Then the "waiting" set has 0 entries
-    Then the "running" set has 0 entries
-    Then the "done" set has 1 entries
+    Then the "WAITING" set has 0 entries
+    Then the "RUNNING" set has 1 entries
+    Then the "DONE" set has 0 entries
+    When I make all RUNNING tasks complete
+    Then the "WAITING" set has 0 entries
+    Then the "RUNNING" set has 0 entries
+    Then the "DONE" set has 1 entries
     Then I did not receive an exception
 
   Scenario: Fully process dismantle
@@ -31,37 +31,37 @@ Feature: PSS task queueing
     Given I clear all sets
     When I add a "BUILD" task for "XYZZY" intending "FINISHED"
     When I trigger the queue processor
-    Then the "waiting" set has 0 entries
-    Then the "running" set has 1 entries
-    Then the "done" set has 0 entries
-    When I make all running tasks complete
-    Then the "waiting" set has 0 entries
-    Then the "running" set has 0 entries
-    Then the "done" set has 1 entries
+    Then the "WAITING" set has 0 entries
+    Then the "RUNNING" set has 1 entries
+    Then the "DONE" set has 0 entries
+    When I make all RUNNING tasks complete
+    Then the "WAITING" set has 0 entries
+    Then the "RUNNING" set has 0 entries
+    Then the "DONE" set has 1 entries
     Then I did not receive an exception
 
-  Scenario: Avoid double-inserting into waiting set
+  Scenario: Avoid double-inserting into WAITING set
     Given I have initialized the world
     Given I clear all sets
     When I add a "BUILD" task for "XYZZY" intending "ACTIVE"
     When I add a "BUILD" task for "XYZZY" intending "ACTIVE"
-    Then the "waiting" set has 1 entries
-    Then the "running" set has 0 entries
+    Then the "WAITING" set has 1 entries
+    Then the "RUNNING" set has 0 entries
     Then I did not receive an exception
 
-  Scenario: Avoid inserting already running task into waiting set
+  Scenario: Avoid inserting already RUNNING task into WAITING set
     Given I have initialized the world
     Given I clear all sets
     When I add a "BUILD" task for "XYZZY" intending "ACTIVE"
-    Then the "waiting" set has 1 entries
-    Then the "running" set has 0 entries
+    Then the "WAITING" set has 1 entries
+    Then the "RUNNING" set has 0 entries
     When I trigger the queue processor
-    Then the "waiting" set has 0 entries
-    Then the "running" set has 1 entries
+    Then the "WAITING" set has 0 entries
+    Then the "RUNNING" set has 1 entries
     When I add a "BUILD" task for "XYZZY" intending "ACTIVE"
     When I trigger the queue processor
-    Then the "waiting" set has 0 entries
-    Then the "running" set has 1 entries
+    Then the "WAITING" set has 0 entries
+    Then the "RUNNING" set has 1 entries
     Then I did not receive an exception
 
   Scenario: Anti-tasks
@@ -69,9 +69,9 @@ Feature: PSS task queueing
     Given I clear all sets
     When I add a "BUILD" task for "XYZZY" intending "ACTIVE"
     When I add a "DISMANTLE" task for "XYZZY" intending "WAITING"
-    Then the "waiting" set has 0 entries
-    Then the "running" set has 0 entries
-    Then the "done" set has 0 entries
+    Then the "WAITING" set has 0 entries
+    Then the "RUNNING" set has 0 entries
+    Then the "DONE" set has 0 entries
     Then I did not receive an exception
 
 

@@ -1,6 +1,6 @@
 package net.es.oscars.pss.cuke;
 
-import cucumber.api.java.en.Then;
+import io.cucumber.java.en.Then;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.dto.pss.cmd.CommandStatus;
 import net.es.oscars.dto.pss.st.ControlPlaneStatus;

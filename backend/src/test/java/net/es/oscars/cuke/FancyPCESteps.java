@@ -1,6 +1,6 @@
 package net.es.oscars.cuke;
 
-import cucumber.api.java.en.When;
+import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.pce.PceLibrary;
@@ -14,7 +14,6 @@ import org.jgrapht.graph.DirectedWeightedMultigraph;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;

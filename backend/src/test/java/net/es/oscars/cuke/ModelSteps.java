@@ -1,9 +1,8 @@
 package net.es.oscars.cuke;
 
-import cucumber.api.java.en.When;
+import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PSSException;
-import net.es.oscars.cuke.CucumberWorld;
 import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.dto.topo.DeviceModel;
 import net.es.oscars.ctg.UnitTests;

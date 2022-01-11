@@ -1,7 +1,7 @@
 package net.es.oscars.cuke;
 
-import cucumber.api.DataTable;
-import cucumber.api.java.en.Then;
+import io.cucumber.java.en.Then;
+import io.cucumber.datatable.DataTable;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.resv.beans.PeriodBandwidth;
@@ -10,7 +10,6 @@ import net.es.oscars.resv.svc.ResvLibrary;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.HashMap;

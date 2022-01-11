@@ -82,7 +82,7 @@ class DetailsHistory extends Component {
             if (typeof eventlog.events !== 'undefined') {
                 eventlog.events.slice().reverse().map(c => {
                     let row = {
-                        at: Moment(c.at).format('Y/MM/DD HH:mm:ss'),
+                        at: Moment(c.date).format('Y/MM/DD HH:mm:ss'),
                         type: c.type,
                         description: c.description
                     };

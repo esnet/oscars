@@ -1,8 +1,7 @@
 package net.es.oscars.cuke;
 
-import cucumber.api.DataTable;
-import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.resv.beans.PeriodBandwidth;
@@ -11,7 +10,6 @@ import net.es.oscars.resv.svc.ResvLibrary;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.*;
 
@@ -28,9 +26,8 @@ public class BandwidthSteps extends CucumberSteps {
     }
 
     @Given("^I set these \"([^\"]*)\" bandwidth reservations$")
-    public void i_set_these_bandwidth_reservations(BwDirection direction, DataTable table) throws Throwable {
+    public void i_set_these_bandwidth_reservations(BwDirection direction, List<List<String>> data) throws Throwable {
         Map<String, List<PeriodBandwidth>> resvs = new HashMap<>();
-        List<List<String>> data = table.raw();
         for (List<String> row :data) {
 
             String urn = row.get(0);

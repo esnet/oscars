@@ -1,16 +1,14 @@
 package net.es.oscars.pss.cuke;
 
-import cucumber.api.CucumberOptions;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+import io.cucumber.spring.CucumberContextConfiguration;
 import net.es.oscars.pss.AbstractPssTest;
 import org.junit.runner.RunWith;
-import cucumber.api.junit.Cucumber;
 
 @RunWith(Cucumber.class)
-@CucumberOptions(format = {
-        "pretty",
-        "html:target/site/cucumber/cucumber",
-        "json:target/failsafe-reports/cucumber.json" },
-        strict = true)
+@CucumberContextConfiguration
+@CucumberOptions(tags = "@none")
 public class CucumberTest extends AbstractPssTest {
 
 }

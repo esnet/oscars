@@ -1,8 +1,7 @@
 package net.es.oscars.cuke;
 
-import cucumber.api.DataTable;
-import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.resv.ent.Vlan;
@@ -12,7 +11,6 @@ import net.es.oscars.topo.beans.TopoUrn;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
 @Slf4j
@@ -33,9 +31,8 @@ public class VlanSteps extends CucumberSteps {
     }
 
     @Given("^I set these eternal vlan reservations$")
-    public void i_set_these_eternal_vlan_reservations(DataTable table) throws Throwable {
+    public void i_set_these_eternal_vlan_reservations(List<List<String>> data) throws Throwable {
         world.reservedVlans = new ArrayList<>();
-        List<List<String>> data = table.raw();
         for (List<String> row :data) {
 
             String urn = row.get(0);

@@ -1,8 +1,7 @@
 package net.es.oscars.cuke;
 
-import cucumber.api.DataTable;
-import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.resv.ent.Schedule;
@@ -10,7 +9,6 @@ import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.svc.ResvLibrary;
 
 import org.junit.experimental.categories.Category;
-import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,9 +25,8 @@ public class ScheduleSteps extends CucumberSteps {
         this.schedules = new ArrayList<>();
     }
     @Given("^I add these schedules$")
-    public void i_add_these_schedules(DataTable scheduleRows) throws Throwable {
-        List<List<String>> data = scheduleRows.raw();
-        for (List<String> row : data) {
+    public void i_add_these_schedules(List<List<String>> scheduleRows) throws Throwable {
+        for (List<String> row : scheduleRows) {
             String cId = row.get(0);
             Integer b = Integer.parseInt(row.get(1));
             Integer e = Integer.parseInt(row.get(2));
