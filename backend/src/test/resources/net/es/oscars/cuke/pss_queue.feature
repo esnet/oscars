@@ -20,7 +20,7 @@ Feature: PSS task queueing
     Then the "WAITING" set has 0 entries
     Then the "RUNNING" set has 1 entries
     Then the "DONE" set has 0 entries
-    When I make all RUNNING tasks complete
+    When I make all running tasks complete
     Then the "WAITING" set has 0 entries
     Then the "RUNNING" set has 0 entries
     Then the "DONE" set has 1 entries
@@ -34,7 +34,7 @@ Feature: PSS task queueing
     Then the "WAITING" set has 0 entries
     Then the "RUNNING" set has 1 entries
     Then the "DONE" set has 0 entries
-    When I make all RUNNING tasks complete
+    When I make all running tasks complete
     Then the "WAITING" set has 0 entries
     Then the "RUNNING" set has 0 entries
     Then the "DONE" set has 1 entries
