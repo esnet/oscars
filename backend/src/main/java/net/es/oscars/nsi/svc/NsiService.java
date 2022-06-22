@@ -529,11 +529,13 @@ public class NsiService {
     }
 
     public QueryRecursiveResultType toQRRT(NsiMapping mapping) throws NsiException {
-        Connection c = this.getOscarsConnection(mapping);
-        if (c == null) {
+        Optional<Connection> mc = this.getMaybeOscarsConnection(mapping);
+        if (!mc.isPresent()) {
             log.error("nsi mapping for nonexistent OSCARS connection " + mapping.getOscarsConnectionId());
             return null;
         }
+        Connection c = mc.get();
+
         QueryRecursiveResultType qrrt = new QueryRecursiveResultType();
         qrrt.setConnectionId(mapping.getNsiConnectionId());
 
@@ -567,11 +569,12 @@ public class NsiService {
     }
 
     public QuerySummaryResultType toQSRT(NsiMapping mapping) throws NsiException {
-        Connection c = this.getOscarsConnection(mapping);
-        if (c == null) {
+        Optional<Connection> mc = this.getMaybeOscarsConnection(mapping);
+        if (!mc.isPresent()) {
             log.error("nsi mapping for nonexistent OSCARS connection " + mapping.getOscarsConnectionId());
             return null;
         }
+        Connection c = mc.get();
 
         QuerySummaryResultType qsrt = new QuerySummaryResultType();
         qsrt.setConnectionId(mapping.getNsiConnectionId());
@@ -1412,6 +1415,13 @@ public class NsiService {
         }
     }
 
+    @Transactional
+    public Optional<Connection> getMaybeOscarsConnection(NsiMapping mapping) throws NsiException {
+        // log.debug("getting oscars connection for "+mapping.getOscarsConnectionId());
+        Optional<Connection> c = connRepo.findByConnectionId(mapping.getOscarsConnectionId());
+        return c;
+
+    }
     public NsiMapping getMapping(String nsiConnectionId) throws NsiException {
         if (nsiConnectionId == null || nsiConnectionId.equals("")) {
             throw new NsiException("null or blank connection id! " + nsiConnectionId, NsiErrors.MISSING_PARAM_ERROR);
