@@ -15,7 +15,6 @@
 exit
 /configure service vpls ${svcId} shutdown
 /configure service vpls ${svcId} description "${vpls.description}"
-/configure service vpls ${svcId} service-name "${vpls.serviceName}"
 /configure service vpls ${svcId} service-mtu ${vpls.mtu}
 /configure service vpls ${svcId} fdb-table-size 4096
 /configure service vpls ${svcId} stp shutdown
@@ -25,9 +24,8 @@ exit
 <#assign endpointName = vpls.endpointName>
 /configure service vpls ${svcId} endpoint "${endpointName}" create
 exit
-/configure service vpls ${svcId} endpoint "${endpointName}" revert-time 1
-/configure service vpls ${svcId} endpoint "${endpointName}" restrict-protected-src discard-frame
 /configure service vpls ${svcId} endpoint "${endpointName}" no suppress-standby-signaling
+/configure service vpls ${svcId} endpoint "${endpointName}" revert-time 3
 </#if>
 
 
@@ -60,10 +58,12 @@ exit
 
 exit all
 /configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} stp shutdown
-/configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} restrict-protected-src discard-frame
 
 <#if sdpToVcId.primary>
 /configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} precedence primary
+<#else>
+/configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} no pw-status-signaling
+
 </#if>
 
 

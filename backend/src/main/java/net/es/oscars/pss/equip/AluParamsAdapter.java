@@ -144,6 +144,7 @@ public class AluParamsAdapter {
 
         AluVpls vpls = AluVpls.builder()
                 .protectVcId(protectVcId)
+                .endpointName(c.getConnectionId()+"-endpoint")
                 .protectEnabled(protectEnabled)
                 .description("OSCARS-" + c.getConnectionId() + "-VPLS")
                 .saps(saps)
