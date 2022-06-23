@@ -63,6 +63,7 @@ public class ConfigGenService {
         */
 
         log.info("generating config for " + conn.getConnectionId());
+        boolean aluSuppressStandbySignaling = true;
         for (VlanJunction j : conn.getReserved().getCmp().getJunctions()) {
             Device d = topoSvc.getDeviceRepo().findByUrn(j.getDeviceUrn()).orElseThrow(PSSException::new);
             String build = null;
@@ -71,7 +72,8 @@ public class ConfigGenService {
             String templateVersion = null;
             switch (d.getModel()) {
                 case ALCATEL_SR7750:
-                    AluParams aluParams = apa.params(conn, j);
+                    AluParams aluParams = apa.params(conn, j, aluSuppressStandbySignaling);
+                    aluSuppressStandbySignaling = false;
                     build = acg.build(aluParams);
                     dismantle = acg.dismantle(aluParams);
                     opStatus = acg.show(aluParams);

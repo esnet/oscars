@@ -24,8 +24,11 @@ exit
 <#assign endpointName = vpls.endpointName>
 /configure service vpls ${svcId} endpoint "${endpointName}" create
 exit
+<#if vpls.suppressStandby>
 /configure service vpls ${svcId} endpoint "${endpointName}" no suppress-standby-signaling
-/configure service vpls ${svcId} endpoint "${endpointName}" revert-time 3
+</#if>
+
+/configure service vpls ${svcId} endpoint "${endpointName}" revert-time 60
 </#if>
 
 

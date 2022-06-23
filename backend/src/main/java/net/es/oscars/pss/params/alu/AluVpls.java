@@ -19,6 +19,8 @@ public class AluVpls {
 
     private List<AluSap> saps;
 
+    public Boolean suppressStandby;
+
     private String serviceName;
 
     private String description;

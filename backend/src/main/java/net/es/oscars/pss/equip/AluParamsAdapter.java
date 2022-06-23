@@ -39,7 +39,7 @@ public class AluParamsAdapter {
     private final static Integer LSP_PRT_SETUP_PRIORITY = 4;
     private final static Integer LSP_PRT_METRIC = 65100;
 
-    public AluParams params(Connection c, VlanJunction rvj) throws PSSException {
+    public AluParams params(Connection c, VlanJunction rvj, boolean aluSuppressStandbySignaling) throws PSSException {
         Integer aluSvcId = null;
         log.info("making ALU params");
         Integer loopback = null;
@@ -144,6 +144,7 @@ public class AluParamsAdapter {
 
         AluVpls vpls = AluVpls.builder()
                 .protectVcId(protectVcId)
+                .suppressStandby(aluSuppressStandbySignaling)
                 .endpointName(c.getConnectionId()+"-endpoint")
                 .protectEnabled(protectEnabled)
                 .description("OSCARS-" + c.getConnectionId() + "-VPLS")
