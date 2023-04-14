@@ -43,10 +43,8 @@ exit
 <#list vpls.sdpToVcIds as sdpToVcId>
 <#assign sdpId = sdpToVcId.sdpId>
 <#assign vcId = sdpToVcId.vcId>
-
-<#list vpls.endpointNames as endpointName>
+<#assign endpointName = sdpToVcId.endpointName>
 /configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} vc-type vlan split-horizon-group "shg" endpoint ${endpointName} create
-</#list>
 
 exit all
 /configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} stp shutdown

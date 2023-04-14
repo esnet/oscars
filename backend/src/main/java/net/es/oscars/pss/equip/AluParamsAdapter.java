@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Component
@@ -145,10 +146,10 @@ public class AluParamsAdapter {
         AluVpls vpls = AluVpls.builder()
                 .protectVcId(protectVcId)
                 .suppressStandby(aluSuppressStandbySignaling)
-                .endpointNames(new ArrayList<>())
                 .protectEnabled(protectEnabled)
                 .description("OSCARS-" + c.getConnectionId() + "-VPLS")
                 .saps(saps)
+                .endpointNames(new ArrayList<>())
                 .serviceName("OSCARS-" + c.getConnectionId() + "-SVC")
                 .sdpToVcIds(new ArrayList<>())
                 .svcId(aluSvcId)
@@ -179,10 +180,9 @@ public class AluParamsAdapter {
                 isInPipes = true;
             }
 
-            if (other_j == null) {
-                throw new PSSException("unable to locate other end of junction");
+            if (other_j != null) {
+               vpls.getEndpointNames().add((c.getConnectionId()+"-"+other_j.getDeviceUrn()+"-endpoint"));
             }
-            vpls.getEndpointNames().add((c.getConnectionId()+"-"+other_j.getDeviceUrn()+"-endpoint"));
 
             if (hops != null) {
                 List<AluPipeResult> aluPipes = this.makePipe(other_j, hops, p, rvj, c, vpls);
@@ -311,6 +311,7 @@ public class AluParamsAdapter {
                 .primary(true)
                 .besteffort(false)
                 .vcId(vpls.getSvcId())
+                .endpointName(c.getConnectionId()+"-"+otherJunction.getDeviceUrn()+"-endpoint")
                 .build();
         vpls.getSdpToVcIds().add(sdpToVcId);
 
@@ -356,6 +357,7 @@ public class AluParamsAdapter {
                     .sdpId(protectSdpId)
                     .primary(false)
                     .besteffort(true)
+                    .endpointName(c.getConnectionId()+"-"+otherJunction.getDeviceUrn()+"-endpoint")
                     .vcId(vpls.getProtectVcId()).build();
             vpls.getSdpToVcIds().add(protectSdpToVcId);
 

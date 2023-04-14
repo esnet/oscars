@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class AluSdpToVcId {
     private Integer sdpId;
     private Integer vcId;
+    private String endpointName;
     private boolean primary;
     private boolean besteffort;
 }
