@@ -145,7 +145,7 @@ public class AluParamsAdapter {
         AluVpls vpls = AluVpls.builder()
                 .protectVcId(protectVcId)
                 .suppressStandby(aluSuppressStandbySignaling)
-                .endpointName(c.getConnectionId()+"-endpoint")
+                .endpointNames(new ArrayList<>())
                 .protectEnabled(protectEnabled)
                 .description("OSCARS-" + c.getConnectionId() + "-VPLS")
                 .saps(saps)
@@ -154,6 +154,7 @@ public class AluParamsAdapter {
                 .svcId(aluSvcId)
                 .mtu(c.getConnection_mtu() + 114)
                 .build();
+
 
         List<Lsp> lsps = new ArrayList<>();
         List<AluSdp> sdps = new ArrayList<>();
@@ -176,8 +177,13 @@ public class AluParamsAdapter {
                 other_j = p.getA();
                 hops = p.getZaERO();
                 isInPipes = true;
-
             }
+
+            if (other_j == null) {
+                throw new PSSException("unable to locate other end of junction");
+            }
+            vpls.getEndpointNames().add((c.getConnectionId()+"-"+other_j.getDeviceUrn()+"-endpoint"));
+
             if (hops != null) {
                 List<AluPipeResult> aluPipes = this.makePipe(other_j, hops, p, rvj, c, vpls);
                 for (AluPipeResult pr : aluPipes) {

@@ -1,7 +1,7 @@
 <#-- @ftlvariable name="vpls" type="net.es.oscars.pss.params.alu.AluVpls" -->
 <#-- @ftlvariable name="sap" type="net.es.oscars.pss.params.alu.AluSap" -->
 <#-- @ftlvariable name="sdp" type="net.es.oscars.pss.params.alu.AluSdp" -->
-@version: 1.0.37
+@version: 1.0.45
 
 <#assign svcId = vpls.svcId>
 /configure service vpls ${svcId} shutdown
@@ -16,10 +16,7 @@
 </#list>
 </#if>
 
-/configure service vpls ${svcId} no split-horizon-group "shg-pri"
-
-/configure service vpls ${svcId} no split-horizon-group "shg-sec"
-
+/configure service vpls ${svcId} no split-horizon-group "shg"
 
 <#list vpls.saps as sap>
 <#assign sapId = sap.port+":"+sap.vlan>

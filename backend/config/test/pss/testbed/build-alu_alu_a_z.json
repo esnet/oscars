@@ -18,7 +18,7 @@
         }
       ],
       "description": "NERSC - STAR testing",
-      "endpointName": "OKI9R5-endpoint",
+      "endpointNames": [ "OKI9R5-star-tb1-endpoint" ],
       "sdpToVcIds": [
         {
           "sdpId": 6511,

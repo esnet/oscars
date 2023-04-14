@@ -1,4 +1,9 @@
 # OSCARS Release Notes
+## 1.0.45
+> Apr, 2023
+- Maintenance release
+- NSI fixes
+- Template updates
 
 ## 1.0.43
 > Oct 28, 2020

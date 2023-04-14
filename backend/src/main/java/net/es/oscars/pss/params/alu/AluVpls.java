@@ -25,7 +25,7 @@ public class AluVpls {
 
     private String description;
 
-    private String endpointName;
+    private List<String> endpointNames;
 
     private Integer mtu;
 }

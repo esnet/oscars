@@ -360,12 +360,14 @@ public class AluCommandGenerator {
                     .keyword(params.getLoopbackAddress())
                     .build(), ip_criteria);
         }
+        if (params.getAluVpls().getEndpointNames() != null) {
 
-        if (params.getAluVpls().getEndpointName() != null) {
-            keywordMap.put(KeywordWithContext.builder()
-                    .context("VPLS endpoint name")
-                    .keyword(params.getAluVpls().getEndpointName())
-                    .build(), alphanum_criteria);
+            for (String endpointName : params.getAluVpls().getEndpointNames()) {
+                keywordMap.put(KeywordWithContext.builder()
+                        .context("VPLS endpoint name")
+                        .keyword(endpointName)
+                        .build(), alphanum_criteria);
+            }
         }
 
         for (Lsp lsp : params.getLsps()) {

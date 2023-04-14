@@ -1,6 +1,6 @@
 <#-- @ftlvariable name="vpls" type="net.es.oscars.pss.params.mx.MxVpls" -->
 <#-- @ftlvariable name="ifces" type="java.util.List<net.es.oscars.pss.params.mx.TaggedIfce>" -->
-@version: 1.0.37
+@version: 1.0.45
 
 edit routing-instances "${vpls.serviceName}"
 <#list ifces as ifce>

@@ -472,9 +472,10 @@ public class NsiService {
                 qrct.getReservation().add(qrrt);
                 resultId++;
             } else {
-                log.info("will delete an invalid nsi mapping for " + mapping.getNsiConnectionId() + " - " + mapping.getOscarsConnectionId());
-                invalidMappings.add(mapping);
+//                log.info("will delete an invalid nsi mapping for " + mapping.getNsiConnectionId() + " - " + mapping.getOscarsConnectionId());
+//                invalidMappings.add(mapping);
             }
+
         }
         nsiRepo.deleteAll(invalidMappings);
         return qrct;
@@ -518,9 +519,9 @@ public class NsiService {
                 qsrt.setResultId(resultId);
                 qsct.getReservation().add(qsrt);
                 resultId++;
-            } else {
-                log.info("will delete an invalid nsi mapping for " + mapping.getNsiConnectionId() + " - " + mapping.getOscarsConnectionId());
-                invalidMappings.add(mapping);
+//            } else {
+//                log.info("will delete an invalid nsi mapping for " + mapping.getNsiConnectionId() + " - " + mapping.getOscarsConnectionId());
+//                invalidMappings.add(mapping);
             }
         }
         nsiRepo.deleteAll(invalidMappings);

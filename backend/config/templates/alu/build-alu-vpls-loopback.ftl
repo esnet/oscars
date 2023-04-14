@@ -1,6 +1,6 @@
 <#-- @ftlvariable name="loopback_ifce_name" type="java.lang.String" -->
 <#-- @ftlvariable name="loopback_address" type="java.lang.String" -->
-@version: 1.0.37
+@version: 1.0.45
 
 /configure router interface "${loopback_ifce_name}" address ${loopback_address}/32
 /configure router interface "${loopback_ifce_name}" loopback

@@ -22,6 +22,7 @@
           "description": "second test SAP"
         }
       ],
+      "endpointNames": [],
       "serviceName": "testNewOscars-3101",
       "description": "es_net-1234, to someplace"
     },

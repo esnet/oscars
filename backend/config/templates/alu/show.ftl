@@ -6,7 +6,7 @@
 <#-- @ftlvariable name="lsp" type="net.es.oscars.pss.params.Lsp" -->
 <#-- @ftlvariable name="path" type="net.es.oscars.pss.params.MplsPath" -->
 <#-- @ftlvariable name="paths" type="java.util.List" -->
-@version: 1.0.37
+@version: 1.0.45
 
 <#assign svcId = vpls.svcId>
 

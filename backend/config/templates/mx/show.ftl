@@ -1,7 +1,7 @@
 <#-- @ftlvariable name="vpls" type="net.es.oscars.pss.params.mx.MxVpls" -->
 <#-- @ftlvariable name="ifces" type="java.util.List<net.es.oscars.pss.params.mx.TaggedIfce>" -->
 <#-- @ftlvariable name="lsps" type="java.util.List<net.es.oscars.pss.params.mx.MxLsp>" -->
-@version: 1.0.37
+@version: 1.0.45
 
 show vpls connection instance "${vpls.serviceName}" extensive
 show vpls mac-table instance "${vpls.serviceName}"

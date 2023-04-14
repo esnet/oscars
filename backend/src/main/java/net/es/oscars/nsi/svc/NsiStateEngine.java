@@ -1,5 +1,6 @@
 package net.es.oscars.nsi.svc;
 
+import lombok.extern.slf4j.Slf4j;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.ServiceException;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
 import net.es.oscars.app.exc.NsiException;
@@ -16,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Component
+@Slf4j
 public class NsiStateEngine {
     @Autowired
     private NsiMappingRepository nsiRepo;
@@ -46,6 +48,7 @@ public class NsiStateEngine {
                 .provisionState(ProvisionStateEnumType.RELEASED)
                 .reservationState(ReservationStateEnumType.RESERVE_START)
                 .build();
+        log.info("added an NSI mapping: "+nsiConnectionId+" --> "+oscarsConnectionId);
         nsiRepo.save(mapping);
         return mapping;
     }

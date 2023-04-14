@@ -1,5 +1,5 @@
 <#-- @ftlvariable name="vlans" type="java.util.List<net.es.oscars.pss.params.ex.ExVlan>" -->
-@version: 1.0.37
+@version: 1.0.45
 
 <#list vlans as vlan>
 

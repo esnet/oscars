@@ -1,13 +1,7 @@
 <#-- @ftlvariable name="vpls" type="net.es.oscars.pss.params.alu.AluVpls" -->
 <#-- @ftlvariable name="sap" type="net.es.oscars.pss.params.alu.AluSap" -->
 <#-- @ftlvariable name="sdpToVcId" type="net.es.oscars.pss.params.alu.AluSdpToVcId" -->
-@version: 1.0.37
-
-<#assign endpointSnippet = "">
-<#if vpls.endpointName??>
-    <#assign endpointName = vpls.endpointName>
-    <#assign endpointSnippet = "endpoint "+endpointName>
-</#if>
+@version: 1.0.45
 
 <#assign svcId = vpls.svcId>
 
@@ -19,17 +13,14 @@ exit
 /configure service vpls ${svcId} fdb-table-size 4096
 /configure service vpls ${svcId} stp shutdown
 
-
-<#if vpls.endpointName??>
-<#assign endpointName = vpls.endpointName>
+<#list vpls.endpointNames as endpointName>
 /configure service vpls ${svcId} endpoint "${endpointName}" create
 exit
 <#if vpls.suppressStandby>
 /configure service vpls ${svcId} endpoint "${endpointName}" no suppress-standby-signaling
 </#if>
-
 /configure service vpls ${svcId} endpoint "${endpointName}" revert-time 60
-</#if>
+</#list>
 
 
 <#list vpls.saps as sap>
@@ -44,20 +35,18 @@ exit
 /configure service vpls ${svcId} sap ${sapId} no shutdown
 </#list>
 
-/configure service vpls ${svcId} split-horizon-group "shg-pri" create
-/configure service vpls ${svcId} split-horizon-group "shg-pri" auto-learn-mac-protect
+/configure service vpls ${svcId} split-horizon-group "shg" create
+/configure service vpls ${svcId} split-horizon-group "shg" auto-learn-mac-protect
 
 
 <#if vpls.sdpToVcIds??>
 <#list vpls.sdpToVcIds as sdpToVcId>
-
 <#assign sdpId = sdpToVcId.sdpId>
 <#assign vcId = sdpToVcId.vcId>
-<#if sdpToVcId.primary>
-/configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} vc-type vlan split-horizon-group "shg-pri" ${endpointSnippet} create
-<#else>
-/configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} vc-type vlan split-horizon-group "shg-pri" ${endpointSnippet} create
-</#if>
+
+<#list vpls.endpointNames as endpointName>
+/configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} vc-type vlan split-horizon-group "shg" endpoint ${endpointName} create
+</#list>
 
 exit all
 /configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} stp shutdown
