@@ -102,13 +102,7 @@ public class Startup {
             System.out.println("Exiting (startup.exit is true)");
             System.exit(0);
         }
-        ReentrantLock topoLock = dbAccess.getTopoLock();
-        if (topoLock.isLocked()) {
-            log.debug("connection lock already locked! Will need to wait to complete.");
-        }
-        topoLock.lock();
         topoPopulator.refresh(false);
-        topoLock.unlock();
 
         try {
             for (StartupComponent sc : this.components) {

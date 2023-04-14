@@ -38,22 +38,24 @@ public class RefreshTopology {
             return;
         }
 
-        try {
-            ReentrantLock topoLock = dbAccess.getTopoLock();
-            if (topoLock.isLocked()) {
-                log.debug("connection lock already locked; will need to wait to complete commit");
-            } else {
-                topoLock.lock();
+        ReentrantLock topoLock = dbAccess.getTopoLock();
+        if (topoLock.isLocked()) {
+            log.debug("connection lock already locked; will need to wait to complete commit");
+        } else {
+            topoLock.lock();
+            try {
                 topoPopulator.refresh(true);
+            } catch (TopoException ex) {
+                log.error("Topology import error!", ex);
+            } catch (IOException ex) {
+                log.error("I/O error!", ex);
+            } catch (ConsistencyException ex) {
+                log.error("Consistency error!", ex);
+            } finally {
                 topoLock.unlock();
             }
-        } catch (TopoException ex) {
-            log.error("Topology import error!", ex);
-        } catch (IOException ex) {
-            log.error("I/O error!", ex);
-        } catch (ConsistencyException ex) {
-            log.error("Consistency error!", ex);
         }
+
 
     }
 
