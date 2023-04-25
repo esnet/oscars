@@ -329,7 +329,7 @@ public class AluCommandGenerator {
 
     }
     private void verifyKeywords(AluParams params) throws PSSException {
-        StringBuilder errorStr = new StringBuilder("");
+        StringBuilder errorStr = new StringBuilder();
         boolean hasError = false;
 
         Map<KeywordWithContext, KeywordValidationCriteria> keywordMap = new HashMap<>();
@@ -360,12 +360,12 @@ public class AluCommandGenerator {
                     .keyword(params.getLoopbackAddress())
                     .build(), ip_criteria);
         }
-        if (params.getAluVpls().getEndpointNames() != null) {
+        if (params.getAluVpls().getSdpToVcIds() != null) {
 
-            for (String endpointName : params.getAluVpls().getEndpointNames()) {
+            for (AluSdpToVcId aluSdpToVcId : params.getAluVpls().getSdpToVcIds()) {
                 keywordMap.put(KeywordWithContext.builder()
                         .context("VPLS endpoint name")
-                        .keyword(endpointName)
+                        .keyword(aluSdpToVcId.getEndpointName())
                         .build(), alphanum_criteria);
             }
         }

@@ -18,7 +18,6 @@
       ],
       "serviceName": "OKI9R5",
       "description": "STAR - NERSC testing",
-      "endpointNames": [ "OKI9R5-nersc-tb1-endpoint" ],
       "sdpToVcIds": [
         {
           "sdpId": 99999,

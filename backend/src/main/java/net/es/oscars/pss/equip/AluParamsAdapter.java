@@ -149,7 +149,6 @@ public class AluParamsAdapter {
                 .protectEnabled(protectEnabled)
                 .description("OSCARS-" + c.getConnectionId() + "-VPLS")
                 .saps(saps)
-                .endpointNames(new ArrayList<>())
                 .serviceName("OSCARS-" + c.getConnectionId() + "-SVC")
                 .sdpToVcIds(new ArrayList<>())
                 .svcId(aluSvcId)
@@ -178,10 +177,6 @@ public class AluParamsAdapter {
                 other_j = p.getA();
                 hops = p.getZaERO();
                 isInPipes = true;
-            }
-
-            if (other_j != null) {
-               vpls.getEndpointNames().add((c.getConnectionId()+"-"+other_j.getDeviceUrn()+"-endpoint"));
             }
 
             if (hops != null) {
@@ -311,7 +306,7 @@ public class AluParamsAdapter {
                 .primary(true)
                 .besteffort(false)
                 .vcId(vpls.getSvcId())
-                .endpointName(c.getConnectionId()+"-"+otherJunction.getDeviceUrn()+"-endpoint")
+                .endpointName(createEndpointName(c, otherJunction))
                 .build();
         vpls.getSdpToVcIds().add(sdpToVcId);
 
@@ -357,7 +352,7 @@ public class AluParamsAdapter {
                     .sdpId(protectSdpId)
                     .primary(false)
                     .besteffort(true)
-                    .endpointName(c.getConnectionId()+"-"+otherJunction.getDeviceUrn()+"-endpoint")
+                    .endpointName(createEndpointName(c, otherJunction))
                     .vcId(vpls.getProtectVcId()).build();
             vpls.getSdpToVcIds().add(protectSdpToVcId);
 
@@ -367,6 +362,9 @@ public class AluParamsAdapter {
 
         return aluPipes;
 
+    }
+    protected static String createEndpointName(Connection c, VlanJunction otherJunction) {
+        return c.getConnectionId()+"-"+otherJunction.getDeviceUrn();
     }
 
 

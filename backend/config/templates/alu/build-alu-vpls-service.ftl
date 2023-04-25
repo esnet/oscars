@@ -5,23 +5,13 @@
 
 <#assign svcId = vpls.svcId>
 
-/configure service vpls ${svcId} customer 1 create
+/configure service vpls ${svcId} name "${vpls.serviceName}" customer 1 create
 exit
 /configure service vpls ${svcId} shutdown
 /configure service vpls ${svcId} description "${vpls.description}"
 /configure service vpls ${svcId} service-mtu ${vpls.mtu}
 /configure service vpls ${svcId} fdb-table-size 4096
 /configure service vpls ${svcId} stp shutdown
-
-<#list vpls.endpointNames as endpointName>
-/configure service vpls ${svcId} endpoint "${endpointName}" create
-exit
-<#if vpls.suppressStandby>
-/configure service vpls ${svcId} endpoint "${endpointName}" no suppress-standby-signaling
-</#if>
-/configure service vpls ${svcId} endpoint "${endpointName}" revert-time 60
-</#list>
-
 
 <#list vpls.saps as sap>
 <#assign sapId = sap.port+":"+sap.vlan>
@@ -44,7 +34,15 @@ exit
 <#assign sdpId = sdpToVcId.sdpId>
 <#assign vcId = sdpToVcId.vcId>
 <#assign endpointName = sdpToVcId.endpointName>
-/configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} vc-type vlan split-horizon-group "shg" endpoint ${endpointName} create
+/configure service vpls ${svcId} endpoint "${endpointName}" create
+exit all
+/configure service vpls ${svcId} endpoint "${endpointName}" revert-time 60
+
+ <#if vpls.suppressStandby>
+/configure service vpls ${svcId} endpoint "${endpointName}" no suppress-standby-signaling
+</#if>
+
+/configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} vc-type vlan split-horizon-group "shg" endpoint "${endpointName}" create
 
 exit all
 /configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} stp shutdown
@@ -53,7 +51,6 @@ exit all
 /configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} precedence primary
 <#else>
 /configure service vpls ${svcId} spoke-sdp ${sdpId}:${vcId} no pw-status-signaling
-
 </#if>
 
 
