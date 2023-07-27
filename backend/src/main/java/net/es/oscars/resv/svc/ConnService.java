@@ -31,8 +31,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
-import java.time.Duration;
-import java.time.Instant;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -1351,8 +1351,21 @@ public class ConnService {
             cmp = c.getArchived().getCmp();
         }
 
+        String maxDateStr = "00:00:01 AM 01/01/2038";
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("hh:mm:ss a M/d/uuuu", Locale.US);
+        LocalDateTime localDateTime = LocalDateTime.parse(maxDateStr, dateTimeFormatter);
+        ZoneId zoneId = ZoneId.of("America/Chicago");
+        ZonedDateTime zonedDateTime = localDateTime.atZone(zoneId);
+        Instant maxDate = zonedDateTime.toInstant();
+
         Long b = s.getBeginning().getEpochSecond();
+        if (s.getBeginning().isAfter(maxDate)) {
+            b = maxDate.getEpochSecond();
+        }
         Long e = s.getEnding().getEpochSecond();
+        if (s.getEnding().isAfter(maxDate)) {
+            e = maxDate.getEpochSecond();
+        }
         List<SimpleTag> simpleTags = new ArrayList<>();
         for (Tag t : c.getTags()) {
             simpleTags.add(SimpleTag.builder()
