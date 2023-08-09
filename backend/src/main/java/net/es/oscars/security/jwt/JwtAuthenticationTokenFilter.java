@@ -38,7 +38,10 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
         String username = null;
         String authToken = request.getHeader(header);
         if (authToken != null) {
+            log.info("auth token: ["+authToken+"]");
             username = jwtTokenUtil.getUsernameFromToken(authToken);
+        } else {
+            log.info("empty token ");
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -61,9 +64,8 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 
         }
         try {
-
             chain.doFilter(request, response);
-        } catch (NestedServletException ex) {
+        } catch (ServletException ex) {
             log.error(ex.getMessage(), ex);
             throw new ServletException(ex.getMessage());
         }

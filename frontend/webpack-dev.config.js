@@ -128,17 +128,17 @@ module.exports = {
             "/api/*": {
                 secure: false,
                 changeOrigin: true,
-                target: "https://localhost:8201/"
+                target: "http://localhost:8201/"
             },
             "/protected/*": {
                 secure: false,
                 changeOrigin: true,
-                target: "https://localhost:8201/"
+                target: "http://localhost:8201/"
             },
             "/admin/*": {
                 secure: false,
                 changeOrigin: true,
-                target: "https://localhost:8201/"
+                target: "http://localhost:8201/"
             }
         }
     }

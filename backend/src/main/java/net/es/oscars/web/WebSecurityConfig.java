@@ -7,14 +7,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+
 
 @Configuration
 @EnableWebSecurity
@@ -49,35 +52,23 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests((requests) -> requests
-                        // don't apply the JWT filter or any kind of security for swagger
-                        // or statics
-                        .requestMatchers(
-                                "/",
-                                "/login",
-                                "/error",
-                                "/api/**",
-                                "/services/**",
-                                "/pages/**",
-                                "/webjars/**",
-                                "/*.html",
-                                "/favicon.ico",
-                                "/**/*.html",
-                                "/**/*.css",
-                                "/**/*.js",
-                                "/documentation/**",
-                                "/swagger-ui.html/**",
-                                "/swagger-resources/**",
-                                "/null/swagger-resources/**",
-                                "/v2/api-docs",
-                                "/configuration/ui",
-                                "/configuration/security").permitAll()
-                        .requestMatchers("/protected/**").authenticated()
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/api/**").permitAll()
+//                        .requestMatchers("/api/account/login").permitAll()
+                        .requestMatchers("/services/**").permitAll()
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
+                        .requestMatchers("/protected/**").authenticated()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class)
-                .logout(LogoutConfigurer::permitAll);
+
+                .addFilterAt(authenticationTokenFilterBean(), BasicAuthenticationFilter.class)
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .rememberMe(Customizer.withDefaults());
+
+
         return http.build();
 
     }
