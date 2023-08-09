@@ -3,7 +3,7 @@ package net.es.oscars.security.ent;
 
 import lombok.Data;
 
-import javax.persistence.Embeddable;
+import jakarta.persistence.Embeddable;
 
 @Data
 @Embeddable

@@ -3,7 +3,7 @@ package net.es.oscars.pss.ent;
 import lombok.*;
 import net.es.oscars.dto.pss.cmd.CommandType;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Data
 @Entity

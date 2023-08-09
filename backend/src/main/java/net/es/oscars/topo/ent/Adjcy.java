@@ -3,7 +3,7 @@ package net.es.oscars.topo.ent;
 import lombok.*;
 import net.es.oscars.topo.enums.Layer;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -77,6 +77,7 @@ public class Adjcy {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable
+    @Builder.Default
     private Map<Layer, Long> metrics = new HashMap<>();
 
     public String getUrn() {

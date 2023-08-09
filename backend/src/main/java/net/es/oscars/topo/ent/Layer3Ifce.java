@@ -2,7 +2,7 @@ package net.es.oscars.topo.ent;
 
 import lombok.*;
 
-import javax.persistence.Embeddable;
+import jakarta.persistence.Embeddable;
 
 @Data
 @AllArgsConstructor

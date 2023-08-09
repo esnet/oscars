@@ -3,10 +3,7 @@ package net.es.oscars.pss.svc;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.PssProperties;
 import net.es.oscars.dto.pss.cmd.*;
-import net.es.oscars.rest.RestConfigurer;
-import net.es.oscars.rest.RestProperties;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -18,14 +15,11 @@ public class RestPssServer implements PSSProxy {
     private RestTemplate restTemplate;
 
     @Autowired
-    public RestPssServer(PssProperties props, RestProperties restProperties, RestConfigurer restConfigurer) {
+    public RestPssServer(PssProperties props) {
 
         this.props = props;
         try {
-            this.restTemplate = new RestTemplate(restConfigurer.getRestConfig(restProperties));
-            String u = restProperties.getInternalUsername();
-            String p = restProperties.getInternalPassword();
-            restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(u, p));
+            this.restTemplate = new RestTemplate();
 
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);

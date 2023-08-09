@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import net.es.oscars.resv.enums.EventType;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.Instant;
 
 @Data

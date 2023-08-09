@@ -1,0 +1,68 @@
+version: '2.4'
+networks:
+  topo-net:
+    name: topo-net
+    external: true
+
+services:
+  oscars-backend:
+    container_name: oscars-backend
+    networks:
+      - topo-net
+    build:
+      context: .
+      dockerfile: dockerfiles/backend.dockerfile
+    depends_on:
+      oscars-db:
+        condition: service_healthy
+    ports:
+      - "${OSCARS_BACKEND_WEB_PORT:-8201}:${OSCARS_BACKEND_WEB_PORT:-8201}"
+    environment:
+      OSCARS_BACKEND_WEB_PORT: ${OSCARS_BACKEND_WEB_PORT:-8201}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/${POSTGRES_DB:-oscars}
+      POSTGRES_USER: ${POSTGRES_USER:-oscars}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-secret}
+    healthcheck:
+      test: nc -z localhost ${OSCARS_BACKEND_WEB_PORT:-8201} || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  oscars-db:
+    image: "postgres:14.1-alpine"
+    container_name:   oscars-db
+    ports:
+      - "5432"
+    networks:
+      - topo-net
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-oscars}
+      POSTGRES_USER: ${POSTGRES_USER:-oscars}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-secret}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${POSTGRES_DB:-oscars} -U ${POSTGRES_USER:-oscars}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+#
+#  oscars-frontend:
+#    container_name: oscars-frontend
+#    networks:
+#      - topo-net
+#    mem_limit: 4g
+#    build:
+#      dockerfile: dockerfiles/frontend.dockerfile
+#    volumes:
+#      - ./frontend/src:/app/src
+#      - ./frontend/public:/app/public
+#    ports:
+#      - "${OSCARS_FRONTEND_WEB_PORT:-8914}:${OSCARS_FRONTEND_WEB_PORT:-8914}"
+#    environment:
+#      PORT: ${OSCARS_FRONTEND_WEB_PORT:-8914}
+#    depends_on:
+#      oscars-backend:
+#        condition: service_healthy
+#    links:
+#      - oscars-backend:${OSCARS_BACKEND_WEB_PORT:-8911}

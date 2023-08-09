@@ -9,7 +9,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 
 @Configuration
-@ComponentScan(lazyInit = true)
+@ComponentScan(lazyInit = true, basePackages = { "net.es.oscars.*" })
 @EnableAutoConfiguration
 @ContextConfiguration(
         loader = SpringBootContextLoader.class,

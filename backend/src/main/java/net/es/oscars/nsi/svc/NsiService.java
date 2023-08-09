@@ -2,18 +2,19 @@ package net.es.oscars.nsi.svc;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gen.nsi_2_0.connection.types.*;
+import gen.nsi_2_0.services.point2point.ObjectFactory;
 import lombok.extern.slf4j.Slf4j;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.ServiceException;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.requester.ConnectionRequesterPort;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
-import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
-import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.ServiceExceptionType;
-import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.TypeValuePairType;
-import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.VariablesType;
-import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.P2PServiceBaseType;
-import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.DirectionalityType;
-import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.OrderedStpType;
-import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.StpListType;
+import gen.nsi_2_0.connection.ifce.ServiceException;
+import gen.nsi_2_0.connection.requester.ConnectionRequesterPort;
+import gen.nsi_2_0.framework.headers.CommonHeaderType;
+import gen.nsi_2_0.framework.types.ServiceExceptionType;
+import gen.nsi_2_0.framework.types.TypeValuePairType;
+import gen.nsi_2_0.framework.types.VariablesType;
+import gen.nsi_2_0.services.point2point.P2PServiceBaseType;
+import gen.nsi_2_0.services.types.DirectionalityType;
+import gen.nsi_2_0.services.types.OrderedStpType;
+import gen.nsi_2_0.services.types.StpListType;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.exc.PSSException;
@@ -554,8 +555,8 @@ public class NsiService {
 
         P2PServiceBaseType p2p = makeP2P(cmp, mapping);
 
-        net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory p2pof
-                = new net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory();
+        ObjectFactory p2pof
+                = new ObjectFactory();
 
         qrrct.getAny().add(p2pof.createP2Ps(p2p));
         qrrt.getCriteria().add(qrrct);
@@ -594,8 +595,8 @@ public class NsiService {
         Components cmp = NsiService.getComponents(c);
         P2PServiceBaseType p2p = makeP2P(cmp, mapping);
 
-        net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory p2pof
-                = new net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory();
+        ObjectFactory p2pof
+                = new ObjectFactory();
 
         qsrct.getAny().add(p2pof.createP2Ps(p2p));
         qsrt.getCriteria().add(qsrct);
@@ -1073,8 +1074,8 @@ public class NsiService {
         rcct.setVersion(mapping.getDataplaneVersion());
 
         P2PServiceBaseType p2p = makeP2P(c.getHeld().getCmp(), mapping);
-        net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory p2pof
-                = new net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory();
+        ObjectFactory p2pof
+                = new ObjectFactory();
         rcct.getAny().add(p2pof.createP2Ps(p2p));
 
         try {
@@ -1095,8 +1096,8 @@ public class NsiService {
         NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
 
         ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
-        net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory of =
-                new net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory();
+        gen.nsi_2_0.connection.types.ObjectFactory of =
+                new gen.nsi_2_0.connection.types.ObjectFactory();
 
         DataPlaneStateChangeRequestType dsrt = of.createDataPlaneStateChangeRequestType();
         DataPlaneStatusType dst = new DataPlaneStatusType();
@@ -1365,8 +1366,8 @@ public class NsiService {
         XMLGregorianCalendar xge = this.getCalendar(sch.getEnding());
 
 
-        net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory of =
-                new net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory();
+        gen.nsi_2_0.connection.types.ObjectFactory of =
+                new gen.nsi_2_0.connection.types.ObjectFactory();
 
         ScheduleType st = of.createScheduleType();
 

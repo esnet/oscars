@@ -4,7 +4,7 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.persistence.Embeddable;
+import jakarta.persistence.Embeddable;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

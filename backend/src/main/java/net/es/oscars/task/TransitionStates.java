@@ -1,18 +1,13 @@
 package net.es.oscars.task;
 
 import lombok.extern.slf4j.Slf4j;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.LifecycleStateEnumType;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.util.DbAccess;
-import net.es.oscars.nsi.db.NsiMappingRepository;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.svc.NsiService;
-import net.es.oscars.nsi.svc.NsiStateEngine;
 import net.es.oscars.resv.db.ConnectionRepository;
-import net.es.oscars.resv.db.HeldRepository;
 import net.es.oscars.resv.ent.Connection;
-import net.es.oscars.resv.ent.Held;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +19,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 
 

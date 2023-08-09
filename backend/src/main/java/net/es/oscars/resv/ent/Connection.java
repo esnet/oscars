@@ -9,7 +9,7 @@ import net.es.oscars.resv.enums.BuildMode;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.List;
 

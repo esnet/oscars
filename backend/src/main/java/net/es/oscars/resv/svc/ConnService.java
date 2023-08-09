@@ -8,8 +8,6 @@ import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.app.util.DbAccess;
 import net.es.oscars.dto.pss.cmd.CommandType;
-import net.es.oscars.ext.SlackConnector;
-import net.es.oscars.pss.svc.PSSAdapter;
 import net.es.oscars.pss.svc.PSSQueuer;
 import net.es.oscars.pss.svc.PssResourceService;
 import net.es.oscars.resv.db.*;
@@ -30,7 +28,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -49,8 +47,7 @@ public class ConnService {
     @Autowired
     private ConnectionRepository connRepo;
 
-    @Autowired
-    private SlackConnector slack;
+
 
     @Autowired
     private LogService logService;
@@ -363,7 +360,6 @@ public class ConnService {
             throw new PCEException("Null held " + c.getConnectionId());
         }
 
-        slack.sendMessage("User " + c.getUsername() + " committed reservation " + c.getConnectionId());
 
         Validity v = this.validateCommit(c);
         if (!v.isValid()) {
@@ -465,7 +461,6 @@ public class ConnService {
                         .build();
             }
             if (c.getState().equals(State.ACTIVE)) {
-                slack.sendMessage("Cancelling active connection: " + c.getConnectionId());
                 log.debug("Releasing active connection: " + c.getConnectionId());
 
                 pssQueuer.add(CommandType.DISMANTLE, c.getConnectionId(), State.FINISHED);
@@ -480,7 +475,6 @@ public class ConnService {
 
 
             } else {
-                slack.sendMessage("Releasing non-active connection: " + c.getConnectionId());
                 log.debug("Releasing non-active connection: " + c.getConnectionId());
                 Event ev = Event.builder()
                         .connectionId(c.getConnectionId())

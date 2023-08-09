@@ -1,22 +1,14 @@
 package net.es.oscars.task;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.VerifyException;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
-import net.es.oscars.app.exc.PSSException;
-import net.es.oscars.dto.pss.cmd.*;
 import net.es.oscars.pss.svc.PSSProxy;
 import net.es.oscars.pss.svc.PssHealthChecker;
-import net.es.oscars.topo.ent.Device;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.HashSet;
-import java.util.Set;
 
 
 @Slf4j

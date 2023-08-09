@@ -1,6 +1,0 @@
-add method      *       {ssh}
-add user        *       {oscars}
-add password    *       {password}    {enable_pass}
-add autoenable  *       {1}
-add identity    *       /path/to/identity/file
-add passphrase  *       {identity_file_pass}

@@ -6,7 +6,7 @@ import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.enums.Layer;
 import org.hibernate.annotations.NaturalId;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -49,16 +49,19 @@ public class Port {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable
+    @Builder.Default
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Set<Layer3Ifce> ifces = new HashSet<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable
+    @Builder.Default
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Set<IntRange> reservableVlans = new HashSet<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable
+    @Builder.Default
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Set<Layer> capabilities = new HashSet<>();
 

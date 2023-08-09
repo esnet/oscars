@@ -1,8 +1,10 @@
 package net.es.oscars.nsi.svc;
 
+import gen.nsi_2_0.connection.types.LifecycleStateEnumType;
+import gen.nsi_2_0.connection.types.ProvisionStateEnumType;
+import gen.nsi_2_0.connection.types.ReservationStateEnumType;
 import lombok.extern.slf4j.Slf4j;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.ServiceException;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
+import gen.nsi_2_0.connection.ifce.ServiceException;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.nsi.beans.NsiErrors;
 import net.es.oscars.nsi.beans.NsiEvent;
@@ -14,7 +16,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 @Component
 @Slf4j

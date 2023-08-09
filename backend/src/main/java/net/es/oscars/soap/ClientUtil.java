@@ -1,8 +1,9 @@
 package net.es.oscars.soap;
 
 
+import gen.nsi_2_0.services.point2point.ObjectFactory;
 import lombok.extern.slf4j.Slf4j;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.requester.ConnectionRequesterPort;
+import gen.nsi_2_0.connection.requester.ConnectionRequesterPort;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.props.NsiProperties;
 import net.es.oscars.nsi.beans.NsiErrors;
@@ -63,7 +64,7 @@ public class ClientUtil {
         }
         props.put("jaxb.additionalContextClasses",
                 new Class[]{
-                        net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory.class
+                        ObjectFactory.class
                 });
         fb.setProperties(props);
 
