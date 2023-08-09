@@ -11,7 +11,7 @@ services:
       - topo-net
     build:
       context: .
-      dockerfile: dockerfiles/backend.dockerfile
+      dockerfile: dockerfiles/devel/backend.dockerfile
     depends_on:
       oscars-db:
         condition: service_healthy
@@ -46,23 +46,24 @@ services:
       timeout: 5s
       retries: 5
 
-#
-#  oscars-frontend:
-#    container_name: oscars-frontend
-#    networks:
-#      - topo-net
-#    mem_limit: 4g
-#    build:
-#      dockerfile: dockerfiles/frontend.dockerfile
-#    volumes:
-#      - ./frontend/src:/app/src
-#      - ./frontend/public:/app/public
-#    ports:
-#      - "${OSCARS_FRONTEND_WEB_PORT:-8914}:${OSCARS_FRONTEND_WEB_PORT:-8914}"
-#    environment:
-#      PORT: ${OSCARS_FRONTEND_WEB_PORT:-8914}
-#    depends_on:
-#      oscars-backend:
-#        condition: service_healthy
-#    links:
-#      - oscars-backend:${OSCARS_BACKEND_WEB_PORT:-8911}
+  oscars-frontend:
+    container_name: oscars-frontend
+    build:
+      context: frontend
+      dockerfile: ../dockerfiles/devel/frontend.dockerfile
+    # for dev mode
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    ports:
+      - "${OSCARS_FRONTEND_WEB_PORT:-8181}:${OSCARS_FRONTEND_WEB_PORT:-8181}"
+    networks:
+      - topo-net
+    environment:
+      PORT: ${OSCARS_FRONTEND_WEB_PORT:-8181}
+      REACT_APP_VERSION: 10
+    depends_on:
+      oscars-backend:
+        condition: service_healthy
+    links:
+      - oscars-backend:${OSCARS_BACKEND_WEB_PORT:-8201}
