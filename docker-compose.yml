@@ -32,8 +32,6 @@ services:
   oscars-db:
     image: "postgres:14.1-alpine"
     container_name:   oscars-db
-    ports:
-      - "5432"
     networks:
       - topo-net
     environment:
@@ -62,6 +60,24 @@ services:
     environment:
       PORT: ${OSCARS_FRONTEND_WEB_PORT:-8181}
       REACT_APP_VERSION: 10
+    depends_on:
+      oscars-backend:
+        condition: service_healthy
+    links:
+      - oscars-backend:${OSCARS_BACKEND_WEB_PORT:-8201}
+
+  oscars-frontend-next:
+    container_name: oscars-frontend-next
+    image: oscars-frontend-next
+    build:
+      context: frontend-next
+      dockerfile: ../dockerfiles/devel/frontend-next.dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src
+    networks:
+      - topo-net
     depends_on:
       oscars-backend:
         condition: service_healthy

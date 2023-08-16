@@ -50,7 +50,7 @@ let plugins = [
 ];
 
 module.exports = {
-    entry: ["@babel/polyfill", "./src/main/js/index.js"],
+    entry: ["@babel/polyfill", "./src/main/js/page.js"],
     devtool: devtool,
     cache: true,
     mode: "production",
