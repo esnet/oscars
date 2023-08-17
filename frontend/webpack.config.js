@@ -9,18 +9,7 @@ let LodashModuleReplacementPlugin = require("lodash-webpack-plugin");
 // let BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
 
 const PATHS = {
-    build: path.join(
-        __dirname,
-        "target",
-        "classes",
-        "META-INF",
-        "resources",
-        "webjars",
-        packageJSON.name,
-        packageJSON.version
-    ),
-    templates: path.join(__dirname, "src", "main", "resources", "templates"),
-    public: "/webjars/oscars-frontend/" + packageJSON.version
+    build: path.join(__dirname, "build"),
 };
 
 // best for prod
@@ -41,9 +30,9 @@ let plugins = [
         filename: "styles.css"
     }),
     new HtmlWebpackPlugin({
-        template: PATHS.templates + "/index.html",
+        template: "./public/index.html",
         inject: "body",
-        favicon: PATHS.templates + "/favicon.ico"
+        favicon: "./public/favicon.ico"
     })
     // enable to view module sizes on a browser window
     //    new BundleAnalyzerPlugin(),
@@ -57,7 +46,7 @@ module.exports = {
 
     output: {
         path: PATHS.build,
-        publicPath: PATHS.public,
+        publicPath: '/',
         filename: "bundle.js"
     },
     performance: {
