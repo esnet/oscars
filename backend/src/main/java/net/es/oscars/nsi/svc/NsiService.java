@@ -126,7 +126,8 @@ public class NsiService {
 
     @Autowired
     private TaskExecutor taskExecutor;
-
+    @Autowired
+    private ObjectMapper jacksonObjectMapper;
     private static String nsBase = "http://schemas.ogf.org/nml/2013/05/base#";
     private static String nsDefs = "http://schemas.ogf.org/nsi/2013/12/services/definition";
     private static String nsEth = "http://schemas.ogf.org/nml/2012/10/ethernet";
@@ -715,7 +716,7 @@ public class NsiService {
                     .username("nsi")
                     .build();
             try {
-                String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(simpleConnection);
+                String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(simpleConnection);
                 log.debug("simple conn: \n" + pretty);
 
             } catch (JsonProcessingException ex) {
@@ -744,7 +745,7 @@ public class NsiService {
 
             Connection c = connSvc.toNewConnection(simpleConnection);
             try {
-                String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(c);
+                String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(c);
                 log.debug("full conn: \n" + pretty);
 
             } catch (JsonProcessingException ex) {
@@ -1079,7 +1080,7 @@ public class NsiService {
         rcct.getAny().add(p2pof.createP2Ps(p2p));
 
         try {
-            String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(rct);
+            String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(rct);
             log.debug("rct: \n" + pretty);
         } catch (JsonProcessingException ex) {
             log.error(ex.getMessage(), ex);

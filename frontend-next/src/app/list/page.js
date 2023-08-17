@@ -2,14 +2,14 @@
 
 import Head from 'next/head'
 import styles from '../../styles/Home.module.css'
-import {fetcher, getServerUrl} from "../../lib/clients";
+import {fetcher, getFrontendServerUrl} from "../../lib/clients";
 import useSWR from 'swr'
 
 
 function useConnectionList () {
-    const listApiEndpoint = getServerUrl()+'/api/list';
-
+    const listApiEndpoint = getFrontendServerUrl()+'/api/list';
     const { data, error, isLoading } = useSWR(listApiEndpoint, fetcher)
+    console.log(data)
     return {
         connectionsPage: data,
         isLoading,
@@ -21,7 +21,8 @@ function ConnectionListWidget() {
     if (isLoading) return <p>still loading</p>
     if (isError) return <p>error loading connections</p>
     let connectionsList = []
-    connectionsPage['connections'].map((c, idx) => {
+    console.log(connectionsPage)
+    connectionsPage.map((c, idx) => {
         connectionsList.push(<div key={idx}>{c['connectionId']}</div>)
     })
     return connectionsList;

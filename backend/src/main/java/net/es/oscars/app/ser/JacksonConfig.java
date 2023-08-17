@@ -12,14 +12,10 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 public class JacksonConfig {
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer addLombokIntrospection() {
-        return new Jackson2ObjectMapperBuilderCustomizer() {
-            @Override
-            public void customize(Jackson2ObjectMapperBuilder jacksonObjectMapperBuilder) {
-                log.info("customizing jackson");
-                jacksonObjectMapperBuilder.failOnUnknownProperties(true);
-                jacksonObjectMapperBuilder.modules(new JavaTimeModule());
-            }
-
+        return jacksonObjectMapperBuilder -> {
+            log.info("customizing jackson");
+            jacksonObjectMapperBuilder.failOnUnknownProperties(true);
+            jacksonObjectMapperBuilder.modules(new JavaTimeModule());
         };
     }
 }

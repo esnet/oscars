@@ -29,7 +29,7 @@ let plugins = [
 let devtool = "eval";
 
 module.exports = {
-    entry: ["@babel/polyfill", "./src/main/js/page.js"],
+    entry: ["@babel/polyfill", "./src/main/js/index.js"],
     devtool: devtool,
     cache: true,
     mode: "development",

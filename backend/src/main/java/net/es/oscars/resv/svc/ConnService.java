@@ -69,7 +69,8 @@ public class ConnService {
 
     @Autowired
     private ReservedRepository reservedRepo;
-
+    @Autowired
+    private ObjectMapper jacksonObjectMapper;
     @Autowired
     private PSSQueuer pssQueuer;
 
@@ -1135,7 +1136,7 @@ public class ConnService {
                 .build();
         
         try {
-            String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(v);
+            String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(v);
             // log.info(pretty);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
