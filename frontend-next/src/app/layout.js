@@ -1,9 +1,14 @@
 import '../styles/globals.css'
+import OscarsNav from "../components/OscarsNav";
+
 
 export default function RootLayout({ children }) {
     return (
         <html lang="en">
-        <body>{children}</body>
+        <body>
+        <OscarsNav />
+        {children}
+        </body>
         </html>
     )
 }

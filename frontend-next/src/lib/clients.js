@@ -1,5 +1,5 @@
 export function getFrontendServerUrl() {
-    let frontendurl = "http://localhost:3000"
+    let frontendurl = "http://localhost:3001"
     // this lets me hardcode the api url if I'm working outside the container
     if (process.env.NEXT_PUBLIC_API_URL) {
         frontendurl = process.env.NEXT_PUBLIC_API_URL;

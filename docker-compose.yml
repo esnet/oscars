@@ -66,6 +66,7 @@ services:
     links:
       - oscars-backend:${OSCARS_BACKEND_WEB_PORT:-8201}
 
+# beginning of nextjs work; not for production or ocd-stack use
   oscars-frontend-next:
     container_name: oscars-frontend-next
     image: oscars-frontend-next

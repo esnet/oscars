@@ -9,20 +9,8 @@ export default function Home() {
                 <title>OSCARS 1.1</title>
                 <link rel="icon" href="/favicon.ico"/>
             </Head>
-
             <main className={styles.main}>
-                <div>
-                    <p>
-                        <Link href="/list">List</Link>
-                    </p>
-                    <p>
-                        <Link href="/create">Create</Link>
-                    </p>
-                    <p>Welcome to OSCARS 1.1</p>
-
-
-
-                </div>
+                <p>Welcome to OSCARS 1.1</p>
             </main>
 
         </div>
