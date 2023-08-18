@@ -44,17 +44,21 @@ services:
       timeout: 5s
       retries: 5
 
-  oscars-frontend-dev:
-    container_name: oscars-frontend-dev
+  oscars-frontend:
+    container_name: oscars-frontend
     build:
       context: frontend
-      dockerfile: ../deploy/devel/frontend.dockerfile
+      # use deploy/prod/frontend.dockerfile for production image
+      dockerfile: ${OSCARS_FRONTEND_DOCKERFILE:-../deploy/devel/frontend.dockerfile}
     # mounted as volumes for dev mode hot reload
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
+    environment:
+      # OSCARS_BACKEND_URL only used by production image
+      OSCARS_BACKEND_URL: ${OSCARS_BACKEND_URL:-http://oscars-backend:8201}
     ports:
-      - "${OSCARS_FRONTEND_DEV_WEB_PORT:-8181}:3000"
+      - "${OSCARS_FRONTEND_WEB_PORT:-8181}:3000"
     networks:
       - topo-net
     depends_on:
@@ -63,24 +67,6 @@ services:
     links:
       - oscars-backend:8201
 
-
-  oscars-frontend:
-    container_name: oscars-frontend
-    build:
-      context: frontend
-      dockerfile: ../deploy/prod/frontend.dockerfile
-    ports:
-      - "${OSCARS_FRONTEND_WEB_PORT:-8182}:80"
-    networks:
-      - topo-net
-    environment:
-      PORT: ${OSCARS_FRONTEND_WEB_PORT:-8182}
-      OSCARS_BACKEND_URL: ${OSCARS_BACKEND_URL:-http://oscars-backend:8201}
-    depends_on:
-      oscars-backend:
-        condition: service_healthy
-    links:
-      - oscars-backend:${OSCARS_BACKEND_WEB_PORT:-8201}
 
 # beginning of nextjs work; not for production or ocd-stack use
   oscars-frontend-next:
