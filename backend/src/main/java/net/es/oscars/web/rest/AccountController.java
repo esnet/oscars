@@ -58,6 +58,7 @@ public class AccountController {
     public ResponseEntity<?> createAuthenticationToken(@RequestBody JwtAuthenticationRequest authenticationRequest)
             throws AuthenticationException {
 
+        log.info("logging in " + authenticationRequest.getUsername());
         // Perform the security
         final Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -65,6 +66,7 @@ public class AccountController {
                         authenticationRequest.getPassword()
                 )
         );
+        log.info("authenticated " + authenticationRequest.getUsername());
         boolean isAdmin = false;
         for (GrantedAuthority authority : authentication.getAuthorities()) {
             if (authority.getAuthority().equals("ADMIN")) {
@@ -72,12 +74,15 @@ public class AccountController {
             }
         }
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        log.info("set authentication for " + authenticationRequest.getUsername());
 
-        // Reload password post-security so we can generate token
+        // Get user details post-security so we can generate token
         final UserDetails userDetails = userDetailsService.loadUserByUsername(authenticationRequest.getUsername());
+        log.info("loaded details for " + authenticationRequest.getUsername());
         final String token = jwtTokenUtil.generateToken(userDetails);
 
         // Return the token
+        log.info("returning token " + authenticationRequest.getUsername()+" : "+token);
         return ResponseEntity.ok(JwtAuthenticationResponse.builder().admin(isAdmin).token(token).build());
     }
 

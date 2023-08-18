@@ -3,7 +3,7 @@ package net.es.oscars.resv.ent;
 import com.fasterxml.jackson.annotation.*;
 import lombok.*;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.Set;
 
 @Data

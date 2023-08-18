@@ -10,7 +10,7 @@ import net.es.oscars.topo.enums.DeviceType;
 import net.es.oscars.topo.enums.Layer;
 import org.hibernate.annotations.NaturalId;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -36,18 +36,22 @@ public class Device {
     private DeviceModel model;
 
     @NonNull
+    @Builder.Default
     @Column
     private Integer locationId = 0;
 
     @NonNull
+    @Builder.Default
     @Column
     private Double latitude = 0D;
 
     @NonNull
+    @Builder.Default
     @Column
     private Double longitude = 0D;
 
     @NonNull
+    @Builder.Default
     @Column
     private String location = "";
 
@@ -64,17 +68,20 @@ public class Device {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable
+    @Builder.Default
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Set<IntRange> reservableVlans = new HashSet<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable
+    @Builder.Default
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Set<Layer> capabilities = new HashSet<>();
 
     @NonNull
     @ElementCollection(fetch = FetchType.EAGER)
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Set<Port> ports = new HashSet<>();
 

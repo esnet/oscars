@@ -6,8 +6,7 @@ let HtmlWebpackPlugin = require("html-webpack-plugin");
 let webpack = require("webpack");
 
 const PATHS = {
-    build: path.join(__dirname, "target", "devel", packageJSON.version),
-    templates: path.join(__dirname, "src", "main", "resources", "templates")
+    build: path.join(__dirname, "build"),
 };
 
 let plugins = [
@@ -19,9 +18,9 @@ let plugins = [
         __VERSION__: JSON.stringify(packageJSON.version)
     }),
     new HtmlWebpackPlugin({
-        template: PATHS.templates + "/index.html",
+        template: "./public/index.html",
         inject: "body",
-        favicon: PATHS.templates + "/favicon.ico"
+        favicon: "./public/favicon.ico"
     })
     // show bundle sizes and whatnot
     // new BundleAnalyzerPlugin(),
@@ -118,7 +117,7 @@ module.exports = {
     plugins: plugins,
 
     devServer: {
-        port: 8181,
+        port: 3000,
         contentBase: PATHS.build,
         historyApiFallback: true,
         watchOptions: {
@@ -128,17 +127,17 @@ module.exports = {
             "/api/*": {
                 secure: false,
                 changeOrigin: true,
-                target: "https://localhost:8201/"
+                target: "http://oscars-backend:8201/"
             },
             "/protected/*": {
                 secure: false,
                 changeOrigin: true,
-                target: "https://localhost:8201/"
+                target: "http://oscars-backend:8201/"
             },
             "/admin/*": {
                 secure: false,
                 changeOrigin: true,
-                target: "https://localhost:8201/"
+                target: "http://oscars-backend:8201/"
             }
         }
     }

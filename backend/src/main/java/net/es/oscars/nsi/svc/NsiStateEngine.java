@@ -1,20 +1,22 @@
 package net.es.oscars.nsi.svc;
 
+import gen.nsi_2_0.connection.types.LifecycleStateEnumType;
+import gen.nsi_2_0.connection.types.ProvisionStateEnumType;
+import gen.nsi_2_0.connection.types.ReservationStateEnumType;
 import lombok.extern.slf4j.Slf4j;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.ServiceException;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
+import gen.nsi_2_0.connection.ifce.ServiceException;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.nsi.beans.NsiErrors;
 import net.es.oscars.nsi.beans.NsiEvent;
 import net.es.oscars.nsi.db.NsiMappingRepository;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.resv.svc.ConnUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 @Component
 @Slf4j
@@ -23,7 +25,7 @@ public class NsiStateEngine {
     private NsiMappingRepository nsiRepo;
 
     @Autowired
-    private ConnService connSvc;
+    private ConnUtils connUtils;
 
 
     public NsiMapping newMapping(String nsiConnectionId, String nsiGri, String nsaId, Integer version) throws ServiceException {
@@ -36,7 +38,7 @@ public class NsiStateEngine {
         if (!nsiRepo.findByNsiConnectionId(nsiConnectionId).isEmpty()) {
             throw new ServiceException("previously used nsi connection id! " + nsiConnectionId);
         }
-        String oscarsConnectionId = connSvc.generateConnectionId();
+        String oscarsConnectionId = connUtils.genUniqueConnectionId();
 
         NsiMapping mapping = NsiMapping.builder()
                 .nsiConnectionId(nsiConnectionId)

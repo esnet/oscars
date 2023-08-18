@@ -16,6 +16,7 @@ import net.es.oscars.resv.enums.BuildMode;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.resv.svc.ConnUtils;
 import net.es.oscars.web.beans.ConnChangeResult;
 import net.es.oscars.web.beans.ConnException;
 import net.es.oscars.web.beans.ConnectionFilter;
@@ -45,6 +46,9 @@ public class ConnController {
     private ConnService connSvc;
 
     @Autowired
+    private ConnUtils connUtils;
+
+    @Autowired
     private NsiService nsiSvc;
 
     @ExceptionHandler(StartupException.class)
@@ -69,9 +73,7 @@ public class ConnController {
     @RequestMapping(value = "/protected/conn/generateId", method = RequestMethod.GET)
     public String generateConnectionId() throws StartupException {
         this.checkStartup();
-        return connSvc.generateConnectionId();
-
-
+        return connUtils.genUniqueConnectionId();
     }
 
 

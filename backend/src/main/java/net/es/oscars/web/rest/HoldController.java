@@ -25,6 +25,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import static net.es.oscars.resv.svc.ConnUtils.updateConnection;
+
 
 @RestController
 @Slf4j
@@ -36,7 +38,6 @@ public class HoldController {
 
     @Autowired
     private ConnectionRepository connRepo;
-
 
     @Autowired
     private ConnService connSvc;
@@ -121,7 +122,7 @@ public class HoldController {
             throw new StartupException("OSCARS shutting down");
         }
         Optional<Connection> c = connRepo.findByConnectionId(connectionId);
-        if (!c.isPresent()){
+        if (c.isEmpty()){
             throw new IllegalArgumentException("connection not found for "+connectionId);
         } else if (!c.get().getPhase().equals(Phase.HELD)) {
             throw new IllegalArgumentException("connection not in HELD phase for "+connectionId);
@@ -202,7 +203,7 @@ public class HoldController {
             // String prettyPrv = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(prev);
             // log.debug("prev conn: "+prev.getId()+"\n" + prettyPrv);
 
-            connSvc.updateConnection(in, prev);
+            updateConnection(in, prev);
 
             // String prettyUpd = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(prev);
             // log.debug("updated conn: "+prev.getId()+"\n" + prettyUpd);

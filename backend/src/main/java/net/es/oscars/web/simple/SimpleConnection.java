@@ -28,8 +28,11 @@ public class SimpleConnection {
     protected Phase phase;
     protected BuildMode mode;
     protected State state;
+    @Builder.Default
     protected List<Pipe> pipes = new ArrayList<>();
+    @Builder.Default
     protected List<Junction> junctions = new ArrayList<>();
+    @Builder.Default
     protected List<Fixture> fixtures = new ArrayList<>();
     protected List<SimpleTag> tags;
     protected String description;

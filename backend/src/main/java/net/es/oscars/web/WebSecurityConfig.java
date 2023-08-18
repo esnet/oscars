@@ -6,112 +6,73 @@ import net.es.oscars.security.svc.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+
 
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
-public class WebSecurityConfig extends WebSecurityConfigurerAdapter  {
+public class WebSecurityConfig {
 
-
-/*    @Autowired
-    private JwtAuthenticationEntryPoint unauthorizedHandler;
-*/
 
     @Autowired
     private UserService userService;
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    @Autowired PasswordEncoder passwordEncoder;
 
     @Bean
     public JwtAuthenticationTokenFilter authenticationTokenFilterBean() {
         return new JwtAuthenticationTokenFilter();
     }
 
+    @Bean
+    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+        return http.getSharedObject(AuthenticationManagerBuilder.class)
+                .build();
+    }
 
     @Autowired
     public void configureAuthentication(AuthenticationManagerBuilder authenticationManagerBuilder)
             throws Exception {
         authenticationManagerBuilder
                 .userDetailsService(this.userService)
-                .passwordEncoder(passwordEncoder());
+                .passwordEncoder(passwordEncoder);
     }
+
 
     @Bean
-    @Override
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        return super.authenticationManagerBean();
-    }
-
-
-    @Override
-    public void configure(WebSecurity web) {
-
-        // don't apply the JWT filter or any kind of security for swagger
-        // or statics
-        web.ignoring().antMatchers(
-                HttpMethod.GET,
-                "/",
-                "/webjars/**",
-                "/*.html",
-                "/favicon.ico",
-                "/**/*.html",
-                "/**/*.css",
-                "/**/*.js",
-                "/services/**",
-                "/documentation/**",
-                "/swagger-ui.html/**",
-                "/swagger-resources/**",
-                "/null/swagger-resources/**",
-                "/v2/api-docs",
-                "/configuration/ui",
-                "/configuration/security");
-    }
-
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // no need for CSRF or sessions
-                .csrf().disable()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/api/**").permitAll()
+//                        .requestMatchers("/api/account/login").permitAll()
+                        .requestMatchers("/services/**").permitAll()
+                        .requestMatchers("/admin/**").hasAuthority("ADMIN")
+                        .requestMatchers("/protected/**").authenticated()
+                        .anyRequest().authenticated()
+                )
 
-                .authorizeRequests()
-                .antMatchers("/login").permitAll()
-                .antMatchers("/error").permitAll()
-                // allow everyone to public API
-                .antMatchers("/api/**").permitAll()
-
-                // allow everyone to web services (for now..)
-                .antMatchers("/services/**").permitAll()
-                // allow everyone to pages
-                .antMatchers("/pages/**").permitAll()
+                .addFilterAt(authenticationTokenFilterBean(), BasicAuthenticationFilter.class)
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .rememberMe(Customizer.withDefaults());
 
 
-                // only allow authenticated users to get /protected pages or API endpoints
-                .antMatchers("/protected/**").authenticated()
-
-                // only allow admins to anything under /admin
-                .antMatchers("/admin/**").hasAuthority("ADMIN")
-                .anyRequest().authenticated()
-                .and()
-
-                .addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class);
-
+        return http.build();
 
     }
+
+
 
 }

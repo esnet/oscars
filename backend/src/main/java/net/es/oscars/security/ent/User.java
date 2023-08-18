@@ -7,7 +7,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
@@ -26,10 +26,12 @@ public class User implements Serializable, UserDetails {
 
     @NonNull
     @Column(unique = true)
+    @Builder.Default
     private String username = "default";
 
     @NonNull
     @Column
+    @Builder.Default
     @JsonIgnore
     private String password = "";
 

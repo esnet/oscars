@@ -1,0 +1,86 @@
+version: '2.4'
+networks:
+  topo-net:
+    name: topo-net
+    external: true
+
+services:
+  oscars-backend:
+    container_name: oscars-backend
+    networks:
+      - topo-net
+    build:
+      context: ./backend
+      dockerfile: ../deploy/devel/backend.dockerfile
+    depends_on:
+      oscars-db:
+        condition: service_healthy
+    ports:
+      - "${OSCARS_BACKEND_WEB_PORT:-8201}:${OSCARS_BACKEND_WEB_PORT:-8201}"
+    environment:
+      OSCARS_BACKEND_WEB_PORT: ${OSCARS_BACKEND_WEB_PORT:-8201}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/${POSTGRES_DB:-oscars}
+      POSTGRES_USER: ${POSTGRES_USER:-oscars}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-secret}
+    healthcheck:
+      test: nc -z localhost ${OSCARS_BACKEND_WEB_PORT:-8201} || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  oscars-db:
+    image: "postgres:14.1-alpine"
+    container_name:   oscars-db
+    networks:
+      - topo-net
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-oscars}
+      POSTGRES_USER: ${POSTGRES_USER:-oscars}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-secret}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${POSTGRES_DB:-oscars} -U ${POSTGRES_USER:-oscars}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  oscars-frontend:
+    container_name: oscars-frontend
+    build:
+      context: frontend
+      # use deploy/prod/frontend.dockerfile for production image
+      dockerfile: ${OSCARS_FRONTEND_DOCKERFILE:-../deploy/devel/frontend.dockerfile}
+    # mounted as volumes for dev mode hot reload
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    environment:
+      # OSCARS_BACKEND_URL only used by production image
+      OSCARS_BACKEND_URL: ${OSCARS_BACKEND_URL:-http://oscars-backend:8201}
+    ports:
+      - "${OSCARS_FRONTEND_WEB_PORT:-8181}:3000"
+    networks:
+      - topo-net
+    depends_on:
+      oscars-backend:
+        condition: service_healthy
+    links:
+      - oscars-backend:8201
+
+
+# beginning of nextjs work; not for production or ocd-stack use
+  oscars-frontend-next:
+    container_name: oscars-frontend-next
+    image: oscars-frontend-next
+    build:
+      context: frontend-next
+      dockerfile: ../deploy/devel/frontend-next.dockerfile
+    ports:
+      - "3000:3000"
+    networks:
+      - topo-net
+    depends_on:
+      oscars-backend:
+        condition: service_healthy
+    links:
+      - oscars-backend:${OSCARS_BACKEND_WEB_PORT:-8201}

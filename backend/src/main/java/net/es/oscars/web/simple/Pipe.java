@@ -30,13 +30,17 @@ public class Pipe {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     protected PceMode pceMode;
 
+    @Builder.Default
     protected List<String> ero = new ArrayList<>();
+
+    @Builder.Default
     protected List<String> exclude = new ArrayList<>();
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     protected Validity validity;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    @Builder.Default
     protected Map<String, Validity> eroValidity = new HashMap<>();
 
 }

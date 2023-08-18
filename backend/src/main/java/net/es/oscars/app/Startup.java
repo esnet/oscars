@@ -5,10 +5,6 @@ import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.syslog.Syslogger;
 import net.es.oscars.app.util.DbAccess;
-import net.es.oscars.app.util.GitRepositoryState;
-import net.es.oscars.app.util.GitRepositoryStatePopulator;
-import net.es.oscars.ext.SlackConnector;
-import net.es.oscars.pss.svc.PssHealthChecker;
 import net.es.oscars.security.db.UserPopulator;
 import net.es.oscars.topo.beans.TopoException;
 import net.es.oscars.topo.pop.ConsistencyException;
@@ -23,7 +19,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 @Component
@@ -31,9 +26,6 @@ public class Startup {
 
     private List<StartupComponent> components;
     private StartupProperties startupProperties;
-    private GitRepositoryStatePopulator gitRepositoryStatePopulator;
-    private PssHealthChecker pssHealthChecker;
-    private SlackConnector slackConnector;
     private Syslogger syslogger;
 
     private TopoPopulator topoPopulator;
@@ -69,25 +61,16 @@ public class Startup {
                    Syslogger syslogger,
                    TopoPopulator topoPopulator,
                    UserPopulator userPopulator,
-                   SlackConnector slackConnector,
                    DbAccess dbAccess,
-                   UIPopulator uiPopulator,
-                   PssHealthChecker pssHealthChecker,
-                   GitRepositoryStatePopulator gitRepositoryStatePopulator) {
+                   UIPopulator uiPopulator) {
         this.startupProperties = startupProperties;
         this.topoPopulator = topoPopulator;
-        this.slackConnector = slackConnector;
-        this.pssHealthChecker = pssHealthChecker;
         this.dbAccess = dbAccess;
-        this.gitRepositoryStatePopulator = gitRepositoryStatePopulator;
         this.syslogger = syslogger;
 
         components = new ArrayList<>();
         components.add(userPopulator);
         components.add(uiPopulator);
-        components.add(this.slackConnector);
-        components.add(this.gitRepositoryStatePopulator);
-        components.add(this.pssHealthChecker);
     }
 
     public void onStart() throws IOException, ConsistencyException, TopoException {
@@ -113,9 +96,6 @@ public class Startup {
             System.out.println("Exiting..");
             System.exit(1);
         }
-        GitRepositoryState gitRepositoryState = this.gitRepositoryStatePopulator.getGitRepositoryState();
-        log.info("OSCARS backend (" + gitRepositoryState.getDescribe() + " on " + gitRepositoryState.getBranch() + ")");
-        log.info("Built by " + gitRepositoryState.getBuildUserEmail() + " on " + gitRepositoryState.getBuildHost() + " at " + gitRepositoryState.getBuildTime());
         log.info("OSCARS startup successful.");
 
         syslogger.sendSyslog("OSCARS APPLICATION STARTUP COMPLETED");

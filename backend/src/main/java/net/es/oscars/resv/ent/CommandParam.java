@@ -7,7 +7,7 @@ import lombok.*;
 import net.es.oscars.resv.enums.CommandParamIntent;
 import net.es.oscars.topo.enums.CommandParamType;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Data
 @Builder

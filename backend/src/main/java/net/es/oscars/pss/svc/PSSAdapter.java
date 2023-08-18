@@ -1,17 +1,18 @@
 package net.es.oscars.pss.svc;
 
 import lombok.extern.slf4j.Slf4j;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.ServiceException;
+import gen.nsi_2_0.connection.ifce.ServiceException;
 import net.es.oscars.app.exc.NotReadyException;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.app.props.PssProperties;
 import net.es.oscars.app.syslog.Syslogger;
-import net.es.oscars.dto.pss.cmd.*;
+import net.es.oscars.dto.pss.cmd.Command;
+import net.es.oscars.dto.pss.cmd.CommandResponse;
+import net.es.oscars.dto.pss.cmd.CommandStatus;
+import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.dto.pss.st.ConfigStatus;
 import net.es.oscars.dto.pss.st.LifecycleStatus;
-import net.es.oscars.nsi.ent.NsiMapping;
-import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.pss.db.RouterCommandsRepository;
 import net.es.oscars.pss.ent.RouterCommandHistory;
 import net.es.oscars.pss.ent.RouterCommands;
@@ -21,7 +22,6 @@ import net.es.oscars.resv.ent.Event;
 import net.es.oscars.resv.ent.VlanJunction;
 import net.es.oscars.resv.enums.EventType;
 import net.es.oscars.resv.enums.State;
-import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.LogService;
 import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.enums.UrnType;
@@ -43,24 +43,17 @@ public class PSSAdapter {
     private PssProperties properties;
     private RouterCommandsRepository rcr;
     private CommandHistoryRepository historyRepo;
-    private NsiService nsiService;
     private LogService logService;
-    private ConnService connService;
-    private PSSQueuer queuer;
     private TopoService topoService;
     private Syslogger syslogger;
 
     @Autowired
-    public PSSAdapter(PSSProxy pssProxy, RouterCommandsRepository rcr, CommandHistoryRepository historyRepo,
-                      NsiService nsiService, ConnService connService, PSSQueuer queuer, Syslogger syslogger,
+    public PSSAdapter(PSSProxy pssProxy, RouterCommandsRepository rcr, CommandHistoryRepository historyRepo, Syslogger syslogger,
                       TopoService topoService, LogService logService, PssProperties properties) {
         this.pssProxy = pssProxy;
         this.rcr = rcr;
-        this.queuer = queuer;
-        this.connService = connService;
         this.historyRepo = historyRepo;
         this.topoService = topoService;
-        this.nsiService = nsiService;
         this.logService = logService;
         this.properties = properties;
         this.syslogger = syslogger;
@@ -69,28 +62,30 @@ public class PSSAdapter {
     public State processTask(Connection conn, CommandType commandType, State intent) {
         log.info("processing "+conn.getConnectionId()+" "+commandType);
         State newState = intent;
+
+        // 1.1 FIXME: updatestate and queue without a circular reference
         try {
             if (commandType.equals(CommandType.BUILD)) {
                 newState = this.build(conn);
-                connService.updateState(conn, newState);
-                queuer.complete(commandType, conn.getConnectionId());
+                // connService.updateState(conn, newState);
+                // queuer.complete(commandType, conn.getConnectionId());
 
             } else if (commandType.equals(CommandType.DISMANTLE)) {
                 newState = this.dismantle(conn);
                 if (intent == State.FINISHED && newState == State.WAITING) {
                     newState = State.FINISHED;
                 }
-                connService.updateState(conn, newState);
+                // connService.updateState(conn, newState);
                 log.info("completing task "+conn.getConnectionId()+" "+commandType);
-                queuer.complete(commandType, conn.getConnectionId());
+                // queuer.complete(commandType, conn.getConnectionId());
             }
         } catch (NotReadyException ex) {
             log.info("not ready, will retry task "+conn.getConnectionId()+" "+commandType);
-            queuer.remove(commandType, conn.getConnectionId());
+            // queuer.remove(commandType, conn.getConnectionId());
         } catch (PSSException ex) {
             log.error(ex.getMessage(), ex);
-            connService.updateState(conn, State.FAILED);
-            queuer.complete(commandType, conn.getConnectionId());
+            // connService.updateState(conn, State.FAILED);
+            // queuer.complete(commandType, conn.getConnectionId());
         }
         log.info("processed "+conn.getConnectionId()+" "+commandType);
         return newState;
@@ -218,14 +213,9 @@ public class PSSAdapter {
     }
 
     public void triggerNsi(Connection c, State newState) {
-        try {
-            Optional<NsiMapping> maybeMapping = nsiService.getMappingForOscarsId(c.getConnectionId());
-            if (maybeMapping.isPresent()) {
-                nsiService.dataplaneCallback(maybeMapping.get(), newState);
-            }
-        } catch (NsiException | ServiceException ex) {
-            log.error(ex.getMessage(), ex);
-        }
+
+        // 1.1 FIXME: trigger NSI event
+
 
     }
 

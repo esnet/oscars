@@ -1,11 +1,11 @@
 package net.es.oscars.security.jwt;
 
 import java.io.IOException;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.security.svc.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +39,7 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
         String authToken = request.getHeader(header);
         if (authToken != null) {
             username = jwtTokenUtil.getUsernameFromToken(authToken);
+
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -61,9 +62,8 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 
         }
         try {
-
             chain.doFilter(request, response);
-        } catch (NestedServletException ex) {
+        } catch (ServletException ex) {
             log.error(ex.getMessage(), ex);
             throw new ServletException(ex.getMessage());
         }

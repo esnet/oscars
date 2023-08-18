@@ -5,10 +5,10 @@ import lombok.*;
 import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.dto.pss.st.ConfigStatus;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
 import java.time.Instant;
 
 @Data

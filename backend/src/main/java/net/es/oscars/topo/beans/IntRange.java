@@ -4,7 +4,7 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.persistence.Embeddable;
+import jakarta.persistence.Embeddable;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -142,12 +142,15 @@ public class IntRange {
             firstPass.add(ir);
         }
 
-        Set<IntRange> result = new HashSet<>();
-        result.addAll(mergeIntRanges(firstPass));
-        return result;
+        return new HashSet<>(mergeIntRanges(firstPass));
 
     }
-
+    public static Set<Integer> singleSetFromExpr(String rangeExpr){
+        Set<IntRange> ranges = fromExpression(rangeExpr);
+        Set<Integer> result = new HashSet<>();
+        ranges.forEach(r -> result.addAll(r.asSet()));
+        return result;
+    }
 
 
     public static String asString(Collection<IntRange> ranges) {
@@ -243,6 +246,7 @@ public class IntRange {
         }
         return false;
     }
+
 
 
     public static Integer leastInAll(Map<String, Set<IntRange>> rangeMapOfSets) {

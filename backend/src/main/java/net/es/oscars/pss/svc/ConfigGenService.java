@@ -3,8 +3,7 @@ package net.es.oscars.pss.svc;
 import freemarker.template.TemplateException;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PSSException;
-import net.es.oscars.app.props.PssProperties;
-import net.es.oscars.dto.pss.cmd.*;
+import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.pss.beans.TemplateOutput;
 import net.es.oscars.pss.beans.TemplateVersionReport;
 import net.es.oscars.pss.params.alu.AluParams;
@@ -21,12 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
 @Component

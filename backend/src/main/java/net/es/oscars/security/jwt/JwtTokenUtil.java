@@ -6,17 +6,36 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import net.es.oscars.security.SecProperties;
 import net.es.oscars.security.ent.User;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.Serializable;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 @Component
 public class JwtTokenUtil implements Serializable {
+    private static Key jwtSigningKey = null;
+
+    private Key getJwtSigningKey() {
+        if (jwtSigningKey == null) {
+            try {
+                KeyGenerator generator = KeyGenerator.getInstance("HmacSHA512");
+                generator.init(512, new SecureRandom());
+                jwtSigningKey = generator.generateKey();
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return jwtSigningKey;
+
+    }
 
     private static final long serialVersionUID = -3301605591108950415L;
 
@@ -86,8 +105,9 @@ public class JwtTokenUtil implements Serializable {
     private Claims getClaimsFromToken(String token) {
         Claims claims;
         try {
-            claims = Jwts.parser()
-                    .setSigningKey(secProperties.getJwtSecret())
+            claims = Jwts.parserBuilder()
+                    .setSigningKey(getJwtSigningKey())
+                    .build()
                     .parseClaimsJws(token)
                     .getBody();
         } catch (Exception e) {
@@ -125,11 +145,10 @@ public class JwtTokenUtil implements Serializable {
         final Date createdDate = (Date) claims.get(CLAIM_KEY_CREATED);
         final Date expirationDate = new Date(createdDate.getTime() + expiration * 1000);
 
-
         return Jwts.builder()
                 .setClaims(claims)
                 .setExpiration(expirationDate)
-                .signWith(SignatureAlgorithm.HS512, secProperties.getJwtSecret())
+                .signWith(getJwtSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
 

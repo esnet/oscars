@@ -42,6 +42,8 @@ public class PssResourceService {
     @Autowired
     private JunctionRepository jnctRepo;
 
+    @Autowired
+    private ObjectMapper jacksonObjectMapper;
 
     public void reserve(Connection conn) throws PSSException {
         log.info("starting PSS resource reservation");
@@ -64,7 +66,7 @@ public class PssResourceService {
             }
 
             log.debug("allocated PSS resources, connection is now:");
-            String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(conn);
+            String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(conn);
             log.debug(pretty);
 
         } catch (JsonProcessingException e) {

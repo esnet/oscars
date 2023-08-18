@@ -1,11 +1,11 @@
 package net.es.oscars.soap;
 
+import gen.nsi_2_0.connection.types.*;
 import lombok.extern.slf4j.Slf4j;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.Error;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.ServiceException;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.provider.ConnectionProviderPort;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
-import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
+import gen.nsi_2_0.connection.ifce.Error;
+import gen.nsi_2_0.connection.ifce.ServiceException;
+import gen.nsi_2_0.connection.provider.ConnectionProviderPort;
+import gen.nsi_2_0.framework.headers.CommonHeaderType;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.nsi.beans.NsiErrors;
 import net.es.oscars.nsi.ent.NsiMapping;
@@ -25,8 +25,6 @@ public class NsiProvider implements ConnectionProviderPort {
     private NsiService nsiService;
     private NsiStateEngine stateEngine;
 
-    @Autowired
-    private ConnService connSvc;
 
     @Autowired
     public NsiProvider(NsiService nsiService, NsiStateEngine stateEngine) {

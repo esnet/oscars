@@ -1,0 +1,2342 @@
+{
+  "page" : 1,
+  "sizePerPage" : 5,
+  "totalSize" : 93,
+  "connections" : [ {
+    "connectionId" : "ECMR",
+    "phase" : "RESERVED",
+    "mode" : "AUTOMATIC",
+    "state" : "ACTIVE",
+    "username" : "jstewart",
+    "description" : "Cloud testbed",
+    "reserved" : {
+      "connectionId" : "ECMR",
+      "cmp" : {
+        "junctions" : [ {
+          "refId" : "bost-cr6",
+          "connectionId" : "ECMR",
+          "deviceUrn" : "bost-cr6",
+          "schedule" : {
+            "refId" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "beginning" : 1663956153.000000000,
+            "ending" : 1695491964.000000000,
+            "phase" : "RESERVED"
+          },
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "eqxdc4-cr6",
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "bost-cr6",
+            "resource" : -2043154045
+          }, {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7021
+          }, {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7008
+          }, {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7008
+          }, {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "eqxdc4-cr6",
+            "resource" : 7000
+          } ]
+        }, {
+          "refId" : "eqxdc4-cr6",
+          "connectionId" : "ECMR",
+          "deviceUrn" : "eqxdc4-cr6",
+          "schedule" : "ECMR-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "eqxdc4-cr6",
+            "resource" : -2043154044
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7008
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7008
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "bost-cr6",
+            "resource" : 7021
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "bost-cr6",
+            "resource" : 7020
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7021
+          } ]
+        } ],
+        "fixtures" : [ {
+          "connectionId" : "ECMR",
+          "junction" : "bost-cr6",
+          "portUrn" : "bost-cr6:2/1/c14/1",
+          "ingressBandwidth" : 0,
+          "egressBandwidth" : 0,
+          "vlan" : {
+            "connectionId" : "ECMR",
+            "schedule" : "ECMR-sched",
+            "urn" : "bost-cr6:2/1/c14/1",
+            "vlanId" : 3600
+          },
+          "strict" : false,
+          "schedule" : "ECMR-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          } ]
+        }, {
+          "connectionId" : "ECMR",
+          "junction" : "eqxdc4-cr6",
+          "portUrn" : "eqxdc4-cr6:2/1/c3/1",
+          "ingressBandwidth" : 0,
+          "egressBandwidth" : 0,
+          "vlan" : {
+            "connectionId" : "ECMR",
+            "schedule" : "ECMR-sched",
+            "urn" : "eqxdc4-cr6:2/1/c3/1",
+            "vlanId" : 4
+          },
+          "strict" : false,
+          "schedule" : "ECMR-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7010
+          } ]
+        } ],
+        "pipes" : [ {
+          "connectionId" : "ECMR",
+          "a" : "eqxdc4-cr6",
+          "z" : "bost-cr6",
+          "protect" : true,
+          "azBandwidth" : 0,
+          "zaBandwidth" : 0,
+          "azERO" : [ {
+            "urn" : "eqxdc4-cr6"
+          }, {
+            "urn" : "eqxdc4-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c25/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:1/1/c31/1"
+          }, {
+            "urn" : "bost-cr6:1/1/c34/1"
+          }, {
+            "urn" : "bost-cr6"
+          } ],
+          "zaERO" : [ {
+            "urn" : "bost-cr6"
+          }, {
+            "urn" : "bost-cr6:1/1/c34/1"
+          }, {
+            "urn" : "eqxch2-cr6:1/1/c31/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c25/1"
+          }, {
+            "urn" : "eqxdc4-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxdc4-cr6"
+          } ],
+          "schedule" : "ECMR-sched"
+        } ]
+      },
+      "schedule" : "ECMR-sched"
+    },
+    "tags" : [ ],
+    "archived" : {
+      "connectionId" : "ECMR",
+      "cmp" : {
+        "junctions" : [ {
+          "refId" : "bost-cr6",
+          "connectionId" : "ECMR",
+          "deviceUrn" : "bost-cr6",
+          "schedule" : {
+            "refId" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "beginning" : 1663956153.000000000,
+            "ending" : 1695491964.000000000,
+            "phase" : "ARCHIVED"
+          },
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "bost-cr6",
+            "resource" : -2043154045
+          }, {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7021
+          }, {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "eqxdc4-cr6",
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7008
+          }, {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7008
+          }, {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "eqxdc4-cr6",
+            "resource" : 7001
+          } ]
+        }, {
+          "refId" : "eqxdc4-cr6",
+          "connectionId" : "ECMR",
+          "deviceUrn" : "eqxdc4-cr6",
+          "schedule" : "ECMR-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7008
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7008
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7021
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "bost-cr6",
+            "resource" : 7021
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "eqxdc4-cr6",
+            "resource" : -2043154044
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "bost-cr6",
+            "resource" : 7020
+          } ]
+        } ],
+        "fixtures" : [ {
+          "connectionId" : "ECMR",
+          "junction" : "bost-cr6",
+          "portUrn" : "bost-cr6:2/1/c14/1",
+          "ingressBandwidth" : 0,
+          "egressBandwidth" : 0,
+          "vlan" : {
+            "connectionId" : "ECMR",
+            "schedule" : "ECMR-sched",
+            "urn" : "bost-cr6:2/1/c14/1",
+            "vlanId" : 3600
+          },
+          "strict" : false,
+          "schedule" : "ECMR-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "bost-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          } ]
+        }, {
+          "connectionId" : "ECMR",
+          "junction" : "eqxdc4-cr6",
+          "portUrn" : "eqxdc4-cr6:2/1/c3/1",
+          "ingressBandwidth" : 0,
+          "egressBandwidth" : 0,
+          "vlan" : {
+            "connectionId" : "ECMR",
+            "schedule" : "ECMR-sched",
+            "urn" : "eqxdc4-cr6:2/1/c3/1",
+            "vlanId" : 4
+          },
+          "strict" : false,
+          "schedule" : "ECMR-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "ECMR-sched",
+            "connectionId" : "ECMR",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7010
+          } ]
+        } ],
+        "pipes" : [ {
+          "connectionId" : "ECMR",
+          "a" : "eqxdc4-cr6",
+          "z" : "bost-cr6",
+          "protect" : true,
+          "azBandwidth" : 0,
+          "zaBandwidth" : 0,
+          "azERO" : [ {
+            "urn" : "eqxdc4-cr6"
+          }, {
+            "urn" : "eqxdc4-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c25/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:1/1/c31/1"
+          }, {
+            "urn" : "bost-cr6:1/1/c34/1"
+          }, {
+            "urn" : "bost-cr6"
+          } ],
+          "zaERO" : [ {
+            "urn" : "bost-cr6"
+          }, {
+            "urn" : "bost-cr6:1/1/c34/1"
+          }, {
+            "urn" : "eqxch2-cr6:1/1/c31/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c25/1"
+          }, {
+            "urn" : "eqxdc4-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxdc4-cr6"
+          } ],
+          "schedule" : "ECMR-sched"
+        } ]
+      },
+      "schedule" : "ECMR-sched"
+    },
+    "connection_mtu" : 9000,
+    "last_modified" : 1663956224
+  }, {
+    "connectionId" : "C7J7",
+    "phase" : "RESERVED",
+    "mode" : "AUTOMATIC",
+    "state" : "ACTIVE",
+    "username" : "mblodget",
+    "description" : "FNAL-UMN-NOVA-A VLAN 201",
+    "reserved" : {
+      "connectionId" : "C7J7",
+      "cmp" : {
+        "junctions" : [ {
+          "refId" : "fnalgcc-cr6",
+          "connectionId" : "C7J7",
+          "deviceUrn" : "fnalgcc-cr6",
+          "schedule" : {
+            "refId" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "beginning" : 1648823818.000000000,
+            "ending" : 1901283740.000000000,
+            "phase" : "RESERVED"
+          },
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "chic-cr6",
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "chic-cr6",
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "fnalgcc-cr6",
+            "resource" : -2043154153
+          }, {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7002
+          }, {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7001
+          } ]
+        }, {
+          "refId" : "chic-cr6",
+          "connectionId" : "C7J7",
+          "deviceUrn" : "chic-cr6",
+          "schedule" : "C7J7-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "fnalgcc-cr6",
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "chic-cr6",
+            "resource" : -2043154152
+          }, {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7002
+          }, {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "fnalgcc-cr6",
+            "resource" : 7000
+          } ]
+        } ],
+        "fixtures" : [ {
+          "connectionId" : "C7J7",
+          "junction" : "fnalgcc-cr6",
+          "portUrn" : "fnalgcc-cr6:lag-1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "C7J7",
+            "schedule" : "C7J7-sched",
+            "urn" : "fnalgcc-cr6:lag-1",
+            "vlanId" : 201
+          },
+          "strict" : false,
+          "schedule" : "C7J7-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          } ]
+        }, {
+          "connectionId" : "C7J7",
+          "junction" : "chic-cr6",
+          "portUrn" : "chic-cr6:lag-1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "C7J7",
+            "schedule" : "C7J7-sched",
+            "urn" : "chic-cr6:lag-1",
+            "vlanId" : 201
+          },
+          "strict" : false,
+          "schedule" : "C7J7-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          } ]
+        } ],
+        "pipes" : [ {
+          "connectionId" : "C7J7",
+          "a" : "chic-cr6",
+          "z" : "fnalgcc-cr6",
+          "protect" : true,
+          "azBandwidth" : 1000,
+          "zaBandwidth" : 1000,
+          "azERO" : [ {
+            "urn" : "chic-cr6"
+          }, {
+            "urn" : "chic-cr6:1/1/c31/1"
+          }, {
+            "urn" : "fnalgcc-cr6:1/1/c31/1"
+          }, {
+            "urn" : "fnalgcc-cr6"
+          } ],
+          "zaERO" : [ {
+            "urn" : "fnalgcc-cr6"
+          }, {
+            "urn" : "fnalgcc-cr6:1/1/c31/1"
+          }, {
+            "urn" : "chic-cr6:1/1/c31/1"
+          }, {
+            "urn" : "chic-cr6"
+          } ],
+          "schedule" : "C7J7-sched"
+        } ]
+      },
+      "schedule" : "C7J7-sched"
+    },
+    "tags" : [ ],
+    "archived" : {
+      "connectionId" : "C7J7",
+      "cmp" : {
+        "junctions" : [ {
+          "refId" : "fnalgcc-cr6",
+          "connectionId" : "C7J7",
+          "deviceUrn" : "fnalgcc-cr6",
+          "schedule" : {
+            "refId" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "beginning" : 1648823818.000000000,
+            "ending" : 1901283740.000000000,
+            "phase" : "ARCHIVED"
+          },
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7002
+          }, {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "chic-cr6",
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "fnalgcc-cr6",
+            "resource" : -2043154153
+          }, {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "chic-cr6",
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7001
+          } ]
+        }, {
+          "refId" : "chic-cr6",
+          "connectionId" : "C7J7",
+          "deviceUrn" : "chic-cr6",
+          "schedule" : "C7J7-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "fnalgcc-cr6",
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "chic-cr6",
+            "resource" : -2043154152
+          }, {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "fnalgcc-cr6",
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7002
+          } ]
+        } ],
+        "fixtures" : [ {
+          "connectionId" : "C7J7",
+          "junction" : "fnalgcc-cr6",
+          "portUrn" : "fnalgcc-cr6:lag-1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "C7J7",
+            "schedule" : "C7J7-sched",
+            "urn" : "fnalgcc-cr6:lag-1",
+            "vlanId" : 201
+          },
+          "strict" : false,
+          "schedule" : "C7J7-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "fnalgcc-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          } ]
+        }, {
+          "connectionId" : "C7J7",
+          "junction" : "chic-cr6",
+          "portUrn" : "chic-cr6:lag-1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "C7J7",
+            "schedule" : "C7J7-sched",
+            "urn" : "chic-cr6:lag-1",
+            "vlanId" : 201
+          },
+          "strict" : false,
+          "schedule" : "C7J7-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "chic-cr6",
+            "schedule" : "C7J7-sched",
+            "connectionId" : "C7J7",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          } ]
+        } ],
+        "pipes" : [ {
+          "connectionId" : "C7J7",
+          "a" : "chic-cr6",
+          "z" : "fnalgcc-cr6",
+          "protect" : true,
+          "azBandwidth" : 1000,
+          "zaBandwidth" : 1000,
+          "azERO" : [ {
+            "urn" : "chic-cr6"
+          }, {
+            "urn" : "chic-cr6:1/1/c31/1"
+          }, {
+            "urn" : "fnalgcc-cr6:1/1/c31/1"
+          }, {
+            "urn" : "fnalgcc-cr6"
+          } ],
+          "zaERO" : [ {
+            "urn" : "fnalgcc-cr6"
+          }, {
+            "urn" : "fnalgcc-cr6:1/1/c31/1"
+          }, {
+            "urn" : "chic-cr6:1/1/c31/1"
+          }, {
+            "urn" : "chic-cr6"
+          } ],
+          "schedule" : "C7J7-sched"
+        } ]
+      },
+      "schedule" : "C7J7-sched"
+    },
+    "connection_mtu" : 9000,
+    "last_modified" : 1648823858
+  }, {
+    "connectionId" : "NRRK",
+    "phase" : "RESERVED",
+    "mode" : "AUTOMATIC",
+    "state" : "FAILED",
+    "username" : "nsi",
+    "description" : "deltaId+53de17a9-33e8-4352-ace2-c997039737b7:uuid+91ef5436-6b72-4c2b-959f-8671fcaa3a12",
+    "reserved" : {
+      "connectionId" : "NRRK",
+      "cmp" : {
+        "junctions" : [ {
+          "refId" : "star-cr6",
+          "connectionId" : "NRRK",
+          "deviceUrn" : "star-cr6",
+          "schedule" : {
+            "refId" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "beginning" : 1684942407.000000000,
+            "ending" : 1716564765.000000000,
+            "phase" : "RESERVED"
+          },
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7075
+          }, {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "wash-cr6",
+            "resource" : 7076
+          }, {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "wash-cr6",
+            "resource" : 7075
+          }, {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "star-cr6",
+            "resource" : -2043154025
+          }, {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7075
+          }, {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7076
+          } ]
+        }, {
+          "refId" : "wash-cr6",
+          "connectionId" : "NRRK",
+          "deviceUrn" : "wash-cr6",
+          "schedule" : "NRRK-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "star-cr6",
+            "resource" : 7015
+          }, {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "star-cr6",
+            "resource" : 7014
+          }, {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "wash-cr6",
+            "resource" : -2043154024
+          }, {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7075
+          }, {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7075
+          }, {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7076
+          } ]
+        } ],
+        "fixtures" : [ {
+          "connectionId" : "NRRK",
+          "junction" : "star-cr6",
+          "portUrn" : "star-cr6:2/1/c5/1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "NRRK",
+            "schedule" : "NRRK-sched",
+            "urn" : "star-cr6:2/1/c5/1",
+            "vlanId" : 3985
+          },
+          "strict" : true,
+          "schedule" : "NRRK-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7038
+          } ]
+        }, {
+          "connectionId" : "NRRK",
+          "junction" : "wash-cr6",
+          "portUrn" : "wash-cr6:1/1/c6/1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "NRRK",
+            "schedule" : "NRRK-sched",
+            "urn" : "wash-cr6:1/1/c6/1",
+            "vlanId" : 3610
+          },
+          "strict" : true,
+          "schedule" : "NRRK-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7007
+          } ]
+        } ],
+        "pipes" : [ {
+          "connectionId" : "NRRK",
+          "a" : "star-cr6",
+          "z" : "wash-cr6",
+          "protect" : true,
+          "azBandwidth" : 1000,
+          "zaBandwidth" : 1000,
+          "azERO" : [ {
+            "urn" : "star-cr6"
+          }, {
+            "urn" : "star-cr6:1/1/c28/1"
+          }, {
+            "urn" : "eqxch2-cr6:1/1/c34/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxdc4-cr6:1/1/c25/1"
+          }, {
+            "urn" : "eqxdc4-cr6"
+          }, {
+            "urn" : "eqxdc4-cr6:1/1/c31/1"
+          }, {
+            "urn" : "wash-cr6:1/1/c31/1"
+          }, {
+            "urn" : "wash-cr6"
+          } ],
+          "zaERO" : [ {
+            "urn" : "wash-cr6"
+          }, {
+            "urn" : "wash-cr6:1/1/c31/1"
+          }, {
+            "urn" : "eqxdc4-cr6:1/1/c31/1"
+          }, {
+            "urn" : "eqxdc4-cr6"
+          }, {
+            "urn" : "eqxdc4-cr6:1/1/c25/1"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:1/1/c34/1"
+          }, {
+            "urn" : "star-cr6:1/1/c28/1"
+          }, {
+            "urn" : "star-cr6"
+          } ],
+          "schedule" : "NRRK-sched"
+        } ]
+      },
+      "schedule" : "NRRK-sched"
+    },
+    "tags" : [ {
+      "category" : "nsi",
+      "contents" : "",
+      "id" : 107711674
+    } ],
+    "archived" : {
+      "connectionId" : "NRRK",
+      "cmp" : {
+        "junctions" : [ {
+          "refId" : "star-cr6",
+          "connectionId" : "NRRK",
+          "deviceUrn" : "star-cr6",
+          "schedule" : {
+            "refId" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "beginning" : 1684942407.000000000,
+            "ending" : 1716564765.000000000,
+            "phase" : "ARCHIVED"
+          },
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "wash-cr6",
+            "resource" : 7076
+          }, {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "star-cr6",
+            "resource" : -2043154025
+          }, {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "wash-cr6",
+            "resource" : 7075
+          }, {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7076
+          }, {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7075
+          }, {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7075
+          } ]
+        }, {
+          "refId" : "wash-cr6",
+          "connectionId" : "NRRK",
+          "deviceUrn" : "wash-cr6",
+          "schedule" : "NRRK-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7075
+          }, {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7075
+          }, {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7076
+          }, {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "wash-cr6",
+            "resource" : -2043154024
+          }, {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "star-cr6",
+            "resource" : 7015
+          }, {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "star-cr6",
+            "resource" : 7014
+          } ]
+        } ],
+        "fixtures" : [ {
+          "connectionId" : "NRRK",
+          "junction" : "star-cr6",
+          "portUrn" : "star-cr6:2/1/c5/1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "NRRK",
+            "schedule" : "NRRK-sched",
+            "urn" : "star-cr6:2/1/c5/1",
+            "vlanId" : 3985
+          },
+          "strict" : true,
+          "schedule" : "NRRK-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "star-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7038
+          } ]
+        }, {
+          "connectionId" : "NRRK",
+          "junction" : "wash-cr6",
+          "portUrn" : "wash-cr6:1/1/c6/1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "NRRK",
+            "schedule" : "NRRK-sched",
+            "urn" : "wash-cr6:1/1/c6/1",
+            "vlanId" : 3610
+          },
+          "strict" : true,
+          "schedule" : "NRRK-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "wash-cr6",
+            "schedule" : "NRRK-sched",
+            "connectionId" : "NRRK",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7007
+          } ]
+        } ],
+        "pipes" : [ {
+          "connectionId" : "NRRK",
+          "a" : "star-cr6",
+          "z" : "wash-cr6",
+          "protect" : true,
+          "azBandwidth" : 1000,
+          "zaBandwidth" : 1000,
+          "azERO" : [ {
+            "urn" : "star-cr6"
+          }, {
+            "urn" : "star-cr6:1/1/c28/1"
+          }, {
+            "urn" : "eqxch2-cr6:1/1/c34/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxdc4-cr6:1/1/c25/1"
+          }, {
+            "urn" : "eqxdc4-cr6"
+          }, {
+            "urn" : "eqxdc4-cr6:1/1/c31/1"
+          }, {
+            "urn" : "wash-cr6:1/1/c31/1"
+          }, {
+            "urn" : "wash-cr6"
+          } ],
+          "zaERO" : [ {
+            "urn" : "wash-cr6"
+          }, {
+            "urn" : "wash-cr6:1/1/c31/1"
+          }, {
+            "urn" : "eqxdc4-cr6:1/1/c31/1"
+          }, {
+            "urn" : "eqxdc4-cr6"
+          }, {
+            "urn" : "eqxdc4-cr6:1/1/c25/1"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:1/1/c34/1"
+          }, {
+            "urn" : "star-cr6:1/1/c28/1"
+          }, {
+            "urn" : "star-cr6"
+          } ],
+          "schedule" : "NRRK-sched"
+        } ]
+      },
+      "schedule" : "NRRK-sched"
+    },
+    "connection_mtu" : 9000,
+    "last_modified" : 1684942604
+  }, {
+    "connectionId" : "CC3D",
+    "phase" : "RESERVED",
+    "mode" : "AUTOMATIC",
+    "state" : "ACTIVE",
+    "username" : "jstewart",
+    "description" : "SRNL ICN to ORNL",
+    "reserved" : {
+      "connectionId" : "CC3D",
+      "cmp" : {
+        "junctions" : [ {
+          "refId" : "ornl1064-cr6",
+          "connectionId" : "CC3D",
+          "deviceUrn" : "ornl1064-cr6",
+          "schedule" : {
+            "refId" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "beginning" : 1652752267.000000000,
+            "ending" : 2177481600.000000000,
+            "phase" : "RESERVED"
+          },
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "srs70344a-cr6",
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "srs70344a-cr6",
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "ornl1064-cr6",
+            "resource" : -2043154099
+          } ]
+        }, {
+          "refId" : "srs70344a-cr6",
+          "connectionId" : "CC3D",
+          "deviceUrn" : "srs70344a-cr6",
+          "schedule" : "CC3D-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "ornl1064-cr6",
+            "resource" : 7004
+          }, {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "srs70344a-cr6",
+            "resource" : -2043154098
+          }, {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "ornl1064-cr6",
+            "resource" : 7005
+          } ]
+        } ],
+        "fixtures" : [ {
+          "connectionId" : "CC3D",
+          "junction" : "ornl1064-cr6",
+          "portUrn" : "ornl1064-cr6:2/1/c19/1",
+          "ingressBandwidth" : 100,
+          "egressBandwidth" : 100,
+          "vlan" : {
+            "connectionId" : "CC3D",
+            "schedule" : "CC3D-sched",
+            "urn" : "ornl1064-cr6:1/1/c2/1",
+            "vlanId" : 2190
+          },
+          "strict" : false,
+          "schedule" : "CC3D-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          } ]
+        }, {
+          "connectionId" : "CC3D",
+          "junction" : "srs70344a-cr6",
+          "portUrn" : "srs70344a-cr6:1/1/c13/2",
+          "ingressBandwidth" : 100,
+          "egressBandwidth" : 100,
+          "vlan" : {
+            "connectionId" : "CC3D",
+            "schedule" : "CC3D-sched",
+            "urn" : "srs70344a-cr6:1/1/c13/2",
+            "vlanId" : 2190
+          },
+          "strict" : false,
+          "schedule" : "CC3D-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7002
+          } ]
+        } ],
+        "pipes" : [ {
+          "connectionId" : "CC3D",
+          "a" : "srs70344a-cr6",
+          "z" : "ornl1064-cr6",
+          "protect" : true,
+          "azBandwidth" : 100,
+          "zaBandwidth" : 100,
+          "azERO" : [ {
+            "urn" : "srs70344a-cr6"
+          }, {
+            "urn" : "srs70344a-cr6:2/1/c13/2"
+          }, {
+            "urn" : "atla-cr6:1/1/c17/3"
+          }, {
+            "urn" : "atla-cr6"
+          }, {
+            "urn" : "atla-cr6:1/1/c34/1"
+          }, {
+            "urn" : "chat-cr6:1/1/c31/1"
+          }, {
+            "urn" : "chat-cr6"
+          }, {
+            "urn" : "chat-cr6:2/1/c7/1"
+          }, {
+            "urn" : "ornl1064-cr6:1/1/c4/1"
+          }, {
+            "urn" : "ornl1064-cr6"
+          } ],
+          "zaERO" : [ {
+            "urn" : "ornl1064-cr6"
+          }, {
+            "urn" : "ornl1064-cr6:1/1/c4/1"
+          }, {
+            "urn" : "chat-cr6:2/1/c7/1"
+          }, {
+            "urn" : "chat-cr6"
+          }, {
+            "urn" : "chat-cr6:1/1/c31/1"
+          }, {
+            "urn" : "atla-cr6:1/1/c34/1"
+          }, {
+            "urn" : "atla-cr6"
+          }, {
+            "urn" : "atla-cr6:1/1/c17/3"
+          }, {
+            "urn" : "srs70344a-cr6:2/1/c13/2"
+          }, {
+            "urn" : "srs70344a-cr6"
+          } ],
+          "schedule" : "CC3D-sched"
+        } ]
+      },
+      "schedule" : "CC3D-sched"
+    },
+    "tags" : [ ],
+    "archived" : {
+      "connectionId" : "CC3D",
+      "cmp" : {
+        "junctions" : [ {
+          "refId" : "ornl1064-cr6",
+          "connectionId" : "CC3D",
+          "deviceUrn" : "ornl1064-cr6",
+          "schedule" : {
+            "refId" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "beginning" : 1652752267.000000000,
+            "ending" : 2177481600.000000000,
+            "phase" : "ARCHIVED"
+          },
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "srs70344a-cr6",
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "srs70344a-cr6",
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "ornl1064-cr6",
+            "resource" : -2043154099
+          }, {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7001
+          } ]
+        }, {
+          "refId" : "srs70344a-cr6",
+          "connectionId" : "CC3D",
+          "deviceUrn" : "srs70344a-cr6",
+          "schedule" : "CC3D-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "ornl1064-cr6",
+            "resource" : 7005
+          }, {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "srs70344a-cr6",
+            "resource" : -2043154098
+          }, {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "ornl1064-cr6",
+            "resource" : 7004
+          }, {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7001
+          } ]
+        } ],
+        "fixtures" : [ {
+          "connectionId" : "CC3D",
+          "junction" : "ornl1064-cr6",
+          "portUrn" : "ornl1064-cr6:2/1/c19/1",
+          "ingressBandwidth" : 100,
+          "egressBandwidth" : 100,
+          "vlan" : {
+            "connectionId" : "CC3D",
+            "schedule" : "CC3D-sched",
+            "urn" : "ornl1064-cr6:1/1/c2/1",
+            "vlanId" : 2190
+          },
+          "strict" : false,
+          "schedule" : "CC3D-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "ornl1064-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          } ]
+        }, {
+          "connectionId" : "CC3D",
+          "junction" : "srs70344a-cr6",
+          "portUrn" : "srs70344a-cr6:1/1/c13/2",
+          "ingressBandwidth" : 100,
+          "egressBandwidth" : 100,
+          "vlan" : {
+            "connectionId" : "CC3D",
+            "schedule" : "CC3D-sched",
+            "urn" : "srs70344a-cr6:1/1/c13/2",
+            "vlanId" : 2190
+          },
+          "strict" : false,
+          "schedule" : "CC3D-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "srs70344a-cr6",
+            "schedule" : "CC3D-sched",
+            "connectionId" : "CC3D",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7002
+          } ]
+        } ],
+        "pipes" : [ {
+          "connectionId" : "CC3D",
+          "a" : "srs70344a-cr6",
+          "z" : "ornl1064-cr6",
+          "protect" : true,
+          "azBandwidth" : 100,
+          "zaBandwidth" : 100,
+          "azERO" : [ {
+            "urn" : "srs70344a-cr6"
+          }, {
+            "urn" : "srs70344a-cr6:2/1/c13/2"
+          }, {
+            "urn" : "atla-cr6:1/1/c17/3"
+          }, {
+            "urn" : "atla-cr6"
+          }, {
+            "urn" : "atla-cr6:1/1/c34/1"
+          }, {
+            "urn" : "chat-cr6:1/1/c31/1"
+          }, {
+            "urn" : "chat-cr6"
+          }, {
+            "urn" : "chat-cr6:2/1/c7/1"
+          }, {
+            "urn" : "ornl1064-cr6:1/1/c4/1"
+          }, {
+            "urn" : "ornl1064-cr6"
+          } ],
+          "zaERO" : [ {
+            "urn" : "ornl1064-cr6"
+          }, {
+            "urn" : "ornl1064-cr6:1/1/c4/1"
+          }, {
+            "urn" : "chat-cr6:2/1/c7/1"
+          }, {
+            "urn" : "chat-cr6"
+          }, {
+            "urn" : "chat-cr6:1/1/c31/1"
+          }, {
+            "urn" : "atla-cr6:1/1/c34/1"
+          }, {
+            "urn" : "atla-cr6"
+          }, {
+            "urn" : "atla-cr6:1/1/c17/3"
+          }, {
+            "urn" : "srs70344a-cr6:2/1/c13/2"
+          }, {
+            "urn" : "srs70344a-cr6"
+          } ],
+          "schedule" : "CC3D-sched"
+        } ]
+      },
+      "schedule" : "CC3D-sched"
+    },
+    "connection_mtu" : 9000,
+    "last_modified" : 1652752311
+  }, {
+    "connectionId" : "D9PG",
+    "phase" : "RESERVED",
+    "mode" : "AUTOMATIC",
+    "state" : "ACTIVE",
+    "username" : "jstewart",
+    "description" : "SRS Gov cloud secondary",
+    "reserved" : {
+      "connectionId" : "D9PG",
+      "cmp" : {
+        "junctions" : [ {
+          "refId" : "eqxdc4-cr6",
+          "connectionId" : "D9PG",
+          "deviceUrn" : "eqxdc4-cr6",
+          "schedule" : {
+            "refId" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "beginning" : 1652920953.000000000,
+            "ending" : 1746082800.000000000,
+            "phase" : "RESERVED"
+          },
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7005
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "srs702a-cr6",
+            "resource" : 7011
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "eqxdc4-cr6",
+            "resource" : -2043154137
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "srs702a-cr6",
+            "resource" : 7002
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7002
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7002
+          } ]
+        }, {
+          "refId" : "srs702a-cr6",
+          "connectionId" : "D9PG",
+          "deviceUrn" : "srs702a-cr6",
+          "schedule" : "D9PG-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "eqxdc4-cr6",
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "eqxdc4-cr6",
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7002
+          }, {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "srs702a-cr6",
+            "resource" : -2043154136
+          }, {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7002
+          }, {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7005
+          } ]
+        } ],
+        "fixtures" : [ {
+          "connectionId" : "D9PG",
+          "junction" : "eqxdc4-cr6",
+          "portUrn" : "eqxdc4-cr6:2/1/c18/1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "D9PG",
+            "schedule" : "D9PG-sched",
+            "urn" : "eqxdc4-cr6:2/1/c18/1",
+            "vlanId" : 2193
+          },
+          "strict" : false,
+          "schedule" : "D9PG-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7001
+          } ]
+        }, {
+          "connectionId" : "D9PG",
+          "junction" : "srs702a-cr6",
+          "portUrn" : "srs702a-cr6:1/1/c2/1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "D9PG",
+            "schedule" : "D9PG-sched",
+            "urn" : "srs702a-cr6:1/1/c2/1",
+            "vlanId" : 2193
+          },
+          "strict" : false,
+          "schedule" : "D9PG-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          } ]
+        } ],
+        "pipes" : [ {
+          "connectionId" : "D9PG",
+          "a" : "srs702a-cr6",
+          "z" : "eqxdc4-cr6",
+          "protect" : true,
+          "azBandwidth" : 1000,
+          "zaBandwidth" : 1000,
+          "azERO" : [ {
+            "urn" : "srs702a-cr6"
+          }, {
+            "urn" : "srs702a-cr6:1/1/c13/2"
+          }, {
+            "urn" : "nash-cr6:2/1/c17/3"
+          }, {
+            "urn" : "nash-cr6"
+          }, {
+            "urn" : "nash-cr6:2/1/c31/1"
+          }, {
+            "urn" : "chic-cr6:2/1/c28/1"
+          }, {
+            "urn" : "chic-cr6"
+          }, {
+            "urn" : "chic-cr6:2/1/c19/1"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c22/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c25/1"
+          }, {
+            "urn" : "eqxdc4-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxdc4-cr6"
+          } ],
+          "zaERO" : [ {
+            "urn" : "eqxdc4-cr6"
+          }, {
+            "urn" : "eqxdc4-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c25/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c22/1"
+          }, {
+            "urn" : "chic-cr6:2/1/c19/1"
+          }, {
+            "urn" : "chic-cr6"
+          }, {
+            "urn" : "chic-cr6:2/1/c28/1"
+          }, {
+            "urn" : "nash-cr6:2/1/c31/1"
+          }, {
+            "urn" : "nash-cr6"
+          }, {
+            "urn" : "nash-cr6:2/1/c17/3"
+          }, {
+            "urn" : "srs702a-cr6:1/1/c13/2"
+          }, {
+            "urn" : "srs702a-cr6"
+          } ],
+          "schedule" : "D9PG-sched"
+        } ]
+      },
+      "schedule" : "D9PG-sched"
+    },
+    "tags" : [ ],
+    "archived" : {
+      "connectionId" : "D9PG",
+      "cmp" : {
+        "junctions" : [ {
+          "refId" : "eqxdc4-cr6",
+          "connectionId" : "D9PG",
+          "deviceUrn" : "eqxdc4-cr6",
+          "schedule" : {
+            "refId" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "beginning" : 1652920953.000000000,
+            "ending" : 1746082800.000000000,
+            "phase" : "ARCHIVED"
+          },
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7002
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "srs702a-cr6",
+            "resource" : 7011
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "srs702a-cr6",
+            "resource" : 7002
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7005
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7002
+          }, {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "eqxdc4-cr6",
+            "resource" : -2043154137
+          } ]
+        }, {
+          "refId" : "srs702a-cr6",
+          "connectionId" : "D9PG",
+          "deviceUrn" : "srs702a-cr6",
+          "schedule" : "D9PG-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VC_ID",
+            "intent" : "PROTECT",
+            "target" : null,
+            "resource" : 7005
+          }, {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VPLS_LOOPBACK",
+            "intent" : null,
+            "target" : "srs702a-cr6",
+            "resource" : -2043154136
+          }, {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PROTECT",
+            "target" : "eqxdc4-cr6",
+            "resource" : 7001
+          }, {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "VC_ID",
+            "intent" : "PRIMARY",
+            "target" : null,
+            "resource" : 7002
+          }, {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SDP_ID",
+            "intent" : "PRIMARY",
+            "target" : "eqxdc4-cr6",
+            "resource" : 7000
+          }, {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_SVC_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7002
+          } ]
+        } ],
+        "fixtures" : [ {
+          "connectionId" : "D9PG",
+          "junction" : "eqxdc4-cr6",
+          "portUrn" : "eqxdc4-cr6:2/1/c18/1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "D9PG",
+            "schedule" : "D9PG-sched",
+            "urn" : "eqxdc4-cr6:2/1/c18/1",
+            "vlanId" : 2193
+          },
+          "strict" : false,
+          "schedule" : "D9PG-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "eqxdc4-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7001
+          } ]
+        }, {
+          "connectionId" : "D9PG",
+          "junction" : "srs702a-cr6",
+          "portUrn" : "srs702a-cr6:1/1/c2/1",
+          "ingressBandwidth" : 1000,
+          "egressBandwidth" : 1000,
+          "vlan" : {
+            "connectionId" : "D9PG",
+            "schedule" : "D9PG-sched",
+            "urn" : "srs702a-cr6:1/1/c2/1",
+            "vlanId" : 2193
+          },
+          "strict" : false,
+          "schedule" : "D9PG-sched",
+          "commandParams" : [ {
+            "refId" : null,
+            "urn" : "srs702a-cr6",
+            "schedule" : "D9PG-sched",
+            "connectionId" : "D9PG",
+            "paramType" : "ALU_QOS_POLICY_ID",
+            "intent" : null,
+            "target" : null,
+            "resource" : 7000
+          } ]
+        } ],
+        "pipes" : [ {
+          "connectionId" : "D9PG",
+          "a" : "srs702a-cr6",
+          "z" : "eqxdc4-cr6",
+          "protect" : true,
+          "azBandwidth" : 1000,
+          "zaBandwidth" : 1000,
+          "azERO" : [ {
+            "urn" : "srs702a-cr6"
+          }, {
+            "urn" : "srs702a-cr6:1/1/c13/2"
+          }, {
+            "urn" : "nash-cr6:2/1/c17/3"
+          }, {
+            "urn" : "nash-cr6"
+          }, {
+            "urn" : "nash-cr6:2/1/c31/1"
+          }, {
+            "urn" : "chic-cr6:2/1/c28/1"
+          }, {
+            "urn" : "chic-cr6"
+          }, {
+            "urn" : "chic-cr6:2/1/c19/1"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c22/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c25/1"
+          }, {
+            "urn" : "eqxdc4-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxdc4-cr6"
+          } ],
+          "zaERO" : [ {
+            "urn" : "eqxdc4-cr6"
+          }, {
+            "urn" : "eqxdc4-cr6:2/1/c28/1"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c25/1"
+          }, {
+            "urn" : "eqxch2-cr6"
+          }, {
+            "urn" : "eqxch2-cr6:2/1/c22/1"
+          }, {
+            "urn" : "chic-cr6:2/1/c19/1"
+          }, {
+            "urn" : "chic-cr6"
+          }, {
+            "urn" : "chic-cr6:2/1/c28/1"
+          }, {
+            "urn" : "nash-cr6:2/1/c31/1"
+          }, {
+            "urn" : "nash-cr6"
+          }, {
+            "urn" : "nash-cr6:2/1/c17/3"
+          }, {
+            "urn" : "srs702a-cr6:1/1/c13/2"
+          }, {
+            "urn" : "srs702a-cr6"
+          } ],
+          "schedule" : "D9PG-sched"
+        } ]
+      },
+      "schedule" : "D9PG-sched"
+    },
+    "connection_mtu" : 9000,
+    "last_modified" : 1652921003
+  } ]
+}

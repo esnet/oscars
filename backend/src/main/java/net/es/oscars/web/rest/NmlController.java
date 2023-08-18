@@ -1,10 +1,11 @@
 package net.es.oscars.web.rest;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
-import net.es.oscars.app.util.GitRepositoryState;
-import net.es.oscars.app.util.GitRepositoryStatePopulator;
+import net.es.oscars.app.util.AppVersion;
 import net.es.oscars.nsi.beans.NsiPeering;
 import net.es.oscars.nsi.svc.NsiPopulator;
 import net.es.oscars.nsi.svc.NsiService;
@@ -24,8 +25,6 @@ import org.springframework.web.bind.annotation.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.DocumentBuilder;
@@ -71,8 +70,6 @@ public class NmlController {
     @Value("${resv.timeout}")
     private Integer resvTimeout;
 
-    @Autowired
-    private GitRepositoryStatePopulator gitRepositoryStatePopulator;
 
     @Autowired
     private TopoService topoService;
@@ -585,10 +582,9 @@ public class NmlController {
         dName.setTextContent(nsaName);
         rootElement.appendChild(dName);
 
-        GitRepositoryState gitRepositoryState = this.gitRepositoryStatePopulator.getGitRepositoryState();
 
         Element dSwVer = doc.createElement("softwareVersion");
-        dSwVer.setTextContent(gitRepositoryState.getBuildVersion());
+        dSwVer.setTextContent(AppVersion.getVersion());
         rootElement.appendChild(dSwVer);
 
         Element dStartTime = doc.createElement("startTime");

@@ -70,6 +70,7 @@ class AccountStore {
         let request = { username: this.attempt.username, password: this.attempt.password };
         return myClient.submit("POST", "/api/account/login", request).then(
             response => {
+                console.log(response)
                 this.setLoggedinUsername(this.attempt.username);
                 let parsed = JSON.parse(response);
                 this.setLoggedinAdmin(parsed.admin);

@@ -38,6 +38,7 @@ public class TopoUrn {
 
     private Set<ReservableCommandParam> reservableCommandParams;
 
+    @Builder.Default
     private Set<Layer> capabilities = new HashSet<>();
 
 

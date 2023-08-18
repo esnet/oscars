@@ -3,18 +3,9 @@ package net.es.oscars.web.rest;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
-import net.es.oscars.resv.ent.CommandParam;
-import net.es.oscars.resv.ent.Components;
 import net.es.oscars.resv.ent.Connection;
-import net.es.oscars.resv.ent.Tag;
 import net.es.oscars.resv.enums.Phase;
-import net.es.oscars.resv.svc.ConnService;
-import net.es.oscars.topo.beans.TopoUrn;
-import net.es.oscars.topo.ent.Port;
-import net.es.oscars.topo.enums.CommandParamType;
-import net.es.oscars.topo.enums.UrnType;
-import net.es.oscars.topo.svc.TopoService;
-import net.es.oscars.web.beans.ConnException;
+import net.es.oscars.resv.svc.ConnUtils;
 import net.es.oscars.web.beans.ConnectionFilter;
 import net.es.oscars.web.beans.Interval;
 import net.es.oscars.web.simple.*;
@@ -35,8 +26,6 @@ public class SimpleApiController {
     @Autowired
     private ConnController connController;
 
-    @Autowired
-    private ConnService connSvc;
 
     @Autowired
     private Startup startup;
@@ -114,7 +103,7 @@ public class SimpleApiController {
         if (c == null) {
             return  null;
         } else {
-            return connSvc.fromConnection(c, false);
+            return ConnUtils.fromConnection(c, false);
         }
 
     }
@@ -147,7 +136,7 @@ public class SimpleApiController {
         List<Connection> connections = connController.list(f).getConnections();
         List<SimpleConnection> result = new ArrayList<>();
         for (Connection c : connections) {
-            result.add(connSvc.fromConnection(c, return_svc_ids));
+            result.add(ConnUtils.fromConnection(c, return_svc_ids));
         }
         return result;
     }
@@ -163,7 +152,7 @@ public class SimpleApiController {
         List<Connection> connections = connController.list(f).getConnections();
         List<SimpleConnection> result = new ArrayList<>();
         for (Connection c : connections) {
-            result.add(connSvc.fromConnection(c, false));
+            result.add(ConnUtils.fromConnection(c, false));
         }
         return result;
     }

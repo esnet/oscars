@@ -11,11 +11,13 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@EqualsAndHashCode(callSuper=false)
 public class TopoAdjcy extends DefaultWeightedEdge {
     private TopoUrn a;
 
     private TopoUrn z;
 
+    @Builder.Default
     private Map<Layer, Long> metrics = new HashMap<>();
 
 }
