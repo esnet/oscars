@@ -22,6 +22,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/${POSTGRES_DB:-oscars}
       POSTGRES_USER: ${POSTGRES_USER:-oscars}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-secret}
+      ESDB_API_KEY: ${ESDB_API_KEY}
+      ESDB_URI: ${ESDB_URI}
+      NSO_USERNAME: ${NSO_USERNAME}
+      NSO_PASSWORD: ${NSO_PASSWORD}
+      NSO_URI: ${NSO_URI}
     healthcheck:
       test: nc -z localhost ${OSCARS_BACKEND_WEB_PORT:-8201} || exit -1
       start_period: 15s

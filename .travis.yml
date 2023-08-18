@@ -3,15 +3,24 @@ notifications:
     rooms:
       secure: muPOP3ltCztg14V4QlDaI3AJPx+HZoTyF4b34RhsnXcUyJeeNONDTAhCaRi4Y3HnQoa2vHdSyBj8iumLGlhFV/a1HPP0zoZxNA1Lbz6Q+ggTIAEZxH9UYpTGOfeQHOlGkpTYllgggNknBc9jUHGl5o3zjkcOt1tvkVz8MzUA/nrqmotTX7mHMmZ/5onWZov2yd083Aw3YHkLJgYXR26Qd/U3tAwLZ0LAO0RHLWMzJqVGy1grQHjF44wGsipk6ad3Y7VqjfFAAnQSdJzt+pczFSMrVzoHHLB7s5AQSx+FL848wjnTUwqPCR8A2z05B1RTP+KcdcmWx41hQlGGHJxXW8+xvs8l4GjFqiywKyijVv0jbPxTkFMcGvV3c4Q73hnvhEzp+kJRWGYqzIJ09tMR8F0VSxhLqH3qPJNOY29Me934bN0E7ZPCbzJvaDMqotyraVnIhQ2oXcqy62qzRUpRo/30euT1ejceIxqQPmOA8CdNrTYOLw7Dc57JnFq57+JTpPGXJ0Gfcm8S4f5eV3F9YVuWNbs/5Kj5GqPmnsE14KEmaBSNb18YQfR9X/9IIBqNJhpdgAi5aA9XYoniaK9OPv+wDLQqHzzmWqmoIcklQzrcTDRnqIHriRscO6OW/dnZwx7jxExCsOjW7eJg+vIjL6tdDQS8OJ0cDQA8Q3RVHXs=
 
-language: java
-
-jdk:
-  - oraclejdk8
-
 dist: trusty
 
-install:
-  - mvn -q -B clean install
+matrix:
+  include:
+    - language: java
+      before_install:
+        - cd backend
+      jdk:
+        - oraclejdk8
+      dist: trusty
+      install:
+        - mvn -q -B clean install
+
+    - language: node_js
+      node_js:
+        - "19"
+      before_install:
+        - cd frontend
 
 cache:
   directories:
