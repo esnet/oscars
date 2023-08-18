@@ -5,8 +5,6 @@ import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.syslog.Syslogger;
 import net.es.oscars.app.util.DbAccess;
-import net.es.oscars.app.util.GitRepositoryState;
-import net.es.oscars.app.util.GitRepositoryStatePopulator;
 import net.es.oscars.security.db.UserPopulator;
 import net.es.oscars.topo.beans.TopoException;
 import net.es.oscars.topo.pop.ConsistencyException;
@@ -28,7 +26,6 @@ public class Startup {
 
     private List<StartupComponent> components;
     private StartupProperties startupProperties;
-    private GitRepositoryStatePopulator gitRepositoryStatePopulator;
     private Syslogger syslogger;
 
     private TopoPopulator topoPopulator;
@@ -65,18 +62,15 @@ public class Startup {
                    TopoPopulator topoPopulator,
                    UserPopulator userPopulator,
                    DbAccess dbAccess,
-                   UIPopulator uiPopulator,
-                   GitRepositoryStatePopulator gitRepositoryStatePopulator) {
+                   UIPopulator uiPopulator) {
         this.startupProperties = startupProperties;
         this.topoPopulator = topoPopulator;
         this.dbAccess = dbAccess;
-        this.gitRepositoryStatePopulator = gitRepositoryStatePopulator;
         this.syslogger = syslogger;
 
         components = new ArrayList<>();
         components.add(userPopulator);
         components.add(uiPopulator);
-        components.add(this.gitRepositoryStatePopulator);
     }
 
     public void onStart() throws IOException, ConsistencyException, TopoException {
@@ -102,9 +96,6 @@ public class Startup {
             System.out.println("Exiting..");
             System.exit(1);
         }
-        GitRepositoryState gitRepositoryState = this.gitRepositoryStatePopulator.getGitRepositoryState();
-        log.info("OSCARS backend (" + gitRepositoryState.getDescribe() + " on " + gitRepositoryState.getBranch() + ")");
-        log.info("Built by " + gitRepositoryState.getBuildUserEmail() + " on " + gitRepositoryState.getBuildHost() + " at " + gitRepositoryState.getBuildTime());
         log.info("OSCARS startup successful.");
 
         syslogger.sendSyslog("OSCARS APPLICATION STARTUP COMPLETED");

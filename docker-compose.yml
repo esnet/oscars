@@ -49,7 +49,7 @@ services:
     build:
       context: frontend
       dockerfile: ../deploy/devel/frontend.dockerfile
-    # for dev mode
+    # mounted as volumes for dev mode hot reload
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
@@ -57,14 +57,11 @@ services:
       - "${OSCARS_FRONTEND_DEV_WEB_PORT:-8181}:3000"
     networks:
       - topo-net
-    environment:
-      PORT: 3000
-      REACT_APP_VERSION: 10
     depends_on:
       oscars-backend:
         condition: service_healthy
     links:
-      - oscars-backend:${OSCARS_BACKEND_WEB_PORT:-8201}
+      - oscars-backend:8201
 
 
   oscars-frontend:
@@ -73,11 +70,11 @@ services:
       context: frontend
       dockerfile: ../deploy/prod/frontend.dockerfile
     ports:
-      - "${OSCARS_FRONTEND_PROD_WEB_PORT:-8182}:80"
+      - "${OSCARS_FRONTEND_WEB_PORT:-8182}:80"
     networks:
       - topo-net
     environment:
-      PORT: ${OSCARS_FRONTEND_PROD_WEB_PORT:-8182}
+      PORT: ${OSCARS_FRONTEND_WEB_PORT:-8182}
       OSCARS_BACKEND_URL: ${OSCARS_BACKEND_URL:-http://oscars-backend:8201}
     depends_on:
       oscars-backend:

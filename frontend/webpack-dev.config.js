@@ -117,7 +117,7 @@ module.exports = {
     plugins: plugins,
 
     devServer: {
-        port: 8181,
+        port: 3000,
         contentBase: PATHS.build,
         historyApiFallback: true,
         watchOptions: {
