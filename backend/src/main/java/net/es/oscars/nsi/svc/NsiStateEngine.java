@@ -11,6 +11,7 @@ import net.es.oscars.nsi.beans.NsiEvent;
 import net.es.oscars.nsi.db.NsiMappingRepository;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.resv.svc.ConnUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +25,7 @@ public class NsiStateEngine {
     private NsiMappingRepository nsiRepo;
 
     @Autowired
-    private ConnService connSvc;
+    private ConnUtils connUtils;
 
 
     public NsiMapping newMapping(String nsiConnectionId, String nsiGri, String nsaId, Integer version) throws ServiceException {
@@ -37,7 +38,7 @@ public class NsiStateEngine {
         if (!nsiRepo.findByNsiConnectionId(nsiConnectionId).isEmpty()) {
             throw new ServiceException("previously used nsi connection id! " + nsiConnectionId);
         }
-        String oscarsConnectionId = connSvc.generateConnectionId();
+        String oscarsConnectionId = connUtils.genUniqueConnectionId();
 
         NsiMapping mapping = NsiMapping.builder()
                 .nsiConnectionId(nsiConnectionId)

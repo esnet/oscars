@@ -38,14 +38,15 @@ public class NsoSdpIdService {
         // 3. if we get through all the VlanPipes without any problems, we can save all the NsoSdpIds
 
         Map<String, Set<Integer>> usedSdpIdsByDevice = this.collectUsedSdpIdsKnowingSchedule(schedules);
-        Set<Integer> allowedSdpIds = this.generateAllowedSdpIds();
+        Set<Integer> allowedSdpIds = IntRange.singleSetFromExpr(nsoProperties.getSdpIdRange());
+
         Set<String> devices = new HashSet<>();
         for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
             devices.add(pipe.getA().getDeviceUrn());
             devices.add(pipe.getZ().getDeviceUrn());
         }
 
-        Map<String, Set<Integer>> availableSdpIds = this.generateAvailableSdpIds(allowedSdpIds, usedSdpIdsByDevice, devices);
+        Map<String, Set<Integer>> availableSdpIds = generateAvailableSdpIds(allowedSdpIds, usedSdpIdsByDevice, devices);
 
         Set<NsoSdpId> nsoSdpIds = new HashSet<>();
 
@@ -53,7 +54,7 @@ public class NsoSdpIdService {
             Set<Integer> availableSdpIdsOnA = availableSdpIds.get(pipe.getA().getDeviceUrn());
             Set<Integer> availableSdpIdsOnZ = availableSdpIds.get(pipe.getZ().getDeviceUrn());
             boolean needTwoSdpIds = pipe.getProtect();
-            Map<NsoVplsSdpPrecedence, Integer> sdpIdsByPrecedence = this.getCommonUnusedSdpIds(availableSdpIdsOnA, availableSdpIdsOnZ, needTwoSdpIds);
+            Map<NsoVplsSdpPrecedence, Integer> sdpIdsByPrecedence = getCommonUnusedSdpIds(availableSdpIdsOnA, availableSdpIdsOnZ, needTwoSdpIds);
             for (NsoVplsSdpPrecedence precedence : sdpIdsByPrecedence.keySet()) {
                 Integer sdpId = sdpIdsByPrecedence.get(precedence);
                 availableSdpIds.get(pipe.getA().getDeviceUrn()).remove(sdpId);
@@ -92,14 +93,9 @@ public class NsoSdpIdService {
         return usedSdpIds;
     }
 
-    public Set<Integer> generateAllowedSdpIds() {
-        Set<IntRange> sdpIdRanges = IntRange.fromExpression(nsoProperties.getSdpIdRange());
-        Set<Integer> allowedSdpIds = new HashSet<>();
-        sdpIdRanges.forEach(r -> allowedSdpIds.addAll(r.asSet()));
-        return allowedSdpIds;
-    }
+    public static Map<String, Set<Integer>> generateAvailableSdpIds(
+            Set<Integer> allowed, Map<String, Set<Integer>> usedSdpIds, Set<String> devices) {
 
-    Map<String, Set<Integer>> generateAvailableSdpIds(Set<Integer> allowed, Map<String, Set<Integer>> usedSdpIds, Set<String> devices) {
         Map<String, Set<Integer>> availableSdpIds = new HashMap<>();
         for (String device : devices) {
             Set<Integer> availableOnDevice = new HashSet<>(allowed);
@@ -112,8 +108,8 @@ public class NsoSdpIdService {
         return availableSdpIds;
     }
 
-    Map<NsoVplsSdpPrecedence, Integer> getCommonUnusedSdpIds(Set<Integer> availableSdpIdsOnA,
-                                                             Set<Integer> availableSdpIdsOnZ, boolean needTwoSdpIds)
+    public static Map<NsoVplsSdpPrecedence, Integer> getCommonUnusedSdpIds(
+            Set<Integer> availableSdpIdsOnA, Set<Integer> availableSdpIdsOnZ, boolean needTwoSdpIds)
             throws NsoResvException {
 
         Map<NsoVplsSdpPrecedence, Integer> result = new HashMap<NsoVplsSdpPrecedence, Integer>();

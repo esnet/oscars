@@ -35,6 +35,7 @@ import net.es.oscars.resv.enums.ConnectionMode;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.resv.svc.ConnUtils;
 import net.es.oscars.resv.svc.ResvLibrary;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.soap.ClientUtil;
@@ -124,8 +125,6 @@ public class NsiService {
     @Autowired
     private PSSQueuer pssQueuer;
 
-    @Autowired
-    private TaskExecutor taskExecutor;
     @Autowired
     private ObjectMapper jacksonObjectMapper;
     private static String nsBase = "http://schemas.ogf.org/nml/2013/05/base#";
@@ -698,10 +697,9 @@ public class NsiService {
             Pair<List<Fixture>, List<Junction>> fixturesAndJunctions = this.fixturesAndJunctionsFor(p2p, interval);
             log.info("making pipes");
             List<Pipe> pipes = this.pipesFor(interval, mbps, fixturesAndJunctions.getRight(), include);
-            String connectionId = connSvc.generateConnectionId();
 
             SimpleConnection simpleConnection = SimpleConnection.builder()
-                    .connectionId(connectionId)
+                    .connectionId(mapping.getOscarsConnectionId())
                     .description(rt.getDescription())
                     .heldUntil(expSecs.intValue())
                     .phase(Phase.HELD)

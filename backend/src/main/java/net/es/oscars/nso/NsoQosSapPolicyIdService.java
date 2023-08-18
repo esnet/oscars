@@ -4,18 +4,16 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.nso.db.NsoQosSapPolicyIdDAO;
-import net.es.oscars.nso.db.NsoVcIdDAO;
 import net.es.oscars.nso.ent.NsoQosSapPolicyId;
-import net.es.oscars.nso.ent.NsoVcId;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.Schedule;
 import net.es.oscars.resv.ent.VlanFixture;
-import net.es.oscars.topo.beans.IntRange;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.stream.Collectors;
+
+import static net.es.oscars.nso.IntegerSet.availableFromUsedSetAndAllowedString;
 
 @Component
 @Slf4j
@@ -52,7 +50,7 @@ public class NsoQosSapPolicyIdService {
             availableSapQosIds.remove(sapQosId);
 
             NsoQosSapPolicyId policyId = NsoQosSapPolicyId.builder()
-                    .sap(f.getPortUrn())
+                    .fixtureId(f.getId())
                     .policyId(sapQosId)
                     .device(device)
                     .scheduleId(conn.getReserved().getSchedule().getId())
@@ -63,8 +61,7 @@ public class NsoQosSapPolicyIdService {
 
     }
 
-    public Set<Integer> findUnusedQosSapPolicyIdKnowingSchedulesAndDevice(String device, List<Schedule> schedules)
-            throws NsoResvException {
+    public Set<Integer> findUnusedQosSapPolicyIdKnowingSchedulesAndDevice(String device, List<Schedule> schedules) {
         Set<Integer> usedSapQosIds = new HashSet<>();
         for (Schedule s : schedules) {
             usedSapQosIds.addAll(nsoQosSapPolicyIdDAO.findNsoQosSapPolicyIdByScheduleId(s.getId())
@@ -73,16 +70,7 @@ public class NsoQosSapPolicyIdService {
                     .map(NsoQosSapPolicyId::getPolicyId)
                     .toList());
         }
-        return this.findUnusedQosSapPolicyIdKnowingUsed(usedSapQosIds);
-    }
-
-    public Set<Integer> findUnusedQosSapPolicyIdKnowingUsed(Set<Integer> usedSapQosIds) throws NsoResvException {
-        Set<IntRange> sapQosIdRanges = IntRange.fromExpression(nsoProperties.getSapQosIdRange());
-        Set<Integer> allowedSapQosIds = new HashSet<>();
-        sapQosIdRanges.forEach(r -> allowedSapQosIds.addAll(r.asSet()));
-        Set<Integer> availableSapQosIds = new HashSet<>(allowedSapQosIds);
-        availableSapQosIds.removeAll(usedSapQosIds);
-        return availableSapQosIds;
+        return availableFromUsedSetAndAllowedString(usedSapQosIds, nsoProperties.getSapQosIdRange());
     }
 
 

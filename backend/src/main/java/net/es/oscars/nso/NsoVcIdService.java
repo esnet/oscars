@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+import static net.es.oscars.nso.IntegerSet.availableFromUsedSetAndAllowedString;
+
 @Component
 @Slf4j
 public class NsoVcIdService {
@@ -44,23 +46,13 @@ public class NsoVcIdService {
                 usedVcIds.add(nsoVcId.getVcId());
             });
         });
-        return this.findUnusedVcIdKnowingUsed(usedVcIds);
-    }
 
-    public Integer findUnusedVcIdKnowingUsed(Set<Integer> usedVcIds) throws NsoResvException {
-        Set<IntRange> vcIdRanges = IntRange.fromExpression(nsoProperties.getVcIdRange());
-        Set<Integer> allowedVcIds = new HashSet<>();
-        vcIdRanges.forEach(r -> allowedVcIds.addAll(r.asSet()) );
-        return this.findUnusedVcIdKnowingUsedAndAllowed(usedVcIds, allowedVcIds);
-    }
-
-    public Integer findUnusedVcIdKnowingUsedAndAllowed(Set<Integer> usedVcIds, Set<Integer> allowedVcIds) throws NsoResvException {
-        Set<Integer> availableVcIds = new HashSet<>(allowedVcIds);
-        availableVcIds.removeAll(usedVcIds);
+        Set<Integer> availableVcIds = availableFromUsedSetAndAllowedString(usedVcIds, nsoProperties.getVcIdRange());
         if (availableVcIds.isEmpty()) {
             throw new NsoResvException("no VC id available");
         }
         return Collections.min(availableVcIds);
+
     }
 
 

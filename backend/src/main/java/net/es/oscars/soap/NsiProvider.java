@@ -25,8 +25,6 @@ public class NsiProvider implements ConnectionProviderPort {
     private NsiService nsiService;
     private NsiStateEngine stateEngine;
 
-    @Autowired
-    private ConnService connSvc;
 
     @Autowired
     public NsiProvider(NsiService nsiService, NsiStateEngine stateEngine) {

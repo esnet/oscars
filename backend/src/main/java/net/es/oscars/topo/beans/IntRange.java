@@ -142,12 +142,15 @@ public class IntRange {
             firstPass.add(ir);
         }
 
-        Set<IntRange> result = new HashSet<>();
-        result.addAll(mergeIntRanges(firstPass));
-        return result;
+        return new HashSet<>(mergeIntRanges(firstPass));
 
     }
-
+    public static Set<Integer> singleSetFromExpr(String rangeExpr){
+        Set<IntRange> ranges = fromExpression(rangeExpr);
+        Set<Integer> result = new HashSet<>();
+        ranges.forEach(r -> result.addAll(r.asSet()));
+        return result;
+    }
 
 
     public static String asString(Collection<IntRange> ranges) {
@@ -243,6 +246,7 @@ public class IntRange {
         }
         return false;
     }
+
 
 
     public static Integer leastInAll(Map<String, Set<IntRange>> rangeMapOfSets) {

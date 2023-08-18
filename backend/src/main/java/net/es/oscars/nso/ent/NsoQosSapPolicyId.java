@@ -25,8 +25,9 @@ public class NsoQosSapPolicyId {
 
     private String device;
     private Integer policyId;
+
     // which SAP this will be applied to
-    private String sap;
+    private Long fixtureId;
     private String connectionId;
     private Long scheduleId;
 
