@@ -1,4 +1,4 @@
-package net.es.oscars.pss.beans;
+package net.es.oscars.sb;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import net.es.oscars.resv.enums.State;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PssTask {
+public class SouthboundTask {
     private String connectionId;
     private CommandType commandType;
     private State intent;

@@ -233,11 +233,6 @@ class ConnectionControls extends Component {
                                     Display errors
                                 </Button>
                             </ToggleDisplay>
-                            {/*
-                            <ToggleDisplay show={conn.phase === 'RESERVED' && conn.schedule.start.at > new Date()}>
-                                <UncommitButton/>{' '}
-                            </ToggleDisplay>
-                            */}
                             <ToggleDisplay
                                 show={conn.validation.acceptable && conn.phase === "HELD"}
                             >

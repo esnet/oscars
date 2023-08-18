@@ -27,7 +27,7 @@ import net.es.oscars.nsi.db.NsiRequesterNSARepository;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.ent.NsiRequesterNSA;
 import net.es.oscars.pce.PceService;
-import net.es.oscars.pss.svc.PSSQueuer;
+import net.es.oscars.sb.SouthboundQueuer;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.BuildMode;
@@ -35,7 +35,6 @@ import net.es.oscars.resv.enums.ConnectionMode;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.ConnService;
-import net.es.oscars.resv.svc.ConnUtils;
 import net.es.oscars.resv.svc.ResvLibrary;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.soap.ClientUtil;
@@ -51,7 +50,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -123,7 +121,7 @@ public class NsiService {
     private ClientUtil clientUtil;
 
     @Autowired
-    private PSSQueuer pssQueuer;
+    private SouthboundQueuer southboundQueuer;
 
     @Autowired
     private ObjectMapper jacksonObjectMapper;
@@ -204,7 +202,7 @@ public class NsiService {
                 } catch (WebServiceException | ServiceException ex) {
                     log.error("commit confirmed callback failed", ex);
                 }
-            } catch (PSSException | PCEException | NsiException ex) {
+            } catch ( PCEException | NsiException ex) {
                 log.error("failed commit");
                 log.error(ex.getMessage(), ex);
                 try {
@@ -309,7 +307,7 @@ public class NsiService {
                 // if we are after start time, we will need to tear down
                 if (Instant.now().isAfter(c.getReserved().getSchedule().getBeginning())) {
                     if (c.getState().equals(State.ACTIVE)) {
-                        pssQueuer.add(CommandType.DISMANTLE, c.getConnectionId(), State.FINISHED);
+                        southboundQueuer.add(CommandType.DISMANTLE, c.getConnectionId(), State.FINISHED);
                     }
                 }
 
@@ -1043,7 +1041,7 @@ public class NsiService {
     public void reserveConfirmCallback(NsiMapping mapping, CommonHeaderType inHeader)
             throws NsiException, ServiceException {
         String nsaId = mapping.getNsaId();
-        if (!this.getRequesterNsa(nsaId).isPresent()) {
+        if (this.getRequesterNsa(nsaId).isEmpty()) {
             throw new NsiException("Unknown requester nsa id " + nsaId, NsiErrors.SEC_ERROR);
         }
         NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
@@ -1087,9 +1085,9 @@ public class NsiService {
     }
 
     public void dataplaneCallback(NsiMapping mapping, State st) throws NsiException, ServiceException {
-        log.info("OK callback");
+        log.info("dataplaneCallback ");
         String nsaId = mapping.getNsaId();
-        if (!this.getRequesterNsa(nsaId).isPresent()) {
+        if (this.getRequesterNsa(nsaId).isEmpty()) {
             throw new NsiException("Unknown requester nsa id " + nsaId, NsiErrors.SEC_ERROR);
         }
         NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
@@ -1124,7 +1122,7 @@ public class NsiService {
             throws NsiException, ServiceException {
         log.info("OK callback");
         String nsaId = mapping.getNsaId();
-        if (!this.getRequesterNsa(nsaId).isPresent()) {
+        if (this.getRequesterNsa(nsaId).isEmpty()) {
             throw new NsiException("Unknown requester nsa id " + nsaId, NsiErrors.SEC_ERROR);
         }
         NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
@@ -1322,7 +1320,7 @@ public class NsiService {
                 .replace("_", "/")
                 .replace(":+", "");
 
-        String[] parts = stripped.split("\\:");
+        String[] parts = stripped.split(":");
         if (parts.length == 2 || parts.length == 3) {
             return parts[0] + ":" + parts[1];
 
@@ -1409,7 +1407,7 @@ public class NsiService {
     public Connection getOscarsConnection(NsiMapping mapping) throws NsiException {
         // log.debug("getting oscars connection for "+mapping.getOscarsConnectionId());
         Optional<Connection> c = connRepo.findByConnectionId(mapping.getOscarsConnectionId());
-        if (!c.isPresent()) {
+        if (c.isEmpty()) {
             throw new NsiException("OSCARS connection not found", NsiErrors.NO_SCH_ERROR);
         } else {
             return c.get();
@@ -1419,10 +1417,9 @@ public class NsiService {
     @Transactional
     public Optional<Connection> getMaybeOscarsConnection(NsiMapping mapping) throws NsiException {
         // log.debug("getting oscars connection for "+mapping.getOscarsConnectionId());
-        Optional<Connection> c = connRepo.findByConnectionId(mapping.getOscarsConnectionId());
-        return c;
-
+        return connRepo.findByConnectionId(mapping.getOscarsConnectionId());
     }
+
     public NsiMapping getMapping(String nsiConnectionId) throws NsiException {
         if (nsiConnectionId == null || nsiConnectionId.equals("")) {
             throw new NsiException("null or blank connection id! " + nsiConnectionId, NsiErrors.MISSING_PARAM_ERROR);

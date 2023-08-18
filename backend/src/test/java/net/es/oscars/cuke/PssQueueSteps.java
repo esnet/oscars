@@ -6,9 +6,9 @@ import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.dto.pss.cmd.CommandType;
-import net.es.oscars.pss.beans.PssTask;
+import net.es.oscars.sb.SouthboundTask;
 import net.es.oscars.pss.beans.QueueName;
-import net.es.oscars.pss.svc.PSSQueuer;
+import net.es.oscars.sb.SouthboundQueuer;
 import net.es.oscars.resv.enums.State;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,7 @@ import java.util.List;
 @Category({UnitTests.class})
 public class PssQueueSteps extends CucumberSteps {
     @Autowired
-    private PSSQueuer queuer;
+    private SouthboundQueuer queuer;
 
     @Given("^I clear all sets$")
     public void i_clear_all_sets() {
@@ -45,12 +45,5 @@ public class PssQueueSteps extends CucumberSteps {
         queuer.process();
     }
 
-    @When("^I make all running tasks complete$")
-    public void i_make_all_running_tasks_complete() {
-        List<PssTask> running = new ArrayList<>(queuer.entries(QueueName.RUNNING));
-        for (PssTask task : running) {
-            queuer.complete(task.getCommandType(), task.getConnectionId());
-        }
-    }
 
 }

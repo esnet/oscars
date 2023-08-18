@@ -9,11 +9,11 @@ import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.dto.pss.cmd.GeneratedCommands;
 import net.es.oscars.dto.pss.st.ControlPlaneStatus;
 import net.es.oscars.dto.pss.st.LifecycleStatus;
-import net.es.oscars.pss.beans.PssTask;
+import net.es.oscars.sb.SouthboundTask;
 import net.es.oscars.pss.beans.QueueName;
 import net.es.oscars.pss.db.RouterCommandsRepository;
 import net.es.oscars.pss.ent.RouterCommands;
-import net.es.oscars.pss.svc.PSSQueuer;
+import net.es.oscars.sb.SouthboundQueuer;
 import net.es.oscars.pss.svc.PssHealthChecker;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
@@ -37,7 +37,7 @@ public class PssController {
     @Autowired
     private Startup startup;
     @Autowired
-    private PSSQueuer pssQueuer;
+    private SouthboundQueuer southboundQueuer;
 
     @Autowired
     private RouterCommandsRepository rcRepo;
@@ -111,7 +111,7 @@ public class PssController {
                     .build();
 
             // first check if there are running tasks for this connection id; if so, return that
-            for (PssTask t : pssQueuer.entries(QueueName.RUNNING)) {
+            for (SouthboundTask t : southboundQueuer.entries(QueueName.RUNNING)) {
                 if (t.getConnectionId().equals(connectionId)) {
                     pwt.setNext(t.getIntent());
                     pwt.setWork(QueueName.RUNNING);
@@ -121,7 +121,7 @@ public class PssController {
             }
 
             // otherwise check if waiting, then return that
-            for (PssTask t : pssQueuer.entries(QueueName.WAITING)) {
+            for (SouthboundTask t : southboundQueuer.entries(QueueName.WAITING)) {
                 if (t.getConnectionId().equals(connectionId)) {
                     pwt.setNext(t.getIntent());
                     pwt.setWork(QueueName.WAITING);
@@ -193,7 +193,7 @@ public class PssController {
             } else if  (c.getReserved().getSchedule().getEnding().isBefore(Instant.now())) {
                 throw new PSSException("cannot build after end time");
             }
-            pssQueuer.add(CommandType.BUILD, c.getConnectionId(), State.ACTIVE);
+            southboundQueuer.add(CommandType.BUILD, c.getConnectionId(), State.ACTIVE);
 
         }
     }
@@ -219,7 +219,7 @@ public class PssController {
             } else if  (c.getReserved().getSchedule().getEnding().isBefore(Instant.now())) {
                 throw new PSSException("cannot dismantle after end time");
             }
-            pssQueuer.add(CommandType.DISMANTLE, c.getConnectionId(), State.ACTIVE);
+            southboundQueuer.add(CommandType.DISMANTLE, c.getConnectionId(), State.ACTIVE);
 
 
         }

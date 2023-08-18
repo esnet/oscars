@@ -53,7 +53,8 @@
     "build": "./node_modules/.bin/webpack -p",
     "lint": "eslint ./src --fix",
     "prettier": "prettier --print-width 100 --tab-width 4 --write \"src/**/*.js\"",
-    "format": "npm run prettier && npm run lint"
+    "format": "npm run prettier && npm run lint",
+    "test": "mocha test/spec.js"
   },
   "husky": {
     "hooks": {

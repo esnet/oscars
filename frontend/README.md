@@ -19,7 +19,7 @@ A frontend for OSCARS 1.0
 
 `npm run start`
 
-### Packaging for Maven deployment 
+### Packaging for Maven deploymentState 
 
 `mvn clean package`
 
