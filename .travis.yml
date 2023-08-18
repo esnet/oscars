@@ -5,6 +5,9 @@ notifications:
 
 dist: trusty
 
+env:
+  - CXX=g++-4.8 # needed for nodejs build
+
 matrix:
   include:
     - language: java
