@@ -5,12 +5,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
-import net.es.oscars.resv.enums.BuildMode;
-import net.es.oscars.resv.enums.Phase;
-import net.es.oscars.resv.enums.State;
+import net.es.oscars.resv.enums.*;
 
 import jakarta.persistence.*;
-import java.time.Instant;
+
 import java.util.List;
 
 @Data
@@ -24,6 +22,8 @@ public class Connection {
                       @JsonProperty("phase") @NonNull Phase phase,
                       @JsonProperty("mode") @NonNull BuildMode mode,
                       @JsonProperty("state") @NonNull State state,
+                      @JsonProperty("deployment-state") @NonNull DeploymentState deploymentState,
+                      @JsonProperty("deployment-intent") @NonNull DeploymentIntent deploymentIntent,
                       @JsonProperty("username") @NonNull String username,
                       @JsonProperty("description") @NonNull String description,
                       @JsonProperty("reserved") Reserved reserved,
@@ -36,6 +36,8 @@ public class Connection {
         this.phase = phase;
         this.mode = mode;
         this.state = state;
+        this.deploymentState = deploymentState;
+        this.deploymentIntent = deploymentIntent;
         this.username = username;
         this.description = description;
         this.reserved = reserved;
@@ -61,6 +63,12 @@ public class Connection {
 
     @NonNull
     private BuildMode mode;
+
+    @NonNull
+    private DeploymentState deploymentState;
+
+    @NonNull
+    private DeploymentIntent deploymentIntent;
 
     @NonNull
     private State state;

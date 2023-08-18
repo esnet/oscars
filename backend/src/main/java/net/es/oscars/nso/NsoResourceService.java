@@ -22,8 +22,6 @@ public class NsoResourceService {
     @Autowired
     private NsoQosSapPolicyIdService nsoQosSapPolicyIdService;
 
-
-
     @Autowired
     private ScheduleRepository scheduleRepo;
 

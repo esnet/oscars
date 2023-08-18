@@ -5,17 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
-import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.app.util.DbAccess;
-import net.es.oscars.dto.pss.cmd.CommandType;
-import net.es.oscars.pss.svc.PSSQueuer;
-import net.es.oscars.pss.svc.PssResourceService;
+import net.es.oscars.nso.NsoResourceService;
+import net.es.oscars.nso.NsoResvException;
 import net.es.oscars.resv.db.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.beans.PortBwVlan;
-import net.es.oscars.topo.enums.CommandParamType;
 import net.es.oscars.topo.svc.TopoService;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
@@ -30,13 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityNotFoundException;
 import java.time.*;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.IntStream;
 
 import static net.es.oscars.resv.svc.ConnUtils.*;
 
@@ -56,7 +51,7 @@ public class ConnService {
     private ResvService resvService;
 
     @Autowired
-    private PssResourceService pssResourceService;
+    private NsoResourceService nsoResourceService;
 
     @Autowired
     private HeldRepository heldRepo;
@@ -69,10 +64,9 @@ public class ConnService {
 
     @Autowired
     private ReservedRepository reservedRepo;
+
     @Autowired
     private ObjectMapper jacksonObjectMapper;
-    @Autowired
-    private PSSQueuer pssQueuer;
 
     @Autowired
     private DbAccess dbAccess;
@@ -91,11 +85,6 @@ public class ConnService {
 
     @Value("${resv.minimum-duration:15}")
     private Integer minDuration;
-
-
-
-
-
 
     public ConnectionList filter(ConnectionFilter filter) {
 
@@ -318,7 +307,7 @@ public class ConnService {
     }
 
 
-    public ConnChangeResult commit(Connection c) throws PSSException, PCEException, ConnException {
+    public ConnChangeResult commit(Connection c) throws NsoResvException, PCEException, ConnException {
 
         Held h = c.getHeld();
 
@@ -344,9 +333,15 @@ public class ConnService {
         try {
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
+            c.setDeploymentState(DeploymentState.UNDEPLOYED);
+            if (c.getMode().equals(BuildMode.AUTOMATIC)) {
+                c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED);
+            } else {
+                c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
+            }
 
             reservedFromHeld(c);
-            this.pssResourceService.reserve(c);
+            this.nsoResourceService.reserve(c);
 
             archiveFromReserved(c);
 
@@ -378,23 +373,9 @@ public class ConnService {
     }
 
 
-    public ConnChangeResult uncommit(Connection c) {
-
-        Held h = heldFromReserved(c);
-        c.setReserved(null);
-        c.setHeld(h);
-        connRepo.saveAndFlush(c);
-
-        return ConnChangeResult.builder()
-                .what(ConnChange.UNCOMMITTED)
-                .phase(Phase.HELD)
-                .when(Instant.now())
-                .build();
-
-    }
 
     public ConnChangeResult release(Connection c) {
-        // if it is HELD or DESIGN, delete it
+        // if it is HELD or DESIGN, just delete it
         if (c.getPhase().equals(Phase.HELD) || c.getPhase().equals(Phase.DESIGN)) {
             log.debug("deleting HELD / DESIGN connection during release" + c.getConnectionId());
             connRepo.delete(c);
@@ -411,6 +392,7 @@ public class ConnService {
                     .when(Instant.now())
                     .build();
         }
+
         if (c.getPhase().equals(Phase.RESERVED)) {
             if (c.getReserved().getSchedule().getBeginning().isAfter(Instant.now())) {
                 // we haven't started yet; can delete without consequence
@@ -431,9 +413,10 @@ public class ConnService {
                         .build();
             }
             if (c.getState().equals(State.ACTIVE)) {
+                c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
+
                 log.debug("Releasing active connection: " + c.getConnectionId());
 
-                pssQueuer.add(CommandType.DISMANTLE, c.getConnectionId(), State.FINISHED);
                 Event ev = Event.builder()
                         .connectionId(c.getConnectionId())
                         .description("released (active)")
@@ -965,6 +948,8 @@ public class ConnService {
     public Connection toNewConnection(SimpleConnection in) {
         Connection c = Connection.builder()
                 .mode(BuildMode.AUTOMATIC)
+                .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
+                .deploymentState(DeploymentState.UNDEPLOYED)
                 .phase(Phase.HELD)
                 .description("")
                 .username("")

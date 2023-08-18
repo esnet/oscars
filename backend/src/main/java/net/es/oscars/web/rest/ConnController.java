@@ -4,10 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.PCEException;
-import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.svc.NsiService;
+import net.es.oscars.nso.NsoResvException;
 import net.es.oscars.pss.ent.RouterCommandHistory;
 import net.es.oscars.resv.db.CommandHistoryRepository;
 import net.es.oscars.resv.db.ConnectionRepository;
@@ -80,7 +80,7 @@ public class ConnController {
     @RequestMapping(value = "/protected/conn/commit", method = RequestMethod.POST)
     @ResponseBody
     public ConnChangeResult commit(Authentication authentication, @RequestBody String connectionId)
-            throws StartupException, PSSException, PCEException, ConnException {
+            throws StartupException, NsoResvException, PCEException, ConnException {
         this.checkStartup();
         String username = authentication.getName();
         Connection c = connSvc.findConnection(connectionId);
@@ -94,15 +94,6 @@ public class ConnController {
         return connSvc.commit(c);
     }
 
-    @RequestMapping(value = "/protected/conn/uncommit", method = RequestMethod.POST)
-    @ResponseBody
-    public ConnChangeResult uncommit(@RequestBody String connectionId) throws StartupException, ConnException {
-        this.checkStartup();
-
-        Connection c = connSvc.findConnection(connectionId);
-        return connSvc.uncommit(c);
-
-    }
 
 
     @RequestMapping(value = "/protected/conn/release", method = RequestMethod.POST)
@@ -117,10 +108,7 @@ public class ConnController {
         } else {
             try {
                 Optional<NsiMapping> om = nsiSvc.getMappingForOscarsId(c.getConnectionId());
-                if (om.isPresent()) {
-                    nsiSvc.forcedEnd(om.get());
-
-                }
+                om.ifPresent(nsiMapping -> nsiSvc.forcedEnd(nsiMapping));
 
             } catch (NsiException ex) {
                 log.error(ex.getMessage(),ex);
