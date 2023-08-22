@@ -22,7 +22,8 @@ public class NsoResourceService {
     @Autowired
     private NsoQosSapPolicyIdService nsoQosSapPolicyIdService;
 
-
+    @Autowired
+    private NsoSdpIdService nsoSdpIdService;
 
     @Autowired
     private ScheduleRepository scheduleRepo;
@@ -38,6 +39,7 @@ public class NsoResourceService {
         List<Schedule> overlappingSchedules = scheduleRepo.findOverlapping(interval.getBeginning(), interval.getEnding());
         nsoVcIdService.findAndReserveVcId(conn, overlappingSchedules);
         nsoQosSapPolicyIdService.findAndReserveQosSapPolicyIds(conn, overlappingSchedules);
+        nsoSdpIdService.findAndReserveNsoSdpIds(conn, overlappingSchedules);
 
     }
 
