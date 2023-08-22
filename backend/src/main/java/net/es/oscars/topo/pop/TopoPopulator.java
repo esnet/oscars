@@ -1,23 +1,28 @@
 package net.es.oscars.topo.pop;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.TopoProperties;
+import net.es.oscars.dto.topo.DeviceModel;
+import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.beans.TopoException;
 import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.db.AdjcyRepository;
 import net.es.oscars.topo.db.DeviceRepository;
 import net.es.oscars.topo.db.PortRepository;
-import net.es.oscars.topo.ent.Device;
-import net.es.oscars.topo.ent.Port;
-import net.es.oscars.topo.ent.Adjcy;
-import net.es.oscars.topo.ent.Version;
+import net.es.oscars.topo.ent.*;
+import net.es.oscars.topo.enums.DeviceType;
+import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.svc.ConsistencyService;
 import net.es.oscars.topo.svc.TopoService;
+import net.es.topo.common.model.oscars1.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
+import org.springframework.web.client.RestTemplate;
+
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
@@ -168,22 +173,33 @@ public class TopoPopulator {
 
 
     public void refresh(boolean onlyLoadWhenFileNewer) throws ConsistencyException, TopoException, IOException {
-        Optional<Version> maybeV = topoService.latestVersion();
-        boolean fileLoadNeeded = true;
-
-        if (maybeV.isPresent()) {
-            if (onlyLoadWhenFileNewer) {
-                fileLoadNeeded = fileLoadNeeded(maybeV.get());
-            }
+        Topology incoming = null;
+        boolean updated = false;
+        if (topoProperties.getUrl() != null) {
+            incoming = this.loadFromDiscovery();
+            updated = true;
         } else {
-            log.info("no topology valid version present; first load?");
+            Optional<Version> maybeV = topoService.latestVersion();
+            boolean fileLoadNeeded = true;
 
+            if (maybeV.isPresent()) {
+                if (onlyLoadWhenFileNewer) {
+                    fileLoadNeeded = fileLoadNeeded(maybeV.get());
+                }
+            } else {
+                log.info("no topology valid version present; first load?");
+
+            }
+
+            if (fileLoadNeeded) {
+                log.info("Need to load new topology files");
+                // load to DB from disk
+                incoming = loadFromDefaultFiles();
+                updated = true;
+            }
         }
 
-        if (fileLoadNeeded) {
-            log.info("Need to load new topology files");
-            // load to DB from disk
-            Topology incoming = loadFromDefaultFiles();
+        if (updated) {
             replaceDbTopology(incoming);
             topoService.bumpVersion();
             // load to memory from DB
@@ -191,6 +207,112 @@ public class TopoPopulator {
             // check consistency
             consistencySvc.checkConsistency();
         }
+    }
+
+    public Topology loadFromDiscovery() throws TopoException {
+        RestTemplate restTemplate = new RestTemplate();
+        OscarsOneTopo discTopo = restTemplate.getForObject(topoProperties.getUrl(), OscarsOneTopo.class);
+        if (discTopo == null) {
+            throw new TopoException("null discovery topology");
+        } else if (discTopo.getAdjcies() == null) {
+            throw new TopoException("null discovery topology adjacencies");
+        } else if (discTopo.getDevices() == null) {
+            throw new TopoException("null discovery topology devices");
+        }
+        List<Adjcy> adjcies = new ArrayList<>();
+        for (OscarsOneAdjcy discAdjcy : discTopo.getAdjcies()) {
+            Point a = Point.builder()
+                    .port(discAdjcy.getA().getPort())
+                    .device(discAdjcy.getA().getDevice())
+                    .ifce(discAdjcy.getA().getIfce())
+                    .addr(discAdjcy.getA().getAddr())
+                    .build();
+            Point z = Point.builder()
+                    .port(discAdjcy.getZ().getPort())
+                    .device(discAdjcy.getZ().getDevice())
+                    .ifce(discAdjcy.getZ().getIfce())
+                    .addr(discAdjcy.getZ().getAddr())
+                    .build();
+            Map<Layer, Long> metrics = new HashMap<>();
+            for (String key : discAdjcy.getMetrics().keySet()) {
+                metrics.put(Layer.valueOf(key), discAdjcy.getMetrics().get(key).longValue());
+            }
+            adjcies.add(Adjcy.builder()
+                    .a(a)
+                    .z(z)
+                    .metrics(metrics)
+                    .build());
+        }
+        Map<String, Device> devices = new HashMap<>();
+        Map<String, Port> ports = new HashMap<>();
+
+        for (OscarsOneDevice discDevice : discTopo.getDevices()) {
+            Set<Layer> deviceCaps = new HashSet<>();
+            for (String capString : discDevice.getCapabilities()) {
+                deviceCaps.add(Layer.valueOf(capString));
+            }
+            Set<IntRange> devResVlans = new HashSet<>();
+            for (OscarsOneVlan vlan : discDevice.getReservableVlans()) {
+                devResVlans.add(IntRange.builder()
+                                .ceiling(vlan.getCeiling())
+                                .floor(vlan.getFloor())
+                                .build());
+            }
+            Device d = Device.builder()
+                    .ports(new HashSet<>())
+                    .capabilities(new HashSet<>())
+                    .ipv4Address(discDevice.getIpv4Address())
+                    .longitude(Double.valueOf(discDevice.getLongitude()))
+                    .latitude(Double.valueOf(discDevice.getLatitude()))
+                    .location(discDevice.getLocation())
+                    .model(DeviceModel.valueOf(discDevice.getModel().toString()))
+                    .locationId(discDevice.getLocationId())
+                    .type(DeviceType.valueOf(discDevice.getType()))
+                    .urn(discDevice.getUrn())
+                    .capabilities(deviceCaps)
+                    .reservableVlans(devResVlans)
+                    .build();
+            devices.put(d.getUrn(), d);
+            for (OscarsOnePort discPort : discDevice.getPorts()) {
+                Set<Layer> portCaps = new HashSet<>();
+                for (String capString : discDevice.getCapabilities()) {
+                    portCaps.add(Layer.valueOf(capString));
+                }
+                Set<IntRange> portResVlans = new HashSet<>();
+                for (OscarsOneVlan vlan : discPort.getReservableVlans()) {
+                    portResVlans.add(IntRange.builder()
+                            .ceiling(vlan.getCeiling())
+                            .floor(vlan.getFloor())
+                            .build());
+                }
+                Set<Layer3Ifce> ifces = new HashSet<>();
+                for (OscarsOnePort.OscarsOnePortIfce discIfce : discPort.getIfces()) {
+                    ifces.add(Layer3Ifce.builder()
+                            .port(discIfce.getPort())
+                            .ipv4Address(discIfce.getIpv4Address())
+                            .urn(discIfce.getUrn())
+                            .build());
+                }
+                Port port = Port.builder()
+                        .capabilities(portCaps)
+                        .device(d)
+                        .reservableEgressBw(discPort.getReservableEgressBw())
+                        .reservableIngressBw(discPort.getReservableIngressBw())
+                        .tags(new ArrayList<>(discPort.getTags()))
+                        .ifces(ifces)
+                        .urn(discPort.getUrn())
+                        .reservableVlans(portResVlans)
+                        .build();
+                d.getPorts().add(port);
+                ports.put(port.getUrn(), port);
+            }
+        }
+
+        return Topology.builder()
+                .adjcies(adjcies)
+                .ports(ports)
+                .devices(devices)
+                .build();
 
     }
 

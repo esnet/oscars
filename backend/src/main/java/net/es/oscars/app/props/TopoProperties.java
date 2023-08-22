@@ -15,4 +15,6 @@ public class TopoProperties {
     private String prefix;
     private String esdbKey;
     private String importScriptPath;
+
+    private String url;
 }

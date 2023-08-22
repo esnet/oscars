@@ -7,26 +7,15 @@ import lombok.NonNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@ConfigurationProperties(prefix = "nso")
+@ConfigurationProperties(prefix = "esdb")
 @Data
 @Component
 @NoArgsConstructor
-public class NsoProperties {
+public class EsdbProperties {
     @NonNull
-    private String vcIdRange;
+    private String apiKey;
 
     @NonNull
-    private String sdpIdRange;
+    private String uri;
 
-    @NonNull
-    private String sapQosIdRange;
-
-    @NonNull
-    public String uri;
-
-    @NonNull
-    public String username;
-
-    @NonNull
-    public String password;
 }
