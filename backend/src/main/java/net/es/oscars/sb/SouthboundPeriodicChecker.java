@@ -56,7 +56,7 @@ public class SouthboundPeriodicChecker {
         ReentrantLock connLock = dbAccess.getConnLock();
         boolean gotLock = connLock.tryLock();
         if (gotLock) {
-            Set<Connection> shouldBeUndeployed = new HashSet<>();
+            Set<Connection> shouldBeMadeUndeployed = new HashSet<>();
             Set<String> shouldBeFinished = new HashSet<>();
 
             Set<Connection> shouldBeDeployed = new HashSet<>();
@@ -66,42 +66,47 @@ public class SouthboundPeriodicChecker {
             for (Connection c : reservedConns) {
                 Schedule s = c.getReserved().getSchedule();
                 if (s.getEnding().isBefore(Instant.now())) {
-                    shouldBeUndeployed.add(c);
+                    shouldBeMadeUndeployed.add(c);
                     shouldBeFinished.add(c.getConnectionId());
 
                 } else if (s.getBeginning().isBefore(Instant.now())) {
-                    boolean shouldDeploy = false;
                     if (c.getMode().equals(BuildMode.AUTOMATIC)) {
-                        shouldDeploy = true;
-                    }
-                    if (shouldDeploy) {
                         shouldBeDeployed.add(c);
                     }
                 }
             }
-            // modify the intent
+
+            // modify the intents
             for (Connection c: shouldBeDeployed)  {
                 if (c.getDeploymentIntent().equals(DeploymentIntent.SHOULD_BE_UNDEPLOYED)) {
+                    log.info("was set to should-be-deployed "+c.getConnectionId());
                     c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED);
                     connRepo.save(c);
                 }
             }
-            for (Connection c: shouldBeUndeployed)  {
+
+            for (Connection c: shouldBeMadeUndeployed)  {
                 if (c.getDeploymentIntent().equals(DeploymentIntent.SHOULD_BE_DEPLOYED)) {
+                    log.info("was set to should-be-undeployed "+c.getConnectionId());
                     c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
                     connRepo.save(c);
                 }
             }
 
             southboundQueuer.clear(QueueName.DONE);
+
+            // these catch any connections that don't have the correct state
             List<Connection> deployThese = connRepo
                     .findByDeploymentIntentAndDeploymentState(DeploymentIntent.SHOULD_BE_DEPLOYED, DeploymentState.UNDEPLOYED);
             List<Connection> undeployThese = connRepo
                     .findByDeploymentIntentAndDeploymentState(DeploymentIntent.SHOULD_BE_UNDEPLOYED, DeploymentState.DEPLOYED);
 
+            // we only allow RESERVED connections that have a start time in the past to ever get deployed
             for (Connection c : deployThese) {
-                // we only allow RESERVED connections to ever get deployed
-                if (c.getPhase().equals(Phase.RESERVED)) {
+                if (c.getPhase().equals(Phase.RESERVED) &&
+                        c.getReserved() != null &&
+                        c.getReserved().getSchedule().getBeginning().isBefore(Instant.now())) {
+                    log.info("it is not-deployed, and should-be - adding a queued job to BUILD: "+c.getConnectionId());
                     c.setDeploymentState(DeploymentState.WAITING_TO_BE_DEPLOYED);
                     connRepo.save(c);
                     southboundQueuer.add(CommandType.BUILD, c.getConnectionId(), State.ACTIVE);
@@ -109,7 +114,8 @@ public class SouthboundPeriodicChecker {
             }
 
             for (Connection c : undeployThese) {
-                // .. but we allow connections in any phase to get undeployed
+                log.info("it is deployed, and should-not-be - adding a queued job to DISMANTLE: "+c.getConnectionId());
+                // we allow connections in any phase to get undeployed
                 c.setDeploymentState(DeploymentState.WAITING_TO_BE_UNDEPLOYED);
                 connRepo.save(c);
                 if (shouldBeFinished.contains(c.getConnectionId())) {

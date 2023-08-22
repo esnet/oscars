@@ -2,9 +2,9 @@ package net.es.oscars.test.unit;
 
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
-import net.es.oscars.nso.IntegerSet;
-import net.es.oscars.nso.NsoResvException;
-import net.es.oscars.nso.NsoSdpIdService;
+import net.es.oscars.nso.resv.IntegerSet;
+import net.es.oscars.nso.resv.NsoResvException;
+import net.es.oscars.nso.resv.NsoSdpIdService;
 import net.es.oscars.topo.beans.IntRange;
 import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
 import org.junit.Test;

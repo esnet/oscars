@@ -1,4 +1,4 @@
-package net.es.oscars.nso;
+package net.es.oscars.nso.rest;
 
 import lombok.Builder;
 import lombok.Data;
@@ -11,17 +11,12 @@ import net.es.oscars.nso.db.NsoSdpIdDAO;
 import net.es.oscars.nso.db.NsoVcIdDAO;
 import net.es.oscars.nso.ent.NsoQosSapPolicyId;
 import net.es.oscars.nso.ent.NsoSdpId;
-import net.es.oscars.nso.rest.NsoLspWrapper;
-import net.es.oscars.nso.rest.NsoProxy;
-import net.es.oscars.nso.rest.NsoVplsWrapper;
 import net.es.oscars.pss.params.MplsHop;
 import net.es.oscars.pss.svc.MiscHelper;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.sb.SouthboundTaskResult;
-import net.es.oscars.topo.beans.TopoUrn;
-import net.es.oscars.topo.svc.TopoService;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.*;
@@ -37,9 +32,6 @@ public class NsoAdapter {
     private NsoProxy nsoProxy;
 
     @Autowired
-    private TopoService topoService;
-
-    @Autowired
     private NsoVcIdDAO nsoVcIdDAO;
 
     @Autowired
@@ -53,9 +45,7 @@ public class NsoAdapter {
 
     public final static String ROUTING_DOMAIN = "esnet-293"; // FIXME: this needs to come from topology, probably
     public SouthboundTaskResult processTask(Connection conn, CommandType commandType, State intent) throws NsoException, PSSException {
-
-
-        log.info("processing southbound NSO task");
+        log.info("processing southbound NSO task "+conn.getConnectionId()+" "+commandType.toString());
         DeploymentState depState = DeploymentState.DEPLOYED;
         if (commandType.equals(CommandType.DISMANTLE)) {
             depState = DeploymentState.UNDEPLOYED;
@@ -63,20 +53,39 @@ public class NsoAdapter {
             depState = DeploymentState.DEPLOYED;
         }
 
-        try {
-            NsoOscarsServices services = this.nsoOscarsServices(conn);
-            // LSPs before VPLSs
-            if (services.getLspWrapper() != null) {
-                nsoProxy.postToServices(services.getLspWrapper());
-            }
-            nsoProxy.postToServices(services.getVplsWrapper());
 
-            return SouthboundTaskResult.builder()
-                    .connectionId(conn.getConnectionId())
-                    .deploymentState(depState)
-                    .state(intent)
-                    .commandType(commandType)
-                    .build();
+        try {
+            if (commandType.equals(CommandType.BUILD)) {
+                NsoOscarsServices services = this.nsoOscarsServices(conn);
+                // LSPs before VPLSs
+                if (services.getLspWrapper() != null) {
+                    nsoProxy.postToServices(services.getLspWrapper());
+                }
+                nsoProxy.postToServices(services.getVplsWrapper());
+
+                return SouthboundTaskResult.builder()
+                        .connectionId(conn.getConnectionId())
+                        .deploymentState(depState)
+                        .state(intent)
+                        .commandType(commandType)
+                        .build();
+            } else if (commandType.equals(CommandType.DISMANTLE)) {
+                NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
+                nsoProxy.deleteServices(conn.getConnectionId(), dismantle);
+                return SouthboundTaskResult.builder()
+                        .connectionId(conn.getConnectionId())
+                        .deploymentState(depState)
+                        .state(intent)
+                        .commandType(commandType)
+                        .build();
+            } else {
+                return SouthboundTaskResult.builder()
+                        .connectionId(conn.getConnectionId())
+                        .deploymentState(conn.getDeploymentState())
+                        .state(State.FAILED)
+                        .commandType(commandType)
+                        .build();
+            }
         } catch (NsoException e) {
             return SouthboundTaskResult.builder()
                     .connectionId(conn.getConnectionId())
@@ -98,8 +107,6 @@ public class NsoAdapter {
             pathType = NsoLspPathType.LOOSE;
         }
 
-        TopoUrn deviceTopoUrn = topoService.getTopoUrnMap().get(otherJunction.getDeviceUrn());
-        String remoteLoopback = deviceTopoUrn.getDevice().getIpv4Address();
 
         NsoLSP.MplsPath mplsPath = NsoLSP.MplsPath.builder()
                 .pathType(pathType)
@@ -132,6 +139,40 @@ public class NsoAdapter {
                         .build())
                 // .metric() we don't need it
                 .routingDomain(ROUTING_DOMAIN)
+                .build();
+    }
+
+    public NsoOscarsDismantle nsoOscarsDismantle(Connection conn) {
+        Integer vcId = nsoVcIdDAO.findNsoVcIdByConnectionId(conn.getConnectionId()).orElseThrow().getVcId();
+        Components cmp = null;
+        if (conn.getReserved() != null) {
+            cmp = conn.getReserved().getCmp();
+        } else {
+            cmp = conn.getArchived().getCmp();
+        }
+        List<String> lspInstanceKeys = new ArrayList<>();
+        for (VlanPipe pipe : cmp.getPipes()) {
+            String lspNamePiece = "-WRK-";
+            // LSP instance key is "lspname,device"
+            // we do it both for A-Z and Z-A
+            String azInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getZ().getDeviceUrn()+","+pipe.getA().getDeviceUrn();
+            String zaInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getA().getDeviceUrn()+","+pipe.getZ().getDeviceUrn();
+            lspInstanceKeys.add(azInstanceKey);
+            lspInstanceKeys.add(zaInstanceKey);
+
+            if (pipe.getProtect()) {
+                lspNamePiece = "-PRT-";
+                azInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getZ().getDeviceUrn()+","+pipe.getA().getDeviceUrn();;
+                zaInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getA().getDeviceUrn()+","+pipe.getZ().getDeviceUrn();;
+                lspInstanceKeys.add(azInstanceKey);
+                lspInstanceKeys.add(zaInstanceKey);
+            }
+        }
+
+
+        return NsoOscarsDismantle.builder()
+                .vcId(vcId)
+                .lspNsoKeys(lspInstanceKeys)
                 .build();
     }
 
@@ -227,6 +268,7 @@ public class NsoAdapter {
             NsoVPLS.Endpoint endpoint = NsoVPLS.Endpoint.builder()
                     .ifce(portIfce)
                     .vlanId(f.getVlan().getVlanId())
+                    .layer2Description(conn.getConnectionId())
                     .qos(qos)
                     .build();
             dc.getEndpoint().add(endpoint);
@@ -352,10 +394,16 @@ public class NsoAdapter {
 
     @Data
     @Builder
+    public static class NsoOscarsDismantle {
+        private int vcId;
+        private List<String> lspNsoKeys;
+    }
+
+    @Data
+    @Builder
     public static class LspMapKey {
         String device;
         String target;
         boolean protect;
-
     }
 }

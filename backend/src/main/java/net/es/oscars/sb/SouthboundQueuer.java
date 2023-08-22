@@ -2,20 +2,20 @@ package net.es.oscars.sb;
 
 import lombok.extern.slf4j.Slf4j;
 
+import net.es.oscars.app.exc.NsoException;
+import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.dto.pss.cmd.CommandType;
-import net.es.oscars.nso.NsoAdapter;
+import net.es.oscars.nso.rest.NsoAdapter;
 import net.es.oscars.pss.beans.QueueName;
-import net.es.oscars.pss.svc.PSSAdapter;
 import net.es.oscars.resv.db.ConnectionRepository;
-import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
+import net.es.topo.common.devel.DevelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -56,9 +56,17 @@ public class SouthboundQueuer {
             cr.findByConnectionId(wt.getConnectionId()).ifPresent(conn -> {
                 FutureTask<SouthboundTaskResult> task = new FutureTask<>(() -> adapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
                 if (wt.getCommandType().equals(CommandType.BUILD)) {
+                    try {
+                        DevelUtils.dumpDebug("build", adapter.nsoOscarsServices(conn));
+                    } catch (PSSException | NsoException e) {
+                        throw new RuntimeException(e);
+                    }
                     conn.setDeploymentState(DeploymentState.BEING_DEPLOYED);
                     cr.save(conn);
                 } else if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
+
+                    DevelUtils.dumpDebug("build", adapter.nsoOscarsDismantle(conn));
+
                     conn.setDeploymentState(DeploymentState.BEING_UNDEPLOYED);
                     cr.save(conn);
                 }

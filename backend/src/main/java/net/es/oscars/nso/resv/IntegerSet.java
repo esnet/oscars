@@ -1,4 +1,4 @@
-package net.es.oscars.nso;
+package net.es.oscars.nso.resv;
 
 import net.es.oscars.topo.beans.IntRange;
 

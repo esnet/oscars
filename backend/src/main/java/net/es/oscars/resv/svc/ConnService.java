@@ -6,8 +6,8 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.util.DbAccess;
-import net.es.oscars.nso.NsoResourceService;
-import net.es.oscars.nso.NsoResvException;
+import net.es.oscars.nso.resv.NsoResourceService;
+import net.es.oscars.nso.resv.NsoResvException;
 import net.es.oscars.resv.db.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
@@ -377,7 +377,7 @@ public class ConnService {
     public ConnChangeResult release(Connection c) {
         // if it is HELD or DESIGN, just delete it
         if (c.getPhase().equals(Phase.HELD) || c.getPhase().equals(Phase.DESIGN)) {
-            log.debug("deleting HELD / DESIGN connection during release" + c.getConnectionId());
+            log.info("deleting a HELD / DESIGN connection during release" + c.getConnectionId());
             connRepo.delete(c);
             connRepo.flush();
             return ConnChangeResult.builder()
@@ -396,7 +396,7 @@ public class ConnService {
         if (c.getPhase().equals(Phase.RESERVED)) {
             if (c.getReserved().getSchedule().getBeginning().isAfter(Instant.now())) {
                 // we haven't started yet; can delete without consequence
-                log.debug("deleting unstarted connection during release" + c.getConnectionId());
+                log.info("deleting unstarted connection during release" + c.getConnectionId());
                 connRepo.delete(c);
                 Event ev = Event.builder()
                         .connectionId(c.getConnectionId())
@@ -412,10 +412,9 @@ public class ConnService {
                         .when(Instant.now())
                         .build();
             }
-            if (c.getState().equals(State.ACTIVE)) {
-                c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
+            if (c.getState().equals(State.ACTIVE) || c.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
 
-                log.debug("Releasing active connection: " + c.getConnectionId());
+                log.info("Releasing active connection: " + c.getConnectionId());
 
                 Event ev = Event.builder()
                         .connectionId(c.getConnectionId())
@@ -428,7 +427,7 @@ public class ConnService {
 
 
             } else {
-                log.debug("Releasing non-active connection: " + c.getConnectionId());
+                log.info("Releasing a non-active connection: " + c.getConnectionId());
                 Event ev = Event.builder()
                         .connectionId(c.getConnectionId())
                         .description("released (inactive)")
@@ -461,6 +460,7 @@ public class ConnService {
             // log.debug("got connection lock ");
             // then, archive it
             c.setPhase(Phase.ARCHIVED);
+            c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
             c.setHeld(null);
             c.setReserved(null);
 

@@ -1,6 +1,5 @@
-package net.es.oscars.nso;
+package net.es.oscars.nso.resv;
 
-import io.swagger.models.auth.In;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
