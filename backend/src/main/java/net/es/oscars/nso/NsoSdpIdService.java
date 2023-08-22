@@ -28,7 +28,6 @@ public class NsoSdpIdService {
 
     public void findAndReserveNsoSdpIds(Connection conn, List<Schedule> schedules) throws NsoResvException {
         // we want to use the same SDP id on the two devices at the end of each pipe.
-        Map<String, Set<VlanPipe>> byDevice = new HashMap<>();
         // this is a bit tricky
         // 1. we collect the set of available SDP ids on each involved device
         // 2. we iterate over the VlanPipes of the connection

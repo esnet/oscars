@@ -308,7 +308,7 @@ public class ConnService {
 
 
     public ConnChangeResult commit(Connection c) throws NsoResvException, PCEException, ConnException {
-
+        log.info("committing "+c.getConnectionId());
         Held h = c.getHeld();
 
         if (!c.getPhase().equals(Phase.HELD)) {
@@ -333,16 +333,16 @@ public class ConnService {
         try {
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
+
+
+            reservedFromHeld(c);
+            this.nsoResourceService.reserve(c);
             c.setDeploymentState(DeploymentState.UNDEPLOYED);
             if (c.getMode().equals(BuildMode.AUTOMATIC)) {
                 c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED);
             } else {
                 c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
             }
-
-            reservedFromHeld(c);
-            this.nsoResourceService.reserve(c);
-
             archiveFromReserved(c);
 
             c.setHeld(null);

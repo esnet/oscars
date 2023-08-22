@@ -100,12 +100,16 @@ public class SouthboundPeriodicChecker {
                     .findByDeploymentIntentAndDeploymentState(DeploymentIntent.SHOULD_BE_UNDEPLOYED, DeploymentState.DEPLOYED);
 
             for (Connection c : deployThese) {
-                c.setDeploymentState(DeploymentState.WAITING_TO_BE_DEPLOYED);
-                connRepo.save(c);
-                southboundQueuer.add(CommandType.BUILD, c.getConnectionId(), State.ACTIVE);
+                // we only allow RESERVED connections to ever get deployed
+                if (c.getPhase().equals(Phase.RESERVED)) {
+                    c.setDeploymentState(DeploymentState.WAITING_TO_BE_DEPLOYED);
+                    connRepo.save(c);
+                    southboundQueuer.add(CommandType.BUILD, c.getConnectionId(), State.ACTIVE);
+                }
             }
 
             for (Connection c : undeployThese) {
+                // .. but we allow connections in any phase to get undeployed
                 c.setDeploymentState(DeploymentState.WAITING_TO_BE_UNDEPLOYED);
                 connRepo.save(c);
                 if (shouldBeFinished.contains(c.getConnectionId())) {
