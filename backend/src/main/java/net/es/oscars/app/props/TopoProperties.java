@@ -11,10 +11,9 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "topo")
 @NoArgsConstructor
 public class TopoProperties {
-    @NonNull
+    @Deprecated
     private String prefix;
-    private String esdbKey;
-    private String importScriptPath;
 
+    private String positionsFile;
     private String url;
 }

@@ -31,7 +31,7 @@ public class RefreshTopology {
     @Autowired
     private TopoPopulator topoPopulator;
 
-    @Scheduled(fixedDelay = 10000)
+    @Scheduled(fixedDelay = 300*1000) // millisecs
     @Transactional
     public void processingLoop() {
         if (startup.isInStartup() || startup.isInShutdown()) {

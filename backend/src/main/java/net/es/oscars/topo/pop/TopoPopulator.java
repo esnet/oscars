@@ -1,7 +1,6 @@
 package net.es.oscars.topo.pop;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.TopoProperties;
 import net.es.oscars.dto.topo.DeviceModel;

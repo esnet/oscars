@@ -3,15 +3,13 @@ package net.es.oscars.nso.rest;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import net.es.oscars.app.exc.NsoException;
+import net.es.oscars.nso.exc.NsoCommitException;
 import net.es.oscars.app.props.NsoProperties;
+import net.es.oscars.nso.exc.NsoDryrunException;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -68,31 +66,11 @@ public class NsoProxy {
         log.info("NSO server URL: " + props.getUri());
     }
 
-    public void deleteServices(String connectionId, NsoAdapter.NsoOscarsDismantle dismantle) throws NsoException {
-
-        List<YangPatch.YangEdit> edits = new ArrayList<>();
-        edits.add(YangPatch.YangEdit.builder()
-                .editId("delete " + dismantle.getVcId())
-                .operation("delete")
-                .target("/tailf-ncs:services/esnet-vpls:vpls=" + dismantle.getVcId())
-                .build());
-        for (String lspInstanceKey : dismantle.getLspNsoKeys()) {
-            edits.add(YangPatch.YangEdit.builder()
-                    .editId("delete " + lspInstanceKey)
-                    .operation("delete")
-                    .target("/tailf-ncs:services/esnet-lsp:lsp=" + lspInstanceKey)
-                    .build());
-        }
-        YangPatch deletePatch = YangPatch.builder()
-                .patchId("delete VPLS and LSP for"+connectionId)
-                .edit(edits)
-                .build();
+    public void deleteServices(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoCommitException {
+        YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
 
         String path = "/restconf/data/";
         String restPath = props.getUri() + path;
-
-        YangPatchWrapper wrapped = YangPatchWrapper.builder().patch(deletePatch).build();
-        DevelUtils.dumpDebug("yang patch delete", wrapped);
 
         final HttpEntity<YangPatchWrapper> entity = new HttpEntity<>(wrapped);
         UUID errorUuid = UUID.randomUUID();
@@ -110,18 +88,18 @@ public class NsoProxy {
                     }
                 } catch (JsonProcessingException ex) {
                     log.error(errorRef+ex.getMessage()+"\n"+response.getBody());
-                    throw new NsoException(errorRef+"Unable to delete. NSO response parse error.");
+                    throw new NsoCommitException(errorRef+"Unable to delete. NSO response parse error.");
                 }
                 log.error(errorRef+"Unable to delete. NSO error(s): " + errorStr);
-                throw new NsoException(errorRef+"Unable to delete. NSO error(s): " + errorStr);
+                throw new NsoCommitException(errorRef+"Unable to delete. NSO error(s): " + errorStr);
             }
         } catch (RestClientException ex) {
             log.error(errorRef+"REST error %s".formatted(ex.getMessage()));
-            throw new NsoException(errorRef+" REST Error: %s".formatted(ex.getMessage()));
+            throw new NsoCommitException(errorRef+" REST Error: %s".formatted(ex.getMessage()));
         }
     }
 
-    public void postToServices(Object wrapper) throws NsoException {
+    public void buildServices(NsoServicesWrapper wrapper) throws NsoCommitException {
         String path = "/restconf/data/tailf-ncs:services";
         String restPath = props.getUri() + path;
         UUID errorUuid = UUID.randomUUID();
@@ -141,15 +119,80 @@ public class NsoProxy {
                     }
                 } catch (JsonProcessingException ex) {
                     log.error(errorRef + "Unable to commit. Unable to parse error. Raw: " + response.getBody()+"\n"+ex.getMessage());
-                    throw new NsoException("Unable to commit. Unable to parse error. Raw: " + response.getBody());
+                    throw new NsoCommitException("Unable to commit. Unable to parse error. Raw: " + response.getBody());
                 }
                 log.error(errorRef+"Unable to commit. NSO error(s): " + errorStr);
-                throw new NsoException("Unable to commit. NSO error(s): " + errorStr);
+                throw new NsoCommitException("Unable to commit. NSO error(s): " + errorStr);
             }
         } catch (RestClientException ex) {
             log.error(errorRef+"REST error %s".formatted(ex.getMessage()));
-            throw new NsoException(ex.getMessage());
+            throw new NsoCommitException(ex.getMessage());
         }
+    }
+    public String buildDryRun(NsoServicesWrapper wrapper) throws NsoDryrunException {
+        String path = "/restconf/data/tailf-ncs:services?dry-run=cli&commit-queue=async";
+        String restPath = props.getUri() + path;
+        UUID errorUuid = UUID.randomUUID();
+        String errorRef = "Error reference: [" + errorUuid + "]\n";
+
+        try {
+            NsoDryRun response = restTemplate.postForObject(restPath, wrapper, NsoDryRun.class);
+            if (response != null && response.getDryRunResult() != null) {
+                log.info(response.getDryRunResult().getCli().getLocalNode().getData());
+                return response.getDryRunResult().getCli().getLocalNode().getData();
+            } else {
+                return "no dry-run available";
+            }
+        } catch (RestClientException ex) {
+            log.error(errorRef+"REST error %s".formatted(ex.getMessage()));
+            throw new NsoDryrunException(ex.getMessage());
+        }
+    }
+    public String dismantleDryRun(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoDryrunException {
+        YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
+
+        String path = "/restconf/data?dry-run=cli&commit-queue=async";
+        String restPath = props.getUri() + path;
+
+        final HttpEntity<YangPatchWrapper> entity = new HttpEntity<>(wrapped);
+        UUID errorUuid = UUID.randomUUID();
+        String errorRef = "Error reference: ["+errorUuid+"]\n";
+
+        try {
+            NsoDryRun response = patchTemplate.patchForObject(restPath, entity, NsoDryRun.class);
+            if (response != null && response.getDryRunResult() != null) {
+                log.info(response.getDryRunResult().getCli().getLocalNode().getData());
+                return response.getDryRunResult().getCli().getLocalNode().getData();
+            } else {
+                return "no dry-run available";
+            }
+        } catch (RestClientException ex) {
+            log.error(errorRef+"REST error %s".formatted(ex.getMessage()));
+            throw new NsoDryrunException(ex.getMessage());
+        }
+    }
+
+    public static YangPatchWrapper makeDismantleYangPatch(NsoAdapter.NsoOscarsDismantle dismantle) {
+        List<YangPatch.YangEdit> edits = new ArrayList<>();
+        edits.add(YangPatch.YangEdit.builder()
+                .editId("delete " + dismantle.getVcId())
+                .operation("delete")
+                .target("/tailf-ncs:services/esnet-vpls:vpls=" + dismantle.getVcId())
+                .build());
+        for (String lspInstanceKey : dismantle.getLspNsoKeys()) {
+            edits.add(YangPatch.YangEdit.builder()
+                    .editId("delete " + lspInstanceKey)
+                    .operation("delete")
+                    .target("/tailf-ncs:services/esnet-lsp:lsp=" + lspInstanceKey)
+                    .build());
+        }
+        YangPatch deletePatch = YangPatch.builder()
+                .patchId("delete VPLS and LSP for"+dismantle.getConnectionId())
+                .edit(edits)
+                .build();
+
+
+        return YangPatchWrapper.builder().patch(deletePatch).build();
     }
 
 }

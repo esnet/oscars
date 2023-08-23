@@ -1,18 +1,28 @@
 package net.es.oscars.nso.rest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import net.es.oscars.app.exc.NsoException;
+import net.es.oscars.nso.exc.NsoCommitException;
 import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.dto.pss.cmd.CommandType;
+import net.es.oscars.dto.pss.st.ConfigStatus;
+import net.es.oscars.nso.exc.NsoDryrunException;
+import net.es.oscars.nso.exc.NsoGenException;
 import net.es.oscars.nso.db.NsoQosSapPolicyIdDAO;
 import net.es.oscars.nso.db.NsoSdpIdDAO;
 import net.es.oscars.nso.db.NsoVcIdDAO;
 import net.es.oscars.nso.ent.NsoQosSapPolicyId;
 import net.es.oscars.nso.ent.NsoSdpId;
+import net.es.oscars.pss.db.RouterCommandsRepository;
+import net.es.oscars.pss.ent.RouterCommandHistory;
+import net.es.oscars.pss.ent.RouterCommands;
 import net.es.oscars.pss.params.MplsHop;
 import net.es.oscars.pss.svc.MiscHelper;
+import net.es.oscars.resv.db.CommandHistoryRepository;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
@@ -23,6 +33,7 @@ import net.es.topo.common.dto.nso.enums.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.*;
 
 @Component
@@ -41,10 +52,16 @@ public class NsoAdapter {
     private NsoSdpIdDAO nsoSdpIdDAO;
 
     @Autowired
+    private CommandHistoryRepository historyRepo;
+
+    @Autowired
+    private RouterCommandsRepository rcr;
+
+    @Autowired
     private MiscHelper miscHelper;
 
     public final static String ROUTING_DOMAIN = "esnet-293"; // FIXME: this needs to come from topology, probably
-    public SouthboundTaskResult processTask(Connection conn, CommandType commandType, State intent) throws NsoException, PSSException {
+    public SouthboundTaskResult processTask(Connection conn, CommandType commandType, State intent)  {
         log.info("processing southbound NSO task "+conn.getConnectionId()+" "+commandType.toString());
         DeploymentState depState = DeploymentState.DEPLOYED;
         if (commandType.equals(CommandType.DISMANTLE)) {
@@ -52,51 +69,84 @@ public class NsoAdapter {
         } else if (commandType.equals(CommandType.BUILD)) {
             depState = DeploymentState.DEPLOYED;
         }
+        ObjectWriter dryRunWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
 
+        State newState = intent;
+        String commands = "";
+        String dryRun = "";
+        ConfigStatus configStatus = ConfigStatus.NONE;
 
-        try {
-            if (commandType.equals(CommandType.BUILD)) {
-                NsoOscarsServices services = this.nsoOscarsServices(conn);
-                // LSPs before VPLSs
-                if (services.getLspWrapper() != null) {
-                    nsoProxy.postToServices(services.getLspWrapper());
+        boolean shouldWriteHistory = false;
+
+        if (commandType.equals(CommandType.BUILD) || commandType.equals(CommandType.DISMANTLE)) {
+            try {
+                if (commandType.equals(CommandType.BUILD)) {
+                    NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
+                    commands = dryRunWriter.writeValueAsString(oscarsServices);
+                    dryRun = nsoProxy.buildDryRun(oscarsServices);
+                    nsoProxy.buildServices(oscarsServices);
+                    shouldWriteHistory = true;
+                } else {
+                    NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
+                    commands = dryRunWriter.writeValueAsString(dismantle);
+                    dryRun = nsoProxy.dismantleDryRun(dismantle);
+                    nsoProxy.deleteServices(dismantle);
+                    // only set this after all has gone well
+                    shouldWriteHistory = true;
                 }
-                nsoProxy.postToServices(services.getVplsWrapper());
-
-                return SouthboundTaskResult.builder()
-                        .connectionId(conn.getConnectionId())
-                        .deploymentState(depState)
-                        .state(intent)
-                        .commandType(commandType)
-                        .build();
-            } else if (commandType.equals(CommandType.DISMANTLE)) {
-                NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
-                nsoProxy.deleteServices(conn.getConnectionId(), dismantle);
-                return SouthboundTaskResult.builder()
-                        .connectionId(conn.getConnectionId())
-                        .deploymentState(depState)
-                        .state(intent)
-                        .commandType(commandType)
-                        .build();
-            } else {
-                return SouthboundTaskResult.builder()
-                        .connectionId(conn.getConnectionId())
-                        .deploymentState(conn.getDeploymentState())
-                        .state(State.FAILED)
-                        .commandType(commandType)
-                        .build();
+            } catch (JsonProcessingException ex) {
+                throw new RuntimeException(ex);
+            } catch (NsoDryrunException ex) {
+                commands = ex.getMessage();
+                newState = State.FAILED;
+            } catch (NsoCommitException | NsoGenException ex) {
+                configStatus = ConfigStatus.ERROR;
+                newState = State.FAILED;
             }
-        } catch (NsoException e) {
-            return SouthboundTaskResult.builder()
-                    .connectionId(conn.getConnectionId())
-                    .deploymentState(conn.getDeploymentState())
-                    .state(State.FAILED)
-                    .commandType(commandType)
-                    .build();
-
+        } else {
+            newState = State.FAILED;
         }
+
+        // save the NSO service config and dry-run
+        String templateVersion = "NSO 1.1";
+        Components cmp;
+        if (conn.getReserved() != null) {
+            cmp = conn.getReserved().getCmp();
+        } else {
+            cmp = conn.getArchived().getCmp();
+        }
+        for (VlanJunction j : cmp.getJunctions()) {
+            RouterCommands rcb = RouterCommands.builder()
+                    .connectionId(conn.getConnectionId())
+                    .deviceUrn(j.getDeviceUrn())
+                    .contents(commands)
+                    .templateVersion(templateVersion)
+                    .type(commandType)
+                    .build();
+            rcr.save(rcb);
+            if (shouldWriteHistory) {
+                RouterCommandHistory rch = RouterCommandHistory.builder()
+                        .deviceUrn(j.getDeviceUrn())
+                        .templateVersion(templateVersion)
+                        .connectionId(conn.getConnectionId())
+                        .date(Instant.now())
+                        .commands(commands)
+                        .output(dryRun)
+                        .configStatus(configStatus)
+                        .type(commandType)
+                        .build();
+                historyRepo.save(rch);
+            }
+        }
+
+        return SouthboundTaskResult.builder()
+                .connectionId(conn.getConnectionId())
+                .deploymentState(depState)
+                .state(newState)
+                .commandType(commandType)
+                .build();
     }
-    public NsoLSP makeNsoLSP(String connectionId, VlanJunction thisJunction, VlanJunction otherJunction, List<EroHop> hops, boolean isProtect) throws PSSException {
+    public NsoLSP makeNsoLSP(String connectionId, VlanJunction thisJunction, VlanJunction otherJunction, List<EroHop> hops, boolean isProtect) throws NsoGenException {
 
         String lspNamePiece = "-WRK-";
         int holdSetupPriority = 5;
@@ -116,7 +166,12 @@ public class NsoAdapter {
         if (!isProtect) {
             List<NsoLSP.Hop> nsoHops = new ArrayList<>();
             int i = 1;
-            List<MplsHop> mplsHops = miscHelper.mplsHops(hops);
+            List<MplsHop> mplsHops = null;
+            try {
+                mplsHops = miscHelper.mplsHops(hops);
+            } catch (PSSException e) {
+                throw new NsoGenException(e.getMessage());
+            }
 
             for (MplsHop hop : mplsHops) {
                 nsoHops.add(NsoLSP.Hop.builder()
@@ -171,17 +226,18 @@ public class NsoAdapter {
 
 
         return NsoOscarsDismantle.builder()
+                .connectionId(conn.getConnectionId())
                 .vcId(vcId)
                 .lspNsoKeys(lspInstanceKeys)
                 .build();
     }
 
-    public NsoOscarsServices nsoOscarsServices(Connection conn) throws PSSException, NsoException {
+    public NsoServicesWrapper nsoOscarsServices(Connection conn) throws NsoGenException {
 
         Map<LspMapKey, String> lspNames = new HashMap<>();
-        NsoLspWrapper lspWrapper = null;
+        List<NsoLSP> lspInstances = new ArrayList<>();
+
         if (conn.getReserved().getCmp().getJunctions().size() > 1) {
-            lspWrapper = new NsoLspWrapper();
             for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
                 // primary path
                 NsoLSP azLsp = makeNsoLSP(conn.getConnectionId(), pipe.getA(), pipe.getZ(), pipe.getAzERO(), false);
@@ -191,7 +247,7 @@ public class NsoAdapter {
                         .protect(false)
                         .build();
                 lspNames.put(azKey, azLsp.getName());
-                lspWrapper.getLspInstances().add(azLsp);
+                lspInstances.add(azLsp);
                 NsoLSP zaLsp = makeNsoLSP(conn.getConnectionId(), pipe.getZ(), pipe.getA(), pipe.getZaERO(), false);
                 LspMapKey zaKey = LspMapKey.builder()
                         .device(pipe.getZ().getDeviceUrn())
@@ -200,11 +256,11 @@ public class NsoAdapter {
                         .build();
                 lspNames.put(zaKey, zaLsp.getName());
 
-                lspWrapper.getLspInstances().add(zaLsp);
+                lspInstances.add(zaLsp);
 
                 if (pipe.getProtect()) {
                     NsoLSP azProtectLsp = makeNsoLSP(conn.getConnectionId(), pipe.getA(), pipe.getZ(), pipe.getAzERO(), true);
-                    lspWrapper.getLspInstances().add(azProtectLsp);
+                    lspInstances.add(azProtectLsp);
                     LspMapKey azProtectKey = LspMapKey.builder()
                             .device(pipe.getA().getDeviceUrn())
                             .target(pipe.getZ().getDeviceUrn())
@@ -213,7 +269,7 @@ public class NsoAdapter {
                     lspNames.put(azProtectKey, azProtectLsp.getName());
 
                     NsoLSP zaProtectLsp = makeNsoLSP(conn.getConnectionId(), pipe.getZ(), pipe.getA(), pipe.getZaERO(), true);
-                    lspWrapper.getLspInstances().add(zaProtectLsp);
+                    lspInstances.add(zaProtectLsp);
                     LspMapKey zaProtectKey = LspMapKey.builder()
                             .device(pipe.getZ().getDeviceUrn())
                             .target(pipe.getA().getDeviceUrn())
@@ -234,7 +290,7 @@ public class NsoAdapter {
             String portUrn = f.getPortUrn();
             String[] parts = portUrn.split(":");
             if (parts.length != 2) {
-                throw new NsoException("Invalid port URN format");
+                throw new NsoGenException("Invalid port URN format");
             }
             String portIfce = parts[1];
 
@@ -289,7 +345,7 @@ public class NsoAdapter {
                 }
             }
             if (primarySdpId == null) {
-                throw new NsoException("could not locate primary SDP id");
+                throw new NsoGenException("could not locate primary SDP id");
             }
             LspMapKey azKey = LspMapKey.builder()
                     .device(pipe.getA().getDeviceUrn())
@@ -325,7 +381,7 @@ public class NsoAdapter {
 
             if (pipe.getProtect()) {
                 if (protectSdpId == null) {
-                    throw new NsoException("could not locate protect SDP id");
+                    throw new NsoGenException("could not locate protect SDP id");
                 }
                 LspMapKey azProtectKey = LspMapKey.builder()
                         .device(pipe.getA().getDeviceUrn())
@@ -374,27 +430,19 @@ public class NsoAdapter {
                 .device(vplsDeviceMap.values().stream().toList())
                 .build();
 
-        NsoVplsWrapper vplsWrapper = new NsoVplsWrapper();
-        vplsWrapper.setVplsInstances(new ArrayList<>());
-        vplsWrapper.getVplsInstances().add(vpls);
-
-        return NsoOscarsServices.builder()
-                .lspWrapper(lspWrapper)
-                .vplsWrapper(vplsWrapper)
+        List<NsoVPLS> vplsInstances = new ArrayList<>();
+        vplsInstances.add(vpls);
+        return NsoServicesWrapper.builder()
+                .lspInstances(lspInstances)
+                .vplsInstances(vplsInstances)
                 .build();
-
     }
 
-    @Data
-    @Builder
-    public static class NsoOscarsServices {
-        private NsoLspWrapper lspWrapper;
-        private NsoVplsWrapper vplsWrapper;
-    }
 
     @Data
     @Builder
     public static class NsoOscarsDismantle {
+        private String connectionId;
         private int vcId;
         private List<String> lspNsoKeys;
     }

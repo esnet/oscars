@@ -42,15 +42,18 @@ public class UIPopulator implements StartupComponent {
     public void startup() throws StartupException {
         ObjectMapper mapper = new ObjectMapper();
 
-        String filename = "./config/topo/" + topoProperties.getPrefix() + "-positions.json";
-        File jsonFile = new File(filename);
+        if (topoProperties.getPositionsFile() != null) {
+            String filename = "./config/"+topoProperties.getPositionsFile();
+            File jsonFile = new File(filename);
+            try {
+                positions = mapper.readValue(jsonFile, DevicePositions.class);
+            } catch (IOException e) {
+                throw new StartupException(e.getMessage());
+            }
+            log.info("positions imported for devices: " + positions.getPositions().size());
 
-        try {
-            positions = mapper.readValue(jsonFile, DevicePositions.class);
-        } catch (IOException e) {
-            throw new StartupException(e.getMessage());
         }
-        log.info("positions imported for devices: " + positions.getPositions().size());
+
         ctgConfigs = new ArrayList<>();
 
         try {

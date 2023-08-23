@@ -2,8 +2,6 @@ package net.es.oscars.sb;
 
 import lombok.extern.slf4j.Slf4j;
 
-import net.es.oscars.app.exc.NsoException;
-import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.nso.rest.NsoAdapter;
 import net.es.oscars.pss.beans.QueueName;
@@ -56,11 +54,6 @@ public class SouthboundQueuer {
             cr.findByConnectionId(wt.getConnectionId()).ifPresent(conn -> {
                 FutureTask<SouthboundTaskResult> task = new FutureTask<>(() -> adapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
                 if (wt.getCommandType().equals(CommandType.BUILD)) {
-                    try {
-                        DevelUtils.dumpDebug("build", adapter.nsoOscarsServices(conn));
-                    } catch (PSSException | NsoException e) {
-                        throw new RuntimeException(e);
-                    }
                     conn.setDeploymentState(DeploymentState.BEING_DEPLOYED);
                     cr.save(conn);
                 } else if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
