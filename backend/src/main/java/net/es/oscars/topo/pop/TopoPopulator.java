@@ -1,6 +1,7 @@
 package net.es.oscars.topo.pop;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.TopoProperties;
 import net.es.oscars.dto.topo.DeviceModel;
@@ -269,6 +270,7 @@ public class TopoPopulator {
                     .type(DeviceType.valueOf(discDevice.getType()))
                     .urn(discDevice.getUrn())
                     .capabilities(deviceCaps)
+                    .esdbEquipmentId(discDevice.getEsdbEquipmentId())
                     .reservableVlans(devResVlans)
                     .build();
             devices.put(d.getUrn(), d);
@@ -295,6 +297,7 @@ public class TopoPopulator {
                 Port port = Port.builder()
                         .capabilities(portCaps)
                         .device(d)
+                        .esdbEquipmentInterfaceId(discPort.getEsdbEquipmentInterfaceId())
                         .reservableEgressBw(discPort.getReservableEgressBw())
                         .reservableIngressBw(discPort.getReservableIngressBw())
                         .tags(new ArrayList<>(discPort.getTags()))

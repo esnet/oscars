@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.util.DbAccess;
+import net.es.oscars.esdb.ESDBService;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.resv.db.ConnectionRepository;
@@ -36,6 +37,9 @@ public class TransitionStates {
 
     @Autowired
     private DbAccess dbAccess;
+
+    @Autowired
+    private ESDBService esdbService;
 
     @Scheduled(fixedDelay = 5000)
     @Transactional
@@ -107,6 +111,7 @@ public class TransitionStates {
 
                 archiveThese.forEach(c -> {
                     log.debug("Archiving "+c.getConnectionId());
+                    esdbService.releaseEsdbVlans(c);
                     c.setPhase(Phase.ARCHIVED);
                     c.setReserved(null);
                     connRepo.saveAndFlush(c);

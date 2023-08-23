@@ -47,6 +47,9 @@ public class Port {
     @NonNull
     private Integer reservableEgressBw;
 
+    @Column
+    private Integer esdbEquipmentInterfaceId;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable
     @Builder.Default

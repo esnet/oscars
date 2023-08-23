@@ -11,6 +11,7 @@ import net.es.oscars.nso.resv.NsoResvException;
 import net.es.oscars.resv.db.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
+import net.es.oscars.esdb.ESDBService;
 import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.svc.TopoService;
@@ -73,6 +74,9 @@ public class ConnService {
 
     @Autowired
     private TopoService topoService;
+
+    @Autowired
+    private ESDBService esdbService;
 
     @Value("${pss.default-mtu:9000}")
     private Integer defaultMtu;
@@ -334,7 +338,6 @@ public class ConnService {
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
 
-
             reservedFromHeld(c);
             this.nsoResourceService.reserve(c);
             c.setDeploymentState(DeploymentState.UNDEPLOYED);
@@ -344,6 +347,8 @@ public class ConnService {
                 c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
             }
             archiveFromReserved(c);
+
+            esdbService.reserveEsdbVlans(c);
 
             c.setHeld(null);
             connRepo.saveAndFlush(c);
@@ -438,6 +443,7 @@ public class ConnService {
                 logService.logEvent(c.getConnectionId(), ev);
 
             }
+            esdbService.releaseEsdbVlans(c);
         }
 
 

@@ -33,7 +33,10 @@ public class Device {
 
     @NonNull
     @Column
+
     private DeviceModel model;
+    @Column
+    private Integer esdbEquipmentId;
 
     @NonNull
     @Builder.Default
