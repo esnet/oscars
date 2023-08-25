@@ -213,7 +213,13 @@ public class TopoPopulator {
         RestTemplate restTemplate = new RestTemplate();
         OscarsOneTopo discTopo = restTemplate.getForObject(topoProperties.getUrl(), OscarsOneTopo.class);
         if (discTopo == null) {
-            throw new TopoException("null discovery topology");
+            log.warn("null discovery topology");
+            return Topology.builder()
+                    .adjcies(new ArrayList<>())
+                    .ports(new HashMap<>())
+                    .devices(new HashMap<>())
+                    .build();
+
         } else if (discTopo.getAdjcies() == null) {
             throw new TopoException("null discovery topology adjacencies");
         } else if (discTopo.getDevices() == null) {
