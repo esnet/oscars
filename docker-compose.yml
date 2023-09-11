@@ -24,6 +24,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-secret}
       ESDB_API_KEY: ${ESDB_API_KEY}
       ESDB_URI: ${ESDB_URI}
+      TOPO_OSCARS_URL: ${TOPO_OSCARS_URL:-http://topo-oscars:8004/oscars-one/topology}
       NSO_USERNAME: ${NSO_USERNAME}
       NSO_PASSWORD: ${NSO_PASSWORD}
       NSO_URI: ${NSO_URI}

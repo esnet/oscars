@@ -1,4 +1,4 @@
-package net.es.oscars.nso;
+package net.es.oscars.nso.resv;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
-import static net.es.oscars.nso.IntegerSet.availableFromUsedSetAndAllowedString;
+import static net.es.oscars.nso.resv.IntegerSet.availableFromUsedSetAndAllowedString;
 
 @Component
 @Slf4j

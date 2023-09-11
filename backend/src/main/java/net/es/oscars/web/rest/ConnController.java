@@ -7,7 +7,7 @@ import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.svc.NsiService;
-import net.es.oscars.nso.NsoResvException;
+import net.es.oscars.nso.resv.NsoResvException;
 import net.es.oscars.pss.ent.RouterCommandHistory;
 import net.es.oscars.resv.db.CommandHistoryRepository;
 import net.es.oscars.resv.db.ConnectionRepository;

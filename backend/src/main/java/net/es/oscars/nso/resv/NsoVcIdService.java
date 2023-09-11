@@ -1,20 +1,18 @@
-package net.es.oscars.nso;
+package net.es.oscars.nso.resv;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.nso.db.NsoVcIdDAO;
-import net.es.oscars.nso.ent.NsoQosSapPolicyId;
 import net.es.oscars.nso.ent.NsoVcId;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.Schedule;
-import net.es.oscars.topo.beans.IntRange;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 
-import static net.es.oscars.nso.IntegerSet.availableFromUsedSetAndAllowedString;
+import static net.es.oscars.nso.resv.IntegerSet.availableFromUsedSetAndAllowedString;
 
 @Component
 @Slf4j

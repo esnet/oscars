@@ -5,6 +5,9 @@ notifications:
 
 dist: focal
 
+env:
+  - CXX=g++-4.8 # needed for nodejs build
+
 matrix:
   include:
 #     We can't build the backend until the topo-common dependency is available on a public repo.
