@@ -5,23 +5,27 @@ import net.es.oscars.app.props.PssProperties;
 import net.es.oscars.dto.pss.cmd.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.ssl.SslBundles;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-
 
 @Component
 @Slf4j
 @ConditionalOnExpression("${pss.server-type:rest}")
 public class RestPssServer implements PSSProxy {
-    private PssProperties props;
+    private final PssProperties props;
     private RestTemplate restTemplate;
-
     @Autowired
-    public RestPssServer(PssProperties props) {
+    public RestPssServer(PssProperties props, RestTemplateBuilder restTemplateBuilder, SslBundles sslBundles) {
 
         this.props = props;
         try {
-            this.restTemplate = new RestTemplate();
+            this.restTemplate = restTemplateBuilder
+                    .setSslBundle(sslBundles.getBundle("pss"))
+                    .basicAuthentication(props.getUsername(), props.getPassword())
+                    .build();
 
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);

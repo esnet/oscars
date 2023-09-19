@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 @ConfigurationProperties(prefix = "pss")
@@ -12,17 +13,17 @@ import org.springframework.stereotype.Component;
 @Component
 @NoArgsConstructor
 public class PssProperties {
-    @NonNull
-    private String url;
-
-    @NonNull
-    private String profile;
-
-    @NonNull
     private String serverType;
 
-    @NonNull
+    private String url;
+
+    private String profile;
+
     private Integer configTimeoutSec;
+
+    private String username;
+
+    private String password;
 
 
 }
