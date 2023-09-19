@@ -25,4 +25,5 @@ public class PssProperties {
 
     private String password;
 
+
 }
