@@ -4,17 +4,13 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.app.exc.StartupException;
-import net.es.oscars.dto.pss.cmd.CommandStatus;
 import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.dto.pss.cmd.GeneratedCommands;
-import net.es.oscars.dto.pss.st.ControlPlaneStatus;
-import net.es.oscars.dto.pss.st.LifecycleStatus;
 import net.es.oscars.sb.SouthboundTask;
 import net.es.oscars.pss.beans.QueueName;
 import net.es.oscars.pss.db.RouterCommandsRepository;
 import net.es.oscars.pss.ent.RouterCommands;
 import net.es.oscars.sb.SouthboundQueuer;
-import net.es.oscars.pss.svc.PssHealthChecker;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.Tag;
@@ -42,8 +38,6 @@ public class PssController {
     @Autowired
     private RouterCommandsRepository rcRepo;
 
-    @Autowired
-    private PssHealthChecker checker;
     @Autowired
     private ConnectionRepository connRepo;
 
@@ -227,35 +221,6 @@ public class PssController {
     }
 
 
-    @RequestMapping(value = "/protected/pss/checkControlPlane/{deviceUrn}", method = RequestMethod.GET)
-    @ResponseBody
-    public void checkControlPlane(@PathVariable String deviceUrn) throws StartupException, PSSException {
-        this.checkStartup();
-        log.debug("initiating a control plane check for "+deviceUrn);
-
-        checker.checkControlPlane(deviceUrn);
-
-    }
-
-    @RequestMapping(value = "/protected/pss/controlPlaneStatus/{deviceUrn}", method = RequestMethod.GET)
-    @ResponseBody
-    public CommandStatus controlPlaneStatus(@PathVariable String deviceUrn) throws StartupException {
-        this.checkStartup();
-        if (!checker.getStatuses().containsKey(deviceUrn)) {
-            return CommandStatus.builder()
-                    .type(CommandType.CONTROL_PLANE_STATUS)
-                    .controlPlaneStatus(ControlPlaneStatus.ERROR)
-                    .lifecycleStatus(LifecycleStatus.WAITING)
-                    .profile("")
-                    .commands("")
-                    .lastUpdated(new Date())
-                    .device(deviceUrn)
-                    .output("No status check yet")
-                    .build();
-        }
-        return checker.getStatuses().get(deviceUrn);
-
-    }
 
     @RequestMapping(value = "/api/pss/opStatusCommands/{connectionId:.+}", method = RequestMethod.GET)
     public List<RouterCommands> operationalStatusCommands(@PathVariable String connectionId) throws StartupException {

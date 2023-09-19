@@ -3,7 +3,6 @@ package net.es.oscars.topo.svc;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.PssProperties;
-import net.es.oscars.dto.topo.DeviceModel;
 import net.es.oscars.resv.svc.ResvLibrary;
 import net.es.oscars.topo.beans.*;
 import net.es.oscars.topo.db.DeviceRepository;
@@ -14,7 +13,6 @@ import net.es.oscars.topo.ent.Device;
 import net.es.oscars.topo.ent.Port;
 import net.es.oscars.topo.ent.Adjcy;
 import net.es.oscars.topo.ent.Version;
-import net.es.oscars.topo.enums.CommandParamType;
 import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.enums.UrnType;
 import net.es.oscars.topo.pop.ConsistencyException;
@@ -162,41 +160,6 @@ public class TopoService {
                     .reservableCommandParams(new HashSet<>())
                     .build();
 
-            // for all devices, if this is MPLS-capable, reserve a VC id
-            if (d.getCapabilities().contains(Layer.MPLS)) {
-                Set<IntRange> vcIdRanges = IntRange.fromExpression(pssProperties.getVcidRange());
-                ReservableCommandParam vcCp = ReservableCommandParam.builder()
-                        .type(CommandParamType.VC_ID)
-                        .reservableRanges(vcIdRanges)
-                        .build();
-                deviceUrn.getReservableCommandParams().add(vcCp);
-            }
-
-            // for ALUs, add SVC, SDP and QOS ids as reservable
-            if (d.getModel().equals(DeviceModel.ALCATEL_SR7750)) {
-
-                Set<IntRange> svcIdRanges = IntRange.fromExpression(pssProperties.getAluSvcidRange());
-                ReservableCommandParam aluSvcCp = ReservableCommandParam.builder()
-                        .type(CommandParamType.ALU_SVC_ID)
-                        .reservableRanges(svcIdRanges)
-                        .build();
-                deviceUrn.getReservableCommandParams().add(aluSvcCp);
-
-
-                Set<IntRange> sdpIdRanges = IntRange.fromExpression(pssProperties.getAluSdpidRange());
-                ReservableCommandParam aluSdpCp = ReservableCommandParam.builder()
-                        .type(CommandParamType.ALU_SDP_ID)
-                        .reservableRanges(sdpIdRanges)
-                        .build();
-                deviceUrn.getReservableCommandParams().add(aluSdpCp);
-
-                Set<IntRange> qosIdRanges = IntRange.fromExpression(pssProperties.getAluQosidRange());
-                ReservableCommandParam aluQosCp = ReservableCommandParam.builder()
-                        .type(CommandParamType.ALU_QOS_POLICY_ID)
-                        .reservableRanges(qosIdRanges)
-                        .build();
-                deviceUrn.getReservableCommandParams().add(aluQosCp);
-            }
             urns.put(d.getUrn(), deviceUrn);
 
             d.getPorts().forEach(p -> {

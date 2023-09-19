@@ -1,10 +1,11 @@
 package net.es.oscars.app;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.syslog.Syslogger;
-import net.es.oscars.app.util.DbAccess;
+import net.es.oscars.nso.resv.LegacyPopulator;
 import net.es.oscars.security.db.UserPopulator;
 import net.es.oscars.topo.beans.TopoException;
 import net.es.oscars.topo.pop.ConsistencyException;
@@ -29,25 +30,20 @@ public class Startup {
     private Syslogger syslogger;
 
     private TopoPopulator topoPopulator;
-    private DbAccess dbAccess;
 
+    private LegacyPopulator legacyPopulator;
+
+    @Getter
     private boolean inStartup = true;
+    @Getter
     private boolean inShutdown = false;
 
     public void setInStartup(boolean inStartup) {
         this.inStartup = inStartup;
     }
 
-    public boolean isInShutdown() {
-        return this.inShutdown;
-    }
-
     public void setInShutdown(boolean inShutdown) {
         this.inShutdown = inShutdown;
-    }
-
-    public boolean isInStartup() {
-        return this.inStartup;
     }
 
 
@@ -61,12 +57,11 @@ public class Startup {
                    Syslogger syslogger,
                    TopoPopulator topoPopulator,
                    UserPopulator userPopulator,
-                   DbAccess dbAccess,
-                   UIPopulator uiPopulator) {
+                   UIPopulator uiPopulator, LegacyPopulator legacyPopulator) {
         this.startupProperties = startupProperties;
         this.topoPopulator = topoPopulator;
-        this.dbAccess = dbAccess;
         this.syslogger = syslogger;
+        this.legacyPopulator = legacyPopulator;
 
         components = new ArrayList<>();
         components.add(userPopulator);
@@ -86,6 +81,10 @@ public class Startup {
             System.exit(0);
         }
         topoPopulator.refresh(false);
+        legacyPopulator.importPssToNso();
+
+
+
 
         try {
             for (StartupComponent sc : this.components) {

@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface CommandParamRepository extends CrudRepository<CommandParam, Long> {
 
     List<CommandParam> findAll();
-    Optional<CommandParam> findByConnectionId(String connectionId);
+    List<CommandParam> findByConnectionId(String connectionId);
     List<CommandParam> findBySchedule(Schedule s);
 
 }
