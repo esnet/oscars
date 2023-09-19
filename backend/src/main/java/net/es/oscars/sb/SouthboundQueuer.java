@@ -2,10 +2,15 @@ package net.es.oscars.sb;
 
 import lombok.extern.slf4j.Slf4j;
 
+import net.es.oscars.app.exc.NotReadyException;
+import net.es.oscars.app.exc.PSSException;
+import net.es.oscars.dto.pss.cmd.Command;
 import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.nso.rest.NsoAdapter;
 import net.es.oscars.pss.beans.QueueName;
+import net.es.oscars.pss.svc.PSSAdapter;
 import net.es.oscars.resv.db.ConnectionRepository;
+import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
 import net.es.topo.common.devel.DevelUtils;
@@ -25,7 +30,10 @@ import java.util.concurrent.FutureTask;
 public class SouthboundQueuer {
 
     @Autowired
-    private NsoAdapter adapter;
+    private NsoAdapter nsoAdapter;
+
+    @Autowired
+    private PSSAdapter pssAdapter;
 
     @Autowired
     private ConnectionRepository cr;
@@ -52,18 +60,32 @@ public class SouthboundQueuer {
         List<FutureTask<SouthboundTaskResult>> taskList = new ArrayList<>();
         for (SouthboundTask wt : waiting) {
             cr.findByConnectionId(wt.getConnectionId()).ifPresent(conn -> {
-                FutureTask<SouthboundTaskResult> task = new FutureTask<>(() -> adapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
+                FutureTask<SouthboundTaskResult> task = null;
+                if (isLegacy(conn)) {
+                    if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
+                        // for legacy, we only process dismantles
+                        task = new FutureTask<>(() -> pssAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
+                    } else {
+                        log.warn("not performing non-dismantle task for legacy connection "+conn.getConnectionId());
+                    }
+                } else {
+                     task = new FutureTask<>(() -> nsoAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
+                }
+
+
                 if (wt.getCommandType().equals(CommandType.BUILD)) {
                     conn.setDeploymentState(DeploymentState.BEING_DEPLOYED);
                     cr.save(conn);
                 } else if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
-
-                    DevelUtils.dumpDebug("build", adapter.nsoOscarsDismantle(conn));
-
+                    if (!isLegacy(conn)) {
+                        DevelUtils.dumpDebug("dismantle", nsoAdapter.nsoOscarsDismantle(conn));
+                    }
                     conn.setDeploymentState(DeploymentState.BEING_UNDEPLOYED);
                     cr.save(conn);
                 }
-                taskList.add(task);
+                if (task != null) {
+                    taskList.add(task);
+                }
             });
         }
         waiting.clear();
@@ -109,6 +131,15 @@ public class SouthboundQueuer {
         }
     }
 
+    // a connection is legacy if it has any old-style dismantle commands
+    public boolean isLegacy(Connection conn) {
+        try {
+            List<Command> pssCommands = pssAdapter.configCommands(conn, CommandType.DISMANTLE);
+            return !pssCommands.isEmpty();
+        } catch (PSSException | NotReadyException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public void clear(QueueName name) {
         switch (name) {

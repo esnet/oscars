@@ -63,12 +63,14 @@ public class NsoAdapter {
     public final static String ROUTING_DOMAIN = "esnet-293"; // FIXME: this needs to come from topology, probably
     public SouthboundTaskResult processTask(Connection conn, CommandType commandType, State intent)  {
         log.info("processing southbound NSO task "+conn.getConnectionId()+" "+commandType.toString());
-        DeploymentState depState = DeploymentState.DEPLOYED;
+
+        // we ass-u-me that incoming deployment state is the opposite of what is asked
+        DeploymentState incomingDepState = DeploymentState.UNDEPLOYED;
         if (commandType.equals(CommandType.DISMANTLE)) {
-            depState = DeploymentState.UNDEPLOYED;
-        } else if (commandType.equals(CommandType.BUILD)) {
-            depState = DeploymentState.DEPLOYED;
+            incomingDepState = DeploymentState.DEPLOYED;
         }
+
+        DeploymentState newDepState;
         ObjectWriter dryRunWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
 
         State newState = intent;
@@ -85,25 +87,29 @@ public class NsoAdapter {
                     commands = dryRunWriter.writeValueAsString(oscarsServices);
                     dryRun = nsoProxy.buildDryRun(oscarsServices);
                     nsoProxy.buildServices(oscarsServices);
-                    shouldWriteHistory = true;
+                    newDepState = DeploymentState.DEPLOYED;
                 } else {
                     NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
                     commands = dryRunWriter.writeValueAsString(dismantle);
                     dryRun = nsoProxy.dismantleDryRun(dismantle);
                     nsoProxy.deleteServices(dismantle);
-                    // only set this after all has gone well
-                    shouldWriteHistory = true;
+                    newDepState = DeploymentState.UNDEPLOYED;
                 }
+                // only set this after all has gone well
+                shouldWriteHistory = true;
             } catch (JsonProcessingException ex) {
                 throw new RuntimeException(ex);
             } catch (NsoDryrunException ex) {
                 commands = ex.getMessage();
+                newDepState = incomingDepState;
                 newState = State.FAILED;
             } catch (NsoCommitException | NsoGenException ex) {
                 configStatus = ConfigStatus.ERROR;
+                newDepState = incomingDepState;
                 newState = State.FAILED;
             }
         } else {
+            newDepState = incomingDepState;
             newState = State.FAILED;
         }
 
@@ -141,7 +147,7 @@ public class NsoAdapter {
 
         return SouthboundTaskResult.builder()
                 .connectionId(conn.getConnectionId())
-                .deploymentState(depState)
+                .deploymentState(newDepState)
                 .state(newState)
                 .commandType(commandType)
                 .build();

@@ -4,12 +4,14 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.PssProperties;
 import net.es.oscars.dto.pss.cmd.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 
 @Component
 @Slf4j
+@ConditionalOnExpression("${pss.server-type:rest}")
 public class RestPssServer implements PSSProxy {
     private PssProperties props;
     private RestTemplate restTemplate;

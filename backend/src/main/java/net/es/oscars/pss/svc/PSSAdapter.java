@@ -1,9 +1,7 @@
 package net.es.oscars.pss.svc;
 
 import lombok.extern.slf4j.Slf4j;
-import gen.nsi_2_0.connection.ifce.ServiceException;
 import net.es.oscars.app.exc.NotReadyException;
-import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.app.props.PssProperties;
 import net.es.oscars.app.syslog.Syslogger;
@@ -13,6 +11,7 @@ import net.es.oscars.dto.pss.cmd.CommandStatus;
 import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.dto.pss.st.ConfigStatus;
 import net.es.oscars.dto.pss.st.LifecycleStatus;
+
 import net.es.oscars.pss.db.RouterCommandsRepository;
 import net.es.oscars.pss.ent.RouterCommandHistory;
 import net.es.oscars.pss.ent.RouterCommands;
@@ -20,9 +19,11 @@ import net.es.oscars.resv.db.CommandHistoryRepository;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.Event;
 import net.es.oscars.resv.ent.VlanJunction;
+import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.EventType;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.LogService;
+import net.es.oscars.sb.SouthboundTaskResult;
 import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.enums.UrnType;
 import net.es.oscars.topo.svc.TopoService;
@@ -32,7 +33,6 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -59,100 +59,36 @@ public class PSSAdapter {
         this.syslogger = syslogger;
     }
 
-    public State processTask(Connection conn, CommandType commandType, State intent) {
-        log.info("processing "+conn.getConnectionId()+" "+commandType);
-        State newState = intent;
+    public SouthboundTaskResult processTask(Connection conn, CommandType commandType, State intent) {
+        log.info("processing southbound PSS task "+conn.getConnectionId()+" "+commandType.toString());
+        State newState;
+        DeploymentState incomingDepState = DeploymentState.DEPLOYED;
+        DeploymentState newDepState;
 
-        // 1.1 FIXME: updatestate and queue without a circular reference
+
         try {
-            if (commandType.equals(CommandType.BUILD)) {
-                newState = this.build(conn);
-                // connService.updateState(conn, newState);
-                // queuer.complete(commandType, conn.getConnectionId());
-
-            } else if (commandType.equals(CommandType.DISMANTLE)) {
-                newState = this.dismantle(conn);
-                if (intent == State.FINISHED && newState == State.WAITING) {
-                    newState = State.FINISHED;
-                }
-                // connService.updateState(conn, newState);
-                log.info("completing task "+conn.getConnectionId()+" "+commandType);
-                // queuer.complete(commandType, conn.getConnectionId());
-            }
-        } catch (NotReadyException ex) {
-            log.info("not ready, will retry task "+conn.getConnectionId()+" "+commandType);
-            // queuer.remove(commandType, conn.getConnectionId());
-        } catch (PSSException ex) {
-            log.error(ex.getMessage(), ex);
-            // connService.updateState(conn, State.FAILED);
-            // queuer.complete(commandType, conn.getConnectionId());
-        }
-        log.info("processed "+conn.getConnectionId()+" "+commandType);
-        return newState;
-    }
-
-    public State build(Connection conn) throws PSSException, NotReadyException {
-        log.info("building " + conn.getConnectionId());
-
-        List<Command> commands = this.configCommands(conn, CommandType.BUILD);
-        List<String> devices = new ArrayList<>();
-        for (Command c: commands) {
-            devices.add(c.getDevice());
-        }
-        String dStr = String.join(", ", devices);
-        syslogger.sendSyslog( "OSCARS BUILD STARTED : " + conn.getConnectionId()+ " : ( "+dStr+") : '"+ conn.getDescription()+"'");
-
-        List<CommandStatus> stable = this.getStableStatuses(commands);
-        Instant now = Instant.now();
-
-        State result = State.ACTIVE;
-        for (CommandStatus st : stable) {
-            RouterCommands rc = this.existing(conn.getConnectionId(), st.getDevice(), CommandType.BUILD);
-
-            RouterCommandHistory rch = RouterCommandHistory.builder()
-                    .connectionId(conn.getConnectionId())
-                    .date(now)
-                    .deviceUrn(st.getDevice())
-                    .commands(st.getCommands())
-                    .templateVersion(rc.getTemplateVersion())
-                    .output(st.getOutput())
-                    .configStatus(st.getConfigStatus())
-                    .type(CommandType.BUILD)
-                    .build();
-            historyRepo.save(rch);
-
-            if (st.getConfigStatus().equals(ConfigStatus.ERROR)) {
-                result = State.FAILED;
-                Event ev = Event.builder()
-                        .connectionId(conn.getConnectionId())
-                        .description("PSS build failed")
-                        .type(EventType.ERROR)
-                        .occurrence(Instant.now())
-                        .username("system")
-                        .build();
-                logService.logEvent(conn.getConnectionId(), ev);
-
-                // Send Syslog Message
-                syslogger.sendSyslog( "OSCARS BUILD FAILED : " + conn.getConnectionId());
+            State dismantleResult = this.dismantle(conn);
+            if (dismantleResult.equals(State.FAILED)) {
+                newDepState = incomingDepState;
+                newState = State.FAILED;
             } else {
-                Event ev = Event.builder()
-                        .connectionId(conn.getConnectionId())
-                        .description("built successfully")
-                        .type(EventType.BUILT)
-                        .occurrence(Instant.now())
-                        .username("system")
-                        .build();
-                logService.logEvent(conn.getConnectionId(), ev);
-
-                // Send Syslog Message
-                syslogger.sendSyslog( "OSCARS BUILD COMPLETED : " + conn.getConnectionId());
+                newDepState = DeploymentState.UNDEPLOYED;
+                newState = intent;
             }
-
-
+        } catch (PSSException | NotReadyException e) {
+            newDepState = incomingDepState;
+            newState = State.FAILED;
         }
-        this.triggerNsi(conn, result);
-        return result;
+
+        log.info("processed "+conn.getConnectionId()+" "+commandType);
+        return SouthboundTaskResult.builder()
+                .commandType(commandType)
+                .connectionId(conn.getConnectionId())
+                .deploymentState(newDepState)
+                .state(newState)
+                .build();
     }
+
 
     public State dismantle(Connection conn) throws PSSException, NotReadyException {
         log.info("dismantling " + conn.getConnectionId());
@@ -208,24 +144,9 @@ public class PSSAdapter {
                 syslogger.sendSyslog( "OSCARS DISMANTLE COMPLETED : " + conn.getConnectionId());
             }
         }
-        this.triggerNsi(conn, result);
         return result;
     }
 
-    public void triggerNsi(Connection c, State newState) {
-
-        // 1.1 FIXME: trigger NSI event
-
-
-    }
-
-    public List<CommandStatus> getStableStatusesSerial(List<Command> commands) throws PSSException {
-        List<CommandResponse> responses = serialSubmit(commands);
-        List<String> commandIds = responses.stream()
-                .map(CommandResponse::getCommandId)
-                .collect(Collectors.toList());
-        return pollUntilStable(commandIds);
-    }
 
     public List<CommandStatus> getStableStatuses(List<Command> commands) throws PSSException {
         try {
@@ -284,19 +205,6 @@ public class PSSAdapter {
             }
         }
         return allDone;
-    }
-
-    public List<CommandResponse> serialSubmit(List<Command> commands) throws PSSException {
-        List<CommandResponse> responses = new ArrayList<>();
-
-
-        List<FutureTask<CommandResponse>> taskList = new ArrayList<>();
-        for (Command cmd : commands) {
-            log.info("submit to PSS: "+cmd.getConnectionId());
-            CommandResponse cr = pssProxy.submitCommand(cmd);
-            responses.add(cr);
-        }
-        return responses;
     }
 
     public List<CommandResponse> parallelSubmit(List<Command> commands)

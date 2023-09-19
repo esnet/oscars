@@ -18,6 +18,7 @@ public class NsoResourceService {
 
     @Autowired
     private NsoVcIdService nsoVcIdService;
+
     @Autowired
     private NsoQosSapPolicyIdService nsoQosSapPolicyIdService;
 

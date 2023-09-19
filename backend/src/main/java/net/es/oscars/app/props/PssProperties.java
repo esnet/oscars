@@ -13,42 +13,16 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 public class PssProperties {
     @NonNull
-    private String[] templateDirs;
-
-    @NonNull
     private String url;
-
-    @NonNull
-    private String community;
 
     @NonNull
     private String profile;
 
     @NonNull
-    private String vcidRange;
-
-    @NonNull
-    private String aluSvcidRange;
-
-    @NonNull
-    private String aluSdpidRange;
-
-    @NonNull
-    private String aluQosidRange;
-
-    @NonNull
-    private String loopbackRange;
-
-    @NonNull
-    private Integer controlPlaneCheckRandom;
+    private String serverType;
 
     @NonNull
     private Integer configTimeoutSec;
 
-    @NonNull
-    private Boolean controlPlaneCheckOnStart;
-
-    @NonNull
-    private Integer controlPlaneCheckMaxTries;
 
 }
