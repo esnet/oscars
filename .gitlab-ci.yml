@@ -1,4 +1,4 @@
-image: wharf.es.net/nso/ci-runner-image:latest
+image: docker:24.0.6
 
 variables:
   DOCKER_DRIVER: overlay2
