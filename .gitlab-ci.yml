@@ -1,0 +1,138 @@
+image: wharf.es.net/nso/ci-runner-image:latest
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERT_DIR: ""
+  RELEASE_BRANCH: master
+  DEV_BRANCH: develop
+  MAIN_BRANCH: master
+  ENVIRONMENT: production
+  BACKEND_WHARF_NAME: oscars-backend
+  FRONTEND_WHARF_NAME: oscars-frontend
+  BACKEND_IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG-backend:$CI_COMMIT_SHA
+  FRONTEND_IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG-frontend:$CI_COMMIT_SHA
+
+stages:
+  - build
+  - test
+  - push
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "merge_request_event"
+
+.wharf_logout: &wharf_logout |-
+  docker logout "$WHARF_SITE"
+
+.wharf_login: &wharf_login |-
+  echo "$WHARF_TOKEN" | docker login -u "$WHARF_USER" "$WHARF_SITE" --password-stdin
+
+.docker_login: &docker_login |-
+  docker login -u gitlab-ci-token -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+backend:build_image:
+  stage: build
+  before_script:
+    - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_KEY" | base64 -d | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan github.com >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  variables:
+    DOCKERFILE_PATH: ./deploy/prod/frontend.dockerfile
+    CONTEXT_PATH: ./frontend
+  script:
+    - *docker_login
+    - DOCKER_BUILDKIT=1 docker build --ssh default --target production -t ${BACKEND_IMAGE_TAG} --no-cache --progress=plain -f $DOCKERFILE_PATH $CONTEXT_PATH
+    - docker push $BACKEND_IMAGE_TAG
+
+.backend:push:
+  stage: push
+  needs: ["backend:build_image"]
+  before_script:
+    - *docker_login
+    - *wharf_login
+  after_script:
+    - *wharf_logout
+  script:
+    - |
+      docker pull $BACKEND_IMAGE_TAG
+      for tag in $TAGS; do
+        if echo $tag | grep -q "BRANCH_TAG"; then
+          tag=$(echo $tag | sed "s/BRANCH_TAG/$(echo $CI_COMMIT_REF_NAME | sed 's/\//-/g')/g")
+        fi
+        docker tag $BACKEND_IMAGE_TAG $tag
+        docker push $tag
+      done;
+
+frontend:build_image:
+  stage: build
+  before_script:
+    - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_KEY" | base64 -d | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan github.com >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  variables:
+    DOCKERFILE_PATH: ./deploy/prod/frontend.dockerfile
+    CONTEXT_PATH: ./frontend
+  script:
+    - *docker_login
+    - DOCKER_BUILDKIT=1 docker build --ssh default --target production -t ${FRONTEND_IMAGE_TAG} --no-cache --progress=plain -f $DOCKERFILE_PATH $CONTEXT_PATH
+    - docker push $FRONTEND_IMAGE_TAG
+
+.frontend:push:
+  stage: push
+  needs: ["frontend:build_image"]
+  before_script:
+    - *docker_login
+    - *wharf_login
+  after_script:
+    - *wharf_logout
+  script:
+    - |
+      docker pull $FRONTEND_IMAGE_TAG
+      for tag in $TAGS; do
+        if echo $tag | grep -q "BRANCH_TAG"; then
+          tag=$(echo $tag | sed "s/BRANCH_TAG/$(echo $CI_COMMIT_REF_NAME | sed 's/\//-/g')/g")-frontend
+        fi
+        docker tag $FRONTEND_IMAGE_TAG $tag
+        docker push $tag
+      done;
+
+backend:publish:
+  extends: .backend:push
+  variables:
+    TAGS: |
+      $WHARF_SITE/$WHARF_PROJECT/$BACKEND_WHARF_NAME:$CI_PIPELINE_ID
+      $WHARF_SITE/$WHARF_PROJECT/$BACKEND_WHARF_NAME:BRANCH_TAG
+
+frontend:publish:
+  extends: .frontend:push
+  rules:
+  variables:
+    TAGS: |
+      $WHARF_SITE/$WHARF_PROJECT/$FRONTEND_WHARF_NAME:$CI_PIPELINE_ID
+      $WHARF_SITE/$WHARF_PROJECT/$FRONTEND_WHARF_NAME:BRANCH_TAG
+
+backend:publish_release:
+  extends: .backend:push
+  rules:
+    - if: $CI_COMMIT_BRANCH == $RELEASE_BRANCH
+    - if: $CI_COMMIT_TAG
+  variables:
+    TAGS: |
+      $WHARF_SITE/$WHARF_PROJECT/$BACKEND_WHARF_NAME:latest
+
+frontend:publish_release:
+  extends: .backend:push
+  rules:
+    - if: $CI_COMMIT_BRANCH == $RELEASE_BRANCH
+    - if: $CI_COMMIT_TAG
+  variables:
+    TAGS: |
+      $WHARF_SITE/$WHARF_PROJECT/$FRONTEND_WHARF_NAME:latest
