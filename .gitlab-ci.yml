@@ -41,7 +41,7 @@ backend:build_image:
     CONTEXT_PATH: ./backend
   script:
     - *docker_login
-    - DOCKER_BUILDKIT=1 docker build --target production -t ${BACKEND_IMAGE_TAG} --no-cache --progress=plain -f $DOCKERFILE_PATH $CONTEXT_PATH
+    - DOCKER_BUILDKIT=1 docker build -t ${BACKEND_IMAGE_TAG} --no-cache --progress=plain -f $DOCKERFILE_PATH $CONTEXT_PATH
     - docker push $BACKEND_IMAGE_TAG
 
 .backend:push:
@@ -70,7 +70,7 @@ frontend:build_image:
     CONTEXT_PATH: ./frontend
   script:
     - *docker_login
-    - DOCKER_BUILDKIT=1 docker build --target production -t ${FRONTEND_IMAGE_TAG} --no-cache --progress=plain -f $DOCKERFILE_PATH $CONTEXT_PATH
+    - DOCKER_BUILDKIT=1 docker build -t ${FRONTEND_IMAGE_TAG} --no-cache --progress=plain -f $DOCKERFILE_PATH $CONTEXT_PATH
     - docker push $FRONTEND_IMAGE_TAG
 
 .frontend:push:
