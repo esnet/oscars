@@ -17,6 +17,10 @@ stages:
   - test
   - push
 
+include:
+  - project: "security/container-scanning"
+    file: ".ESnet-container-scan.yml"
+
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE != "merge_request_event"
@@ -32,17 +36,9 @@ workflow:
 
 backend:build_image:
   stage: build
-  before_script:
-    - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
-    - eval $(ssh-agent -s)
-    - echo "$DEPLOY_KEY" | base64 -d | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - ssh-keyscan github.com >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
   variables:
-    DOCKERFILE_PATH: ./deploy/prod/frontend.dockerfile
-    CONTEXT_PATH: ./frontend
+    DOCKERFILE_PATH: ./deploy/prod/backend.dockerfile
+    CONTEXT_PATH: ./backend
   script:
     - *docker_login
     - DOCKER_BUILDKIT=1 docker build --ssh default --target production -t ${BACKEND_IMAGE_TAG} --no-cache --progress=plain -f $DOCKERFILE_PATH $CONTEXT_PATH
@@ -69,14 +65,6 @@ backend:build_image:
 
 frontend:build_image:
   stage: build
-  before_script:
-    - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
-    - eval $(ssh-agent -s)
-    - echo "$DEPLOY_KEY" | base64 -d | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - ssh-keyscan github.com >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
   variables:
     DOCKERFILE_PATH: ./deploy/prod/frontend.dockerfile
     CONTEXT_PATH: ./frontend
