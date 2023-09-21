@@ -21,6 +21,6 @@ COPY ./prod/docker-entrypoint.sh /
 RUN chmod 755 docker-entrypoint.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
-EXPOSE 80
+EXPOSE 80 443
 CMD ["nginx", "-g", "daemon off;"]
 
