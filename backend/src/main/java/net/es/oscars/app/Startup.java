@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.syslog.Syslogger;
-import net.es.oscars.nso.resv.LegacyPopulator;
+import net.es.oscars.sb.nso.resv.LegacyPopulator;
 import net.es.oscars.security.db.UserPopulator;
 import net.es.oscars.topo.beans.TopoException;
 import net.es.oscars.topo.pop.ConsistencyException;
