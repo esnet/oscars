@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.util.DbAccess;
 import net.es.oscars.dto.pss.cmd.CommandType;
-import net.es.oscars.pss.beans.QueueName;
+import net.es.oscars.sb.beans.QueueName;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.Schedule;

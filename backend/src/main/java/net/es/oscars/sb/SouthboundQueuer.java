@@ -6,9 +6,9 @@ import net.es.oscars.app.exc.NotReadyException;
 import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.dto.pss.cmd.Command;
 import net.es.oscars.dto.pss.cmd.CommandType;
-import net.es.oscars.nso.rest.NsoAdapter;
-import net.es.oscars.pss.beans.QueueName;
-import net.es.oscars.pss.svc.PSSAdapter;
+import net.es.oscars.sb.nso.NsoAdapter;
+import net.es.oscars.sb.beans.QueueName;
+import net.es.oscars.sb.rancid.RancidAdapter;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.DeploymentState;
@@ -33,7 +33,7 @@ public class SouthboundQueuer {
     private NsoAdapter nsoAdapter;
 
     @Autowired
-    private PSSAdapter pssAdapter;
+    private RancidAdapter rancidAdapter;
 
     @Autowired
     private ConnectionRepository cr;
@@ -64,7 +64,7 @@ public class SouthboundQueuer {
                 if (isLegacy(conn)) {
                     if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
                         // for legacy, we only process dismantles
-                        task = new FutureTask<>(() -> pssAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
+                        task = new FutureTask<>(() -> rancidAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
                     } else {
                         log.warn("not performing non-dismantle task for legacy connection "+conn.getConnectionId());
                     }
@@ -134,7 +134,7 @@ public class SouthboundQueuer {
     // a connection is legacy if it has any old-style dismantle commands
     public boolean isLegacy(Connection conn) {
         try {
-            List<Command> pssCommands = pssAdapter.configCommands(conn, CommandType.DISMANTLE);
+            List<Command> pssCommands = rancidAdapter.configCommands(conn, CommandType.DISMANTLE);
             return !pssCommands.isEmpty();
         } catch (PSSException | NotReadyException e) {
             throw new RuntimeException(e);
