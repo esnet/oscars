@@ -15,8 +15,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 
 
 @Configuration
@@ -49,15 +50,15 @@ public class WebSecurityConfig {
     }
 
 
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/**").permitAll()
-//                        .requestMatchers("/api/account/login").permitAll()
-                        .requestMatchers("/services/**").permitAll()
-                        .requestMatchers("/admin/**").hasAuthority("ADMIN")
-                        .requestMatchers("/protected/**").authenticated()
+                        .requestMatchers(antMatcher("/api/**")).permitAll()
+                        .requestMatchers(antMatcher("/services/**")).permitAll()
+                        .requestMatchers(antMatcher("/admin/**")).hasAuthority("ADMIN")
+                        .requestMatchers(antMatcher("/protected/**")).authenticated()
                         .anyRequest().authenticated()
                 )
 
