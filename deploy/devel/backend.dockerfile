@@ -18,7 +18,14 @@ RUN java -Djarmode=layertools -jar backend.jar extract
 # 2. run stage
 FROM bellsoft/liberica-openjdk-alpine-musl:17
 RUN addgroup -S oscars && adduser -S oscars -G oscars
+RUN mkdir -p /app
+RUN mkdir -p /app/config
+RUN mkdir -p /app/log
+RUN chown oscars -R /app
 USER oscars
+
+# for development we copy config
+CD /app
 COPY ./config ./config
 COPY --from=builder /build/dependencies/ ./
 COPY --from=builder /build/spring-boot-loader ./
