@@ -19,7 +19,6 @@ RUN java -Djarmode=layertools -jar backend.jar extract
 FROM bellsoft/liberica-openjdk-alpine-musl:17
 RUN addgroup -S oscars && adduser -S oscars -G oscars
 RUN mkdir -p /app
-RUN mkdir -p /app/config
 RUN mkdir -p /app/log
 RUN chown oscars -R /app
 
@@ -31,4 +30,4 @@ COPY --from=builder /build/snapshot-dependencies/ ./
 COPY --from=builder /build/application/ ./
 
 # run the application
-ENTRYPOINT ["java", "org.springframework.boot.loader.JarLauncher"]
+ENTRYPOINT ["java", "org.springframework.boot.loader.JarLauncher", "--spring.config.location=/app/config/application.properties"]
