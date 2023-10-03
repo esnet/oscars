@@ -9,7 +9,7 @@ import net.es.oscars.sb.db.RouterCommandsRepository;
 import net.es.oscars.sb.ent.RouterCommands;
 import org.hashids.Hashids;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -19,7 +19,7 @@ import java.util.Random;
 
 @Component
 @Slf4j
-@ConditionalOnExpression("${pss.server-type:stub}")
+@ConditionalOnProperty(name="pss.server-type", havingValue = "stub")
 public class StubRancidServer implements RancidProxy {
     private Map<String, CommandStatus> statusMap = new HashMap<>();
     private Hashids hashids = new Hashids("ESnet salt");

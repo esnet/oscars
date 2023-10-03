@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.PssProperties;
 import net.es.oscars.dto.pss.cmd.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 
@@ -13,7 +13,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Component
 @Slf4j
-@ConditionalOnExpression("${pss.server-type:rest}")
+@ConditionalOnProperty(name="pss.server-type", havingValue = "rest")
 public class RestRancidServer implements RancidProxy {
     private final PssProperties props;
     private RestTemplate restTemplate;
