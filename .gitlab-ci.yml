@@ -57,7 +57,7 @@ backend:build_image:
       docker pull $BACKEND_IMAGE_TAG
       for tag in $TAGS; do
         if echo $tag | grep -q "BRANCH_TAG"; then
-          tag=$(echo $tag | sed "s/BRANCH_TAG/$(echo $CI_COMMIT_REF_NAME | sed 's/\//-/g')/g")-backend
+          tag=$(echo $tag | sed "s/BRANCH_TAG/$(echo $CI_COMMIT_REF_NAME | sed 's/\//-/g')/g")
         fi
         docker tag $BACKEND_IMAGE_TAG $tag
         docker push $tag
@@ -86,7 +86,7 @@ frontend:build_image:
       docker pull $FRONTEND_IMAGE_TAG
       for tag in $TAGS; do
         if echo $tag | grep -q "BRANCH_TAG"; then
-          tag=$(echo $tag | sed "s/BRANCH_TAG/$(echo $CI_COMMIT_REF_NAME | sed 's/\//-/g')/g")-frontend
+          tag=$(echo $tag | sed "s/BRANCH_TAG/$(echo $CI_COMMIT_REF_NAME | sed 's/\//-/g')/g")
         fi
         docker tag $FRONTEND_IMAGE_TAG $tag
         docker push $tag
