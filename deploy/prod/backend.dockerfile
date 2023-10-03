@@ -24,7 +24,7 @@ RUN mkdir -p /app/log
 RUN chown oscars -R /app
 
 USER oscars
-CD /app
+WORKDIR /app
 COPY --from=builder /build/dependencies/ ./
 COPY --from=builder /build/spring-boot-loader ./
 COPY --from=builder /build/snapshot-dependencies/ ./

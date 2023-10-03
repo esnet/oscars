@@ -25,7 +25,7 @@ RUN chown oscars -R /app
 USER oscars
 
 # for development we copy config
-CD /app
+WORKDIR /app
 COPY ./config ./config
 COPY --from=builder /build/dependencies/ ./
 COPY --from=builder /build/spring-boot-loader ./
