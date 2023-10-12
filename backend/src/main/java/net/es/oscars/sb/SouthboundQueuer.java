@@ -6,6 +6,8 @@ import net.es.oscars.app.exc.NotReadyException;
 import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.dto.pss.cmd.Command;
 import net.es.oscars.dto.pss.cmd.CommandType;
+import net.es.oscars.resv.ent.VlanJunction;
+import net.es.oscars.sb.ent.RouterCommands;
 import net.es.oscars.sb.nso.NsoAdapter;
 import net.es.oscars.sb.beans.QueueName;
 import net.es.oscars.sb.rancid.RancidAdapter;
@@ -133,12 +135,13 @@ public class SouthboundQueuer {
 
     // a connection is legacy if it has any old-style dismantle commands
     public boolean isLegacy(Connection conn) {
-        try {
-            List<Command> pssCommands = rancidAdapter.configCommands(conn, CommandType.DISMANTLE);
-            return !pssCommands.isEmpty();
-        } catch (PSSException | NotReadyException e) {
-            throw new RuntimeException(e);
+        for (VlanJunction j : conn.getArchived().getCmp().getJunctions()) {
+            RouterCommands existing = rancidAdapter.existing(conn.getConnectionId(), j.getDeviceUrn(), CommandType.DISMANTLE);
+            if (existing != null) {
+                return true;
+            }
         }
+        return false;
     }
 
     public void clear(QueueName name) {
