@@ -18,4 +18,12 @@ public class EsdbProperties {
     @NonNull
     private String uri;
 
+    public String getUri() {
+        if (uri.endsWith("/")) {
+            return uri;
+        } else {
+            return uri+"/";
+        }
+    }
+
 }
