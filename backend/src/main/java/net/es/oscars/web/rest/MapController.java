@@ -79,9 +79,9 @@ public class MapController {
             n.getFixed().put("x", true);
             n.getFixed().put("y", true);
 
-        } else {
+//        } else {
             // When device is completely missed
-            log.info("Device " + d.getUrn() + " not present in position map");
+            // log.info("Device " + d.getUrn() + " not present in position map");
         }
 
         return n;
