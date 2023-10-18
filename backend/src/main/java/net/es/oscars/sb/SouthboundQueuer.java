@@ -2,9 +2,6 @@ package net.es.oscars.sb;
 
 import lombok.extern.slf4j.Slf4j;
 
-import net.es.oscars.app.exc.NotReadyException;
-import net.es.oscars.app.exc.PSSException;
-import net.es.oscars.dto.pss.cmd.Command;
 import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.resv.ent.VlanJunction;
 import net.es.oscars.sb.ent.RouterCommands;
@@ -15,16 +12,11 @@ import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
-import net.es.topo.common.devel.DevelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
 
 
 @Component
@@ -115,7 +107,7 @@ public class SouthboundQueuer {
         for (VlanJunction j : conn.getArchived().getCmp().getJunctions()) {
             RouterCommands existing = rancidAdapter.existing(conn.getConnectionId(), j.getDeviceUrn(), CommandType.DISMANTLE);
             if (existing != null) {
-                return true;
+                return !existing.getTemplateVersion().equals("NSO 1.1");
             }
         }
         return false;

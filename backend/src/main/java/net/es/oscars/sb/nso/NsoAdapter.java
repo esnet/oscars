@@ -40,6 +40,8 @@ import java.util.*;
 @Component
 @Slf4j
 public class NsoAdapter {
+    public static String NSO_TEMPLATE_VERSION = "NSO 1.1";
+
     @Autowired
     private NsoProxy nsoProxy;
 
@@ -115,7 +117,6 @@ public class NsoAdapter {
         }
 
         // save the NSO service config and dry-run
-        String templateVersion = "NSO 1.1";
         Components cmp;
         if (conn.getReserved() != null) {
             cmp = conn.getReserved().getCmp();
@@ -127,14 +128,14 @@ public class NsoAdapter {
                     .connectionId(conn.getConnectionId())
                     .deviceUrn(j.getDeviceUrn())
                     .contents(commands)
-                    .templateVersion(templateVersion)
+                    .templateVersion(NSO_TEMPLATE_VERSION)
                     .type(commandType)
                     .build();
             rcr.save(rcb);
             if (shouldWriteHistory) {
                 RouterCommandHistory rch = RouterCommandHistory.builder()
                         .deviceUrn(j.getDeviceUrn())
-                        .templateVersion(templateVersion)
+                        .templateVersion(NSO_TEMPLATE_VERSION)
                         .connectionId(conn.getConnectionId())
                         .date(Instant.now())
                         .commands(commands)
