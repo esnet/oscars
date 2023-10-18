@@ -49,8 +49,6 @@ public class NsoProxy {
             customObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
             converter.setObjectMapper(customObjectMapper);
-            converter.setSupportedMediaTypes(Collections.singletonList(MediaType.ALL));
-
 
             this.restTemplate = new RestTemplate();
             restTemplate.setErrorHandler(new NsoResponseErrorHandler());
