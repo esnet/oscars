@@ -57,52 +57,29 @@ public class SouthboundQueuer {
         if (threadNum == 0) {
             return;
         }
-        ExecutorService executor = Executors.newFixedThreadPool(threadNum);
 
-        List<FutureTask<SouthboundTaskResult>> taskList = new ArrayList<>();
         for (SouthboundTask wt : waiting) {
             cr.findByConnectionId(wt.getConnectionId()).ifPresent(conn -> {
-                FutureTask<SouthboundTaskResult> task = null;
+                if (wt.getCommandType().equals(CommandType.BUILD)) {
+                    conn.setDeploymentState(DeploymentState.BEING_DEPLOYED);
+                } else if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
+                    conn.setDeploymentState(DeploymentState.BEING_UNDEPLOYED);
+                }
+                cr.save(conn);
+
                 if (isLegacy(conn)) {
                     if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
-                        // for legacy, we only process dismantles
-                        task = new FutureTask<>(() -> rancidAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
+                        this.completeTask(rancidAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
                     } else {
                         log.warn("not performing non-dismantle task for legacy connection "+conn.getConnectionId());
                     }
                 } else {
-                     task = new FutureTask<>(() -> nsoAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
-                }
-
-
-                if (wt.getCommandType().equals(CommandType.BUILD)) {
-                    conn.setDeploymentState(DeploymentState.BEING_DEPLOYED);
-                    cr.save(conn);
-                } else if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
-                    if (!isLegacy(conn)) {
-                        DevelUtils.dumpDebug("dismantle", nsoAdapter.nsoOscarsDismantle(conn));
-                    }
-                    conn.setDeploymentState(DeploymentState.BEING_UNDEPLOYED);
-                    cr.save(conn);
-                }
-                if (task != null) {
-                    taskList.add(task);
+                    this.completeTask(nsoAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
                 }
             });
         }
         waiting.clear();
 
-        for (FutureTask<SouthboundTaskResult> ft : taskList) {
-            try {
-                executor.execute(ft);
-                SouthboundTaskResult result = ft.get();
-                this.completeTask(result);
-
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        executor.shutdown();
     }
 
     private void completeTask(SouthboundTaskResult result) {

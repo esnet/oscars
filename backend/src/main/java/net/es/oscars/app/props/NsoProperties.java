@@ -23,6 +23,13 @@ public class NsoProperties {
 
     @NonNull
     public String uri;
+    public String getUri() {
+        if (uri.endsWith("/")) {
+            return uri;
+        } else {
+            return uri+"/";
+        }
+    }
 
     @NonNull
     public String username;

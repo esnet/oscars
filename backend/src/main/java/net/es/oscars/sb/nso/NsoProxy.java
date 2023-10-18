@@ -15,18 +15,19 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,6 +49,8 @@ public class NsoProxy {
             customObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
             converter.setObjectMapper(customObjectMapper);
+            converter.setSupportedMediaTypes(Collections.singletonList(MediaType.ALL));
+
 
             this.restTemplate = new RestTemplate();
             restTemplate.setErrorHandler(new NsoResponseErrorHandler());
@@ -67,13 +70,13 @@ public class NsoProxy {
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
         }
-        log.info("NSO server URL: " + props.getUri());
+        log.info("NSO server base URI: " + props.getUri());
     }
 
     public void deleteServices(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoCommitException {
         YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
 
-        String path = "/restconf/data/";
+        String path = "restconf/data/";
         String restPath = props.getUri() + path;
 
         final HttpEntity<YangPatchWrapper> entity = new HttpEntity<>(wrapped);
@@ -104,10 +107,12 @@ public class NsoProxy {
     }
 
     public void buildServices(NsoServicesWrapper wrapper) throws NsoCommitException {
-        String path = "/restconf/data/tailf-ncs:services";
+        String path = "restconf/data/tailf-ncs:services";
         String restPath = props.getUri() + path;
         UUID errorUuid = UUID.randomUUID();
         String errorRef = "Error reference: [" + errorUuid + "]\n";
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
 
         try {
             DevelUtils.dumpDebug("commit", wrapper);
@@ -123,6 +128,8 @@ public class NsoProxy {
                     }
                 } catch (JsonProcessingException ex) {
                     log.error(errorRef + "Unable to commit. Unable to parse error. Raw: " + response.getBody()+"\n"+ex.getMessage());
+                    ex.printStackTrace(pw);
+                    log.error(sw.toString());
                     throw new NsoCommitException("Unable to commit. Unable to parse error. Raw: " + response.getBody());
                 }
                 log.error(errorRef+"Unable to commit. NSO error(s): " + errorStr);
@@ -130,11 +137,16 @@ public class NsoProxy {
             }
         } catch (RestClientException ex) {
             log.error(errorRef+"REST error %s".formatted(ex.getMessage()));
+            if (ex instanceof RestClientResponseException){
+                log.info("Response body:\n" + ((RestClientResponseException) ex).getResponseBodyAsString());
+            }
+            ex.printStackTrace(pw);
+            log.error(sw.toString());
             throw new NsoCommitException(ex.getMessage());
         }
     }
     public String buildDryRun(NsoServicesWrapper wrapper) throws NsoDryrunException {
-        String path = "/restconf/data/tailf-ncs:services?dry-run=cli&commit-queue=async";
+        String path = "restconf/data/tailf-ncs:services?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
         UUID errorUuid = UUID.randomUUID();
         String errorRef = "Error reference: [" + errorUuid + "]\n";
@@ -155,7 +167,7 @@ public class NsoProxy {
     public String dismantleDryRun(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoDryrunException {
         YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
 
-        String path = "/restconf/data?dry-run=cli&commit-queue=async";
+        String path = "restconf/data?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
 
         final HttpEntity<YangPatchWrapper> entity = new HttpEntity<>(wrapped);
