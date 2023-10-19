@@ -3,6 +3,7 @@ package net.es.oscars.sb.nso.resv;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.NsoProperties;
+import net.es.oscars.sb.MiscHelper;
 import net.es.oscars.sb.nso.db.NsoSdpIdDAO;
 import net.es.oscars.sb.nso.ent.NsoSdpId;
 import net.es.oscars.resv.ent.*;
@@ -24,6 +25,7 @@ public class NsoSdpIdService {
 
     public void findAndReserveNsoSdpIds(Connection conn, List<Schedule> schedules) throws NsoResvException {
         // we want to use the same SDP id on the two devices at the end of each pipe.
+        // we don't technically _need_ to match these, but it's nice
         // this is a bit tricky
         // 1. we collect the set of available SDP ids on each involved device
         // 2. we iterate over the VlanPipes of the connection
@@ -41,7 +43,8 @@ public class NsoSdpIdService {
             devices.add(pipe.getZ().getDeviceUrn());
         }
 
-        Map<String, Set<Integer>> availableSdpIds = generateAvailableSdpIds(allowedSdpIds, usedSdpIdsByDevice, devices);
+        Map<String, Set<Integer>> availableSdpIds = MiscHelper
+                .generateAvailableDeviceScopedIdentifiers(allowedSdpIds, usedSdpIdsByDevice, devices);
 
         Set<NsoSdpId> nsoSdpIds = new HashSet<>();
 
@@ -49,7 +52,8 @@ public class NsoSdpIdService {
             Set<Integer> availableSdpIdsOnA = availableSdpIds.get(pipe.getA().getDeviceUrn());
             Set<Integer> availableSdpIdsOnZ = availableSdpIds.get(pipe.getZ().getDeviceUrn());
             boolean needTwoSdpIds = pipe.getProtect();
-            Map<NsoVplsSdpPrecedence, Integer> sdpIdsByPrecedence = getCommonUnusedSdpIds(availableSdpIdsOnA, availableSdpIdsOnZ, needTwoSdpIds);
+            Map<NsoVplsSdpPrecedence, Integer> sdpIdsByPrecedence = MiscHelper
+                    .getUnusedIntResourceFromTwoSets(availableSdpIdsOnA, availableSdpIdsOnZ, needTwoSdpIds);
             for (NsoVplsSdpPrecedence precedence : sdpIdsByPrecedence.keySet()) {
                 Integer sdpId = sdpIdsByPrecedence.get(precedence);
                 availableSdpIds.get(pipe.getA().getDeviceUrn()).remove(sdpId);
@@ -86,48 +90,6 @@ public class NsoSdpIdService {
             });
         });
         return usedSdpIds;
-    }
-
-    public static Map<String, Set<Integer>> generateAvailableSdpIds(
-            Set<Integer> allowed, Map<String, Set<Integer>> usedSdpIds, Set<String> devices) {
-
-        Map<String, Set<Integer>> availableSdpIds = new HashMap<>();
-        for (String device : devices) {
-            Set<Integer> availableOnDevice = new HashSet<>(allowed);
-            if (usedSdpIds.containsKey(device)) {
-                availableOnDevice.removeAll(usedSdpIds.get(device));
-            }
-            availableSdpIds.put(device, availableOnDevice);
-        }
-
-        return availableSdpIds;
-    }
-
-    public static Map<NsoVplsSdpPrecedence, Integer> getCommonUnusedSdpIds(
-            Set<Integer> availableSdpIdsOnA, Set<Integer> availableSdpIdsOnZ, boolean needTwoSdpIds)
-            throws NsoResvException {
-
-        Map<NsoVplsSdpPrecedence, Integer> result = new HashMap<NsoVplsSdpPrecedence, Integer>();
-        if (needTwoSdpIds) {
-            for (Integer sdpId : availableSdpIdsOnA.stream().sorted().toList()) {
-                Integer nextSdpId = sdpId + 1;
-                boolean nextIsAlsoAvailable = availableSdpIdsOnA.contains(nextSdpId) && availableSdpIdsOnZ.contains(nextSdpId);
-                if (availableSdpIdsOnZ.contains(sdpId) && nextIsAlsoAvailable) {
-                    result.put(NsoVplsSdpPrecedence.PRIMARY, sdpId);
-                    result.put(NsoVplsSdpPrecedence.SECONDARY, nextSdpId);
-                    return result;
-                }
-            }
-
-        } else {
-            for (Integer sdpId : availableSdpIdsOnA.stream().sorted().toList()) {
-                if (availableSdpIdsOnZ.contains(sdpId)) {
-                    result.put(NsoVplsSdpPrecedence.PRIMARY, sdpId);
-                    return result;
-                }
-            }
-        }
-        throw new NsoResvException("unable to locate common unused SDP ID(s)");
     }
 
     @Transactional

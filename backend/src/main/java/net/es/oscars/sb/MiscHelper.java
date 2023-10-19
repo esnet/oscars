@@ -5,8 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.sb.beans.MplsHop;
 import net.es.oscars.resv.ent.*;
+import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.topo.db.AdjcyRepository;
 import net.es.oscars.topo.ent.Adjcy;
+import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -76,6 +78,49 @@ public class MiscHelper {
             }
         }
         throw new PSSException("Could not find an adjacency for "+aPort+" -- "+zPort);
-
     }
+
+    public static Map<String, Set<Integer>> generateAvailableDeviceScopedIdentifiers(
+            Set<Integer> allowed, Map<String, Set<Integer>> used, Set<String> devices) {
+
+        Map<String, Set<Integer>> available = new HashMap<>();
+        for (String device : devices) {
+            Set<Integer> availableOnDevice = new HashSet<>(allowed);
+            if (used.containsKey(device)) {
+                availableOnDevice.removeAll(used.get(device));
+            }
+            available.put(device, availableOnDevice);
+        }
+
+        return available;
+    }
+
+
+    public static Map<NsoVplsSdpPrecedence, Integer> getUnusedIntResourceFromTwoSets(
+            Set<Integer> availableOnA, Set<Integer> availableOnZ, boolean needTwoResources)
+            throws NsoResvException {
+
+        Map<NsoVplsSdpPrecedence, Integer> result = new HashMap<NsoVplsSdpPrecedence, Integer>();
+        if (needTwoResources) {
+            for (Integer resource : availableOnA.stream().sorted().toList()) {
+                Integer nextResource = resource + 1;
+                boolean nextIsAlsoAvailable = availableOnA.contains(nextResource) && availableOnZ.contains(nextResource);
+                if (availableOnZ.contains(resource) && nextIsAlsoAvailable) {
+                    result.put(NsoVplsSdpPrecedence.PRIMARY, resource);
+                    result.put(NsoVplsSdpPrecedence.SECONDARY, nextResource);
+                    return result;
+                }
+            }
+
+        } else {
+            for (Integer resource : availableOnA.stream().sorted().toList()) {
+                if (availableOnZ.contains(resource)) {
+                    result.put(NsoVplsSdpPrecedence.PRIMARY, resource);
+                    return result;
+                }
+            }
+        }
+        throw new NsoResvException("unable to locate common unused integer resource(s)");
+    }
+
 }

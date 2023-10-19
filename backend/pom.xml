@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.1.2</version>
+        <version>3.1.4</version>
         <relativePath/>
     </parent>
 
@@ -25,7 +25,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven-dependency-plugin.version>3.5.0</maven-dependency-plugin.version>
 
-        <lombok.version>1.18.26</lombok.version>
+        <lombok.version>1.18.30</lombok.version>
 
         <cucumber.options>--tags @unit --strict</cucumber.options>
         <rpm.home>/usr/local/esnet/oscars-backend</rpm.home>
@@ -64,7 +64,7 @@
         <dependency>
             <groupId>net.es.topo.common</groupId>
             <artifactId>topo-common</artifactId>
-            <version>0.0.13-SNAPSHOT</version>
+            <version>0.0.22-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

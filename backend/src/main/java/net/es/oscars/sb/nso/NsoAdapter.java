@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.sb.nso.db.NsoSdpVcIdDAO;
+import net.es.oscars.sb.nso.ent.NsoSdpVcId;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.dto.pss.cmd.CommandType;
@@ -53,6 +55,9 @@ public class NsoAdapter {
 
     @Autowired
     private NsoSdpIdDAO nsoSdpIdDAO;
+
+    @Autowired
+    private NsoSdpVcIdDAO nsoSdpVcIdDAO;
 
     @Autowired
     private CommandHistoryRepository historyRepo;
@@ -339,9 +344,12 @@ public class NsoAdapter {
         }
         List<NsoVPLS.SDP> sdps = new ArrayList<>();
         List<NsoSdpId> sdpIds = nsoSdpIdDAO.findNsoSdpIdByConnectionId(conn.getConnectionId());
+        List<NsoSdpVcId> sdpVcIds = nsoSdpVcIdDAO.findNsoSdpVcIdByConnectionId(conn.getConnectionId());
         for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
             NsoSdpId primarySdpId = null;
             NsoSdpId protectSdpId = null;
+            NsoSdpVcId primarySdpVcId = null;
+            NsoSdpVcId protectSdpVcId = null;
 
             for (NsoSdpId sdpId : sdpIds) {
                 if (sdpId.getDevice().equals(pipe.getA().getDeviceUrn()) && sdpId.getTarget().equals(pipe.getZ().getDeviceUrn())) {
@@ -354,6 +362,15 @@ public class NsoAdapter {
             }
             if (primarySdpId == null) {
                 throw new NsoGenException("could not locate primary SDP id");
+            }
+            for (NsoSdpVcId sdpVcId: sdpVcIds) {
+                if (sdpVcId.getDevice().equals(primarySdpId.getDevice()) &&
+                        sdpVcId.getSdpId().equals(primarySdpId.getSdpId())) {
+                    primarySdpVcId = sdpVcId;
+                }
+            }
+            if (primarySdpVcId == null) {
+                throw new NsoGenException("could not locate primary SDP VC id");
             }
             LspMapKey azKey = LspMapKey.builder()
                     .device(pipe.getA().getDeviceUrn())
@@ -371,11 +388,13 @@ public class NsoAdapter {
             NsoVPLS.SDPMember a = NsoVPLS.SDPMember.builder()
                     .device(pipe.getA().getDeviceUrn())
                     .lsp(azLspName)
+                    .vcId(primarySdpVcId.getVcId())
                     .mode(NsoVplsSdpMode.SPOKE)
                     .build();
             NsoVPLS.SDPMember z = NsoVPLS.SDPMember.builder()
                     .device(pipe.getZ().getDeviceUrn())
                     .lsp(zaLspName)
+                    .vcId(primarySdpVcId.getVcId())
                     .mode(NsoVplsSdpMode.SPOKE)
                     .build();
             NsoVPLS.SDP sdp = NsoVPLS.SDP.builder()
@@ -390,6 +409,15 @@ public class NsoAdapter {
             if (pipe.getProtect()) {
                 if (protectSdpId == null) {
                     throw new NsoGenException("could not locate protect SDP id");
+                }
+                for (NsoSdpVcId sdpVcId: sdpVcIds) {
+                    if (sdpVcId.getDevice().equals(protectSdpId.getDevice()) &&
+                            sdpVcId.getSdpId().equals(protectSdpId.getSdpId())) {
+                        protectSdpVcId = sdpVcId;
+                    }
+                }
+                if (protectSdpVcId == null) {
+                    throw new NsoGenException("could not locate protect SDP VC id");
                 }
                 LspMapKey azProtectKey = LspMapKey.builder()
                         .device(pipe.getA().getDeviceUrn())
@@ -407,12 +435,14 @@ public class NsoAdapter {
                 NsoVPLS.SDPMember protectA = NsoVPLS.SDPMember.builder()
                         .device(pipe.getA().getDeviceUrn())
                         .lsp(azProtectLspName)
+                        .vcId(protectSdpVcId.getVcId())
                         .mode(NsoVplsSdpMode.SPOKE)
                         .build();
                 NsoVPLS.SDPMember protectZ = NsoVPLS.SDPMember.builder()
                         .device(pipe.getZ().getDeviceUrn())
                         .lsp(zaProtectLspName)
                         .mode(NsoVplsSdpMode.SPOKE)
+                        .vcId(protectSdpVcId.getVcId())
                         .build();
 
                 NsoVPLS.SDP protectSdp = NsoVPLS.SDP.builder()

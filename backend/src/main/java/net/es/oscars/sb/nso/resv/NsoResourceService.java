@@ -26,6 +26,9 @@ public class NsoResourceService {
     private NsoSdpIdService nsoSdpIdService;
 
     @Autowired
+    private NsoSdpVcIdService nsoSdpVcIdService;
+
+    @Autowired
     private ScheduleRepository scheduleRepo;
 
 
@@ -40,6 +43,7 @@ public class NsoResourceService {
         nsoVcIdService.findAndReserveVcId(conn, overlappingSchedules);
         nsoQosSapPolicyIdService.findAndReserveQosSapPolicyIds(conn, overlappingSchedules);
         nsoSdpIdService.findAndReserveNsoSdpIds(conn, overlappingSchedules);
+        nsoSdpVcIdService.findAndReserveNsoSdpVcIds(conn, overlappingSchedules);
 
     }
 
