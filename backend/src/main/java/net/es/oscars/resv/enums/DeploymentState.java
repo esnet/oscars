@@ -9,4 +9,8 @@ public enum DeploymentState {
     DEPLOYED,
     WAITING_TO_BE_UNDEPLOYED,
     BEING_UNDEPLOYED,
+
+    DEPLOY_FAILED,
+
+    UNDEPLOY_FAILED,
 }

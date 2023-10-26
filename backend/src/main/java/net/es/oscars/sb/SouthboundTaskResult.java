@@ -13,5 +13,5 @@ public class SouthboundTaskResult {
     public State state;
     public DeploymentState deploymentState;
     public CommandType commandType;
-    String connectionId;
+    public String connectionId;
 }

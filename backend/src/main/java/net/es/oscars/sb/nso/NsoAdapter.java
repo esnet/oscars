@@ -75,9 +75,9 @@ public class NsoAdapter {
         log.info("processing southbound NSO task "+conn.getConnectionId()+" "+commandType.toString());
 
         // we ass-u-me that incoming deployment state is the opposite of what is asked
-        DeploymentState incomingDepState = DeploymentState.UNDEPLOYED;
+        DeploymentState failureDepState = DeploymentState.DEPLOY_FAILED;
         if (commandType.equals(CommandType.DISMANTLE)) {
-            incomingDepState = DeploymentState.DEPLOYED;
+            failureDepState = DeploymentState.UNDEPLOY_FAILED;
         }
 
         DeploymentState newDepState;
@@ -113,35 +113,35 @@ public class NsoAdapter {
                 throw new RuntimeException(ex);
             } catch (NsoDryrunException ex) {
                 commands = ex.getMessage();
-                newDepState = incomingDepState;
+                newDepState = failureDepState;
                 newState = State.FAILED;
             } catch (NsoCommitException | NsoGenException ex) {
                 configStatus = ConfigStatus.ERROR;
-                newDepState = incomingDepState;
+                newDepState = failureDepState;
                 newState = State.FAILED;
             }
         } else {
-            newDepState = incomingDepState;
+            newDepState = failureDepState;
             newState = State.FAILED;
         }
 
+        if (shouldWriteHistory) {
         // save the NSO service config and dry-run
-        Components cmp;
-        if (conn.getReserved() != null) {
-            cmp = conn.getReserved().getCmp();
-        } else {
-            cmp = conn.getArchived().getCmp();
-        }
-        for (VlanJunction j : cmp.getJunctions()) {
-            RouterCommands rcb = RouterCommands.builder()
-                    .connectionId(conn.getConnectionId())
-                    .deviceUrn(j.getDeviceUrn())
-                    .contents(commands)
-                    .templateVersion(NSO_TEMPLATE_VERSION)
-                    .type(commandType)
-                    .build();
-            rcr.save(rcb);
-            if (shouldWriteHistory) {
+            Components cmp;
+            if (conn.getReserved() != null) {
+                cmp = conn.getReserved().getCmp();
+            } else {
+                cmp = conn.getArchived().getCmp();
+            }
+            for (VlanJunction j : cmp.getJunctions()) {
+                RouterCommands rcb = RouterCommands.builder()
+                        .connectionId(conn.getConnectionId())
+                        .deviceUrn(j.getDeviceUrn())
+                        .contents(commands)
+                        .templateVersion(NSO_TEMPLATE_VERSION)
+                        .type(commandType)
+                        .build();
+                rcr.save(rcb);
                 RouterCommandHistory rch = RouterCommandHistory.builder()
                         .deviceUrn(j.getDeviceUrn())
                         .templateVersion(NSO_TEMPLATE_VERSION)
