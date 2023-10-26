@@ -150,12 +150,22 @@ public class NsoProxy {
         String errorRef = "Error reference: [" + errorUuid + "]\n";
 
         try {
-            NsoDryRun response = restTemplate.postForObject(restPath, wrapper, NsoDryRun.class);
-            if (response != null && response.getDryRunResult() != null) {
-                log.info(response.getDryRunResult().getCli().getLocalNode().getData());
-                return response.getDryRunResult().getCli().getLocalNode().getData();
+            ResponseEntity<String> response = restTemplate.postForEntity(restPath, wrapper, String.class);
+            if (response.getStatusCode().isError()) {
+                log.error("raw error: " + response.getBody());
+                throw new NsoDryrunException("unable to perform dry run "+ response.getBody());
             } else {
-                return "no dry-run available";
+                try {
+                    NsoDryRun dryRun = new ObjectMapper().readValue(response.getBody(), NsoDryRun.class);
+                    if (dryRun.getDryRunResult() != null) {
+                        return dryRun.getDryRunResult().toString();
+                    } else {
+                        return "Null dry run";
+                    }
+                } catch (JsonProcessingException ex) {
+                    log.error(errorRef + "Unable to perform dry run. Unable to parse error. Raw: " + response.getBody()+"\n"+ex.getMessage());
+                    throw new NsoDryrunException(ex.getMessage());
+                }
             }
         } catch (RestClientException ex) {
             log.error(errorRef+"REST error %s".formatted(ex.getMessage()));

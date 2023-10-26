@@ -37,6 +37,7 @@ public class SouthboundQueuer {
     private final List<SouthboundTask> waiting = new ArrayList<>();
     private final List<SouthboundTask> done = new ArrayList<>();
 
+    @Transactional
     public void process() {
         for (SouthboundTask rt : running) {
             log.info("running : " + rt.getConnectionId() + " " + rt.getCommandType());

@@ -39,6 +39,8 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.*;
 
+import static net.es.topo.common.devel.DevelUtils.dumpDebug;
+
 @Component
 @Slf4j
 public class NsoAdapter {
@@ -92,6 +94,8 @@ public class NsoAdapter {
             try {
                 if (commandType.equals(CommandType.BUILD)) {
                     NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
+                    dumpDebug(conn.getConnectionId()+" BUILD services", oscarsServices);
+
                     commands = dryRunWriter.writeValueAsString(oscarsServices);
                     dryRun = nsoProxy.buildDryRun(oscarsServices);
                     nsoProxy.buildServices(oscarsServices);
