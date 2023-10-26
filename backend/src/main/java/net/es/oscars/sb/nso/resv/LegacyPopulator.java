@@ -117,6 +117,8 @@ public class LegacyPopulator {
                             if (sdpByTarget.keySet().size() > 1) {
                                 log.error("unable to migrate multipoint SDP ids ");
                                 dumpDebug(c.getConnectionId(), sdpByTarget);
+                            } else if (sdpByTarget.keySet().isEmpty()) {
+                                log.info("no SDPs to migrate");
                             } else {
                                 String target = sdpByTarget.keySet().iterator().next();
                                 Integer sdpId = sdpByTarget.get(target).get(precedence);
