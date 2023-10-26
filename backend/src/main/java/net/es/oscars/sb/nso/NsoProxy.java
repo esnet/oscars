@@ -150,21 +150,17 @@ public class NsoProxy {
         String errorRef = "Error reference: [" + errorUuid + "]\n";
 
         try {
-            ResponseEntity<String> response = restTemplate.postForEntity(restPath, wrapper, String.class);
-            if (response.getStatusCode().isError()) {
-                log.error("raw error: " + response.getBody());
-                throw new NsoDryrunException("unable to perform dry run "+ response.getBody());
+            ResponseEntity<NsoDryRun> dryRunResponse = restTemplate.postForEntity(restPath, wrapper, NsoDryRun.class);
+            if (dryRunResponse.getStatusCode().isError()) {
+                log.error("raw error: " + dryRunResponse.getBody());
+                throw new NsoDryrunException("unable to perform dry run "+ dryRunResponse.getBody());
             } else {
-                try {
-                    NsoDryRun dryRun = new ObjectMapper().readValue(response.getBody(), NsoDryRun.class);
-                    if (dryRun.getDryRunResult() != null) {
-                        return dryRun.getDryRunResult().toString();
-                    } else {
-                        return "Null dry run";
-                    }
-                } catch (JsonProcessingException ex) {
-                    log.error(errorRef + "Unable to perform dry run. Unable to parse error. Raw: " + response.getBody()+"\n"+ex.getMessage());
-                    throw new NsoDryrunException(ex.getMessage());
+                if (dryRunResponse.getBody() == null) {
+                    return "Null dry run body";
+                } else if (dryRunResponse.getBody().getDryRunResult() == null) {
+                    return "Null dry run result";
+                } else {
+                    return dryRunResponse.getBody().getDryRunResult().toString();
                 }
             }
         } catch (RestClientException ex) {
