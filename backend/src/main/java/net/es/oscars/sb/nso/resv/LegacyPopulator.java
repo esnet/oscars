@@ -1,12 +1,10 @@
 package net.es.oscars.sb.nso.resv;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.resv.enums.DeploymentIntent;
 import net.es.oscars.resv.enums.DeploymentState;
-import net.es.oscars.sb.nso.db.NsoQosSapPolicyIdDAO;
-import net.es.oscars.sb.nso.db.NsoSdpIdDAO;
-import net.es.oscars.sb.nso.db.NsoSdpVcIdDAO;
-import net.es.oscars.sb.nso.db.NsoVcIdDAO;
+import net.es.oscars.sb.nso.db.*;
 import net.es.oscars.sb.nso.ent.NsoQosSapPolicyId;
 import net.es.oscars.sb.nso.ent.NsoSdpId;
 import net.es.oscars.sb.nso.ent.NsoSdpVcId;
@@ -21,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+
+import static net.es.topo.common.devel.DevelUtils.dumpDebug;
 
 @Slf4j
 @Component
@@ -40,6 +40,7 @@ public class LegacyPopulator {
     private NsoSdpVcIdDAO nsoSdpVcIdDAO;
 
 
+    @Transactional
     public void importPssToNso() {
         // PSS to NSO resource mappings
         // ALU_SVC_ID           =>  nsoVcId
@@ -51,9 +52,12 @@ public class LegacyPopulator {
             // to migrate PSS resources to NSO ones
 
             if (nsoVcIdDAO.findNsoVcIdByConnectionId(c.getConnectionId()).isEmpty()) {
+                log.info("migrating legacy connection "+c.getConnectionId());
+
                 // this is a legacy connection that has not been migrated yet
                 c.setDeploymentState(DeploymentState.DEPLOYED);
                 c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED);
+                cr.save(c);
 
                 // we haven't saved an nsoVcId yet.
                 Long scheduleId = c.getReserved().getSchedule().getId();
@@ -151,11 +155,14 @@ public class LegacyPopulator {
                                 .scheduleId(scheduleId)
                                 .vcId(pssAluSvcId)
                                 .build());
+                        log.info(c.getConnectionId()+" ALU service id: "+pssAluSvcId);
                     }
-
                     nsoSdpIdDAO.saveAll(nsoSdpIds);
                     nsoQosSapPolicyIdDAO.saveAll(nsoQosSapPolicyIds);
                     nsoSdpVcIdDAO.saveAll(nsoSdpVcIds);
+                    dumpDebug("migrate SDPs "+c.getConnectionId(), nsoSdpIds);
+                    dumpDebug("migrate QoS SAP "+c.getConnectionId(), nsoQosSapPolicyIds);
+                    dumpDebug("migrate SDP VC ids "+c.getConnectionId(), nsoSdpVcIds);
                 } else {
                     log.error("multiple ALU svc-ids for "+c.getConnectionId()+"; skipping it.");
                 }

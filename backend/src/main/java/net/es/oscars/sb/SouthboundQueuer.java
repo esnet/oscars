@@ -1,5 +1,6 @@
 package net.es.oscars.sb;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
 import net.es.oscars.dto.pss.cmd.CommandType;
@@ -74,7 +75,8 @@ public class SouthboundQueuer {
 
     }
 
-    private void completeTask(SouthboundTaskResult result) {
+    @Transactional
+    public void completeTask(SouthboundTaskResult result) {
         SouthboundTask completed = null;
         for (SouthboundTask task : running) {
             if (task.getCommandType().equals(result.getCommandType()) &&
