@@ -77,8 +77,7 @@ public class LegacyPopulator {
                         if (cp.getParamType().equals(CommandParamType.ALU_SVC_ID)) {
                             aluSvcIds.add(cp.getResource());
 
-
-                        } else if (cp.getParamType().equals(CommandParamType.ALU_SDP_ID)) {
+                            } else if (cp.getParamType().equals(CommandParamType.ALU_SDP_ID)) {
                             // collect SDP ids and match them to target & precedence
                             NsoVplsSdpPrecedence precedence;;
                             if (cp.getIntent().equals(CommandParamIntent.PRIMARY)) {
@@ -86,7 +85,6 @@ public class LegacyPopulator {
                             } else {
                                 precedence  = NsoVplsSdpPrecedence.SECONDARY;
                             }
-
 
                             if (!sdpByTarget.containsKey(cp.getTarget())) {
                                 sdpByTarget.put(cp.getTarget(), new HashMap<>());
@@ -103,8 +101,11 @@ public class LegacyPopulator {
                                     .build());
                         }
                     }
+                    dumpDebug("SDPs by Target "+c.getConnectionId()+" "+j.getDeviceUrn(), sdpByTarget);
 
                     // loop over these again and match vc-ids to sdp-ids
+                    // unfortunately we do not actually have target info since OSCARS 1.0 did not save that
+                    // we will assume there's only one target
                     for (CommandParam cp : j.getCommandParams()) {
                         if (cp.getParamType().equals(CommandParamType.VC_ID)) {
                             NsoVplsSdpPrecedence precedence;
@@ -113,12 +114,12 @@ public class LegacyPopulator {
                             } else {
                                 precedence = NsoVplsSdpPrecedence.SECONDARY;
                             }
-                            if (!sdpByTarget.containsKey(cp.getTarget())) {
-                                log.error("unable to locate an SDP id ");
-                            } else if (sdpByTarget.get(cp.getTarget()).containsKey(precedence)) {
-                                log.error("unable to locate an SDP id ");
+                            if (sdpByTarget.keySet().size() > 1) {
+                                log.error("unable to migrate multipoint SDP ids ");
+                                dumpDebug(c.getConnectionId(), sdpByTarget);
                             } else {
-                                Integer sdpId = sdpByTarget.get(cp.getTarget()).get(precedence);
+                                String target = sdpByTarget.keySet().iterator().next();
+                                Integer sdpId = sdpByTarget.get(target).get(precedence);
                                 nsoSdpVcIds.add(NsoSdpVcId.builder()
                                         .vcId(cp.getResource())
                                         .scheduleId(scheduleId)
