@@ -38,7 +38,7 @@ backend:build_image:
   stage: build
   variables:
     DOCKERFILE_PATH: ./deploy/prod/backend.dockerfile
-    CONTEXT_PATH: ./backend
+    CONTEXT_PATH: ./
   script:
     - *docker_login
     - DOCKER_BUILDKIT=1 docker build -t ${BACKEND_IMAGE_TAG} --progress=plain -f $DOCKERFILE_PATH $CONTEXT_PATH
