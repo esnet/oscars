@@ -1,21 +1,20 @@
 package net.es.oscars.soap;
 
-import gen.nsi_2_0.connection.types.*;
+import jakarta.xml.ws.Holder;
 import lombok.extern.slf4j.Slf4j;
-import gen.nsi_2_0.connection.ifce.Error;
-import gen.nsi_2_0.connection.ifce.ServiceException;
-import gen.nsi_2_0.connection.provider.ConnectionProviderPort;
-import gen.nsi_2_0.framework.headers.CommonHeaderType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.Error;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.ServiceException;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.provider.ConnectionProviderPort;
+import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.nsi.beans.NsiErrors;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.nsi.svc.NsiStateEngine;
-import net.es.oscars.resv.svc.ConnService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.xml.ws.Holder;
 import java.util.UUID;
 
 @Slf4j

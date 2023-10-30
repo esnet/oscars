@@ -10,7 +10,7 @@ services:
     networks:
       - topo-net
     build:
-      context: ./backend
+      context: ./
       dockerfile: ../deploy/devel/backend.dockerfile
     depends_on:
       oscars-db:

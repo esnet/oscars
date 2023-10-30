@@ -134,6 +134,11 @@ module.exports = {
                 changeOrigin: true,
                 target: "http://oscars-backend:8201/"
             },
+            "/services/*": {
+                secure: false,
+                changeOrigin: true,
+                target: "http://oscars-backend:8201/"
+            },
             "/admin/*": {
                 secure: false,
                 changeOrigin: true,

@@ -74,14 +74,12 @@ public class HoldController {
         if (maybeConnection.isPresent()) {
             Connection conn = maybeConnection.get();
             if (conn.getPhase().equals(Phase.HELD)) {
-
                 conn.getHeld().setExpiration(exp);
                 connRepo.save(conn);
-
                 return exp;
             } else {
-                return Instant.MIN;
-
+                log.debug("pretending to extend hold for a non-HELD connection");
+                return exp;
             }
 
         } else {
@@ -195,8 +193,9 @@ public class HoldController {
         Optional<Connection> maybeConnection = connRepo.findByConnectionId(connectionId);
         if (maybeConnection.isPresent()) {
             Connection prev = maybeConnection.get();
+            // don't throw an error, just return the input. makes sure
             if (!prev.getPhase().equals(Phase.HELD)) {
-                throw new IllegalArgumentException("connection not in HELD phase");
+                return in;
             }
 
             log.info("overwriting previous connection for " + connectionId);

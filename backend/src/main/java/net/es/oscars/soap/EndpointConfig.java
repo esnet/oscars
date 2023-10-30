@@ -1,15 +1,13 @@
 package net.es.oscars.soap;
 
 
-import gen.nsi_2_0.services.point2point.ObjectFactory;
+import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory;
 import jakarta.xml.ws.Endpoint;
+import net.es.oscars.app.props.NsiProperties;
 import org.apache.cxf.Bus;
-import org.apache.cxf.bus.spring.SpringBus;
 import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.jaxws.EndpointImpl;
-import org.apache.cxf.transport.servlet.CXFServlet;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,30 +17,25 @@ import java.util.Map;
 @Configuration
 public class EndpointConfig {
 
-
-
-    @Bean
-    public ServletRegistrationBean<CXFServlet> cxfServlet() {
-        return new ServletRegistrationBean<>(new CXFServlet(), "/services/*");
-    }
-
-    @Bean(name= Bus.DEFAULT_BUS_ID)
-    public SpringBus springBus() {
-        return new SpringBus();
-    }
+    @Autowired
+    private Bus bus;
 
     @Autowired
     private NsiProvider nsiProvider;
 
+    @Autowired
+    private NsiProperties nsiProperties;
+
     @Bean
     public Endpoint endpoint() {
 
-        EndpointImpl provider = new EndpointImpl(springBus(), nsiProvider);
+        EndpointImpl provider = new EndpointImpl(bus, nsiProvider);
 
         Map<String, Object> props = provider.getProperties();
         if (props == null) {
             props = new HashMap<>();
         }
+        provider.setPublishedEndpointUrl(nsiProperties.getPublishedEndpointUrl());
         props.put("jaxb.additionalContextClasses",
                 new Class[]{
                         ObjectFactory.class

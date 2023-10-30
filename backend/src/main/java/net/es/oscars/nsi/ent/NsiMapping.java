@@ -1,9 +1,9 @@
 package net.es.oscars.nsi.ent;
 
 import lombok.*;
-import gen.nsi_2_0.connection.types.LifecycleStateEnumType;
-import gen.nsi_2_0.connection.types.ProvisionStateEnumType;
-import gen.nsi_2_0.connection.types.ReservationStateEnumType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.LifecycleStateEnumType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ProvisionStateEnumType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReservationStateEnumType;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

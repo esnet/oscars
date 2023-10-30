@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    The OGF takes no position regarding the validity or scope of any intellectual property or other rights that might be claimed to pertain to the implementation or use of the technology described in this document or the extent to which any license under such rights might or might not be available; neither does it represent that it has made any effort to identify any such rights.  Copies of claims of rights made available for publication and any assurances of licenses to be made available, or the result of an attempt made to obtain a general license or permission for the use of such proprietary rights by implementers or users of this specification can be obtained from the OGF Secretariat.
+    
+    The OGF invites any interested party to bring to its attention any copyrights, patents or patent applications, or other proprietary rights which may cover technology that may be required to practice this recommendation.  Please address the information to the OGF Executive Director.
+    
+    This document and the information contained herein is provided on an "As Is" basis and the OGF disclaims all warranties, express or implied, including but not limited to any warranty that the use of the information herein will not infringe any rights or any implied warranties of merchantability or fitness for a particular purpose.
+    
+    Copyright (C) Open Grid Forum (2009-2014). All Rights Reserved.
+    
+    This document and translations of it may be copied and furnished to others, and derivative works that comment on or otherwise explain it or assist in its implementation may be prepared, copied, published and distributed, in whole or in part, without restriction of any kind, provided that the above copyright notice and this paragraph are included on all such copies and derivative works. However, this document itself may not be modified in any way, such as by removing the copyright notice or references to the OGF or other organizations, except as needed for the purpose of developing Grid Recommendations in which case the procedures for copyrights defined in the OGF Document process must be followed, or as required to translate it into languages other than English.
+    
+    The limited permissions granted above are perpetual and will not be revoked by the OGF or its successors or assignees.
+    
+    Open Grid Forum NSI Connection Services Protocol v2.0 - Service definition template definition.
+-->
+<xsd:schema targetNamespace="http://schemas.ogf.org/nsi/2013/12/services/definition"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://schemas.ogf.org/nsi/2013/12/services/definition">
+    
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            This is an XML schema document describing the OGF NSI Service definition
+            template.
+        </xsd:documentation>
+    </xsd:annotation>
+    
+    <!-- Element definitions for services types. -->
+    <xsd:element name="serviceDefinition" type="tns:ServiceDefinitionType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Element for representing a Service definition XML document.
+            </xsd:documentation>
+        </xsd:annotation>        
+    </xsd:element>
+    
+    <!-- Type definitions for services types. -->
+    <xsd:complexType name="ServiceDefinitionType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Type defining the structure and content of a Service
+                definition document.
+                
+                Attributes:
+                
+                id - A service definition must have a unique identifier within
+                the network sourcing the definition.
+                
+                Elements:
+                
+                comment - A comment describes the basic service offered in this
+                service definition.  Any differences from the global service
+                definition should be identified here.
+                
+                serviceType - This is the standard service type as defined in
+                the associated global service definition. We allocate a
+                standard namespace for each template so they are globally
+                unique.
+                
+                adaptation - If this element is present then the Service Definition
+                is providing service adaptation functionality.  A service
+                adaptation allows services from two incompatible Service Domains
+                to be interconnected through a special adaptation function.  This
+                element will identify the type of adaptation, and the serviceTypes
+                compatible with the adaptation.
+                
+                schema - This is the schema elements specified in a reservation.
+                There can be multiple schema entries here for services if they
+                requiring multiple schema in a reserve request.
+                
+                parameter - Parameter definitions for the service and their
+                values.  These reflect the XML schema definitions and any local
+                range restrictions.
+                
+                attribute - Attribute definitions for the service and their
+                values.  Attributes are aspects of the service that are not
+                specified in the XML schema for the service.
+                
+                error - Errors defined for this service.             
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="name"        type="xsd:string" minOccurs="0" />
+            <xsd:element name="comment"     type="xsd:string" minOccurs="0" />
+            <xsd:element name="serviceType" type="xsd:string" minOccurs="0" />
+            <xsd:element name="adaptation"  type="tns:AdaptationType" minOccurs="0" />
+            <xsd:element name="schema"      type="tns:SchemaType" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="attribute"   type="tns:AttributeType" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="error"       type="tns:ErrorType" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="id" type="xsd:anyURI" use="required" />
+        <xsd:anyAttribute namespace="##other" processContents="lax" />
+    </xsd:complexType>
+    
+    <xsd:complexType name="AdaptationType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                This type holds information relating to a service adaptation. A service
+                adaptation allows services from two incompatible Service Domains to be
+                interconnected through a special adaptation function.
+                
+                Attributes:
+                
+                name - The name of the adaptation referenced by this type.
+                
+                type - The type of adaptation referenced by this type such as GFP(G.709) 
+                over SONET.
+                
+                symmetrical - If true then this adaptation can support both adaptation and
+                deadaptation functions, otherwise it is a unidirectional adaptation.
+                
+                Elements:
+                
+                comment - Descriptive text.
+                
+                sourceServiceType - The source serviceType of the adaptation.
+                
+                destServiceType - The destination serviceType of the adaptation.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="comment"                type="xsd:string" minOccurs="0" />
+            <xsd:element name="sourceServiceType"      type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="destServiceType" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="name"        type="xsd:string" use="required" />
+        <xsd:attribute name="type"        type="xsd:string" use="required" />
+        <xsd:attribute name="symmetrical" type="xsd:boolean" use="required" />
+        <xsd:anyAttribute namespace="##other" processContents="lax" />
+    </xsd:complexType>
+    
+    <xsd:complexType name="SchemaType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                This type identifies the specific service XML schema element
+                specified in a reservation.  There can be multiple schema
+                entries for a service if they require multiple schema in a
+                reserve request. 
+                
+                Attributes:
+                
+                name - The name of the element carried in the reserve criteria.
+                
+                required - Is this element required in the reserve criteria or
+                is it optional.
+                
+                namespace - The qualified namespace of the XML schema defining
+                the element.
+                
+                type - The XML schema type of the element.
+                
+                Elements:
+                
+                comment - Descriptive text.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="comment"   type="xsd:string" minOccurs="0" />
+            <xsd:element name="parameter" type="tns:ParameterType" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="name"      type="xsd:string" use="required" />
+        <xsd:attribute name="required"  type="xsd:boolean" use="required" />
+        <xsd:attribute name="namespace" type="xsd:anyURI" use="required" />
+        <xsd:attribute name="type"      type="xsd:string" use="required" />
+        <xsd:anyAttribute namespace="##other" processContents="lax" />
+    </xsd:complexType>
+    
+    <xsd:complexType name="ParameterType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Parameter definitions for the service and their values. These
+                reflect the XML schema definitions and any local range
+                restrictions.  The associated service XML schema is the
+                definitive source for and type and range definitions. If a
+                parameter of the service is not contained in this service
+                definition then it is not supported for this profile.
+                
+                Attributes:
+                
+                name - The name of the parameter within the XML schema for the
+                service.
+                
+                units - (Optional) The unit of measurement for this parameter.
+                
+                required - Indicates if the parameter is mandatory or optional.
+                
+                modifiable - Indicates if this parameter be modified after the
+                initial reservation has been created.
+                
+                namespace - The qualified namespace of the XML schema defining
+                the parameter.
+                
+                type - The fully qualified XML schema type of the parameter.
+                
+                Elements:
+                
+                comment - Descriptive text describing the parameter.
+                
+                minInclusive, maxInclusive - Allows the specification of
+                parameter ranges.
+                
+                increment - Allows for the specification of parameter value
+                increments.
+                
+                default - The default for the parameter if a value is not
+                specified.  This must not conflict with any default specified
+                in the XML schema definition for the parameter.                
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="comment"      type="xsd:string" minOccurs="0" />
+            <xsd:element name="minInclusive" type="xsd:string" minOccurs="0" />
+            <xsd:element name="maxInclusive" type="xsd:string" minOccurs="0" />
+            <xsd:element name="increment"    type="xsd:string" minOccurs="0" />
+            <xsd:element name="default"      type="xsd:string" minOccurs="0" />
+            <xsd:element name="parameter"    type="tns:ParameterType" minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="name"       type="xsd:string" use="required" />
+        <xsd:attribute name="units"      type="xsd:string" use="optional" />
+        <xsd:attribute name="required"   type="xsd:boolean" use="required" />
+        <xsd:attribute name="modifiable" type="tns:ModifiableType" use="optional" />
+        <xsd:attribute name="namespace"  type="xsd:anyURI" use="required" />
+        <xsd:attribute name="type"       type="xsd:string" use="required" />
+        <xsd:anyAttribute namespace="##other" processContents="lax" />
+    </xsd:complexType>
+    
+    <xsd:complexType name="AttributeType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Attributes are aspects of the service that are not specified in
+                the XML schema for the service.  The can be as detailed as
+                parameters, but are not specified in the reservation request.
+                
+                Attributes:
+                
+                name - The name of the attribute within the service definition.
+                
+                units - (Optional) The unit of measurement for this attribute.
+                
+                namespace - The qualified namespace of the XML schema defining
+                the attribute.  Will typically be the namespace of the service
+                specific definition.
+                
+                type - The fully qualified XML schema type of the attribute if
+                needed.
+                
+                Elements:
+                
+                comment - Descriptive text describing the attribute.
+                
+                minInclusive, maxInclusive - Allows the specification of
+                attribute ranges.
+                
+                increment - Allows for the specification of attributes value
+                increments.
+                
+                default - The default for the attribute if a value is not
+                specified.                       
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="comment"      type="xsd:string" minOccurs="0" />
+            <xsd:element name="minInclusive" type="xsd:string" minOccurs="0" />
+            <xsd:element name="maxInclusive" type="xsd:string" minOccurs="0" />
+            <xsd:element name="increment"    type="xsd:string" minOccurs="0" />
+            <xsd:element name="default"      type="xsd:string" minOccurs="0" />
+            <xsd:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="name"       type="xsd:string" use="required" />
+        <xsd:attribute name="units"      type="xsd:string" use="optional" />
+        <xsd:attribute name="namespace"  type="xsd:anyURI" use="optional" />
+        <xsd:attribute name="type"       type="xsd:anyURI" use="optional" />
+        <xsd:anyAttribute namespace="##other" processContents="lax" />
+    </xsd:complexType>
+    
+    <xsd:complexType name="ErrorType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Models an error defined for this service.
+                
+                Attributes:
+                
+                id - Error identifier uniquely identifying each known fault
+                within this service. Must be allocated in the service specific
+                error range of 00700.
+                
+                text - User friendly message text describing the error.
+                
+                Elements:
+                
+                comment - Descriptive text describing the error, conditions
+                triggering it, and any variables returned.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="comment" type="xsd:string" minOccurs="0" />
+        </xsd:sequence>
+        <xsd:attribute name="id" type="xsd:string" use="required" />
+        <xsd:attribute name="text" type="xsd:string" use="required" />
+    </xsd:complexType>
+    
+    <xsd:simpleType name="ModifiableType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Indicates when in the schedule lifecycle of a reservation a
+                parameter can be modified.  There are four enumerated values
+                for modifiable:
+                
+                false - parameter cannot be modified.
+                true - parameter can be modified and there are no restrictions.
+                pre - parameter can only be modified before schedule start time.
+                post - parameter can only be modified after schedule start time.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="false" />
+            <xsd:enumeration value="pre" />
+            <xsd:enumeration value="post" />
+            <xsd:enumeration value="true" />
+        </xsd:restriction>
+    </xsd:simpleType>
+</xsd:schema>

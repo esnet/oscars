@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<wsdl:definitions name="ogf_nsi_p2p_service_v2_0"
+    targetNamespace="http://schemas.ogf.org/nsi/2013/12/point2point/service"
+    xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+    <!--
+    a dummy wsdl to allow importing the p2p namespace thru wsdl2java
+    -->
+
+    <wsdl:types>
+        <xsd:schema targetNamespace="http://schemas.ogf.org/nsi/2013/12/point2point/service"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+            <!-- Import the common NSI framework types. -->
+            <xsd:import namespace="http://schemas.ogf.org/nsi/2013/12/services/point2point"
+                schemaLocation="ogf_nsi_services_p2p_v2_0.xsd"/>
+
+        </xsd:schema>
+    </wsdl:types>
+
+</wsdl:definitions>

@@ -16,6 +16,7 @@ public class NsiProperties {
     private String keyStoreType;
     private String keyStoreAlias;
     private String keyStorePassword;
+    private String publishedEndpointUrl;
 
 }
 

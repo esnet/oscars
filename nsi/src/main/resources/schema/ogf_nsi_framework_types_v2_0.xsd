@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+The OGF takes no position regarding the validity or scope of any intellectual property or other rights that might be claimed to pertain to the implementation or use of the technology described in this document or the extent to which any license under such rights might or might not be available; neither does it represent that it has made any effort to identify any such rights.  Copies of claims of rights made available for publication and any assurances of licenses to be made available, or the result of an attempt made to obtain a general license or permission for the use of such proprietary rights by implementers or users of this specification can be obtained from the OGF Secretariat.
+
+The OGF invites any interested party to bring to its attention any copyrights, patents or patent applications, or other proprietary rights which may cover technology that may be required to practice this recommendation.  Please address the information to the OGF Executive Director.
+
+This document and the information contained herein is provided on an "As Is" basis and the OGF disclaims all warranties, express or implied, including but not limited to any warranty that the use of the information herein will not infringe any rights or any implied warranties of merchantability or fitness for a particular purpose.
+
+Copyright (C) Open Grid Forum (2009-2014). All Rights Reserved.
+
+This document and translations of it may be copied and furnished to others, and derivative works that comment on or otherwise explain it or assist in its implementation may be prepared, copied, published and distributed, in whole or in part, without restriction of any kind, provided that the above copyright notice and this paragraph are included on all such copies and derivative works. However, this document itself may not be modified in any way, such as by removing the copyright notice or references to the OGF or other organizations, except as needed for the purpose of developing Grid Recommendations in which case the procedures for copyrights defined in the OGF Document process must be followed, or as required to translate it into languages other than English.
+
+The limited permissions granted above are perpetual and will not be revoked by the OGF or its successors or assignees.
+
+Open Grid Forum NSI Framework v2.0 - NSI framework common types schema.
+-->
+<xsd:schema targetNamespace="http://schemas.ogf.org/nsi/2013/12/framework/types"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://schemas.ogf.org/nsi/2013/12/framework/types">
+
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            This is an XML schema document describing the OGF NSI Framework
+            common types v2.0.
+        </xsd:documentation>
+    </xsd:annotation>
+
+    <!-- Element definitions for framework types. -->
+    <xsd:element name="serviceException" type="tns:ServiceExceptionType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Common NSI-CS service exception used element.
+            </xsd:documentation>
+        </xsd:annotation>    
+    </xsd:element>
+    
+    <!-- Type definitions for framework types. -->
+    <xsd:complexType name="ServiceExceptionType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Common service exception used for SOAP faults and Failed
+                message.
+                
+                Elements:
+                
+                nsaId - NSA that generated the service exception.
+                
+                connectionId - The connectionId associated with the reservation
+                impacted by this error.
+                
+                serviceType - The service type identifying the applicable
+                service description in the context of the NSA generating the
+                error.
+                
+                errorId - Error identifier uniquely identifying each known
+                fault within the protocol.  Acts as a parent functionality
+                classification for service specific errors.
+                
+                text - User friendly message text describing the error.
+                
+                variables - An  optional collection of type/value pairs providing
+                additional information relating to the error and feedback for
+                possible resolution.
+                
+                childException - Hierarchical list of service exceptions
+                capturing failures within the request tree.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="nsaId"          type="tns:NsaIdType" />
+            <xsd:element name="connectionId"   type="tns:ConnectionIdType" minOccurs="0" />
+            <xsd:element name="serviceType"    type="xsd:string" minOccurs="0" />
+            <xsd:element name="errorId"        type="xsd:string" />
+            <xsd:element name="text"           type="xsd:string" />
+            <xsd:element name="variables"      type="tns:VariablesType" minOccurs="0" />
+            <xsd:element name="childException" type="tns:ServiceExceptionType" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+    </xsd:complexType>
+    
+    <xsd:complexType name="VariablesType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                A type definition providing a set of zero or more type/value
+                variables used for modelling generic attributes.
+                
+                Elements:
+                
+                variable - The variable containing the type/values.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="variable" type="tns:TypeValuePairType" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <xsd:complexType name="TypeValuePairListType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                A holder element providing an attribute list definition for the
+                type/value pair.
+                
+                Elements:
+                
+                attribute - An instance of a type/value pair.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="attribute" type="tns:TypeValuePairType" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+    </xsd:complexType>
+    
+    <xsd:complexType name="TypeValuePairType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Definition for a simple type and multi-value tuple.  Includes
+                simple string type and value, as well as more advanced
+                extensions if needed.  A namespace attribute is included to
+                provide context where needed.
+                
+                Elements:
+                value - A string value corresponding to type.
+                
+                feedback - Provides a mechanism for a ServiceException to
+                provide type specific feedback corresponding to this variable.
+                
+                any - Provides a flexible mechanism allowing additional elements
+                to be provided as an alternative, or in combination with value.
+                Use of this element field is beyond the current scope of this
+                NSI specification, but may be used in the future to extend the
+                existing protocol without requiring a schema change.
+           
+                Attributes:
+                type - A string representing the name of the type.
+                
+                namespace - An optional URL to qualify the name space of the
+                capability.
+                
+                anyAttribute - Provides a flexible mechanism allowing additional
+                attributes non-specified to be provided as needed for peer-to-peer
+                NSA communications.  Use of this attribute field is beyond the
+                current scope of this NSI specification, but may be used in the
+                future to extend the existing protocol without requiring a schema
+                change.            
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="value" type="xsd:string" nillable="true" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="feedback" type="xsd:anyType" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="type" type="xsd:string" use="optional" />
+        <xsd:attribute name="namespace" type="xsd:anyURI" use="optional" />
+        <xsd:anyAttribute namespace="##other" processContents="lax" />
+    </xsd:complexType>
+
+   <!-- ******************************************************************
+        *                       XML base types                           *
+        ****************************************************************** -->
+    
+    <xsd:simpleType name="ConnectionIdType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                A connectionId is a simple string value that uniquely identifies
+                a reservation segment within the context of a Provider NSA.  This
+                value is not globally unique.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:string" />
+    </xsd:simpleType>
+    
+    <xsd:simpleType name="DateTimeType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The time zone support of W3C XML Schema is quite controversial
+                and needs some additional constraints to avoid comparison
+                problems. These patterns can be kept relatively simple since
+                the syntax of the datetime is already checked by the schema
+                validator and only simple additional checks need to be added.
+                This type definition checks that the time part ends with a "Z"
+                or contains a sign.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:dateTime">
+            <xsd:pattern value=".+T.+(Z|[+-].+)"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    
+    <xsd:simpleType name="NsaIdType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                A specific type for a Network Services Agent (NSA) identifier
+                just in case we need to change it in the future.  This type
+                will be populated with a OGF URN (reference artifact 6478
+                "Procedure for Registration of Subnamespace Identifiers in
+                the URN:OGF Hierarchy") to be used for compatibility with
+                other external systems.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:anyURI" />
+    </xsd:simpleType>
+    
+    <xsd:simpleType name="UuidType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Universally Unique Identifier (UUID) URN as per ITU-T Rec.
+                X.667 | ISO/IEC 9834-8:2005 and IETF RFC 4122.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:restriction base="xsd:anyURI">
+            <xsd:pattern value="urn:uuid:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+</xsd:schema>

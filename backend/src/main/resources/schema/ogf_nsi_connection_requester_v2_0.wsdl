@@ -1,0 +1,587 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+The OGF takes no position regarding the validity or scope of any intellectual property or other rights that might be claimed to pertain to the implementation or use of the technology described in this document or the extent to which any license under such rights might or might not be available; neither does it represent that it has made any effort to identify any such rights.  Copies of claims of rights made available for publication and any assurances of licenses to be made available, or the result of an attempt made to obtain a general license or permission for the use of such proprietary rights by implementers or users of this specification can be obtained from the OGF Secretariat.
+
+The OGF invites any interested party to bring to its attention any copyrights, patents or patent applications, or other proprietary rights which may cover technology that may be required to practice this recommendation.  Please address the information to the OGF Executive Director.
+
+This document and the information contained herein is provided on an "As Is" basis and the OGF disclaims all warranties, express or implied, including but not limited to any warranty that the use of the information herein will not infringe any rights or any implied warranties of merchantability or fitness for a particular purpose.
+
+Copyright (C) Open Grid Forum (2009-2014). All Rights Reserved.
+
+This document and translations of it may be copied and furnished to others, and derivative works that comment on or otherwise explain it or assist in its implementation may be prepared, copied, published and distributed, in whole or in part, without restriction of any kind, provided that the above copyright notice and this paragraph are included on all such copies and derivative works. However, this document itself may not be modified in any way, such as by removing the copyright notice or references to the OGF or other organizations, except as needed for the purpose of developing Grid Recommendations in which case the procedures for copyrights defined in the OGF Document process must be followed, or as required to translate it into languages other than English.
+
+The limited permissions granted above are perpetual and will not be revoked by the OGF or its successors or assignees.
+
+Open Grid Forum NSI Connection Services Protocol v2.0
+
+Description: This is the NSI Connection Services Protocol 2.0 service definitions for the reference web services implementation of the OGF NSI Connection Services Protocol v2.0. Comments and questions can be directed to the mailing list group mailing list (nsi-wg@ogf.org).
+    
+This document is the SOAP endpoint definition for a requester NSA and holds definitions for messages the requester NSA will receive.  For the reserve, provision, release, and terminate message sets the requester will receive confirmed and failed messages only.  For the query operation a requester NSA must support request, confirmed, and failed messages due to the possibility that a child provider NSA may query the requester for a list of connection reservations.  The requester NSA may also receive the forcedEnd message.
+-->
+<wsdl:definitions name="ogf_nsi_connection_requester_v2_0"
+    targetNamespace="http://schemas.ogf.org/nsi/2013/12/connection/requester"
+    xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:tns="http://schemas.ogf.org/nsi/2013/12/connection/requester"
+    xmlns:interface="http://schemas.ogf.org/nsi/2013/12/connection/interface">
+
+    <wsdl:import namespace="http://schemas.ogf.org/nsi/2013/12/connection/interface"
+        location="ogf_nsi_connection_interface_v2_0.wsdl" />
+
+    <!-- WSDL operation definitions with associated input (request), output
+        (response), and fault (error response) messages. -->
+    <wsdl:portType name="ConnectionRequesterPort">
+        
+        <!-- ********** Reserve operation set *********** -->
+
+        <wsdl:operation name="reserveConfirmed">
+            <wsdl:documentation>
+                This reserveConfirmed message is sent from a Provider NSA to
+                Requester NSA as an indication of a successful reservation. This
+                is in response to an original reserve request from the
+                associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="reserveConfirmed"     message="interface:reserveConfirmed" />
+            <wsdl:output name="reserveConfirmedACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"     message="interface:serviceException" />
+        </wsdl:operation>
+        
+        <wsdl:operation name="reserveFailed">
+            <wsdl:documentation>
+                This reserveFailed message is sent from a Provider NSA to
+                Requester NSA as an indication of a reserve failure. This
+                is in response to an original reserve request from the
+                associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="reserveFailed"     message="interface:reserveFailed" />
+            <wsdl:output name="reserveFailedACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"  message="interface:serviceException" />
+        </wsdl:operation>
+
+        <!-- ********** reserveCommit operation set *********** -->
+        
+        <wsdl:operation name="reserveCommitConfirmed">
+            <wsdl:documentation>
+                This reserveCommitConfirmed message is sent from a Provider NSA to
+                Requester NSA as an indication of a successful reserveCommit request.
+                This is in response to an original reserveCommit request from the
+                associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="reserveCommitConfirmed"     message="interface:reserveCommitConfirmed" />
+            <wsdl:output name="reserveCommitConfirmedACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"           message="interface:serviceException" />
+        </wsdl:operation>
+        
+        <wsdl:operation name="reserveCommitFailed">
+            <wsdl:documentation>
+                This reserveCommitFailed message is sent from a Provider NSA to
+                Requester NSA as an indication of a modify failure. This
+                is in response to an original modify request from the
+                associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="reserveCommitFailed"     message="interface:reserveCommitFailed" />
+            <wsdl:output name="reserveCommitFailedACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"        message="interface:serviceException" />
+        </wsdl:operation>
+
+        <!-- ********** ReserveAbort operation set *********** -->
+        
+        <wsdl:operation name="reserveAbortConfirmed">
+            <wsdl:documentation>
+                This reserveAbortConfirmed message is sent from a Provider NSA to
+                Requester NSA as an indication of a successful reserveAbort.
+                This is in response to an original reserveAbort request from the
+                associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="reserveAbortConfirmed"     message="interface:reserveAbortConfirmed" />
+            <wsdl:output name="reserveAbortConfirmedACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"          message="interface:serviceException" />
+        </wsdl:operation>
+        
+        <!-- ********** Provision operation set *********** -->
+
+        <wsdl:operation name="provisionConfirmed">
+            <wsdl:documentation>
+                This provisionConfirmed message is sent from a Provider NSA to
+                Requester NSA as an indication of a successful provision operation.
+                This is in response to an original provision request from the
+                associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="provisionConfirmed"     message="interface:provisionConfirmed" />
+            <wsdl:output name="provisionConfirmedACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"       message="interface:serviceException" />
+        </wsdl:operation>
+        
+        <!-- ********** Release operation set *********** -->
+        
+        <wsdl:operation name="releaseConfirmed">
+            <wsdl:documentation>
+                This releaseConfirmed message is sent from a Provider NSA to
+                Requester NSA as an indication of a successful release operation.
+                This is in response to an original release request from the
+                associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="releaseConfirmed"     message="interface:releaseConfirmed" />
+            <wsdl:output name="releaseConfirmedACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"     message="interface:serviceException" />
+        </wsdl:operation>
+        
+        <!-- ********** Terminate operation set *********** -->
+        
+        <wsdl:operation name="terminateConfirmed">
+            <wsdl:documentation>
+                This terminateConfirmed message is sent from a Provider NSA to
+                Requester NSA as an indication of a successful terminate operation.
+                This is in response to an original terminate request from the
+                associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="terminateConfirmed"    message="interface:terminateConfirmed" />
+            <wsdl:output name="terminateConfirmedACK" message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"      message="interface:serviceException" />
+        </wsdl:operation>
+        
+        <!-- ********** QuerySummary operation set *********** -->
+
+        <wsdl:operation name="querySummaryConfirmed">
+            <wsdl:documentation>
+                This querySummaryConfirmed message is sent from the target NSA to
+                requesting NSA as an indication of a successful querySummary
+                operation. This is in response to an original querySummary request
+                from the associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="querySummaryConfirmed"     message="interface:querySummaryConfirmed" />
+            <wsdl:output name="querySummaryConfirmedACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"          message="interface:serviceException" />
+        </wsdl:operation>
+        
+        <!-- ********** QueryRecursive operation set *********** -->
+
+        <wsdl:operation name="queryRecursiveConfirmed">
+            <wsdl:documentation>
+                This queryRecursiveConfirmed message is sent from the Provider NSA to
+                Requester NSA as an indication of a successful queryRecursive
+                operation. This is in response to an original queryRecursive request
+                from the associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="queryRecursiveConfirmed"     message="interface:queryRecursiveConfirmed" />
+            <wsdl:output name="queryRecursiveConfirmedACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"            message="interface:serviceException" />
+        </wsdl:operation>
+        
+        <!-- ********** QueryNotification operation set *********** -->
+        
+        <wsdl:operation name="queryNotificationConfirmed">
+            <wsdl:documentation>
+                This queryNotificationConfirmed message is sent from the Provider NSA to
+                Requester NSA as an indication of a successful queryNotification
+                operation. This is in response to an original queryNotification request
+                from the associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="queryNotificationConfirmed"     message="interface:queryNotificationConfirmed" />
+            <wsdl:output name="queryNotificationConfirmedACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"               message="interface:serviceException" />
+        </wsdl:operation>
+        
+        <!-- ********** QueryResult operation set *********** -->
+        
+        <wsdl:operation name="queryResultConfirmed">
+            <wsdl:documentation>
+                This queryResultConfirmed message is sent from the Provider NSA to
+                Requester NSA as an indication of a successful queryResult operation.
+                This is in response to an original queryResult request from the
+                associated Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="queryResultConfirmed"     message="interface:queryResultConfirmed" />
+            <wsdl:output name="queryResultConfirmedACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"         message="interface:serviceException" />
+        </wsdl:operation>
+
+        <!-- ********** Error message set ********** -->
+        
+        <wsdl:operation name="error">
+            <wsdl:documentation>
+                The error message is sent from a Provider NSA to Requester
+                NSA as an indication of the occurence of an error condition.
+                This  is in response to an original request from the associated
+                Requester NSA.
+            </wsdl:documentation>
+            <wsdl:input  name="error"             message="interface:error" />
+            <wsdl:output name="errorACK"          message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"  message="interface:serviceException" />
+        </wsdl:operation>
+        
+        <!-- ********** Notification message set ********** -->
+        
+        <wsdl:operation name="errorEvent">
+            <wsdl:documentation>
+                An autonomous error message issued from a Provider NSA to Requester
+                NSA.  The acknowledgment indicates that the Requester NSA has
+                accepted the notification request for processing. There are no
+                associated confirmed or failed messages.
+            </wsdl:documentation>
+            <wsdl:input  name="errorEvent"        message="interface:errorEvent" />
+            <wsdl:output name="errorEventACK"     message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"  message="interface:serviceException" />
+        </wsdl:operation>
+        
+        <wsdl:operation name="reserveTimeout">
+            <wsdl:documentation>
+                An autonomous message issued from a Provider NSA to Requester
+                NSA.  The acknowledgment indicates that the Requester NSA has
+                accepted the notification request for processing. There are no
+                associated confirmed or failed messages.
+            </wsdl:documentation>
+            <wsdl:input  name="reserveTimeout"      message="interface:reserveTimeout" />
+            <wsdl:output name="reserveTimeoutACK"   message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"    message="interface:serviceException" />
+        </wsdl:operation>
+
+        <wsdl:operation name="dataPlaneStateChange">
+            <wsdl:documentation>
+                An autonomous message issued from a Provider NSA to Requester
+                NSA.  The acknowledgment indicates that the Requester NSA has
+                accepted the notification request for processing. There are no
+                associated confirmed or failed messages.
+            </wsdl:documentation>
+            <wsdl:input  name="dataPlaneStateChange"     message="interface:dataPlaneStateChange" />
+            <wsdl:output name="dataPlaneStateChangeACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"         message="interface:serviceException" />
+        </wsdl:operation>
+ 
+        <wsdl:operation name="messageDeliveryTimeout">
+            <wsdl:documentation>
+                An autonomous message issued from a Provider NSA to Requester
+                NSA.  The acknowledgment indicates that the Requester NSA has
+                accepted the notification request for processing. There are no
+                associated confirmed or failed messages.
+            </wsdl:documentation>
+            <wsdl:input  name="messageDeliveryTimeout"     message="interface:messageDeliveryTimeout" />
+            <wsdl:output name="messageDeliveryTimeoutACK"  message="interface:acknowledgment" />
+            <wsdl:fault  name="serviceException"           message="interface:serviceException" />
+        </wsdl:operation>        
+    </wsdl:portType>
+    
+    <wsdl:binding name="ConnectionServiceRequesterSoapBinding" type="tns:ConnectionRequesterPort">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http" />
+
+        <!-- ********** Requester NSA reserve operation set ********** -->
+
+        <wsdl:operation name="reserveConfirmed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/reserveConfirmed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+
+        <wsdl:operation name="reserveFailed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/reserveFailed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+
+        <!-- ********** Requester NSA reserveCommit operation set ********** -->
+        
+        <wsdl:operation name="reserveCommitConfirmed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/reserveCommitConfirmed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+        
+        <wsdl:operation name="reserveCommitFailed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/reserveCommitFailed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+
+        <!-- ********** Requester NSA reserveAbort operation set ********** -->
+        
+        <wsdl:operation name="reserveAbortConfirmed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/reserveAbortConfirmed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+        
+        <!-- ********** Requester NSA provision operation set ********** -->
+
+        <wsdl:operation name="provisionConfirmed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/provisionConfirmed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+
+        <!-- ********** Requester NSA release operation set ********** -->
+
+        <wsdl:operation name="releaseConfirmed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/releaseConfirmed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+
+        <!-- ********** Requester NSA terminate reserve operation set ********** -->
+
+        <wsdl:operation name="terminateConfirmed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/terminateConfirmed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+
+        <!-- ********** QuerySummary operation set ********** -->
+
+        <wsdl:operation name="querySummaryConfirmed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/querySummaryConfirmed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+        
+        <!-- ********** QueryRecursive operation set ********** -->
+
+        <wsdl:operation name="queryRecursiveConfirmed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/queryRecursiveConfirmed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+
+        <!-- ********** QueryNotification operation set ********** -->
+        
+        <wsdl:operation name="queryNotificationConfirmed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/queryNotificationConfirmed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+        
+        <!-- ********** QueryResult operation set ********** -->
+        
+        <wsdl:operation name="queryResultConfirmed">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/queryResultConfirmed"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+        
+        <!-- ********** Error operation set ********** -->
+
+        <wsdl:operation name="error">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/error"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+        
+        <!-- ********** Requester NSA notification operation set ********** -->
+
+        <wsdl:operation name="errorEvent">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/errorEvent"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+        
+        <wsdl:operation name="dataPlaneStateChange">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/dataPlaneStateChange"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+
+        <wsdl:operation name="reserveTimeout">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/reserveTimeout"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+        
+        <wsdl:operation name="messageDeliveryTimeout">
+            <soap:operation
+                soapAction="http://schemas.ogf.org/nsi/2013/12/connection/service/messageDeliveryTimeout"
+                style="document" />
+            <wsdl:input>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header message="interface:header" part="header" use="literal"/>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="serviceException">
+                <soap:fault name="serviceException" use="literal" />
+            </wsdl:fault>
+        </wsdl:operation>
+    </wsdl:binding>
+
+    <wsdl:service name="ConnectionServiceRequester">
+        <wsdl:port name="ConnectionServiceRequesterPort" binding="tns:ConnectionServiceRequesterSoapBinding">
+            <soap:address location="https://localhost:8443/nsi-v2/ConnectionServiceRequester" />
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

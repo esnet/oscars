@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    The OGF takes no position regarding the validity or scope of any intellectual property or other rights that might be claimed to pertain to the implementation or use of the technology described in this document or the extent to which any license under such rights might or might not be available; neither does it represent that it has made any effort to identify any such rights.  Copies of claims of rights made available for publication and any assurances of licenses to be made available, or the result of an attempt made to obtain a general license or permission for the use of such proprietary rights by implementers or users of this specification can be obtained from the OGF Secretariat.
+    
+    The OGF invites any interested party to bring to its attention any copyrights, patents or patent applications, or other proprietary rights which may cover technology that may be required to practice this recommendation.  Please address the information to the OGF Executive Director.
+    
+    This document and the information contained herein is provided on an "As Is" basis and the OGF disclaims all warranties, express or implied, including but not limited to any warranty that the use of the information herein will not infringe any rights or any implied warranties of merchantability or fitness for a particular purpose.
+    
+    Copyright (C) Open Grid Forum (2009-2014). All Rights Reserved.
+    
+    This document and translations of it may be copied and furnished to others, and derivative works that comment on or otherwise explain it or assist in its implementation may be prepared, copied, published and distributed, in whole or in part, without restriction of any kind, provided that the above copyright notice and this paragraph are included on all such copies and derivative works. However, this document itself may not be modified in any way, such as by removing the copyright notice or references to the OGF or other organizations, except as needed for the purpose of developing Grid Recommendations in which case the procedures for copyrights defined in the OGF Document process must be followed, or as required to translate it into languages other than English.
+    
+    The limited permissions granted above are perpetual and will not be revoked by the OGF or its successors or assignees.
+    
+    Open Grid Forum NSI Connection Services Protocol v2.0 - Point-to-point service definition.
+-->
+<xsd:schema targetNamespace="http://schemas.ogf.org/nsi/2013/12/services/point2point"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:types="http://schemas.ogf.org/nsi/2013/12/services/types"
+    xmlns:tns="http://schemas.ogf.org/nsi/2013/12/services/point2point">
+    
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            This is an XML schema document describing the OGF NSI point-to-point
+            service types.
+        </xsd:documentation>
+    </xsd:annotation>
+    
+    <!-- Import the common NSI framework types. -->
+    <xsd:import namespace="http://schemas.ogf.org/nsi/2013/12/services/types"
+        schemaLocation="ogf_nsi_services_types_v2_0.xsd"/>
+    
+    <!-- Element definitions for services types. -->
+    <xsd:element name="p2ps" type="tns:P2PServiceBaseType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                This Point-to-Point Service element is used to specify a generic
+                point-to-point service request in the NSI CS protocol.
+            </xsd:documentation>
+        </xsd:annotation>        
+    </xsd:element>
+    
+    <!-- These are the modifiable parameters within this service. -->
+    <xsd:element name="capacity" type="xsd:long">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                This element is defined for a modification of the capacity of
+                the service.  The unit of capacity is specified in the Service
+                Definition associated with the requested service.
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:element>
+    
+    <xsd:element name="parameter" type="types:TypeValueType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                This element is defined for specifying modification to
+                non-specific parameters defined in the Service Definition but
+                not in the service specific schema.
+            </xsd:documentation>
+        </xsd:annotation>
+    </xsd:element>
+    
+    <!-- Type definitions for services types. -->
+    <xsd:complexType name="P2PServiceBaseType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Type defining a generic point-to-point service specification.
+                At the moment this type supports a unidirectional or
+                bidirectional service.
+                
+                Elements:
+                
+                capacity - Capacity of the service.
+                
+                directionality - The (uni or bi) directionality of the service.
+                
+                symmetricPath - An indication that both directions of a
+                bidirectional circuit must follow the same path.  Only
+                applicable when directionality is "Bidirectional".  If not
+                specified then value is assumed to be false.
+                
+                sourceSTP - Source STP identifier of the service.
+                
+                destSTP - Destination STP identifier of the service.
+                
+                ero - A hop-by-hop ordered list of STP from sourceSTP to
+                destSTP representing a path that the connection must follow.
+                This list does not include sourceSTP or destSTP.
+                
+                parameter - A flexible non-specific parameters definition
+                allowing for specification of parameters in the Service
+                Definition that are not defined directly in the service
+                specific schema.
+                
+                ##other - For future expansion and extensibility.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="capacity"        type="xsd:long" />
+            <xsd:element name="directionality"  type="types:DirectionalityType" default="Bidirectional" />
+            <xsd:element name="symmetricPath"   type="xsd:boolean" minOccurs="0" />
+            <xsd:element name="sourceSTP"       type="types:StpIdType" />
+            <xsd:element name="destSTP"         type="types:StpIdType" />
+            <xsd:element name="ero"             type="types:StpListType" minOccurs="0" />
+            <xsd:element name="parameter"       type="types:TypeValueType" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="inclusion"       type="types:ClusionType" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="exclusion"       type="types:ClusionType" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:any     namespace="##other"  processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:schema>

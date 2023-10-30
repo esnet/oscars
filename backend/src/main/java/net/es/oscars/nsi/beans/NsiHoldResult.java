@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import gen.nsi_2_0.framework.types.TypeValuePairType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.TypeValuePairType;
 
 import java.util.List;
 

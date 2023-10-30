@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+The OGF takes no position regarding the validity or scope of any intellectual property or other rights that might be claimed to pertain to the implementation or use of the technology described in this document or the extent to which any license under such rights might or might not be available; neither does it represent that it has made any effort to identify any such rights.  Copies of claims of rights made available for publication and any assurances of licenses to be made available, or the result of an attempt made to obtain a general license or permission for the use of such proprietary rights by implementers or users of this specification can be obtained from the OGF Secretariat.
+
+The OGF invites any interested party to bring to its attention any copyrights, patents or patent applications, or other proprietary rights which may cover technology that may be required to practice this recommendation.  Please address the information to the OGF Executive Director.
+
+This document and the information contained herein is provided on an "As Is" basis and the OGF disclaims all warranties, express or implied, including but not limited to any warranty that the use of the information herein will not infringe any rights or any implied warranties of merchantability or fitness for a particular purpose.
+
+Copyright (C) Open Grid Forum (2009-2014). All Rights Reserved.
+
+This document and translations of it may be copied and furnished to others, and derivative works that comment on or otherwise explain it or assist in its implementation may be prepared, copied, published and distributed, in whole or in part, without restriction of any kind, provided that the above copyright notice and this paragraph are included on all such copies and derivative works. However, this document itself may not be modified in any way, such as by removing the copyright notice or references to the OGF or other organizations, except as needed for the purpose of developing Grid Recommendations in which case the procedures for copyrights defined in the OGF Document process must be followed, or as required to translate it into languages other than English.
+
+The limited permissions granted above are perpetual and will not be revoked by the OGF or its successors or assignees.
+
+Open Grid Forum NSI Connection Services Protocol v2.0
+
+Description: This is the ftypes schema for the reference web services implementation of the OGF NSI Connection Services Protocol v2.0. Comments and questions can be directed to the mailing list group mailing list (nsi-wg@ogf.org).
+-->
+<xsd:schema targetNamespace="http://schemas.ogf.org/nsi/2013/12/framework/headers"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
+    xmlns:ftypes="http://schemas.ogf.org/nsi/2013/12/framework/types"
+    xmlns:tns="http://schemas.ogf.org/nsi/2013/12/framework/headers">
+
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            This is an XML schema document describing the OGF NSI framework common messaging header format version 2.0.
+        </xsd:documentation>
+    </xsd:annotation>
+
+    <!-- Import SAML attribute definitions for our security attributes.  This
+         is a local import of:  http://docs.oasis-open.org/security/saml/v2.0/saml-schema-assertion-2.0.xsd -->
+    <xsd:import namespace="urn:oasis:names:tc:SAML:2.0:assertion"
+                            schemaLocation="saml-schema-assertion-2.0.xsd"/>
+    
+    <!-- Import the common NSI framework ftypes. -->
+    <xsd:import namespace="http://schemas.ogf.org/nsi/2013/12/framework/types"
+        schemaLocation="ogf_nsi_framework_types_v2_0.xsd"/>
+
+    <!-- ******************************************************************
+        *                  NSI protocol header                           *
+        ****************************************************************** -->
+    <xsd:element name="nsiHeader" type="tns:CommonHeaderType" />
+    
+    <xsd:complexType name="CommonHeaderType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                Type definition for the common NSI message header that is sent
+                as part of every NSI message exchange.
+                
+                Mandatory Elements:
+                
+                protocolVersion - A string identifying the specific protocol
+                version carried in this NSI message.  The protocol version is
+                modeled separately from the namespace of the WSDL and XML
+                schema to capture behavioral changes that cannot be modeled in
+                schema definition, and to avoid updating of the schema
+                namespace.
+                
+                correlationId - An identifier provided by the requesting NSA
+                used to correlate to an asynchronous response from the
+                responder. It is recommended that a Universally Unique
+                Identifier (UUID) URN as per IETF RFC 4122 be used as a
+                globally unique value.
+                
+                requesterNSA - The NSA identifier for the NSA acting in the
+                Requester Agent role for the specific NSI operation.
+                
+                providerNSA - The NSA identifier for the NSA acting in the
+                Provider Agent role for the specific NSI operation.
+                
+                Optional Elements:
+                
+                replyTo - The Requester NSA's SOAP endpoint address to which
+                asynchronous messages associated with this operation request
+                will be delivered.  This is only populated for the original
+                operation request (reserve, provision, release, terminate,
+                and query), and not for any additional messaging associated
+                with the operation.  If no endpoint value is provided in a
+                operation request, then it is assumed the requester is not
+                interested in a response and will use alternative mechanism to
+                determine the result.
+                
+                sessionSecurityAttr - Security attributes associated with the
+                end user's NSI session.  This field can be used to perform
+                authentication, authorization, and policy enforcement of end
+                user requests.  Is only provided in the operation request
+                (reserve, provision, release, terminate, and query), and not
+                for any additional messaging associated with the operation.
+                
+                any - Provides a flexible mechanism allowing additional
+                elements in the protocol header for exchange between two
+                peered NSA.  Use of this element field is beyond the current
+                scope of this NSI specification, but may be used in the future
+                to extend the existing protocol without requiring a schema
+                change.  Additionally, the field can be used between peered
+                NSA to provide additional context not covered in the existing
+                specification, however, this is left up to specific peering
+                agreements.                
+                
+                Optional Attributes:
+                
+                anyAttribute - Provides a flexible mechanism allowing
+                additional attributes in the protocol header for exchange
+                between two peered NSA.  Use of this attribute field is beyond
+                the current scope of this NSI specification, but may be used
+                in the future to extend the existing protocol without
+                requiring a schema change.  Additionally, the field can be
+                used between peered NSA to provide additional context not
+                covered in the existing specification, however, this is left
+                up to specific peering agreements.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:sequence>
+            <xsd:element name="protocolVersion" type="xsd:string"/>
+            <xsd:element name="correlationId" type="ftypes:UuidType"/>
+            <xsd:element name="requesterNSA" type="ftypes:NsaIdType"/>
+            <xsd:element name="providerNSA" type="ftypes:NsaIdType"/>
+            <xsd:element name="replyTo" type="xsd:anyURI" minOccurs="0"/>
+            <xsd:element name="sessionSecurityAttr" type="tns:SessionSecurityAttrType" minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+        <xsd:anyAttribute namespace="##other" processContents="lax"/>
+    </xsd:complexType>
+    
+    <xsd:complexType name="SessionSecurityAttrType">
+        <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+                The SessionSecurityAttrType extends the SAML AttributeStatementType
+                by adding a type and name attribute that can be used by the NSA to
+                identify specific security credentials.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexContent>
+            <xsd:extension base="saml:AttributeStatementType">
+                <xsd:attribute name="type" type="xsd:string" use="optional"/>
+                <xsd:attribute name="name" type="xsd:string" use="optional"/>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
+</xsd:schema>

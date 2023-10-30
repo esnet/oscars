@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+The OGF takes no position regarding the validity or scope of any intellectual property or other rights that might be claimed to pertain to the implementation or use of the technology described in this document or the extent to which any license under such rights might or might not be available; neither does it represent that it has made any effort to identify any such rights.  Copies of claims of rights made available for publication and any assurances of licenses to be made available, or the result of an attempt made to obtain a general license or permission for the use of such proprietary rights by implementers or users of this specification can be obtained from the OGF Secretariat.
+
+The OGF invites any interested party to bring to its attention any copyrights, patents or patent applications, or other proprietary rights which may cover technology that may be required to practice this recommendation.  Please address the information to the OGF Executive Director.
+
+This document and the information contained herein is provided on an "As Is" basis and the OGF disclaims all warranties, express or implied, including but not limited to any warranty that the use of the information herein will not infringe any rights or any implied warranties of merchantability or fitness for a particular purpose.
+
+Copyright (C) Open Grid Forum (2009-2014). All Rights Reserved.
+
+This document and translations of it may be copied and furnished to others, and derivative works that comment on or otherwise explain it or assist in its implementation may be prepared, copied, published and distributed, in whole or in part, without restriction of any kind, provided that the above copyright notice and this paragraph are included on all such copies and derivative works. However, this document itself may not be modified in any way, such as by removing the copyright notice or references to the OGF or other organizations, except as needed for the purpose of developing Grid Recommendations in which case the procedures for copyrights defined in the OGF Document process must be followed, or as required to translate it into languages other than English.
+
+The limited permissions granted above are perpetual and will not be revoked by the OGF or its successors or assignees.
+
+Open Grid Forum NSI Connection Services Protocol v2.0
+
+Description: This is a draft version of the WSDL common types and messages for the reference web services implementation of the OGF NSI Connection Services Protocol v2.0. Comments and questions can be directed to the mailing list group mailing list (nsi-wg@ogf.org).
+-->
+<wsdl:definitions name="ogf_nsi_connection_interface_v2_0"
+    targetNamespace="http://schemas.ogf.org/nsi/2013/12/connection/interface"
+    xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:ftypes="http://schemas.ogf.org/nsi/2013/12/framework/types"
+    xmlns:headers="http://schemas.ogf.org/nsi/2013/12/framework/headers"
+    xmlns:types="http://schemas.ogf.org/nsi/2013/12/connection/types"
+    xmlns:tns="http://schemas.ogf.org/nsi/2013/12/connection/interface">
+
+    <!-- OGF NSI Connection Services Protocol 2.0 description -->
+    <wsdl:documentation>
+        This is an WSDL schema document describing the OGF NSI Connection
+        Services protocol version 2.0 interface messages.  A description
+        of each message is availble in the Connection types definition.
+        
+        Transport Bindings
+        ------------------
+        To fit this asynchronous NSI protocol into a synchronous SOAP
+        over HTTP binding we require each of the Requester and Provider
+        NSA to implement SOAP end points. Request messages are sent from
+        the Requester NSA to the Provider NSA's SOAP end point, while
+        Confirmed and Failed messages are sent from the Provider NSA to
+        the Requester NSA SOAP end point. In addition, each of the
+        Request, Confirmed, and Failed operations are defined with
+        input (request), output (response or acknowledgment), and fault
+        (error) messages as part of their WSDL definition. The output
+        message, or response, for each operation is an element definition
+        providing a simple acknowledgment with the request correlationId.
+        
+        Note on acknowledgment handling:
+        Depending on NSA implementation and thread timing an acknowledgment to
+        a request operation may be returned after the confirm/fail for the
+        request has been returned to the Requesting NSA.
+        
+        For protocol robustness, Requesting NSA should be able to accept
+        confirm/fail before acknowledgment.
+    </wsdl:documentation>
+
+    <wsdl:types>
+        <xsd:schema targetNamespace="http://schemas.ogf.org/nsi/2013/12/connection/interface"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+            <!-- Import the common NSI framework types. -->
+            <xsd:import namespace="http://schemas.ogf.org/nsi/2013/12/framework/types"
+                schemaLocation="ogf_nsi_framework_types_v2_0.xsd"/>
+            
+            <!--  Import common NSI framework header types. -->
+            <xsd:import namespace="http://schemas.ogf.org/nsi/2013/12/framework/headers"
+                schemaLocation="ogf_nsi_framework_headers_v2_0.xsd" />
+            
+            <!--  Import common NSI Connection Services types from protocol schema. -->
+            <xsd:import namespace="http://schemas.ogf.org/nsi/2013/12/connection/types"
+                    schemaLocation="ogf_nsi_connection_types_v2_0.xsd" />
+        </xsd:schema>
+    </wsdl:types>
+
+   <!-- *************************************************************
+        *         NSI protocol WSDL message definitions.            *
+        ************************************************************* -->
+
+    <!-- ********** NSI message header ********** -->
+    <message name="header">
+        <part name="header" element="headers:nsiHeader"/>
+    </message>
+     
+    <!-- ********** Reserve message set ********** -->
+    <wsdl:message name="reserve">
+        <wsdl:part name="reserve" element="types:reserve" />
+    </wsdl:message>
+
+    <wsdl:message name="reserveResponse">
+        <wsdl:part name="reserveResponse" element="types:reserveResponse" />
+    </wsdl:message>
+
+    <wsdl:message name="reserveConfirmed">
+        <wsdl:part name="reserveConfirmed" element="types:reserveConfirmed" />
+    </wsdl:message>
+
+    <wsdl:message name="reserveFailed">
+        <wsdl:part name="reserveFailed" element="types:reserveFailed" />
+    </wsdl:message>
+
+    <!-- ********** ReserveCommit message set ********** -->
+    <wsdl:message name="reserveCommit">
+        <wsdl:part name="reserveCommit" element="types:reserveCommit" />
+    </wsdl:message>
+    
+    <wsdl:message name="reserveCommitConfirmed">
+        <wsdl:part name="reserveCommitConfirmed" element="types:reserveCommitConfirmed" />
+    </wsdl:message>
+    
+    <wsdl:message name="reserveCommitFailed">
+        <wsdl:part name="reserveCommitFailed" element="types:reserveCommitFailed" />
+    </wsdl:message>
+ 
+    <!-- ********** ReserveAbort message set ********** -->
+    <wsdl:message name="reserveAbort">
+        <wsdl:part name="reserveAbort" element="types:reserveAbort" />
+    </wsdl:message>
+    
+    <wsdl:message name="reserveAbortConfirmed">
+        <wsdl:part name="reserveAbortConfirmed" element="types:reserveAbortConfirmed" />
+    </wsdl:message>
+    
+    <!-- ********** Provision message set ********** -->
+    <wsdl:message name="provision">
+        <wsdl:part name="provision" element="types:provision" />
+    </wsdl:message>
+
+    <wsdl:message name="provisionConfirmed">
+        <wsdl:part name="provisionConfirmed" element="types:provisionConfirmed" />
+    </wsdl:message>
+
+    <!-- ********** Release message set ********** -->
+    <wsdl:message name="release">
+        <wsdl:part name="release" element="types:release" />
+    </wsdl:message>
+
+    <wsdl:message name="releaseConfirmed">
+        <wsdl:part name="releaseConfirmed" element="types:releaseConfirmed" />
+    </wsdl:message>
+
+    <!-- ********** Terminate message set ********** -->
+    <wsdl:message name="terminate">
+        <wsdl:part name="parameters" element="types:terminate" />
+    </wsdl:message>
+
+    <wsdl:message name="terminateConfirmed">
+        <wsdl:part name="parameters" element="types:terminateConfirmed" />
+    </wsdl:message>
+
+    <!-- ********** QuerySummary message set ********** -->
+    <wsdl:message name="querySummary">
+        <wsdl:part name="querySummary" element="types:querySummary" />
+    </wsdl:message>
+    
+    <wsdl:message name="querySummaryConfirmed">
+        <wsdl:part name="querySummaryConfirmed" element="types:querySummaryConfirmed" />
+    </wsdl:message>
+
+    <!-- ********** QuerySummarySync message set ********** -->
+    <wsdl:message name="querySummarySync">
+        <wsdl:part name="querySummarySync" element="types:querySummarySync" />
+    </wsdl:message>
+    
+    <wsdl:message name="querySummarySyncConfirmed">
+        <wsdl:part name="querySummarySyncConfirmed" element="types:querySummarySyncConfirmed" />
+    </wsdl:message>
+    
+    <!-- ********** QueryRecursive message set ********** -->
+    <wsdl:message name="queryRecursive">
+        <wsdl:part name="queryRecursive" element="types:queryRecursive" />
+    </wsdl:message>
+    
+    <wsdl:message name="queryRecursiveConfirmed">
+        <wsdl:part name="queryRecursiveConfirmed" element="types:queryRecursiveConfirmed" />
+    </wsdl:message>
+
+    <!-- ********** QueryNotification message set ********** -->
+    <wsdl:message name="queryNotification">
+        <wsdl:part name="queryNotification" element="types:queryNotification" />
+    </wsdl:message>
+    
+    <wsdl:message name="queryNotificationConfirmed">
+        <wsdl:part name="queryNotificationConfirmed" element="types:queryNotificationConfirmed" />
+    </wsdl:message>
+    
+    <!-- ********** QueryNotificationSync message set ********** -->
+    <wsdl:message name="queryNotificationSync">
+        <wsdl:part name="queryNotificationSync" element="types:queryNotificationSync" />
+    </wsdl:message>
+    
+    <wsdl:message name="queryNotificationSyncConfirmed">
+        <wsdl:part name="queryNotificationSyncConfirmed" element="types:queryNotificationSyncConfirmed" />
+    </wsdl:message>
+    
+    <!-- ********** QueryResult message set ********** -->
+    <wsdl:message name="queryResult">
+        <wsdl:part name="queryResult" element="types:queryResult" />
+    </wsdl:message>
+    
+    <wsdl:message name="queryResultConfirmed">
+        <wsdl:part name="queryResultConfirmed" element="types:queryResultConfirmed" />
+    </wsdl:message>
+    
+    <!-- ********** QueryResultSync message set ********** -->
+    <wsdl:message name="queryResultSync">
+        <wsdl:part name="queryResultSync" element="types:queryResultSync" />
+    </wsdl:message>
+    
+    <wsdl:message name="queryResultSyncConfirmed">
+        <wsdl:part name="queryResultSyncConfirmed" element="types:queryResultSyncConfirmed" />
+    </wsdl:message>
+    
+    <!-- ********** Error message set ********** -->
+    <wsdl:message name="error">
+        <wsdl:part name="error" element="types:error" />
+    </wsdl:message>
+    
+    <!-- ********** Notification message set ********** -->
+    <wsdl:message name="errorEvent">
+        <wsdl:part name="errorEvent" element="types:errorEvent" />
+    </wsdl:message>
+    
+    <wsdl:message name="reserveTimeout">
+        <wsdl:part name="reserveTimeout" element="types:reserveTimeout" />
+    </wsdl:message>
+
+    <wsdl:message name="dataPlaneStateChange">
+        <wsdl:part name="dataPlaneStateChange" element="types:dataPlaneStateChange" />
+    </wsdl:message>
+    
+    <!-- ********** Acknowledgment message set ********** -->
+    <wsdl:message name="acknowledgment">
+        <wsdl:part name="acknowledgment" element="types:acknowledgment" />
+    </wsdl:message>
+    
+    <!-- ********** MessageDeliveryFailure notification message set ********** -->
+    <wsdl:message name="messageDeliveryTimeout">
+        <wsdl:part name="messageDeliveryTimeout" element="types:messageDeliveryTimeout" />
+    </wsdl:message>
+    
+    <!-- ********** Fault message set ********** -->
+    <wsdl:message name="serviceException">
+        <wsdl:part name="serviceException" element="types:serviceException"/>
+    </wsdl:message>
+</wsdl:definitions>
