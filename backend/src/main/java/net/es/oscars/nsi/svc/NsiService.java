@@ -2,7 +2,9 @@ package net.es.oscars.nsi.svc;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.ws.Holder;
+import jakarta.xml.ws.WebServiceException;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -53,11 +55,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
-import javax.xml.ws.WebServiceException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
