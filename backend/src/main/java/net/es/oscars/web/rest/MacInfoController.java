@@ -5,11 +5,16 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.web.beans.MacInfoRequest;
 import net.es.oscars.web.beans.MacInfoResponse;
 import net.es.oscars.sb.nso.rest.MacInfoResult;
+import net.es.oscars.sb.nso.rest.MacInfoServiceResult;
 import net.es.oscars.sb.nso.LiveStatusFdbCacheManager;
+import net.es.oscars.sb.nso.db.NsoSdpIdDAO;
+import net.es.oscars.sb.nso.ent.NsoSdpId;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,6 +27,9 @@ public class MacInfoController {
     @Autowired
     private LiveStatusFdbCacheManager fdbCacheManager;
 
+    @Autowired
+    private NsoSdpIdDAO nsoSdpIdDAO;
+
     @RequestMapping(value = "/api/mac/info", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
@@ -29,24 +37,25 @@ public class MacInfoController {
         log.debug("Request:" + request.toString());
 
         String connectionId = request.getConnectionId();
+        if(connectionId == null) {
+            log.info("MAC info request has no connection id!");
+            return null;
+        }
 
-        // get DB / connection Manager entry via connectionId
-            // get fixtures (VlanFixture) . getDeviceUrn ???
-
-        Set<String> devicesFromId = new HashSet<>();
+        HashMap<String, NsoSdpId> devicesFromId = new HashMap<String, NsoSdpId>();
         List<String> devicesFromRest = request.getDeviceIds();
 
-        // MOCK
-        int serviceId = 7000;
-        String device1 = "llnl-cr6";
-        String device2 = "blub";
-        devicesFromId.add(device1);
-        devicesFromId.add(device2);
+        // get SAPs from local DB
+        List<NsoSdpId> saps = nsoSdpIdDAO.findNsoSdpIdByConnectionId(connectionId);
+        for(NsoSdpId sap : saps) {
+            devicesFromId.put(sap.getDevice(), sap);
+            log.info("SAP: " + sap.getDevice() + " " + sap.getSdpId());
+        }
 
-        // List<String> fixturesToCheck = new LinkedList<String>();
+        // if no devices are listed in the request we use all devices from the circuit
         if(devicesFromRest == null) {
             devicesFromRest = new LinkedList<String>();
-            devicesFromRest.addAll(devicesFromId);
+            devicesFromRest.addAll(devicesFromId.keySet());
         }
 
         MacInfoResponse response = new MacInfoResponse();
@@ -56,15 +65,17 @@ public class MacInfoController {
         response.setConnectionId(request.getConnectionId()); // cp connId from request
 
         List<MacInfoResult> results = new LinkedList<MacInfoResult>();
+        MacInfoServiceResult tmpResult;
         MacInfoResult tmp;
 
+        log.debug("Run live-status request on devices");
         for(String device : devicesFromRest) {
-            log.debug("Check Devices");
-            if(devicesFromId.contains(device)) {
+            if(devicesFromId.containsKey(device)) {
                 log.debug("Fetch FDB from FDBCacheManager for " + device);
-                tmp = fdbCacheManager.get(device, serviceId, request.getRefreshIfOlderThan())
-                                        .getMacInfoResult();
-
+                tmpResult = fdbCacheManager.get(device,
+                                devicesFromId.get(device).getSdpId(),
+                                request.getRefreshIfOlderThan());
+                tmp = result.getMacInfoResult();
                 results.add(tmp);
             }
         }
