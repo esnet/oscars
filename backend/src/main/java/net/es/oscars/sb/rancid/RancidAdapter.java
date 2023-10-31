@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 public class RancidAdapter {
     private RancidProxy rancidProxy;
 
+
     private NsoProxy nsoProxy;
 
     private PssProperties properties;
@@ -53,12 +54,13 @@ public class RancidAdapter {
 
     @Autowired
     public RancidAdapter(RancidProxy rancidProxy, RouterCommandsRepository rcr, CommandHistoryRepository historyRepo, Syslogger syslogger,
-                         TopoService topoService, LogService logService, PssProperties properties) {
+                         TopoService topoService, LogService logService, NsoProxy nsoProxy, PssProperties properties) {
         this.rancidProxy = rancidProxy;
         this.rcr = rcr;
         this.historyRepo = historyRepo;
         this.topoService = topoService;
         this.logService = logService;
+        this.nsoProxy = nsoProxy;
         this.properties = properties;
         this.syslogger = syslogger;
     }
