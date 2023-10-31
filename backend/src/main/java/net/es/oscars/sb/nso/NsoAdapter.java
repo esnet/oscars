@@ -465,7 +465,7 @@ public class NsoAdapter {
         }
 
         NsoVPLS vpls = NsoVPLS.builder()
-                .description(conn.getDescription())
+                .description(conn.getDescription().substring(0, 79))
                 .name(conn.getConnectionId())
                 .qosMode(NsoVplsQosMode.GUARANTEED)
                 .routingDomain(ROUTING_DOMAIN)
