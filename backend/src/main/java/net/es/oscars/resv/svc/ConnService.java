@@ -379,7 +379,7 @@ public class ConnService {
     public ConnChangeResult release(Connection c) {
         // if it is HELD or DESIGN, just delete it
         if (c.getPhase().equals(Phase.HELD) || c.getPhase().equals(Phase.DESIGN)) {
-            log.info("deleting a HELD / DESIGN connection during release" + c.getConnectionId());
+            log.info("deleting a HELD / DESIGN connection during release " + c.getConnectionId());
             connRepo.delete(c);
             connRepo.flush();
             return ConnChangeResult.builder()

@@ -67,13 +67,14 @@ public class HoldController {
         } else if (startup.isInShutdown()) {
             throw new StartupException("OSCARS shutting down");
         }
+
         Optional<Connection> maybeConnection = connRepo.findByConnectionId(connectionId);
 
         Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
 
         if (maybeConnection.isPresent()) {
             Connection conn = maybeConnection.get();
-            if (conn.getPhase().equals(Phase.HELD)) {
+            if (conn.getPhase().equals(Phase.HELD) && conn.getHeld() != null) {
                 conn.getHeld().setExpiration(exp);
                 connRepo.save(conn);
                 return exp;

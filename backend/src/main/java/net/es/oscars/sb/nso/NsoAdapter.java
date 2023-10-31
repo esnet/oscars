@@ -318,7 +318,12 @@ public class NsoAdapter {
                         .build();
                 vplsDeviceMap.put(deviceUrn, dc);
             }
-            NsoQosSapPolicyId sapQosId = nsoQosSapPolicyIdDAO.findNsoQosSapPolicyIdByFixtureId(f.getId()).orElseThrow();
+            Optional<NsoQosSapPolicyId> maybeSapQosId = nsoQosSapPolicyIdDAO.findNsoQosSapPolicyIdByFixtureId(f.getId());
+            if (maybeSapQosId.isEmpty()) {
+                throw new NsoGenException("unable to retrieve NSO SAP QoS id");
+            }
+            NsoQosSapPolicyId sapQosId = maybeSapQosId.get();
+
             NsoVPLS.DeviceContainer dc = vplsDeviceMap.get(deviceUrn);
 
             // NSO yang sets this to min 1
@@ -461,8 +466,13 @@ public class NsoAdapter {
 
         }
 
+        String nsoDescription = conn.getDescription();
+        if (nsoDescription.length() > 80) {
+            nsoDescription = conn.getDescription().substring(0, 79);
+        }
+
         NsoVPLS vpls = NsoVPLS.builder()
-                .description(conn.getDescription().substring(0, 79))
+                .description(nsoDescription)
                 .name(conn.getConnectionId())
                 .qosMode(NsoVplsQosMode.GUARANTEED)
                 .routingDomain(ROUTING_DOMAIN)
