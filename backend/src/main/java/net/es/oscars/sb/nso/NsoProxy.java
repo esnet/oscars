@@ -114,21 +114,18 @@ public class NsoProxy {
 
         try {
             DevelUtils.dumpDebug("commit", wrapper);
-            ResponseEntity<String> response = restTemplate.postForEntity(restPath, wrapper, String.class);
+            ResponseEntity<IetfRestconfErrorResponse> response = restTemplate.postForEntity(restPath, wrapper, IetfRestconfErrorResponse.class);
 
             if (response.getStatusCode().isError()) {
                 log.error("raw error: "+response.getBody());
                 StringBuilder errorStr = new StringBuilder();
-                try {
-                    IetfRestconfErrorResponse errorResponse = new ObjectMapper().readValue(response.getBody(), IetfRestconfErrorResponse.class);
-                    for (IetfRestconfErrorResponse.IetfError errObj : errorResponse.getErrors().getErrorList()) {
+                if (response.getBody() != null) {
+                    for (IetfRestconfErrorResponse.IetfError errObj : response.getBody().getErrors().getErrorList()) {
                         errorStr.append(errObj.getErrorMessage()).append("\n");
                     }
-                } catch (JsonProcessingException ex) {
-                    log.error(errorRef + "Unable to commit. Unable to parse error. Raw: " + response.getBody()+"\n"+ex.getMessage());
-                    ex.printStackTrace(pw);
-                    log.error(sw.toString());
-                    throw new NsoCommitException("Unable to commit. Unable to parse error. Raw: " + response.getBody());
+
+                } else {
+                    errorStr.append("empty response body\n");
                 }
                 log.error(errorRef+"Unable to commit. NSO error(s): " + errorStr);
                 throw new NsoCommitException("Unable to commit. NSO error(s): " + errorStr);
