@@ -25,5 +25,7 @@ public class PssProperties {
 
     private String password;
 
+    private Boolean syncFromAfterLegacyDismantle;
+
 
 }

@@ -140,6 +140,13 @@ public class NsoProxy {
             throw new NsoCommitException(ex.getMessage());
         }
     }
+
+    public void syncFrom(String device) {
+        String path = "restconf/data/tailf-ncs:devices/device=%s/sync-from".formatted(device);
+        String restPath = props.getUri() + path;
+        restTemplate.postForLocation(restPath, HttpEntity.EMPTY);
+    }
+
     public String buildDryRun(NsoServicesWrapper wrapper) throws NsoDryrunException {
         String path = "restconf/data/tailf-ncs:services?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
