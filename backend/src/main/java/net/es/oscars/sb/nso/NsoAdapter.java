@@ -81,7 +81,6 @@ public class NsoAdapter {
         }
 
         DeploymentState newDepState;
-        ObjectWriter dryRunWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
 
         State newState = intent;
         String commands = "";
@@ -94,24 +93,22 @@ public class NsoAdapter {
             try {
                 if (commandType.equals(CommandType.BUILD)) {
                     NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
+                    commands = oscarsServices.asCliCommands();
+                    log.info(commands);
                     dumpDebug(conn.getConnectionId()+" BUILD services", oscarsServices);
-                    dumpDebug(conn.getConnectionId()+" BUILD as NSO set", oscarsServices.asSetCommands());
-
-                    commands = dryRunWriter.writeValueAsString(oscarsServices);
                     dryRun = nsoProxy.buildDryRun(oscarsServices);
                     nsoProxy.buildServices(oscarsServices);
                     newDepState = DeploymentState.DEPLOYED;
                 } else {
                     NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
-                    commands = dryRunWriter.writeValueAsString(dismantle);
+                    commands = dismantle.asCliCommands();
+                    log.info(commands);
                     dryRun = nsoProxy.dismantleDryRun(dismantle);
                     nsoProxy.deleteServices(dismantle);
                     newDepState = DeploymentState.UNDEPLOYED;
                 }
                 // only set this after all has gone well
                 shouldWriteHistory = true;
-            } catch (JsonProcessingException ex) {
-                throw new RuntimeException(ex);
             } catch (NsoDryrunException ex) {
                 commands = ex.getMessage();
                 newDepState = failureDepState;
@@ -489,6 +486,14 @@ public class NsoAdapter {
         private String connectionId;
         private int vcId;
         private List<String> lspNsoKeys;
+        public String asCliCommands() {
+            StringBuilder cmds = new StringBuilder();
+            cmds.append("delete services vpls %d%n".formatted(vcId));
+            for (String lspNsoKey : lspNsoKeys) {
+                cmds.append("delete services lsp %s%n".formatted(lspNsoKey));
+            }
+            return cmds.toString();
+        }
     }
 
     @Data

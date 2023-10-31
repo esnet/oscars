@@ -20,7 +20,8 @@ public class NsoServicesWrapper {
     List<NsoLSP> lspInstances;
     @JsonProperty("esnet-vpls:vpls")
     List<NsoVPLS> vplsInstances;
-    public String asSetCommands() {
+
+    public String asCliCommands() {
         StringBuilder lspSetCmds = new StringBuilder();
 
         for (NsoLSP lsp : lspInstances) {

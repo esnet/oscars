@@ -339,18 +339,15 @@ public class ConnService {
             c.setPhase(Phase.RESERVED);
 
             reservedFromHeld(c);
-            this.nsoResourceService.reserve(c);
-            c.setDeploymentState(DeploymentState.UNDEPLOYED);
-            if (c.getMode().equals(BuildMode.AUTOMATIC)) {
-                c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED);
-            } else {
-                c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
-            }
             archiveFromReserved(c);
-
-            esdbService.reserveEsdbVlans(c);
-
             c.setHeld(null);
+            c.setDeploymentState(DeploymentState.UNDEPLOYED);
+            c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
+
+            connRepo.saveAndFlush(c);
+            esdbService.reserveEsdbVlans(c);
+            nsoResourceService.reserve(c);
+
             connRepo.saveAndFlush(c);
 
             Instant instant = Instant.now();
