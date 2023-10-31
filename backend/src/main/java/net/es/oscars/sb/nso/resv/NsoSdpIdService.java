@@ -23,6 +23,7 @@ public class NsoSdpIdService {
     @Autowired
     private NsoSdpIdDAO nsoSdpIdDAO;
 
+    @Transactional
     public void findAndReserveNsoSdpIds(Connection conn, List<Schedule> schedules) throws NsoResvException {
         // we want to use the same SDP id on the two devices at the end of each pipe.
         // we don't technically _need_ to match these, but it's nice

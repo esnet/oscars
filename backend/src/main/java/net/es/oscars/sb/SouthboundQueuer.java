@@ -42,17 +42,25 @@ public class SouthboundQueuer {
         for (SouthboundTask rt : running) {
             log.info("running : " + rt.getConnectionId() + " " + rt.getCommandType());
         }
+
+        // TODO: ensure we don't do opposite tasks for the same connection; last should win
+        List<SouthboundTask> shouldRun = new ArrayList<>();
         for (SouthboundTask wt : waiting) {
             log.info("waiting : " + wt.getConnectionId() + " " + wt.getCommandType());
+            for (SouthboundTask rt : running) {
+                if (rt.getCommandType().equals(wt.getCommandType()) &&
+                        rt.getConnectionId().equals(wt.getConnectionId())) {
+                    log.info("already running "+wt.getConnectionId()+" "+wt.getCommandType());
+                } else {
+                    shouldRun.add(wt);
+                }
+            }
         }
-        running.addAll(waiting);
 
-        int threadNum = waiting.size();
-        if (threadNum == 0) {
-            return;
-        }
+        running.addAll(shouldRun);
 
-        for (SouthboundTask wt : waiting) {
+        for (SouthboundTask wt : shouldRun) {
+
             cr.findByConnectionId(wt.getConnectionId()).ifPresent(conn -> {
                 if (wt.getCommandType().equals(CommandType.BUILD)) {
                     conn.setDeploymentState(DeploymentState.BEING_DEPLOYED);

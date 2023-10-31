@@ -15,6 +15,7 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
@@ -27,7 +28,6 @@ import org.springframework.web.client.RestTemplate;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,7 +40,7 @@ public class NsoProxy {
     private RestTemplate patchTemplate;
 
     @Autowired
-    public NsoProxy(NsoProperties props) {
+    public NsoProxy(NsoProperties props, RestTemplateBuilder builder) {
 
         this.props = props;
         try {
@@ -50,7 +50,7 @@ public class NsoProxy {
             MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
             converter.setObjectMapper(customObjectMapper);
 
-            this.restTemplate = new RestTemplate();
+            this.restTemplate = builder.build();
             restTemplate.setErrorHandler(new NsoResponseErrorHandler());
             restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
             restTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
@@ -58,7 +58,7 @@ public class NsoProxy {
             restTemplate.getMessageConverters().add(0, converter);
 
             // different http client for yang patch
-            this.patchTemplate = new RestTemplate();
+            this.patchTemplate = builder.build();
             patchTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
             patchTemplate.setErrorHandler(new NsoResponseErrorHandler());
             patchTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));

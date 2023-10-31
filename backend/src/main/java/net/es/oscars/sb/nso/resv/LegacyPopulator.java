@@ -42,6 +42,10 @@ public class LegacyPopulator {
 
     @Transactional
     public void importPssToNso() {
+        if (true) {
+            // disable this code until we need it again (we won't)
+            return;
+        }
         // PSS to NSO resource mappings
         // ALU_SVC_ID           =>  nsoVcId
         // VC_ID                =>  nsoSdpId

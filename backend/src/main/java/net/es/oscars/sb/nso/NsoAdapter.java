@@ -95,6 +95,7 @@ public class NsoAdapter {
                 if (commandType.equals(CommandType.BUILD)) {
                     NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
                     dumpDebug(conn.getConnectionId()+" BUILD services", oscarsServices);
+                    dumpDebug(conn.getConnectionId()+" BUILD as NSO set", oscarsServices.asSetCommands());
 
                     commands = dryRunWriter.writeValueAsString(oscarsServices);
                     dryRun = nsoProxy.buildDryRun(oscarsServices);
@@ -302,6 +303,7 @@ public class NsoAdapter {
         Integer vcid = nsoVcIdDAO.findNsoVcIdByConnectionId(conn.getConnectionId()).orElseThrow().getVcId();
         for (VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
             String deviceUrn = f.getJunction().getDeviceUrn();
+            log.info("working on fixture "+f.getPortUrn()+" id "+f.getId());
 
             // FIXME: this needs to be populated correctly as a separate property instead of relying on string split
             String portUrn = f.getPortUrn();
