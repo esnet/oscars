@@ -47,19 +47,23 @@ public class SouthboundQueuer {
         List<SouthboundTask> shouldRun = new ArrayList<>();
         for (SouthboundTask wt : waiting) {
             log.info("waiting : " + wt.getConnectionId() + " " + wt.getCommandType());
+            boolean foundSame = false;
             for (SouthboundTask rt : running) {
                 if (rt.getCommandType().equals(wt.getCommandType()) &&
                         rt.getConnectionId().equals(wt.getConnectionId())) {
-                    log.info("already running "+wt.getConnectionId()+" "+wt.getCommandType());
-                } else {
-                    shouldRun.add(wt);
+                    log.info("already running " + wt.getConnectionId() + " " + wt.getCommandType());
+                    foundSame = true;
                 }
+            }
+            if (!foundSame) {
+                shouldRun.add(wt);
             }
         }
 
         running.addAll(shouldRun);
 
         for (SouthboundTask wt : shouldRun) {
+            log.info("running task : " + wt.getConnectionId() + " " + wt.getCommandType());
 
             cr.findByConnectionId(wt.getConnectionId()).ifPresent(conn -> {
                 if (wt.getCommandType().equals(CommandType.BUILD)) {
@@ -69,11 +73,13 @@ public class SouthboundQueuer {
                 }
                 cr.save(conn);
 
+                log.info(wt.getConnectionId() + " " + wt.getCommandType() + " dst: " + conn.getDeploymentState());
+
                 if (isLegacy(conn)) {
                     if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
                         this.completeTask(rancidAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
                     } else {
-                        log.warn("not performing non-dismantle task for legacy connection "+conn.getConnectionId());
+                        log.warn("not performing non-dismantle task for legacy connection " + conn.getConnectionId());
                     }
                 } else {
                     this.completeTask(nsoAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
@@ -96,10 +102,10 @@ public class SouthboundQueuer {
                 // when the task was to build or dismantle we update the connection state
                 if (rct.equals(CommandType.BUILD) || rct.equals(CommandType.DISMANTLE)) {
                     cr.findByConnectionId(task.getConnectionId()).ifPresent(c -> {
-                            c.setState(result.getState());
-                            c.setDeploymentState(result.getDeploymentState());
-                            cr.save(c);
-                        }
+                                c.setState(result.getState());
+                                c.setDeploymentState(result.getDeploymentState());
+                                cr.save(c);
+                            }
                     );
 
                 }
