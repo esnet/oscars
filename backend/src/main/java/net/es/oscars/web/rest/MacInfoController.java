@@ -8,7 +8,11 @@ import net.es.oscars.sb.nso.rest.MacInfoResult;
 import net.es.oscars.sb.nso.rest.MacInfoServiceResult;
 import net.es.oscars.sb.nso.LiveStatusFdbCacheManager;
 import net.es.oscars.sb.nso.db.NsoSdpIdDAO;
+import net.es.oscars.sb.nso.db.NsoServiceDAO;
+import net.es.oscars.sb.nso.db.NsoVcIdDAO;
 import net.es.oscars.sb.nso.ent.NsoSdpId;
+import net.es.oscars.sb.nso.ent.NsoService;
+import net.es.oscars.sb.nso.ent.NsoVcId;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -28,12 +32,19 @@ public class MacInfoController {
     private LiveStatusFdbCacheManager fdbCacheManager;
 
     @Autowired
+    private NsoVcIdDAO nsoVcIdDAO;
+
+    @Autowired
     private NsoSdpIdDAO nsoSdpIdDAO;
+
+    //@Autowired
+    //private NsoServiceDAO nsoServiceDAO;
 
     @RequestMapping(value = "/api/mac/info", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
     public MacInfoResponse getMacInfo(@RequestBody MacInfoRequest request) {
+        log.debug("MAC info request");
         log.debug("Request:" + request.toString());
 
         String connectionId = request.getConnectionId();
@@ -42,20 +53,30 @@ public class MacInfoController {
             return null;
         }
 
-        HashMap<String, NsoSdpId> devicesFromId = new HashMap<String, NsoSdpId>();
+        HashSet<String> devicesFromId = new HashSet<String>();
         List<String> devicesFromRest = request.getDeviceIds();
 
-        // get SAPs from local DB
-        List<NsoSdpId> saps = nsoSdpIdDAO.findNsoSdpIdByConnectionId(connectionId);
-        for(NsoSdpId sap : saps) {
-            devicesFromId.put(sap.getDevice(), sap);
-            log.info("SAP: " + sap.getDevice() + " " + sap.getSdpId());
+        // get circuit vc-id
+        Optional<NsoVcId> optVcid = nsoVcIdDAO.findNsoVcIdByConnectionId(connectionId);
+        Integer vcid = 0;
+        if(optVcid.isPresent()) {
+            vcid = optVcid.get().getVcId();
+        } else {
+            log.info("Couldn't find VC-ID for OSCARS circuit " + connectionId);
+            return null;
+        }
+
+        // find devices in circuit
+        List<NsoSdpId> sdps = nsoSdpIdDAO.findNsoSdpIdByConnectionId(connectionId);
+        for(NsoSdpId sdp : sdps) {
+            devicesFromId.add(sdp.getDevice());
+            //log.debug("SDP: " + sdp.getDevice());
         }
 
         // if no devices are listed in the request we use all devices from the circuit
-        if(devicesFromRest == null) {
+        if(devicesFromRest == null || devicesFromRest.size() == 0) {
             devicesFromRest = new LinkedList<String>();
-            devicesFromRest.addAll(devicesFromId.keySet());
+            devicesFromRest.addAll(devicesFromId);
         }
 
         MacInfoResponse response = new MacInfoResponse();
@@ -70,12 +91,12 @@ public class MacInfoController {
 
         log.debug("Run live-status request on devices");
         for(String device : devicesFromRest) {
-            if(devicesFromId.containsKey(device)) {
-                log.debug("Fetch FDB from FDBCacheManager for " + device);
+            if(devicesFromId.contains(device)) {
+                log.debug("Fetch FDB from FDBCacheManager for " + device + " service id " + vcid);
                 tmpResult = fdbCacheManager.get(device,
-                                devicesFromId.get(device).getSdpId(),
+                                vcid,
                                 request.getRefreshIfOlderThan());
-                tmp = result.getMacInfoResult();
+                tmp = tmpResult.getMacInfoResult();
                 results.add(tmp);
             }
         }
