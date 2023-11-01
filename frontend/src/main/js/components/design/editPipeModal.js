@@ -93,142 +93,139 @@ class EditPipeModal extends Component {
         console.log(toJS(ep));
     };
 
-    pathUpdateDispose = autorun(
-        () => {
-            let conn = this.props.controlsStore.connection;
-            let ep = this.props.controlsStore.editPipe;
+    performPathfinding = () => {
+        let conn = this.props.controlsStore.connection;
+        let ep = this.props.controlsStore.editPipe;
 
-            let pipe = this.props.designStore.findPipe(ep.pipeId);
+        let pipe = this.props.designStore.findPipe(ep.pipeId);
 
-            if (pipe === null || pipe.locked || !conn.schedule.locked) {
-                return;
-            }
+        if (pipe === null || pipe.locked || !conn.schedule.locked) {
+            return;
+        }
 
-            // clear ERO, show loading state
-            this.props.controlsStore.setParamsForEditPipe({
-                paths: {
-                    sync: {
-                        loading: true
-                    }
-                },
-                ero: {
-                    message: "Updating path..",
-                    acceptable: false,
-                    hops: []
+        // clear ERO, show loading state
+        this.props.controlsStore.setParamsForEditPipe({
+            paths: {
+                sync: {
+                    loading: true
                 }
-            });
+            },
+            ero: {
+                message: "Updating path..",
+                acceptable: false,
+                hops: []
+            }
+        });
 
-            let params = {
-                interval: {
-                    beginning: conn.schedule.start.at.getTime() / 1000,
-                    ending: conn.schedule.end.at.getTime() / 1000
-                },
-                a: ep.a,
-                z: ep.z,
-                azBw: ep.A_TO_Z.bw,
-                zaBw: ep.Z_TO_A.bw,
-                include: ep.ero.include
-            };
+        let params = {
+            interval: {
+                beginning: conn.schedule.start.at.getTime() / 1000,
+                ending: conn.schedule.end.at.getTime() / 1000
+            },
+            a: ep.a,
+            z: ep.z,
+            azBw: ep.A_TO_Z.bw,
+            zaBw: ep.Z_TO_A.bw,
+            include: ep.ero.include
+        };
 
-            myClient
-                .loadJSON({ method: "POST", url: "/api/pce/paths", params })
-                .then(response => {
-                    let parsed = JSON.parse(response);
-                    let uiParams = {
-                        paths: {
-                            sync: {
-                                loading: false,
-                                initialized: true
-                            },
-                            fits: {},
-                            shortest: {},
-                            leastHops: {},
-                            widestSum: {},
-                            widestAZ: {},
-                            widestZA: {}
+        myClient
+            .loadJSON({ method: "POST", url: "/api/pce/paths", params })
+            .then(response => {
+                let parsed = JSON.parse(response);
+                let uiParams = {
+                    paths: {
+                        sync: {
+                            loading: false,
+                            initialized: true
                         },
-                        A_TO_Z: {},
-                        Z_TO_A: {}
-                    };
+                        fits: {},
+                        shortest: {},
+                        leastHops: {},
+                        widestSum: {},
+                        widestAZ: {},
+                        widestZA: {}
+                    },
+                    A_TO_Z: {},
+                    Z_TO_A: {}
+                };
 
-                    const modes = [
-                        "fits",
-                        "shortest",
-                        "leastHops",
-                        "widestSum",
-                        "widestAZ",
-                        "widestZA"
-                    ];
-                    modes.map(mode => {
-                        let ero = [];
-                        if (parsed[mode] === null) {
-                            uiParams.paths[mode].acceptable = false;
-                            uiParams.paths[mode].azAvailable = -1;
-                            uiParams.paths[mode].zaAvailable = -1;
-                            uiParams.paths[mode].azBaseline = -1;
-                            uiParams.paths[mode].zaBaseline = -1;
-                            uiParams.paths[mode].ero = [];
-                            return;
-                        }
+                const modes = [
+                    "fits",
+                    "shortest",
+                    "leastHops",
+                    "widestSum",
+                    "widestAZ",
+                    "widestZA"
+                ];
+                modes.map(mode => {
+                    let ero = [];
+                    if (parsed[mode] === null) {
+                        uiParams.paths[mode].acceptable = false;
+                        uiParams.paths[mode].azAvailable = -1;
+                        uiParams.paths[mode].zaAvailable = -1;
+                        uiParams.paths[mode].azBaseline = -1;
+                        uiParams.paths[mode].zaBaseline = -1;
+                        uiParams.paths[mode].ero = [];
+                        return;
+                    }
 
-                        parsed[mode]["azEro"].map(e => {
-                            ero.push(e["urn"]);
-                        });
-                        uiParams.paths[mode].ero = ero;
-                        if (ero.length > 0) {
-                            uiParams.paths[mode].acceptable = true;
-                            uiParams.paths[mode].azAvailable = parsed[mode].azAvailable;
-                            uiParams.paths[mode].zaAvailable = parsed[mode].zaAvailable;
-                            uiParams.paths[mode].azBaseline = parsed[mode].azBaseline;
-                            uiParams.paths[mode].zaBaseline = parsed[mode].zaBaseline;
-                        } else {
-                            uiParams.paths[mode].acceptable = false;
-                            uiParams.paths[mode].azAvailable = -1;
-                            uiParams.paths[mode].zaAvailable = -1;
-                            uiParams.paths[mode].azBaseline = -1;
-                            uiParams.paths[mode].zaBaseline = -1;
-                        }
-                        if (mode === "widestAZ") {
-                            uiParams.A_TO_Z.widest = uiParams.paths[mode].azAvailable;
-                        }
-                        if (mode === "widestZA") {
-                            uiParams.Z_TO_A.widest = uiParams.paths[mode].zaAvailable;
+                    parsed[mode]["azEro"].map(e => {
+                        ero.push(e["urn"]);
+                    });
+                    uiParams.paths[mode].ero = ero;
+                    if (ero.length > 0) {
+                        uiParams.paths[mode].acceptable = true;
+                        uiParams.paths[mode].azAvailable = parsed[mode].azAvailable;
+                        uiParams.paths[mode].zaAvailable = parsed[mode].zaAvailable;
+                        uiParams.paths[mode].azBaseline = parsed[mode].azBaseline;
+                        uiParams.paths[mode].zaBaseline = parsed[mode].zaBaseline;
+                    } else {
+                        uiParams.paths[mode].acceptable = false;
+                        uiParams.paths[mode].azAvailable = -1;
+                        uiParams.paths[mode].zaAvailable = -1;
+                        uiParams.paths[mode].azBaseline = -1;
+                        uiParams.paths[mode].zaBaseline = -1;
+                    }
+                    if (mode === "widestAZ") {
+                        uiParams.A_TO_Z.widest = uiParams.paths[mode].azAvailable;
+                    }
+                    if (mode === "widestZA") {
+                        uiParams.Z_TO_A.widest = uiParams.paths[mode].zaAvailable;
+                    }
+                });
+                if (ep.ero.mode === "") {
+                    console.log("no mode set; updating to fits");
+                    this.props.controlsStore.setParamsForEditPipe({
+                        ero: {
+                            mode: "fits"
                         }
                     });
-                    if (ep.ero.mode === "") {
-                        console.log("no mode set; updating to fits");
-                        this.props.controlsStore.setParamsForEditPipe({
-                            ero: {
-                                mode: "fits"
-                            }
-                        });
-                    }
+                }
 
-                    // the selected mode was just synced from the server; update the ERO.
-                    // the validate() call that comes later will take care of the bandwidth validation
+                // the selected mode was just synced from the server; update the ERO.
+                // the validate() call that comes later will take care of the bandwidth validation
 
-                    if (uiParams.paths[ep.ero.mode].acceptable) {
-                        uiParams.ero = {
-                            acceptable: true,
-                            message: "Path found.",
-                            hops: uiParams.paths[ep.ero.mode].ero
-                        };
-                    } else {
-                        uiParams.ero = {
-                            acceptable: false,
-                            message: "No path found!",
-                            hops: []
-                        };
-                    }
+                if (uiParams.paths[ep.ero.mode].acceptable) {
+                    uiParams.ero = {
+                        acceptable: true,
+                        message: "Path found.",
+                        hops: uiParams.paths[ep.ero.mode].ero
+                    };
+                } else {
+                    uiParams.ero = {
+                        acceptable: false,
+                        message: "No path found!",
+                        hops: []
+                    };
+                }
 
-                    this.props.controlsStore.setParamsForEditPipe(uiParams);
-                })
-                .then(() => {
-                    this.validate();
-                });
-        },
-        { delay: 1000 }
-    );
+                this.props.controlsStore.setParamsForEditPipe(uiParams);
+            })
+            .then(() => {
+                this.validate();
+            });
+    }
 
     validationDispose = autorun(
         () => {
@@ -718,7 +715,15 @@ class EditPipeModal extends Component {
                             uiElement={<Button color="warning">{"Delete"}</Button>}
                             onConfirm={this.deletePipe}
                         />{" "}
+                        <Button
+                            color="primary"
+                            disabled={!disableLockBtn}
+                            onClick={this.performPathfinding}
+                        >
+                            Find path
+                        </Button>
                         <ToggleDisplay show={!ep.locked}>
+
                             <Button
                                 color="primary"
                                 disabled={disableLockBtn}
