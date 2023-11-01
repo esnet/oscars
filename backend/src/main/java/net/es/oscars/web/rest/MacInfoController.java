@@ -6,19 +6,17 @@ import net.es.oscars.web.beans.MacInfoRequest;
 import net.es.oscars.web.beans.MacInfoResponse;
 import net.es.oscars.sb.nso.rest.MacInfoResult;
 import net.es.oscars.sb.nso.rest.MacInfoServiceResult;
+import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.resv.ent.Connection;
+import net.es.oscars.resv.ent.VlanFixture;
 import net.es.oscars.sb.nso.LiveStatusFdbCacheManager;
-import net.es.oscars.sb.nso.db.NsoSdpIdDAO;
-import net.es.oscars.sb.nso.db.NsoServiceDAO;
 import net.es.oscars.sb.nso.db.NsoVcIdDAO;
-import net.es.oscars.sb.nso.ent.NsoSdpId;
-import net.es.oscars.sb.nso.ent.NsoService;
 import net.es.oscars.sb.nso.ent.NsoVcId;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,10 +33,7 @@ public class MacInfoController {
     private NsoVcIdDAO nsoVcIdDAO;
 
     @Autowired
-    private NsoSdpIdDAO nsoSdpIdDAO;
-
-    //@Autowired
-    //private NsoServiceDAO nsoServiceDAO;
+    private ConnService connSvc;
 
     @RequestMapping(value = "/api/mac/info", method = RequestMethod.POST)
     @ResponseBody
@@ -67,10 +62,15 @@ public class MacInfoController {
         }
 
         // find devices in circuit
-        List<NsoSdpId> sdps = nsoSdpIdDAO.findNsoSdpIdByConnectionId(connectionId);
-        for(NsoSdpId sdp : sdps) {
-            devicesFromId.add(sdp.getDevice());
-            //log.debug("SDP: " + sdp.getDevice());
+        Connection conn = connSvc.findConnection(connectionId);
+        if(conn == null) {
+            log.info("Couldn't find OSCARS circuit for connection id " + connectionId);
+            return null;
+        }
+        for(VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
+            String deviceUrn = f.getJunction().getDeviceUrn();
+            devicesFromId.add(deviceUrn);
+            log.debug("Adding device: " + deviceUrn);
         }
 
         // if no devices are listed in the request we use all devices from the circuit
