@@ -1,7 +1,6 @@
 package net.es.oscars.topo.pop;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.TopoProperties;
 import net.es.oscars.dto.topo.DeviceModel;
@@ -21,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
@@ -91,7 +91,6 @@ public class TopoPopulator {
         return this.loadTopology(devicesFilename, adjciesFilename);
     }
 
-    @Transactional
     public void replaceDbTopology(Topology incoming) {
         deviceRepo.deleteAll();
         portRepo.deleteAll();
@@ -172,12 +171,23 @@ public class TopoPopulator {
     }
 
 
+    @Transactional
     public void refresh(boolean onlyLoadWhenFileNewer) throws ConsistencyException, TopoException, IOException {
         Topology incoming = null;
         boolean updated = false;
         if (topoProperties.getUrl() != null) {
-            incoming = this.loadFromDiscovery();
-            updated = true;
+            try {
+                incoming = this.loadFromDiscovery();
+                updated = true;
+
+            } catch (ResourceAccessException ex) {
+                // typically an unknown host error
+                log.info(ex.getMessage());
+
+            } catch (TopoException ex) {
+                log.error(ex.getMessage());
+
+            }
         } else {
             Optional<Version> maybeV = topoService.latestVersion();
             boolean fileLoadNeeded = true;
@@ -209,7 +219,7 @@ public class TopoPopulator {
         }
     }
 
-    public Topology loadFromDiscovery() throws TopoException {
+    public Topology loadFromDiscovery() throws TopoException, ResourceAccessException {
         RestTemplate restTemplate = new RestTemplate();
         OscarsOneTopo discTopo = restTemplate.getForObject(topoProperties.getUrl(), OscarsOneTopo.class);
         if (discTopo == null) {

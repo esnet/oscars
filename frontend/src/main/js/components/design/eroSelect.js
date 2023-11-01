@@ -36,6 +36,7 @@ class EroSelect extends Component {
         this.props.controlsStore.setParamsForEditPipe({
             ero: {
                 include: [ep.a, ep.z],
+                acceptable: false,
                 exclude: []
             }
         });
@@ -120,6 +121,7 @@ class EroSelect extends Component {
         let params = {
             ero: {
                 include: new_include,
+                acceptable: false,
                 message: "Recalculating..."
             }
         };
@@ -215,7 +217,8 @@ class NextHopSelect extends Component {
             let params = {
                 ero: {
                     include: new_include,
-                    message: "Recalculating..."
+                    acceptable: false,
+                    message: "path recalculation needed"
                 }
             };
 
