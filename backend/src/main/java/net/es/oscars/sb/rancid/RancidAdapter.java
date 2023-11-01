@@ -24,6 +24,7 @@ import net.es.oscars.resv.enums.EventType;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.LogService;
 import net.es.oscars.sb.SouthboundTaskResult;
+import net.es.oscars.sb.nso.NsoProxy;
 import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.enums.UrnType;
 import net.es.oscars.topo.svc.TopoService;
@@ -40,6 +41,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RancidAdapter {
     private RancidProxy rancidProxy;
+
+
+    private NsoProxy nsoProxy;
+
     private PssProperties properties;
     private RouterCommandsRepository rcr;
     private CommandHistoryRepository historyRepo;
@@ -49,12 +54,13 @@ public class RancidAdapter {
 
     @Autowired
     public RancidAdapter(RancidProxy rancidProxy, RouterCommandsRepository rcr, CommandHistoryRepository historyRepo, Syslogger syslogger,
-                         TopoService topoService, LogService logService, PssProperties properties) {
+                         TopoService topoService, LogService logService, NsoProxy nsoProxy, PssProperties properties) {
         this.rancidProxy = rancidProxy;
         this.rcr = rcr;
         this.historyRepo = historyRepo;
         this.topoService = topoService;
         this.logService = logService;
+        this.nsoProxy = nsoProxy;
         this.properties = properties;
         this.syslogger = syslogger;
     }
@@ -144,6 +150,14 @@ public class RancidAdapter {
                 syslogger.sendSyslog( "OSCARS DISMANTLE COMPLETED : " + conn.getConnectionId());
             }
         }
+
+        if (properties.getSyncFromAfterLegacyDismantle()) {
+            for (String device : devices) {
+                log.info("performing post-dismantle sync-from on "+device);
+                nsoProxy.syncFrom(device);
+            }
+        }
+
         return result;
     }
 
@@ -166,8 +180,8 @@ public class RancidAdapter {
 
         boolean allDone = false;
         boolean timedOut = false;
-        Integer timeoutMillis = properties.getConfigTimeoutSec() * 1000;
-        Integer elapsed = 0;
+        int timeoutMillis = properties.getConfigTimeoutSec() * 1000;
+        int elapsed = 0;
         List<CommandStatus> statuses = new ArrayList<>();
 
         try {
@@ -202,6 +216,7 @@ public class RancidAdapter {
         for (CommandStatus st : statuses) {
             if (!st.getLifecycleStatus().equals(LifecycleStatus.DONE)) {
                 allDone = false;
+                break;
             }
         }
         return allDone;

@@ -39,6 +39,8 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.*;
 
+import static net.es.topo.common.devel.DevelUtils.dumpDebug;
+
 @Component
 @Slf4j
 public class NsoAdapter {
@@ -73,13 +75,12 @@ public class NsoAdapter {
         log.info("processing southbound NSO task "+conn.getConnectionId()+" "+commandType.toString());
 
         // we ass-u-me that incoming deployment state is the opposite of what is asked
-        DeploymentState incomingDepState = DeploymentState.UNDEPLOYED;
+        DeploymentState failureDepState = DeploymentState.DEPLOY_FAILED;
         if (commandType.equals(CommandType.DISMANTLE)) {
-            incomingDepState = DeploymentState.DEPLOYED;
+            failureDepState = DeploymentState.UNDEPLOY_FAILED;
         }
 
         DeploymentState newDepState;
-        ObjectWriter dryRunWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
 
         State newState = intent;
         String commands = "";
@@ -92,52 +93,53 @@ public class NsoAdapter {
             try {
                 if (commandType.equals(CommandType.BUILD)) {
                     NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
-                    commands = dryRunWriter.writeValueAsString(oscarsServices);
+                    commands = oscarsServices.asCliCommands();
+                    log.info(commands);
+                    dumpDebug(conn.getConnectionId()+" BUILD services", oscarsServices);
                     dryRun = nsoProxy.buildDryRun(oscarsServices);
                     nsoProxy.buildServices(oscarsServices);
                     newDepState = DeploymentState.DEPLOYED;
                 } else {
                     NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
-                    commands = dryRunWriter.writeValueAsString(dismantle);
+                    commands = dismantle.asCliCommands();
+                    log.info(commands);
                     dryRun = nsoProxy.dismantleDryRun(dismantle);
                     nsoProxy.deleteServices(dismantle);
                     newDepState = DeploymentState.UNDEPLOYED;
                 }
                 // only set this after all has gone well
                 shouldWriteHistory = true;
-            } catch (JsonProcessingException ex) {
-                throw new RuntimeException(ex);
             } catch (NsoDryrunException ex) {
                 commands = ex.getMessage();
-                newDepState = incomingDepState;
+                newDepState = failureDepState;
                 newState = State.FAILED;
             } catch (NsoCommitException | NsoGenException ex) {
                 configStatus = ConfigStatus.ERROR;
-                newDepState = incomingDepState;
+                newDepState = failureDepState;
                 newState = State.FAILED;
             }
         } else {
-            newDepState = incomingDepState;
+            newDepState = failureDepState;
             newState = State.FAILED;
         }
 
+        if (shouldWriteHistory) {
         // save the NSO service config and dry-run
-        Components cmp;
-        if (conn.getReserved() != null) {
-            cmp = conn.getReserved().getCmp();
-        } else {
-            cmp = conn.getArchived().getCmp();
-        }
-        for (VlanJunction j : cmp.getJunctions()) {
-            RouterCommands rcb = RouterCommands.builder()
-                    .connectionId(conn.getConnectionId())
-                    .deviceUrn(j.getDeviceUrn())
-                    .contents(commands)
-                    .templateVersion(NSO_TEMPLATE_VERSION)
-                    .type(commandType)
-                    .build();
-            rcr.save(rcb);
-            if (shouldWriteHistory) {
+            Components cmp;
+            if (conn.getReserved() != null) {
+                cmp = conn.getReserved().getCmp();
+            } else {
+                cmp = conn.getArchived().getCmp();
+            }
+            for (VlanJunction j : cmp.getJunctions()) {
+                RouterCommands rcb = RouterCommands.builder()
+                        .connectionId(conn.getConnectionId())
+                        .deviceUrn(j.getDeviceUrn())
+                        .contents(commands)
+                        .templateVersion(NSO_TEMPLATE_VERSION)
+                        .type(commandType)
+                        .build();
+                rcr.save(rcb);
                 RouterCommandHistory rch = RouterCommandHistory.builder()
                         .deviceUrn(j.getDeviceUrn())
                         .templateVersion(NSO_TEMPLATE_VERSION)
@@ -298,6 +300,7 @@ public class NsoAdapter {
         Integer vcid = nsoVcIdDAO.findNsoVcIdByConnectionId(conn.getConnectionId()).orElseThrow().getVcId();
         for (VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
             String deviceUrn = f.getJunction().getDeviceUrn();
+            log.info("working on fixture "+f.getPortUrn()+" id "+f.getId());
 
             // FIXME: this needs to be populated correctly as a separate property instead of relying on string split
             String portUrn = f.getPortUrn();
@@ -315,7 +318,12 @@ public class NsoAdapter {
                         .build();
                 vplsDeviceMap.put(deviceUrn, dc);
             }
-            NsoQosSapPolicyId sapQosId = nsoQosSapPolicyIdDAO.findNsoQosSapPolicyIdByFixtureId(f.getId()).orElseThrow();
+            Optional<NsoQosSapPolicyId> maybeSapQosId = nsoQosSapPolicyIdDAO.findNsoQosSapPolicyIdByFixtureId(f.getId());
+            if (maybeSapQosId.isEmpty()) {
+                throw new NsoGenException("unable to retrieve NSO SAP QoS id");
+            }
+            NsoQosSapPolicyId sapQosId = maybeSapQosId.get();
+
             NsoVPLS.DeviceContainer dc = vplsDeviceMap.get(deviceUrn);
 
             // NSO yang sets this to min 1
@@ -458,8 +466,13 @@ public class NsoAdapter {
 
         }
 
+        String nsoDescription = conn.getDescription();
+        if (nsoDescription.length() > 80) {
+            nsoDescription = conn.getDescription().substring(0, 79);
+        }
+
         NsoVPLS vpls = NsoVPLS.builder()
-                .description(conn.getDescription())
+                .description(nsoDescription)
                 .name(conn.getConnectionId())
                 .qosMode(NsoVplsQosMode.GUARANTEED)
                 .routingDomain(ROUTING_DOMAIN)
@@ -483,6 +496,14 @@ public class NsoAdapter {
         private String connectionId;
         private int vcId;
         private List<String> lspNsoKeys;
+        public String asCliCommands() {
+            StringBuilder cmds = new StringBuilder();
+            cmds.append("delete services vpls %d%n".formatted(vcId));
+            for (String lspNsoKey : lspNsoKeys) {
+                cmds.append("delete services lsp %s%n".formatted(lspNsoKey));
+            }
+            return cmds.toString();
+        }
     }
 
     @Data

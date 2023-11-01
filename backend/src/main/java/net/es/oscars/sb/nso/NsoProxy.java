@@ -17,6 +17,7 @@ import net.es.oscars.sb.nso.rest.LiveStatusOutput;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
@@ -29,7 +30,6 @@ import org.springframework.web.client.RestTemplate;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,7 +42,7 @@ public class NsoProxy {
     private RestTemplate patchTemplate;
 
     @Autowired
-    public NsoProxy(NsoProperties props) {
+    public NsoProxy(NsoProperties props, RestTemplateBuilder builder) {
 
         this.props = props;
         try {
@@ -52,7 +52,7 @@ public class NsoProxy {
             MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
             converter.setObjectMapper(customObjectMapper);
 
-            this.restTemplate = new RestTemplate();
+            this.restTemplate = builder.build();
             restTemplate.setErrorHandler(new NsoResponseErrorHandler());
             restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
             restTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
@@ -60,7 +60,7 @@ public class NsoProxy {
             restTemplate.getMessageConverters().add(0, converter);
 
             // different http client for yang patch
-            this.patchTemplate = new RestTemplate();
+            this.patchTemplate = builder.build();
             patchTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
             patchTemplate.setErrorHandler(new NsoResponseErrorHandler());
             patchTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
@@ -116,21 +116,18 @@ public class NsoProxy {
 
         try {
             DevelUtils.dumpDebug("commit", wrapper);
-            ResponseEntity<String> response = restTemplate.postForEntity(restPath, wrapper, String.class);
+            ResponseEntity<IetfRestconfErrorResponse> response = restTemplate.postForEntity(restPath, wrapper, IetfRestconfErrorResponse.class);
 
             if (response.getStatusCode().isError()) {
                 log.error("raw error: "+response.getBody());
                 StringBuilder errorStr = new StringBuilder();
-                try {
-                    IetfRestconfErrorResponse errorResponse = new ObjectMapper().readValue(response.getBody(), IetfRestconfErrorResponse.class);
-                    for (IetfRestconfErrorResponse.IetfError errObj : errorResponse.getErrors().getErrorList()) {
+                if (response.getBody() != null) {
+                    for (IetfRestconfErrorResponse.IetfError errObj : response.getBody().getErrors().getErrorList()) {
                         errorStr.append(errObj.getErrorMessage()).append("\n");
                     }
-                } catch (JsonProcessingException ex) {
-                    log.error(errorRef + "Unable to commit. Unable to parse error. Raw: " + response.getBody()+"\n"+ex.getMessage());
-                    ex.printStackTrace(pw);
-                    log.error(sw.toString());
-                    throw new NsoCommitException("Unable to commit. Unable to parse error. Raw: " + response.getBody());
+
+                } else {
+                    errorStr.append("empty response body\n");
                 }
                 log.error(errorRef+"Unable to commit. NSO error(s): " + errorStr);
                 throw new NsoCommitException("Unable to commit. NSO error(s): " + errorStr);
@@ -145,6 +142,13 @@ public class NsoProxy {
             throw new NsoCommitException(ex.getMessage());
         }
     }
+
+    public void syncFrom(String device) {
+        String path = "restconf/data/tailf-ncs:devices/device=%s/sync-from".formatted(device);
+        String restPath = props.getUri() + path;
+        restTemplate.postForLocation(restPath, HttpEntity.EMPTY);
+    }
+
     public String buildDryRun(NsoServicesWrapper wrapper) throws NsoDryrunException {
         String path = "restconf/data/tailf-ncs:services?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
@@ -152,12 +156,18 @@ public class NsoProxy {
         String errorRef = "Error reference: [" + errorUuid + "]\n";
 
         try {
-            NsoDryRun response = restTemplate.postForObject(restPath, wrapper, NsoDryRun.class);
-            if (response != null && response.getDryRunResult() != null) {
-                log.info(response.getDryRunResult().getCli().getLocalNode().getData());
-                return response.getDryRunResult().getCli().getLocalNode().getData();
+            ResponseEntity<NsoDryRun> dryRunResponse = restTemplate.postForEntity(restPath, wrapper, NsoDryRun.class);
+            if (dryRunResponse.getStatusCode().isError()) {
+                log.error("raw error: " + dryRunResponse.getBody());
+                throw new NsoDryrunException("unable to perform dry run "+ dryRunResponse.getBody());
             } else {
-                return "no dry-run available";
+                if (dryRunResponse.getBody() == null) {
+                    return "Null dry run body";
+                } else if (dryRunResponse.getBody().getDryRunResult() == null) {
+                    return "Null dry run result";
+                } else {
+                    return dryRunResponse.getBody().getDryRunResult().toString();
+                }
             }
         } catch (RestClientException ex) {
             log.error(errorRef+"REST error %s".formatted(ex.getMessage()));

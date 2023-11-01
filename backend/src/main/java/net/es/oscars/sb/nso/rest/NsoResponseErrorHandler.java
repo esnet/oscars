@@ -20,9 +20,11 @@ public class NsoResponseErrorHandler implements ResponseErrorHandler {
     public void handleError(ClientHttpResponse httpResponse) throws IOException {
         // just log stuff
         if (httpResponse.getStatusCode().is5xxServerError()) {
-            log.error("server error: " +httpResponse.getStatusText());
+            log.error("server error status text: " +httpResponse.getStatusText());
+            log.error("server error body: " +httpResponse.getBody());
         } else if (httpResponse.getStatusCode().is4xxClientError()) {
-            log.error("client error: " +httpResponse.getStatusText());
+            log.error("client error status text: " +httpResponse.getStatusText());
+            log.error("client error body: " +httpResponse.getBody());
         }
     }
 }

@@ -14,9 +14,9 @@
     <groupId>net.es.oscars</groupId>
     <artifactId>backend</artifactId>
     <name>backend</name>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.1.1</version>
 
-    <description>OSCARS 1.1 backend</description>
+    <description>OSCARS 1.1.1 backend</description>
     <properties>
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
@@ -123,7 +123,11 @@
             <artifactId>spring-boot-starter-security</artifactId>
             <version>3.1.4</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.springframework.ws</groupId>
+            <artifactId>spring-ws-core</artifactId>
+            <version>4.0.7</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -192,23 +196,13 @@
             <artifactId>jaxws-api</artifactId>
             <version>2.3.1</version>
         </dependency>
+        <dependency>
+            <groupId>net.es.oscars</groupId>
+            <artifactId>nsi</artifactId>
+            <version>1.1.1</version>
+        </dependency>
 
 
-        <dependency>
-            <groupId>com.sun.xml.bind</groupId>
-            <artifactId>jaxb-core</artifactId>
-            <version>2.3.0.1</version>
-        </dependency>
-        <dependency>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
-            <version>2.3.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.xml.bind</groupId>
-            <artifactId>jaxb-impl</artifactId>
-            <version>2.3.1</version>
-        </dependency>
         <dependency>
             <groupId>org.javassist</groupId>
             <artifactId>javassist</artifactId>

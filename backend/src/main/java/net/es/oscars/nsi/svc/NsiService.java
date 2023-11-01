@@ -2,19 +2,22 @@ package net.es.oscars.nsi.svc;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gen.nsi_2_0.connection.types.*;
-import gen.nsi_2_0.services.point2point.ObjectFactory;
+import jakarta.xml.bind.JAXBElement;
+import jakarta.xml.ws.Holder;
+import jakarta.xml.ws.WebServiceException;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
+import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory;
 import lombok.extern.slf4j.Slf4j;
-import gen.nsi_2_0.connection.ifce.ServiceException;
-import gen.nsi_2_0.connection.requester.ConnectionRequesterPort;
-import gen.nsi_2_0.framework.headers.CommonHeaderType;
-import gen.nsi_2_0.framework.types.ServiceExceptionType;
-import gen.nsi_2_0.framework.types.TypeValuePairType;
-import gen.nsi_2_0.framework.types.VariablesType;
-import gen.nsi_2_0.services.point2point.P2PServiceBaseType;
-import gen.nsi_2_0.services.types.DirectionalityType;
-import gen.nsi_2_0.services.types.OrderedStpType;
-import gen.nsi_2_0.services.types.StpListType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.ServiceException;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.requester.ConnectionRequesterPort;
+import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.ServiceExceptionType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.TypeValuePairType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.VariablesType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.P2PServiceBaseType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.DirectionalityType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.OrderedStpType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.StpListType;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.dto.pss.cmd.CommandType;
@@ -52,12 +55,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
-import javax.xml.ws.Holder;
-import javax.xml.ws.WebServiceException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -1092,8 +1092,8 @@ public class NsiService {
         NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
 
         ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
-        gen.nsi_2_0.connection.types.ObjectFactory of =
-                new gen.nsi_2_0.connection.types.ObjectFactory();
+        net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory of =
+                new net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory();
 
         DataPlaneStateChangeRequestType dsrt = of.createDataPlaneStateChangeRequestType();
         DataPlaneStatusType dst = new DataPlaneStatusType();
@@ -1362,8 +1362,8 @@ public class NsiService {
         XMLGregorianCalendar xge = this.getCalendar(sch.getEnding());
 
 
-        gen.nsi_2_0.connection.types.ObjectFactory of =
-                new gen.nsi_2_0.connection.types.ObjectFactory();
+        net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory of =
+                new net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory();
 
         ScheduleType st = of.createScheduleType();
 

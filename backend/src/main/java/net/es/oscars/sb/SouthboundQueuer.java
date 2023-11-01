@@ -1,5 +1,6 @@
 package net.es.oscars.sb;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
 import net.es.oscars.dto.pss.cmd.CommandType;
@@ -36,21 +37,34 @@ public class SouthboundQueuer {
     private final List<SouthboundTask> waiting = new ArrayList<>();
     private final List<SouthboundTask> done = new ArrayList<>();
 
+    @Transactional
     public void process() {
         for (SouthboundTask rt : running) {
             log.info("running : " + rt.getConnectionId() + " " + rt.getCommandType());
         }
+
+        // TODO: ensure we don't do opposite tasks for the same connection; last should win
+        List<SouthboundTask> shouldRun = new ArrayList<>();
         for (SouthboundTask wt : waiting) {
             log.info("waiting : " + wt.getConnectionId() + " " + wt.getCommandType());
+            boolean foundSame = false;
+            for (SouthboundTask rt : running) {
+                if (rt.getCommandType().equals(wt.getCommandType()) &&
+                        rt.getConnectionId().equals(wt.getConnectionId())) {
+                    log.info("already running " + wt.getConnectionId() + " " + wt.getCommandType());
+                    foundSame = true;
+                }
+            }
+            if (!foundSame) {
+                shouldRun.add(wt);
+            }
         }
-        running.addAll(waiting);
 
-        int threadNum = waiting.size();
-        if (threadNum == 0) {
-            return;
-        }
+        running.addAll(shouldRun);
 
-        for (SouthboundTask wt : waiting) {
+        for (SouthboundTask wt : shouldRun) {
+            log.info("running task : " + wt.getConnectionId() + " " + wt.getCommandType());
+
             cr.findByConnectionId(wt.getConnectionId()).ifPresent(conn -> {
                 if (wt.getCommandType().equals(CommandType.BUILD)) {
                     conn.setDeploymentState(DeploymentState.BEING_DEPLOYED);
@@ -59,11 +73,13 @@ public class SouthboundQueuer {
                 }
                 cr.save(conn);
 
+                log.info(wt.getConnectionId() + " " + wt.getCommandType() + " dst: " + conn.getDeploymentState());
+
                 if (isLegacy(conn)) {
                     if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
                         this.completeTask(rancidAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
                     } else {
-                        log.warn("not performing non-dismantle task for legacy connection "+conn.getConnectionId());
+                        log.warn("not performing non-dismantle task for legacy connection " + conn.getConnectionId());
                     }
                 } else {
                     this.completeTask(nsoAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
@@ -74,7 +90,8 @@ public class SouthboundQueuer {
 
     }
 
-    private void completeTask(SouthboundTaskResult result) {
+    @Transactional
+    public void completeTask(SouthboundTaskResult result) {
         SouthboundTask completed = null;
         for (SouthboundTask task : running) {
             if (task.getCommandType().equals(result.getCommandType()) &&
@@ -85,10 +102,10 @@ public class SouthboundQueuer {
                 // when the task was to build or dismantle we update the connection state
                 if (rct.equals(CommandType.BUILD) || rct.equals(CommandType.DISMANTLE)) {
                     cr.findByConnectionId(task.getConnectionId()).ifPresent(c -> {
-                            c.setState(result.getState());
-                            c.setDeploymentState(result.getDeploymentState());
-                            cr.save(c);
-                        }
+                                c.setState(result.getState());
+                                c.setDeploymentState(result.getDeploymentState());
+                                cr.save(c);
+                            }
                     );
 
                 }

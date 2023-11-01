@@ -24,6 +24,7 @@ public class NsoQosSapPolicyIdService {
     @Autowired
     private NsoQosSapPolicyIdDAO nsoQosSapPolicyIdDAO;
 
+    @Transactional
     public void findAndReserveQosSapPolicyIds(Connection conn, List<Schedule> schedules) throws NsoResvException {
         Map<String, Set<VlanFixture>> byDevice = new HashMap<>();
         conn.getReserved().getCmp().getJunctions().forEach(j -> byDevice.put(j.getDeviceUrn(), new HashSet<>()));
@@ -36,7 +37,6 @@ public class NsoQosSapPolicyIdService {
         }
     }
 
-    @Transactional
     public void findAndReserveQosSapPolicyIdsForDevice(String device, Set<VlanFixture> fixtures,
                                                        Connection conn, List<Schedule> schedules)
             throws NsoResvException {
