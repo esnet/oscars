@@ -36,4 +36,7 @@ public class NsoProperties {
 
     @NonNull
     public String password;
+
+    public Boolean sdpIdsGloballyUnique;
+
 }

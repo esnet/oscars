@@ -34,19 +34,29 @@ public class NsoSdpIdService {
         // 2.2. we inspect the two set of available SDP ids for the VlanPipe's A and Z and locate a shared SDP id
         // 2.3 we keep that around; when we get to the next VlanPipe these shall be considered in-use
         // 3. if we get through all the VlanPipes without any problems, we can save all the NsoSdpIds
-
-        Map<String, Set<Integer>> usedSdpIdsByDevice = this.collectUsedSdpIdsKnowingSchedule(schedules);
         Set<Integer> allowedSdpIds = IntRange.singleSetFromExpr(nsoProperties.getSdpIdRange());
 
+
+        Map<String, Set<Integer>> usedSdpIdsByDevice;
         Set<String> devices = new HashSet<>();
         for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
             devices.add(pipe.getA().getDeviceUrn());
             devices.add(pipe.getZ().getDeviceUrn());
         }
 
-        Map<String, Set<Integer>> availableSdpIds = MiscHelper
-                .generateAvailableDeviceScopedIdentifiers(allowedSdpIds, usedSdpIdsByDevice, devices);
+        if (nsoProperties.getSdpIdsGloballyUnique()) {
+            // in this case we consider all sdp ids already reserved anywhere to be reserved on our devices
+            Set<Integer> usedSdpIds  = this.collectUsedSdpIdsGloballyKnowingSchedule(schedules);
+            usedSdpIdsByDevice = new HashMap<>();
+            devices.forEach(d -> {
+                usedSdpIdsByDevice.put(d, usedSdpIds);
+            });
 
+        } else {
+            usedSdpIdsByDevice = this.collectUsedSdpIdsByDeviceKnowingSchedule(schedules);
+        }
+
+        Map<String, Set<Integer>> availableSdpIds = MiscHelper.generateAvailableDeviceScopedIdentifiers(allowedSdpIds, usedSdpIdsByDevice, devices);
         Set<NsoSdpId> nsoSdpIds = new HashSet<>();
 
         for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
@@ -80,7 +90,18 @@ public class NsoSdpIdService {
         this.nsoSdpIdDAO.saveAll(nsoSdpIds);
     }
 
-    public Map<String, Set<Integer>> collectUsedSdpIdsKnowingSchedule(List<Schedule> schedules) {
+    public Set<Integer> collectUsedSdpIdsGloballyKnowingSchedule(List<Schedule> schedules) {
+        Set<Integer> usedSdpIds = new HashSet<>();
+        schedules.forEach(s -> {
+            nsoSdpIdDAO.findNsoSdpIdByScheduleId(s.getId()).forEach(nsoSdpId -> {
+                usedSdpIds.add(nsoSdpId.getSdpId());
+            });
+        });
+
+        return usedSdpIds;
+    }
+
+    public Map<String, Set<Integer>> collectUsedSdpIdsByDeviceKnowingSchedule(List<Schedule> schedules) {
         Map<String, Set<Integer>> usedSdpIds = new HashMap<>();
         schedules.forEach(s -> {
             nsoSdpIdDAO.findNsoSdpIdByScheduleId(s.getId()).forEach(nsoSdpId -> {
