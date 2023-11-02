@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.dto.pss.cmd.CommandType;
+import net.es.oscars.sb.db.RouterCommandsRepository;
 import net.es.oscars.sb.ent.RouterCommandHistory;
 import net.es.oscars.resv.db.CommandHistoryRepository;
 import net.es.oscars.resv.db.LogRepository;
@@ -12,6 +13,7 @@ import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.EventType;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.sb.ent.RouterCommands;
 import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.enums.CommandParamType;
 import net.es.oscars.web.beans.*;
@@ -22,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.*;
+
+import static net.es.oscars.sb.nso.NsoAdapter.NSO_TEMPLATE_VERSION;
 
 @RestController
 @Slf4j
@@ -34,6 +38,9 @@ public class ListController {
 
     @Autowired
     private CommandHistoryRepository historyRepo;
+
+    @Autowired
+    private RouterCommandsRepository rcRepo;
 
     @Autowired
     private ConnService connService;
@@ -101,6 +108,15 @@ public class ListController {
         for (Connection c : list.getConnections()) {
             List<RouterCommandHistory> rchList = historyRepo.findByConnectionId(c.getConnectionId());
             Optional<EventLog> maybeLog = logRepo.findByConnectionId(c.getConnectionId());
+            List<RouterCommands> routerCommandsList = rcRepo.findByConnectionId(c.getConnectionId());
+            String southbound = "RANCID";
+            for (RouterCommands rc : routerCommandsList) {
+                if (rc.getTemplateVersion().startsWith(NSO_TEMPLATE_VERSION) ||
+                        rc.getTemplateVersion().startsWith("NSO")) {
+                    southbound = "NSO";
+                    break;
+                }
+            }
 
             List<MinimalConnEndpoint> endpoints = new ArrayList<>();
             Map<String, List<Integer>> sdps = new HashMap<>();
@@ -149,6 +165,7 @@ public class ListController {
                     .description(c.getDescription())
                     .sdps(sdps)
                     .eros(eros)
+                    .southbound(southbound)
                     .endpoints(endpoints)
                     .build();
 

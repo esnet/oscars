@@ -372,6 +372,38 @@ class ConnectionsList extends Component {
                     style={{ fontStyle: "italic", width: "100%" }}
                 />
             )
+        },
+        {
+            accessor: "southbound",
+            Header: props => (
+                <div>
+                    <br />
+                    <b>Southbound</b>
+                    <br />
+                </div>
+            ),
+            filterMethod: (filter, row) => {
+                if (filter.value === "any") {
+                    return true;
+                }
+                if (filter.value === "NSO") {
+                    return row[filter.id] === "NSO";
+                }
+                if (filter.value === "RANCID") {
+                    return row[filter.id] === "RANCID";
+                }
+            },
+            Filter: ({ filter, onChange }) => (
+                <select
+                    onChange={event => onChange(event.target.value)}
+                    style={{ width: "100%" }}
+                    value={filter ? filter.value : "any"}
+                >
+                    <option value="any">Any</option>
+                    <option value="NSO">NSO</option>
+                    <option value="RANCID">RANCID</option>
+                </select>
+            )
         }
     ];
 
@@ -402,6 +434,7 @@ class ConnectionsList extends Component {
                 description: c.description,
                 phase: c.phase,
                 state: c.state,
+                southbound: c.southbound,
                 tags: toJS(c.tags),
                 username: c.username,
                 fixtures: fixtures,
