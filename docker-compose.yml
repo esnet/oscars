@@ -11,7 +11,7 @@ services:
       - topo-net
     build:
       context: ./
-      dockerfile: ../deploy/devel/backend.dockerfile
+      dockerfile: ./deploy/devel/backend.dockerfile
     depends_on:
       oscars-db:
         condition: service_healthy

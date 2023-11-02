@@ -16,6 +16,7 @@ import java.util.Set;
 public class MinimalConnEntry {
     private List<MinimalConnEndpoint> endpoints;
     private Map<String, List<Integer>> sdps;
+    private String southbound;
     private Set<List<String>> eros;
     private Integer start;
     private Integer end;
