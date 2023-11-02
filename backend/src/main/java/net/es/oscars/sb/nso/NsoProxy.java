@@ -12,6 +12,8 @@ import net.es.oscars.sb.nso.rest.NsoDryRun;
 import net.es.oscars.sb.nso.rest.NsoHeaderRequestInterceptor;
 import net.es.oscars.sb.nso.rest.NsoResponseErrorHandler;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
+import net.es.oscars.sb.nso.rest.LiveStatusRequest;
+import net.es.oscars.sb.nso.rest.LiveStatusOutput;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -217,6 +219,60 @@ public class NsoProxy {
 
 
         return YangPatchWrapper.builder().patch(deletePatch).build();
+    }
+
+
+    // NSO live status fdb query stuff
+    public String getLiveStatusFdbInfo(String device) {
+        if (device == null) {
+            log.error("No device provided");
+            return null;
+        }
+        LiveStatusRequest request = new LiveStatusRequest();
+        request.setArgs("service fdb-info");
+        return getLiveStatusShow(device, request);
+    }
+
+    public String getLiveStatusAllFdbMacs(String device) {
+        if (device == null) {
+            log.error("No device provided");
+            return null;
+        }
+        LiveStatusRequest request = new LiveStatusRequest();
+        request.setArgs("service fdb-mac");
+        return getLiveStatusShow(device, request);
+    }
+
+    public String getLiveStatusServiceMacs(String device, int serviceId) {
+        if (device == null) {
+            log.error("No device provided");
+            return null;
+        }
+        LiveStatusRequest request = new LiveStatusRequest();
+        request.setArgs("service id " + serviceId + " fdb detail");
+        return getLiveStatusShow(device, request);
+    }
+
+
+    public String getLiveStatusShow(String device, LiveStatusRequest liveStatusRequest) {
+        if (device == null || liveStatusRequest == null) {
+            log.error("No device or live status args available");
+            return null;
+        }
+        String path = "/data/tailf-ncs:devices/device=" + device + "/live-status/tailf-ned-alu-sr-stats:exec/show";
+        String restPath = props.getUri() + path;
+
+        try {
+            LiveStatusOutput response = restTemplate.postForObject(restPath, liveStatusRequest, LiveStatusOutput.class);
+            if (response != null && response.getOutput() != null) {
+                log.info(response.getOutput());
+                return response.getOutput();
+            }
+        } catch (RestClientException ex) {
+            log.error("REST error %s".formatted(ex.getMessage()));
+            throw ex;
+        }
+        return null;
     }
 
 }
