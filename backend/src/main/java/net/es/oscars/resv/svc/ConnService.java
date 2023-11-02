@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.util.DbAccess;
+import net.es.oscars.sb.db.RouterCommandsRepository;
+import net.es.oscars.sb.ent.RouterCommands;
 import net.es.oscars.sb.nso.resv.NsoResourceService;
 import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.resv.db.*;
@@ -35,6 +37,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static net.es.oscars.resv.svc.ConnUtils.*;
+import static net.es.oscars.sb.nso.NsoAdapter.NSO_TEMPLATE_VERSION;
 
 @Service
 @Slf4j
@@ -53,6 +56,9 @@ public class ConnService {
 
     @Autowired
     private NsoResourceService nsoResourceService;
+
+    @Autowired
+    private RouterCommandsRepository rcRepo;
 
     @Autowired
     private HeldRepository heldRepo;
@@ -252,8 +258,26 @@ public class ConnService {
             }
         }
 
+        List<Connection> southboundFiltered = intervalFiltered;
+        if (filter.getSouthbound() != null) {
+            for (Connection c : southboundFiltered) {
+                List<RouterCommands> routerCommandsList = rcRepo.findByConnectionId(c.getConnectionId());
+                String thisSouthbound = "RANCID";
+                for (RouterCommands rc : routerCommandsList) {
+                    if (rc.getTemplateVersion().startsWith(NSO_TEMPLATE_VERSION) ||
+                            rc.getTemplateVersion().startsWith("NSO")) {
+                        thisSouthbound = "NSO";
+                        break;
+                    }
+                }
+                if (thisSouthbound.equals(filter.getSouthbound())) {
+                    southboundFiltered.add(c);
+                }
 
-        List<Connection> finalFiltered = intervalFiltered;
+            }
+        }
+
+        List<Connection> finalFiltered = southboundFiltered;
         List<Connection> paged = new ArrayList<>();
         int totalSize = finalFiltered.size();
 
