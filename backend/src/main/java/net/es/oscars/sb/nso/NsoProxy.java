@@ -224,7 +224,7 @@ public class NsoProxy {
 
     // NSO live status fdb query stuff
     public String getLiveStatusFdbInfo(String device) {
-        if(device == null) {
+        if (device == null) {
             log.error("No device provided");
             return null;
         }
@@ -234,7 +234,7 @@ public class NsoProxy {
     }
 
     public String getLiveStatusAllFdbMacs(String device) {
-        if(device == null) {
+        if (device == null) {
             log.error("No device provided");
             return null;
         }
@@ -244,7 +244,7 @@ public class NsoProxy {
     }
 
     public String getLiveStatusServiceMacs(String device, int serviceId) {
-        if(device == null) {
+        if (device == null) {
             log.error("No device provided");
             return null;
         }
@@ -255,7 +255,7 @@ public class NsoProxy {
 
 
     public String getLiveStatusShow(String device, LiveStatusRequest liveStatusRequest) {
-        if(device == null || liveStatusRequest == null) {
+        if (device == null || liveStatusRequest == null) {
             log.error("No device or live status args available");
             return null;
         }
@@ -270,6 +270,7 @@ public class NsoProxy {
             }
         } catch (RestClientException ex) {
             log.error("REST error %s".formatted(ex.getMessage()));
+            throw ex;
         }
         return null;
     }

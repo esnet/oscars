@@ -1,6 +1,5 @@
 package net.es.oscars.sb.nso;
 
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.rest.DeviceServiceIdKeyPair;
 import net.es.oscars.sb.nso.rest.MacInfoServiceResult;
@@ -9,8 +8,8 @@ import org.springframework.stereotype.Component;
 
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Component
@@ -22,10 +21,9 @@ public class LiveStatusFdbCacheManager {
 
     public LiveStatusFdbCacheManager(NsoProxy nsoProxy) {
         this.nsoProxy = nsoProxy;
-        this.cache = new HashMap<>();
+        this.cache = new ConcurrentHashMap<>();
     }
 
-    @Transactional
     public MacInfoServiceResult refresh(String device, int serviceId) {
         log.info("Refresh FDb string for " + device + "service ID " + serviceId);
 
@@ -38,12 +36,12 @@ public class LiveStatusFdbCacheManager {
 
         String reply = nsoProxy.getLiveStatusServiceMacs(device, serviceId);
 
-        if(reply != null) {
+        if (reply != null) {
             // check for invalid service ID
             // Error message example:
             // - wrong service ID: "\nMINOR: CLI Invalid service id \"7001\".\r\nA:llnl-cr6# "
             String invalidServiceId = "Invalid service id";
-            if(reply.contains(invalidServiceId)) {
+            if (reply.contains(invalidServiceId)) {
                 String error = invalidServiceId + " " + serviceId;
                 log.error(error);
                 result.setErrorMessage(error);
@@ -61,29 +59,26 @@ public class LiveStatusFdbCacheManager {
         return result;
     }
 
-    @Transactional
     public MacInfoServiceResult getRefreshed(String device, int serviceId) {
         return refresh(device, serviceId);
     }
 
-    @Transactional
     public MacInfoServiceResult getCached(String device, int serviceId) {
         return cache.get(new DeviceServiceIdKeyPair(device, serviceId));
     }
 
-    @Transactional
     public MacInfoServiceResult get(String device, int serviceId, Instant olderThanTimestamp) {
-        if(olderThanTimestamp == null) return null;
+        if (olderThanTimestamp == null) return null;
 
         MacInfoServiceResult tmp = getCached(device, serviceId);
-        if(tmp == null) {
+        if (tmp == null) {
             // nothing cached
             tmp = getRefreshed(device, serviceId);
-            if(tmp == null || tmp.getTimestamp() == null) return null;
+            if (tmp == null || tmp.getTimestamp() == null) return null;
             else return tmp;
         }
 
-        if(tmp.getTimestamp().isBefore(olderThanTimestamp)) {
+        if (tmp.getTimestamp().isBefore(olderThanTimestamp)) {
             // if not get a refreshed one
             tmp = getRefreshed(device, serviceId);
         }

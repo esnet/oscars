@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Slf4j
@@ -43,9 +44,9 @@ public class MacInfoController {
         log.debug("Request:" + request.toString());
 
         String connectionId = request.getConnectionId();
-        if(connectionId == null) {
+        if (connectionId == null) {
             log.info("MAC info request has no connection id!");
-            return null;
+            throw new IllegalArgumentException();
         }
 
         HashSet<String> devicesFromId = new HashSet<String>();
@@ -54,27 +55,27 @@ public class MacInfoController {
         // get circuit vc-id
         Optional<NsoVcId> optVcid = nsoVcIdDAO.findNsoVcIdByConnectionId(connectionId);
         Integer vcid = 0;
-        if(optVcid.isPresent()) {
+        if (optVcid.isPresent()) {
             vcid = optVcid.get().getVcId();
         } else {
             log.info("Couldn't find VC-ID for OSCARS circuit " + connectionId);
-            return null;
+            throw new NoSuchElementException();
         }
 
         // find devices in circuit
         Connection conn = connSvc.findConnection(connectionId);
-        if(conn == null) {
+        if (conn == null) {
             log.info("Couldn't find OSCARS circuit for connection id " + connectionId);
-            return null;
+            throw new NoSuchElementException();
         }
-        for(VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
+        for (VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
             String deviceUrn = f.getJunction().getDeviceUrn();
             devicesFromId.add(deviceUrn);
             log.debug("Adding device: " + deviceUrn);
         }
 
         // if no devices are listed in the request we use all devices from the circuit
-        if(devicesFromRest == null || devicesFromRest.size() == 0) {
+        if (devicesFromRest == null || devicesFromRest.size() == 0) {
             devicesFromRest = new LinkedList<String>();
             devicesFromRest.addAll(devicesFromId);
         }
@@ -90,8 +91,8 @@ public class MacInfoController {
         MacInfoResult tmp;
 
         log.debug("Run live-status request on devices");
-        for(String device : devicesFromRest) {
-            if(devicesFromId.contains(device)) {
+        for (String device : devicesFromRest) {
+            if (devicesFromId.contains(device)) {
                 log.debug("Fetch FDB from FDBCacheManager for " + device + " service id " + vcid);
                 tmpResult = fdbCacheManager.get(device,
                                 vcid,
