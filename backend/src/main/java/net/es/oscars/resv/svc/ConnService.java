@@ -259,7 +259,7 @@ public class ConnService {
         }
 
         List<Connection> southboundFiltered = intervalFiltered;
-        if (filter.getSouthbound() != null) {
+        if (filter.getSouthbound() != null && !filter.getSouthbound().equals("any")) {
             southboundFiltered = new ArrayList<>();
             for (Connection c : intervalFiltered) {
                 List<RouterCommands> routerCommandsList = rcRepo.findByConnectionId(c.getConnectionId());
