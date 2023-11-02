@@ -428,13 +428,18 @@ class ConnectionsList extends Component {
                 fixtureBits.push(fixtureBit);
             });
             let fixtureString = fixtureBits.join(" ");
+            let southbound = "RANCID";
+            let migrationDate = Moment('2023-10-26 14:00:00');
+            if (beg.isAfter(migrationDate)) {
+                southbound = "NSO";
+            }
 
             let row = {
                 connectionId: c.connectionId,
                 description: c.description,
                 phase: c.phase,
                 state: c.state,
-                southbound: c.southbound,
+                southbound: southbound,
                 tags: toJS(c.tags),
                 username: c.username,
                 fixtures: fixtures,
