@@ -260,7 +260,8 @@ public class ConnService {
 
         List<Connection> southboundFiltered = intervalFiltered;
         if (filter.getSouthbound() != null) {
-            for (Connection c : southboundFiltered) {
+            southboundFiltered = new ArrayList<>();
+            for (Connection c : intervalFiltered) {
                 List<RouterCommands> routerCommandsList = rcRepo.findByConnectionId(c.getConnectionId());
                 String thisSouthbound = "RANCID";
                 for (RouterCommands rc : routerCommandsList) {
