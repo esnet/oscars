@@ -2,11 +2,13 @@ package net.es.oscars.sb.nso.rest;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(callSuper=false)
 public class MacInfoServiceResult extends MacInfoResult {
     private Integer serviceId;
 

@@ -16,7 +16,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class MacInfoRequest {
+public class NsoLiveStatusRequest {
 
     @JsonProperty("connection-id")
     private String connectionId;

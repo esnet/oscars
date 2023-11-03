@@ -25,7 +25,7 @@ import java.util.Optional;
 
 @Slf4j
 @RestController
-public class MacInfoController {
+public class NsoLiveStatusController {
 
     @Autowired
     private LiveStatusFdbCacheManager fdbCacheManager;
@@ -105,5 +105,15 @@ public class MacInfoController {
         response.setResults(results);
         return response;
     }
+
+
+
+    @RequestMapping(value = "/api/operational-state/info", method = RequestMethod.POST)
+    @ResponseBody
+    @Transactional
+    public MacInfoResponse getOperationalStateInfo(@RequestBody MacInfoRequest request) {
+        return null;
+    }
+
 
 }

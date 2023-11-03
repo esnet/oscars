@@ -3,20 +3,16 @@ package net.es.oscars.sb.nso.rest;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class MacInfoResult {
+@EqualsAndHashCode(callSuper=false)
+public class MacInfoResult extends LiveStatusResult {
 
-    private String device;
-    private Instant timestamp = null;
-    private Boolean status = false;
-    @JsonProperty("error-message")
-    private String errorMessage = null;
     @JsonProperty("fdb")
     private String fdbQueryResult = null;
 
