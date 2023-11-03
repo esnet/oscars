@@ -2,7 +2,7 @@ package net.es.oscars.web.rest;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import net.es.oscars.web.beans.MacInfoRequest;
+import net.es.oscars.web.beans.NsoLiveStatusRequest;
 import net.es.oscars.web.beans.MacInfoResponse;
 import net.es.oscars.sb.nso.rest.MacInfoResult;
 import net.es.oscars.sb.nso.rest.MacInfoServiceResult;
@@ -39,7 +39,7 @@ public class NsoLiveStatusController {
     @RequestMapping(value = "/api/mac/info", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public MacInfoResponse getMacInfo(@RequestBody MacInfoRequest request) {
+    public MacInfoResponse getMacInfo(@RequestBody NsoLiveStatusRequest request) {
         log.debug("MAC info request");
         log.debug("Request:" + request.toString());
 
@@ -111,7 +111,7 @@ public class NsoLiveStatusController {
     @RequestMapping(value = "/api/operational-state/info", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public MacInfoResponse getOperationalStateInfo(@RequestBody MacInfoRequest request) {
+    public MacInfoResponse getOperationalStateInfo(@RequestBody NsoLiveStatusRequest request) {
         return null;
     }
 
