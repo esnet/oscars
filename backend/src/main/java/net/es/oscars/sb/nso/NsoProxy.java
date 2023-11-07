@@ -253,6 +253,34 @@ public class NsoProxy {
         return getLiveStatusShow(device, request);
     }
 
+    public String getLiveStatusServiceSap(String device, int serviceId) {
+        String args = "service id " + serviceId + " sap";
+        return getLiveStatusShowArgs(device, args);
+    }
+
+    public String getLiveStatusServiceSdp(String device, int serviceId) {
+        String args = "service id " + serviceId + " sdp";
+        return getLiveStatusShowArgs(device, args);
+    }
+
+    public String getLiveStatusRouterMplsLsp(String device) {
+        String args = "router mpls lsp";
+        return getLiveStatusShowArgs(device, args);
+    }
+
+    public String getLiveStatusShowArgs(String device, String args) {
+        if (device == null) {
+            log.error("No device provided");
+            return null;
+        }
+        if (args == null) {
+            log.error("No args provided");
+            return null;
+        }
+        LiveStatusRequest request = new LiveStatusRequest();
+        request.setArgs(args);
+        return getLiveStatusShow(device, request);
+    }
 
     public String getLiveStatusShow(String device, LiveStatusRequest liveStatusRequest) {
         if (device == null || liveStatusRequest == null) {
