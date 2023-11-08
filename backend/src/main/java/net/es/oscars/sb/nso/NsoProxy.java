@@ -259,7 +259,7 @@ public class NsoProxy {
             log.error("No device or live status args available");
             return null;
         }
-        String path = "/data/tailf-ncs:devices/device=" + device + "/live-status/tailf-ned-alu-sr-stats:exec/show";
+        String path = "restconf/data/tailf-ncs:devices/device=" + device + "/live-status/tailf-ned-alu-sr-stats:exec/show";
         String restPath = props.getUri() + path;
 
         try {

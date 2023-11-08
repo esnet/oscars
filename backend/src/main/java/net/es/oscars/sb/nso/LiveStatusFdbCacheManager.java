@@ -25,7 +25,7 @@ public class LiveStatusFdbCacheManager {
     }
 
     public MacInfoServiceResult refresh(String device, int serviceId) {
-        log.info("Refresh FDb string for " + device + "service ID " + serviceId);
+        log.info("Refresh FDb string for " + device + " service ID " + serviceId);
 
         MacInfoServiceResult result = new MacInfoServiceResult();
         result.setDevice(device);
