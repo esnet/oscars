@@ -40,7 +40,7 @@
     "react-table": "^6.11.5",
     "react-tag-input": "^6.4.3",
     "react-toggle-display": "^2.2.0",
-    "reactstrap": "^8.5.1",
+    "reactstrap": "^9,2.1",
     "safe-json-stringify": "^1.2.0",
     "serialize-javascript": "^4.0.0",
     "visjs-network": "^4.24.11"
