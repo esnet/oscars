@@ -20,6 +20,7 @@ import DetailsEditForm from "./detailsEditForm";
 import DetailsHistory from "./detailsHistory";
 import DetailsTags from "./detailsTags";
 import HelpPopover from "../helpPopover";
+import DetailsTroubleshoot from "./detailsTroubleshoot";
 
 @inject("connsStore")
 @observer
@@ -153,7 +154,7 @@ class DetailsGeneral extends Component {
                                         this.setTab("troubleshoot");
                                     }}
                                 >
-                                    History
+                                    Troubleshoot
                                 </NavLink>
                             </NavItem>
                         </Nav>
