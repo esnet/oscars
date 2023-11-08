@@ -76,8 +76,8 @@ class DetailsTroubleshoot extends Component {
                             }
                             let headerString = result['device']+' ('+timestamp+')';
                             return <AccordionItem>
-                                    <AccordionHeader targetId=idx>{headerString}</AccordionHeader>
-                                    <AccordionBody accordionId=idx>
+                                    <AccordionHeader targetId={idx}>{headerString}</AccordionHeader>
+                                    <AccordionBody accordionId={idx}>
                                         <pre>{message}</pre>
                                     </AccordionBody>
                                 </AccordionItem>
