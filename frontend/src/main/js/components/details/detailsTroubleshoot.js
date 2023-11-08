@@ -65,19 +65,22 @@ class DetailsTroubleshoot extends Component {
             if (macInfo['connection-id']) {
                 macLearning = <UncontrolledAccordion>
                     {
-                        macInfo['results'].map( result => {
-                            let info = result['fdb'];
+                        macInfo['results'].map( (result, idx) => {
+                            let message = result['fdb'];
+                            let timestamp = 'unknown';
                             if (!result['status']) {
-                                info = result['error-message']
+                                message = result['error-message']
                             }
-                            return (
-                                <AccordionItem>
-                                    <AccordionHeader targetId={result['device']}>{result['device']} ({Moment(result['timestamp']).fromNow()})</AccordionHeader>
-                                    <AccordionBody accordionId={result['device']}>
-                                        <pre>{info}</pre>
+                            if (result['timestamp']) {
+                                timestamp = Moment(result['timestamp']).fromNow();
+                            }
+                            let headerString = result['device']+' ('+timestamp+')';
+                            return <AccordionItem>
+                                    <AccordionHeader targetId=idx>{headerString}</AccordionHeader>
+                                    <AccordionBody accordionId=idx>
+                                        <pre>{message}</pre>
                                     </AccordionBody>
                                 </AccordionItem>
-                            )
                         })
                     }
                 </UncontrolledAccordion>

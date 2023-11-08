@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -27,7 +28,7 @@ public class MacInfoRequest {
 
     @JsonSetter(nulls = Nulls.SKIP)
     @JsonProperty("refresh-if-older-than")
-    private Instant refreshIfOlderThan = Instant.now();
+    private Instant refreshIfOlderThan = Instant.now().minus(10, ChronoUnit.SECONDS);
     //String refreshIfOlderThan;
 
 }
