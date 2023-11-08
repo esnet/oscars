@@ -75,7 +75,7 @@ class DetailsTroubleshoot extends Component {
                                 timestamp = Moment(result['timestamp']).fromNow();
                             }
                             let headerString = result['device']+' ('+timestamp+')';
-                            return <AccordionItem>
+                            return <AccordionItem key={idx}>
                                     <AccordionHeader targetId={idx}>{headerString}</AccordionHeader>
                                     <AccordionBody accordionId={idx}>
                                         <pre>{message}</pre>
