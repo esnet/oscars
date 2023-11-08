@@ -8,7 +8,10 @@ import {
     CardBody,
     Button,
     Form,
-    Input
+    UncontrolledAccordion,
+    AccordionItem,
+    AccordionHeader,
+    AccordionBody
 } from "reactstrap";
 
 import myClient from "../../agents/client";
@@ -22,7 +25,7 @@ class DetailsTroubleshoot extends Component {
             loading: true
         };
     }
-    
+
     componentWillMount() {
         const pathConnectionId = this.props.connsStore.store.current.connectionId;
         this.updateMacInfo(pathConnectionId);
@@ -60,7 +63,7 @@ class DetailsTroubleshoot extends Component {
         if (!this.state.loading) {
             let macLearning = <div>No mac learning data loaded</div>
             if (macInfo['connection-id']) {
-                macLearning = <div>
+                macLearning = <UncontrolledAccordion>
                     {
                         macInfo['results'].map( result => {
                             let info = result['fdb'];
@@ -68,15 +71,16 @@ class DetailsTroubleshoot extends Component {
                                 info = result['error-message']
                             }
                             return (
-                                <>
-                                    <p>Device: {result['device']}</p>
-                                    <p>Last updated:{Moment(result['timestamp']).fromNow()} </p>
-                                    <p><Input type="textarea" disabled value={info} /></p>
-                                </>
+                                <AccordionItem>
+                                    <AccordionHeader targetId={result['device']}>{result['device']} ({Moment(result['timestamp']).fromNow()})</AccordionHeader>
+                                    <AccordionBody accordionId={result['device']}>
+                                        <pre>{info}</pre>
+                                    </AccordionBody>
+                                </AccordionItem>
                             )
                         })
                     }
-                </div>
+                </UncontrolledAccordion>
             }
             contents = <Form inline onSubmit={e => { e.preventDefault();}}>
                 {macLearning}
