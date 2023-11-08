@@ -4,6 +4,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
+import net.es.oscars.pce.beans.PathConstraint;
 import net.es.oscars.resv.ent.EroHop;
 import net.es.oscars.resv.ent.VlanPipe;
 import net.es.oscars.topo.beans.TopoAdjcy;
@@ -17,8 +18,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.shortestpath.AllDirectedPaths;
 import org.jgrapht.graph.DirectedWeightedMultigraph;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -27,9 +28,10 @@ import java.util.*;
 
 @Slf4j
 @Component
-public class AllPathsPCE {
-    @Autowired
-    private TopoService topoService;
+@ConditionalOnProperty(name="pce.engine", havingValue="allpaths")
+
+public class AllPathsEngine implements Engine {
+    private final TopoService topoService;
 
     @Value("#{new Double('${pce.long-path-ratio}')}")
     private Double longPathRatio;
@@ -40,12 +42,12 @@ public class AllPathsPCE {
     @Value("${pce.short-path-detour:15}")
     private Integer shortPathDetour;
 
-
-    private Map<Pair<TopoUrn, TopoUrn>, List<GraphPath<TopoUrn, TopoAdjcy>>> pathsCache = new HashMap<>();
+    private final Map<Pair<TopoUrn, TopoUrn>, List<GraphPath<TopoUrn, TopoAdjcy>>> pathsCache = new HashMap<>();
     private Version cacheTopoVersion = null;
 
-    @Autowired
-    private DijkstraPCE dijkstraPCE;
+    public AllPathsEngine(TopoService topoService) {
+        this.topoService = topoService;
+    }
 
 
     private List<GraphPath<TopoUrn, TopoAdjcy>> cachedPaths
@@ -91,9 +93,9 @@ public class AllPathsPCE {
     public PceResponse calculatePaths(VlanPipe requestPipe,
                                       Map<String, Integer> availIngressBw,
                                       Map<String, Integer> availEgressBw,
-                                      List<String> include,
-                                      Set<String> exclude) throws PCEException {
-
+                                      PathConstraint constraint) throws PCEException {
+        Set<String> exclude = constraint.getExclude();
+        List<String> ero = constraint.getEro();
 
         Map<String, TopoUrn> baseline = topoService.getTopoUrnMap();
 
@@ -139,9 +141,9 @@ public class AllPathsPCE {
         DirectedWeightedMultigraph<TopoUrn, TopoAdjcy> byHopsGraph = PceLibrary.makeGraph(topoAdjcies, hopCosts);
 
 
-        PcePath shortest = dijkstraPCE.shortestPath(byMetricGraph, src, dst);
+        PcePath shortest = DijkstraPCE.shortestPath(byMetricGraph, src, dst);
         // first, get the shortest path (by metric)
-        PcePath leastHops = dijkstraPCE.shortestPath(byHopsGraph, src, dst);
+        PcePath leastHops = DijkstraPCE.shortestPath(byHopsGraph, src, dst);
         PceLibrary.pathBandwidths(shortest, baseline, availIngressBw, availEgressBw);
         PceLibrary.pathBandwidths(leastHops, baseline, availIngressBw, availEgressBw);
 
@@ -157,13 +159,13 @@ public class AllPathsPCE {
             PceLibrary.calculateDiameter(topoAdjcies, hopCosts);
         }
 
-        Double lengthRatio = shortestPathLength / PceLibrary.diameter;
+        double lengthRatio = shortestPathLength / PceLibrary.diameter;
 
         if (lengthRatio > longPathRatio) {
             maxLength = shortestPathLength + longPathDetour;
             log.info("long path; using long path max-length (" + maxLength + ")");
         } else {
-            log.info("short path; using short path max-length (" + maxLength + ")");
+            log.info("short path; using max-length for short paths (" + maxLength + ") : spl: "+shortestPathLength+" + detour: "+shortPathDetour);
 
         }
 
@@ -204,9 +206,9 @@ public class AllPathsPCE {
 
             boolean includedOk = true;
 
-            if (include != null) {
+            if (ero != null) {
                 List<Integer> indices = new ArrayList<>();
-                for (String urn : include) {
+                for (String urn : ero) {
                     indices.add(hopUrnList.indexOf(urn));
                 }
                 boolean sorted = Ordering.natural().isOrdered(indices);
