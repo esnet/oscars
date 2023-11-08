@@ -25,7 +25,7 @@ class DetailsTroubleshoot extends Component {
     
     componentWillMount() {
         const pathConnectionId = this.props.connsStore.store.current.connectionId;
-        this.updateList(pathConnectionId);
+        this.updateMacInfo(pathConnectionId);
     }
 
     componentWillUnmount() {
