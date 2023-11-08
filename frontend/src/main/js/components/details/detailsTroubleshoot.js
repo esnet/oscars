@@ -97,4 +97,4 @@ class DetailsTroubleshoot extends Component {
             }
 }
 
-export default DetailsHistory;
+export default DetailsTroubleshoot;
