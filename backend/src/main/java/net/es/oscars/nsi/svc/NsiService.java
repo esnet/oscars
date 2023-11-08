@@ -790,6 +790,15 @@ public class NsiService {
         } else if (junctions.size() > 2) {
             throw new NsiException("Too many junctions for NSI reserve", NsiErrors.PCE_ERROR);
         }
+        // first element of ero should be the first device...
+        if (!include.get(0).equals(junctions.get(0).getDevice())) {
+            include.add(0, junctions.get(0).getDevice());
+        }
+        // last element of ero should be the last device.
+        if (!include.get(include.size()-1).equals(junctions.get(1).getDevice())) {
+            include.add(junctions.get(1).getDevice());
+        }
+
         try {
             PceRequest request = PceRequest.builder()
                     .a(junctions.get(0).getDevice())
