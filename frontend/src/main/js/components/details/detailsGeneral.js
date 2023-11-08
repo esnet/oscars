@@ -145,6 +145,17 @@ class DetailsGeneral extends Component {
                                     History
                                 </NavLink>
                             </NavItem>
+                            <NavItem>
+                                <NavLink
+                                    href="#"
+                                    className={classnames({ active: this.state.tab === "troubleshoot" })}
+                                    onClick={() => {
+                                        this.setTab("troubleshoot");
+                                    }}
+                                >
+                                    History
+                                </NavLink>
+                            </NavItem>
                         </Nav>
                         <TabContent activeTab={this.state.tab}>
                             <TabPane tabId="info" title="Info">
@@ -163,6 +174,9 @@ class DetailsGeneral extends Component {
                             </TabPane>
                             <TabPane tabId="history" title="History">
                                 <DetailsHistory />
+                            </TabPane>
+                            <TabPane tabId="troubleshoot" title="Troubleshoot">
+                                <DetailsTroubleshoot />
                             </TabPane>
                         </TabContent>
                     </CardBody>

@@ -28,6 +28,7 @@ class ConnectionsStore {
         statuses: new Map(),
         history: new Map(),
         eventLog: [],
+        macInfo: {},
         cloned: {
             cloneable: false,
             message: ""
@@ -212,6 +213,10 @@ class ConnectionsStore {
     @action updateList(resvs) {
         this.store.conns = [];
         this.store.conns = resvs;
+    }
+
+    @action setMacInfo(macInfo) {
+        this.store.macInfo = macInfo;
     }
 
     @action refreshCommands() {
