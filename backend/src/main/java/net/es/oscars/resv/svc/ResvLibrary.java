@@ -102,15 +102,10 @@ public class ResvLibrary {
 
         for (String urn : baseline.keySet()) {
             if (baseline.get(urn).getUrnType().equals(UrnType.PORT)) {
-                Integer reservable = 0;
-                switch (dir) {
-                    case INGRESS:
-                        reservable = baseline.get(urn).getReservableIngressBw();
-                        break;
-                    case EGRESS:
-                        reservable = baseline.get(urn).getReservableEgressBw();
-                        break;
-                }
+                Integer reservable = switch (dir) {
+                    case INGRESS -> baseline.get(urn).getReservableIngressBw();
+                    case EGRESS -> baseline.get(urn).getReservableEgressBw();
+                };
                 Integer availableBw = overallAvailBandwidth(reservable, reservedBandwidths.get(urn));
                 result.put(urn, availableBw);
             }
