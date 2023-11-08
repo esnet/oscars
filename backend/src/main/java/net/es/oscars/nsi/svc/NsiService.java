@@ -791,7 +791,9 @@ public class NsiService {
             throw new NsiException("Too many junctions for NSI reserve", NsiErrors.PCE_ERROR);
         }
         // first element of ero should be the first device...
-        if (!include.get(0).equals(junctions.get(0).getDevice())) {
+        if (include.isEmpty()) {
+            include.add(junctions.get(0).getDevice());
+        } else if (!include.get(0).equals(junctions.get(0).getDevice())) {
             include.add(0, junctions.get(0).getDevice());
         }
         // last element of ero should be the last device.
