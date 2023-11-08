@@ -6,7 +6,6 @@ import {
     CardHeader,
     Form,
     InputGroup,
-    InputGroupAddon,
     InputGroupText,
     FormGroup,
     Input,
@@ -247,11 +246,9 @@ class VlanSelect extends Component {
                                         defaultValue={ef.vlan.available.suggestion}
                                         onChange={this.onTypeIn}
                                     />
-                                    <InputGroupAddon addonType="append">
-                                        <InputGroupText>
-                                            {Validator.label(ef.vlan.acceptable)}
-                                        </InputGroupText>
-                                    </InputGroupAddon>
+                                    <InputGroupText>
+                                        {Validator.label(ef.vlan.acceptable)}
+                                    </InputGroupText>
                                 </InputGroup>{" "}
                                 <FormFeedback>{ef.vlan.validationText}</FormFeedback>
                             </FormGroup>{" "}

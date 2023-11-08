@@ -6,8 +6,7 @@ import {
     Button,
     Input,
     Form,
-    InputGroup,
-    InputGroupAddon
+    InputGroup
 } from "reactstrap";
 import { observer, inject } from "mobx-react";
 import { action } from "mobx";
@@ -238,17 +237,15 @@ class DetailsTags extends Component {
                             </small>
                             {contentsInput}
 
-                            <InputGroupAddon addonType="append">
-                                <Button
-                                    className="float-right btn-sm"
-                                    disabled={
-                                        size(edit.category) === 0 || size(edit.contents) === 0
-                                    }
-                                    onClick={this.add}
-                                >
-                                    Add
-                                </Button>
-                            </InputGroupAddon>
+                            <Button
+                                className="float-right btn-sm"
+                                disabled={
+                                    size(edit.category) === 0 || size(edit.contents) === 0
+                                }
+                                onClick={this.add}
+                            >
+                                Add
+                            </Button>
                         </InputGroup>
                     </Form>
                 </CardBody>

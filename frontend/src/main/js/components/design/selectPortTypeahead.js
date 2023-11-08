@@ -89,9 +89,7 @@ class SelectPortTypeahead extends Component {
                                 options={options}
                                 onChange={this.onTypeaheadSelection}
                             />
-                            <InputGroupAddon addonType="append">
-                                <InputGroupText>{help}</InputGroupText>
-                            </InputGroupAddon>
+                            <InputGroupText>{help}</InputGroupText>
                         </InputGroup>
                     </FormGroup>
                 </Form>

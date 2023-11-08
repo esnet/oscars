@@ -7,7 +7,7 @@
     "url": "git://github.com/esnet/oscars.git"
   },
   "dependencies": {
-    "bootstrap": "^4.5.2",
+    "bootstrap": "^5.3.2",
     "chokidar": "^3.5.3",
     "chrono-node": "^2.3.4",
     "classnames": "^2.2.6",

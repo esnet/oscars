@@ -11,8 +11,6 @@ import {
     CardBody,
     CardHeader,
     InputGroup,
-    InputGroupText,
-    InputGroupAddon
 } from "reactstrap";
 import PropTypes from "prop-types";
 import Octicon from "react-octicon";
