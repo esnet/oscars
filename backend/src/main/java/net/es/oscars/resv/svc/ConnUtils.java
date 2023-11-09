@@ -416,7 +416,13 @@ public class ConnUtils {
         List<Fixture> fixtures = new ArrayList<>();
         List<Junction> junctions = new ArrayList<>();
         List<Pipe> pipes = new ArrayList<>();
-        Integer vcid = nsoVcIdDAO.findNsoVcIdByConnectionId(c.getConnectionId()).orElseThrow().getVcId();
+
+        Integer vcid;
+        if (return_svc_ids) {
+            vcid = nsoVcIdDAO.findNsoVcIdByConnectionId(c.getConnectionId()).orElseThrow().getVcId();
+        } else {
+            vcid = null;
+        }
 
         cmp.getFixtures().forEach(f -> {
             Fixture simpleF = Fixture.builder()
