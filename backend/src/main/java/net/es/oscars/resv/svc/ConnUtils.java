@@ -5,6 +5,7 @@ import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
+import net.es.oscars.sb.nso.db.NsoVcIdDAO;
 import net.es.oscars.topo.enums.CommandParamType;
 import net.es.oscars.web.simple.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,9 @@ import java.util.stream.IntStream;
 public class ConnUtils {
     @Autowired
     private ConnectionRepository connRepo;
+
+    @Autowired
+    private NsoVcIdDAO nsoVcIdDAO;
 
     public String genUniqueConnectionId() {
         boolean found = false;
@@ -375,7 +379,7 @@ public class ConnUtils {
         }
     }
 
-    public static SimpleConnection fromConnection(Connection c, Boolean return_svc_ids) {
+    public SimpleConnection fromConnection(Connection c, Boolean return_svc_ids) {
         Schedule s;
         Components cmp;
 
@@ -412,6 +416,7 @@ public class ConnUtils {
         List<Fixture> fixtures = new ArrayList<>();
         List<Junction> junctions = new ArrayList<>();
         List<Pipe> pipes = new ArrayList<>();
+        Integer vcid = nsoVcIdDAO.findNsoVcIdByConnectionId(c.getConnectionId()).orElseThrow().getVcId();
 
         cmp.getFixtures().forEach(f -> {
             Fixture simpleF = Fixture.builder()
@@ -423,18 +428,7 @@ public class ConnUtils {
                     .vlan(f.getVlan().getVlanId())
                     .build();
             if (return_svc_ids) {
-                Set<CommandParam> cps = f.getJunction().getCommandParams();
-                Integer svcId = null;
-                for (CommandParam cp : cps) {
-                    if (cp.getParamType().equals(CommandParamType.ALU_SVC_ID)) {
-                        if (svcId == null) {
-                            svcId = cp.getResource();
-                        } else if (svcId > cp.getResource()) {
-                            svcId = cp.getResource();
-                        }
-                    }
-                }
-                simpleF.setSvcId(svcId);
+                simpleF.setSvcId(vcid);
             }
 
             fixtures.add(simpleF);

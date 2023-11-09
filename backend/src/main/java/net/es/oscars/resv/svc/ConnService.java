@@ -84,6 +84,9 @@ public class ConnService {
     @Autowired
     private ESDBService esdbService;
 
+    @Autowired
+    ConnUtils connUtils;
+
     @Value("${pss.default-mtu:9000}")
     private Integer defaultMtu;
 
@@ -514,7 +517,7 @@ public class ConnService {
 
     public Validity validateCommit(Connection in) throws ConnException {
 
-        Validity v = this.validate(fromConnection(in, false), ConnectionMode.NEW);
+        Validity v = this.validate(connUtils.fromConnection(in, false), ConnectionMode.NEW);
 
         StringBuilder error = new StringBuilder(v.getMessage());
         boolean valid = v.isValid();
@@ -527,7 +530,7 @@ public class ConnService {
         }
 
         List<VlanJunction> junctions = in.getHeld().getCmp().getJunctions();
-        if (junctions.size() < 1) {
+        if (junctions.isEmpty()) {
             valid = false;
             error.append("No junctions; minimum is 1");
         }
@@ -960,7 +963,7 @@ public class ConnService {
 
 
     public Connection findConnection(String connectionId) {
-        if (connectionId == null || connectionId.equals("")) {
+        if (connectionId == null || connectionId.isEmpty()) {
             throw new IllegalArgumentException("Null or empty connectionId");
         }
 //        log.info("looking for connectionId "+ connectionId);
