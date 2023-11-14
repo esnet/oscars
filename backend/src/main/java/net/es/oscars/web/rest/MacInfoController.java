@@ -2,10 +2,11 @@ package net.es.oscars.web.rest;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.resv.enums.DeploymentState;
+import net.es.oscars.resv.enums.State;
 import net.es.oscars.web.beans.MacInfoRequest;
 import net.es.oscars.web.beans.MacInfoResponse;
 import net.es.oscars.sb.nso.rest.MacInfoResult;
-import net.es.oscars.sb.nso.rest.MacInfoServiceResult;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.VlanFixture;
@@ -13,7 +14,6 @@ import net.es.oscars.sb.nso.LiveStatusFdbCacheManager;
 import net.es.oscars.sb.nso.db.NsoVcIdDAO;
 import net.es.oscars.sb.nso.ent.NsoVcId;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -27,14 +27,17 @@ import java.util.Optional;
 @RestController
 public class MacInfoController {
 
-    @Autowired
-    private LiveStatusFdbCacheManager fdbCacheManager;
+    private final LiveStatusFdbCacheManager fdbCacheManager;
 
-    @Autowired
-    private NsoVcIdDAO nsoVcIdDAO;
+    private final NsoVcIdDAO nsoVcIdDAO;
 
-    @Autowired
-    private ConnService connSvc;
+    private final ConnService connSvc;
+
+    public MacInfoController(LiveStatusFdbCacheManager fdbCacheManager, NsoVcIdDAO nsoVcIdDAO, ConnService connSvc) {
+        this.fdbCacheManager = fdbCacheManager;
+        this.nsoVcIdDAO = nsoVcIdDAO;
+        this.connSvc = connSvc;
+    }
 
     @RequestMapping(value = "/api/mac/info", method = RequestMethod.POST)
     @ResponseBody
@@ -68,6 +71,7 @@ public class MacInfoController {
             log.info("Couldn't find OSCARS circuit for connection id " + connectionId);
             throw new NoSuchElementException();
         }
+
         for (VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
             String deviceUrn = f.getJunction().getDeviceUrn();
             devicesFromId.add(deviceUrn);
@@ -75,9 +79,8 @@ public class MacInfoController {
         }
 
         // if no devices are listed in the request we use all devices from the circuit
-        if (devicesFromRest == null || devicesFromRest.size() == 0) {
-            devicesFromRest = new LinkedList<String>();
-            devicesFromRest.addAll(devicesFromId);
+        if (devicesFromRest == null || devicesFromRest.isEmpty()) {
+            devicesFromRest = new LinkedList<>(devicesFromId);
         }
 
         MacInfoResponse response = new MacInfoResponse();
@@ -86,19 +89,28 @@ public class MacInfoController {
         response.setTimestamp(Instant.now());
         response.setConnectionId(request.getConnectionId()); // cp connId from request
 
-        List<MacInfoResult> results = new LinkedList<MacInfoResult>();
-        MacInfoServiceResult tmpResult;
-        MacInfoResult tmp;
+        List<MacInfoResult> results = new LinkedList<>();
+
 
         log.debug("Run live-status request on devices");
         for (String device : devicesFromRest) {
             if (devicesFromId.contains(device)) {
-                log.debug("Fetch FDB from FDBCacheManager for " + device + " service id " + vcid);
-                tmpResult = fdbCacheManager.get(device,
-                                vcid,
-                                request.getRefreshIfOlderThan());
-                tmp = tmpResult.getMacInfoResult();
-                results.add(tmp);
+                if (conn.getState().equals(State.ACTIVE) &&
+                        conn.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
+                    log.debug("Fetch FDB from FDBCacheManager for " + device + " service id " + vcid);
+                    results.add(fdbCacheManager
+                            .get(device, vcid, request.getRefreshIfOlderThan()).getMacInfoResult());
+
+                } else {
+                    results.add(MacInfoResult.builder()
+                                    .device(device)
+                                    .errorMessage("Not deployed")
+                                    .status(false)
+                                    .timestamp(Instant.now())
+                                    .fdbQueryResult("Not deployed")
+                            .build());
+
+                }
             }
         }
 

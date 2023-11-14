@@ -1,6 +1,6 @@
-import { action } from "mobx";
-import { inject, observer } from "mobx-react";
-import React, { Component } from "react";
+import {action} from "mobx";
+import {inject, observer} from "mobx-react";
+import React, {Component} from "react";
 import Moment from "moment";
 import {
     Card,
@@ -44,6 +44,10 @@ class DetailsTroubleshoot extends Component {
         let macInfoRequest = {
             'connection-id': connectionId
         }
+        if (this.props.connsStore.store.current.phase !== 'RESERVED') {
+            return;
+        }
+
 
         myClient.submitWithToken("POST", "/api/mac/info", macInfoRequest).then(
             action(response => {
@@ -59,13 +63,15 @@ class DetailsTroubleshoot extends Component {
         let cs = this.props.connsStore;
         const macInfo = cs.store.macInfo;
         let contents = <div>Loading..</div>;
+        if (cs.store.current.phase !== 'RESERVED') {
+            contents = '<p>Only available for RESERVED connections</p>'
+        } else if (!this.state.loading) {
 
-        if (!this.state.loading) {
             let macLearning = <div>No mac learning data loaded</div>
             if (macInfo['connection-id']) {
                 macLearning = <UncontrolledAccordion>
                     {
-                        macInfo['results'].map( (result, idx) => {
+                        macInfo['results'].map((result, idx) => {
                             let message = result['fdb'];
                             let timestamp = 'unknown';
                             if (!result['status']) {
@@ -74,20 +80,22 @@ class DetailsTroubleshoot extends Component {
                             if (result['timestamp']) {
                                 timestamp = Moment(result['timestamp']).fromNow();
                             }
-                            let headerString = result['device']+' ('+timestamp+')';
+                            let headerString = result['device'] + ' (' + timestamp + ')';
                             return <AccordionItem key={idx}>
-                                    <AccordionHeader targetId={idx}>{headerString}</AccordionHeader>
-                                    <AccordionBody accordionId={idx}>
-                                        <pre>{message}</pre>
-                                    </AccordionBody>
-                                </AccordionItem>
+                                <AccordionHeader targetId={idx}>{headerString}</AccordionHeader>
+                                <AccordionBody accordionId={idx}>
+                                    <pre>{message}</pre>
+                                </AccordionBody>
+                            </AccordionItem>
                         })
                     }
                 </UncontrolledAccordion>
             }
-            contents = <Form inline onSubmit={e => { e.preventDefault();}}>
+            contents = <Form inline onSubmit={e => {
+                e.preventDefault();
+            }}>
                 {macLearning}
-                <Button  className="float-right btn-sm" onClick={this.refresh}>Refresh</Button>
+                <Button className="float-right btn-sm" onClick={this.refresh}>Refresh</Button>
             </Form>
         }
 
@@ -100,8 +108,7 @@ class DetailsTroubleshoot extends Component {
         </Card>
 
 
-
-            }
+    }
 }
 
 export default DetailsTroubleshoot;

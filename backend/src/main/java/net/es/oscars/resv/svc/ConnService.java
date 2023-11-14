@@ -126,11 +126,9 @@ public class ConnService {
         List<Connection> connIdFiltered = reservedAndArchived;
 
         if (filter.getConnectionId() != null) {
-            Pattern pattern = Pattern.compile(filter.getConnectionId(), Pattern.CASE_INSENSITIVE);
             connIdFiltered = new ArrayList<>();
             for (Connection c : reservedAndArchived) {
-                Matcher matcher = pattern.matcher(c.getConnectionId());
-                if (matcher.find()) {
+                if (c.getConnectionId().toLowerCase().contains(filter.getConnectionId().toLowerCase())) {
                     connIdFiltered.add(c);
                 }
             }
@@ -138,22 +136,15 @@ public class ConnService {
 
         List<Connection> descFiltered = connIdFiltered;
         if (filter.getDescription() != null) {
-            Pattern pattern = Pattern.compile(filter.getDescription(), Pattern.CASE_INSENSITIVE);
 
             descFiltered = new ArrayList<>();
             for (Connection c : connIdFiltered) {
-                boolean found = false;
-                Matcher descMatcher = pattern.matcher(c.getDescription());
-                if (descMatcher.find()) {
-                    found = true;
-                }
+                boolean found = c.getDescription().toLowerCase().contains(filter.getDescription().toLowerCase());
                 for (Tag tag : c.getTags()) {
-                    Matcher matcher = pattern.matcher(tag.getContents());
-                    if (matcher.find()) {
+                    if (tag.getContents().toLowerCase().contains(filter.getDescription().toLowerCase())) {
                         found = true;
                     }
-                    matcher = pattern.matcher(tag.getCategory());
-                    if (matcher.find()) {
+                    if (tag.getCategory().toLowerCase().contains(filter.getDescription().toLowerCase())) {
                         found = true;
                     }
                 }
