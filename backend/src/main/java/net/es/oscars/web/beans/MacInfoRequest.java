@@ -24,10 +24,12 @@ public class MacInfoRequest {
 
     @JsonSetter(nulls = Nulls.SKIP)
     @JsonProperty("device-ids")
+    @Builder.Default
     private List<String> deviceIds = new LinkedList<>();
 
     @JsonSetter(nulls = Nulls.SKIP)
     @JsonProperty("refresh-if-older-than")
+    @Builder.Default
     private Instant refreshIfOlderThan = Instant.now().minus(10, ChronoUnit.SECONDS);
     //String refreshIfOlderThan;
 

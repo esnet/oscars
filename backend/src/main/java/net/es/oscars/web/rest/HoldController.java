@@ -59,7 +59,7 @@ public class HoldController {
 
     @ExceptionHandler(StartupException.class)
     @ResponseStatus(value = HttpStatus.SERVICE_UNAVAILABLE)
-    public void handleStartup(StartupException ex) {
+    public void handleStartup() {
         log.warn("Still in startup");
     }
 
@@ -74,13 +74,14 @@ public class HoldController {
             throw new StartupException("OSCARS shutting down");
         }
 
+        Instant expiration = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         ReentrantLock connLock = dbAccess.getConnLock();
         if (connLock.isLocked()) {
-            log.debug("connection lock already locked; extend hold blocking ...");
+            log.debug("connection already locked; extend hold returning");
+            return expiration;
         }
 
         connLock.lock();
-        Instant expiration = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         try {
             Optional<Connection> maybeConnection = connRepo.findByConnectionId(connectionId);
             if (maybeConnection.isPresent()) {

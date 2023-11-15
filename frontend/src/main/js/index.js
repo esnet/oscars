@@ -1,13 +1,15 @@
-import React from "react";
+import React, {useContext} from "react";
 
 import ReactDOM from "react-dom";
 
-import { BrowserRouter, Route, Switch, Redirect } from "react-router-dom";
-import { Container, Row, Col } from "reactstrap";
+import {AuthContext, AuthProvider} from "react-oauth2-code-pkce"
+
+import {BrowserRouter, Route, Switch} from "react-router-dom";
+import {Container, Row, Col} from "reactstrap";
 import "bootstrap/dist/css/bootstrap.css";
 
-import { configure } from "mobx";
-import { Provider } from "mobx-react";
+import {configure} from "mobx";
+import {Provider} from "mobx-react";
 
 import ListConnectionsApp from "./apps/listConnections";
 import NewDesignApp from "./apps/designApp";
@@ -18,12 +20,8 @@ import ErrorApp from "./apps/error";
 
 import StatusApp from "./apps/statusApp";
 import MapApp from "./apps/mapApp";
-import AccountApp from "./apps/accountApp";
-import AdminUsersApp from "./apps/usersAdminApp";
-import AdminTagsApp from "./apps/adminTagsApp";
 import ConnectionDetails from "./apps/detailsApp";
-import Login from "./apps/login";
-import Logout from "./apps/logout";
+
 
 import NavBar from "./components/navbar";
 import Ping from "./components/ping";
@@ -40,54 +38,10 @@ import userStore from "./stores/userStore";
 import modalStore from "./stores/modalStore";
 import tagStore from "./stores/tagStore";
 
+
+
 require("../css/styles.css");
 
-const PrivateRoute = ({ component: Component, ...rest }) => (
-    <Route
-        {...rest}
-        render={props =>
-            accountStore.isLoggedIn() ? (
-                <Component {...props} />
-            ) : (
-                <Redirect
-                    to={{
-                        pathname: "/login",
-                        state: { from: props.location }
-                    }}
-                />
-            )
-        }
-    />
-);
-
-const AdminRoute = ({ component: Component, ...rest }) => (
-    <Route
-        {...rest}
-        render={props => {
-            if (accountStore.isLoggedIn() && accountStore.isAdmin()) {
-                return <Component {...props} />;
-            }
-            if (accountStore.isLoggedIn()) {
-                return (
-                    <Redirect
-                        to={{
-                            pathname: "/",
-                            state: { from: props.location }
-                        }}
-                    />
-                );
-            }
-            return (
-                <Redirect
-                    to={{
-                        pathname: "/login",
-                        state: { from: props.location }
-                    }}
-                />
-            );
-        }}
-    />
-);
 
 const stores = {
     accountStore,
@@ -102,43 +56,83 @@ const stores = {
     tagStore,
     modalStore
 };
+const UserInfo = () => {
+    const {token, tokenData} = useContext(AuthContext);
 
-configure({ enforceActions: "observed" });
+    return <>
+        <h4>Access Token</h4>
+        <pre>{token}</pre>
+        <h4>User Information from JWT</h4>
+        <pre>{JSON.stringify(tokenData, null, 2)}</pre>
+    </>
+}
+
+let authConfig = {
+    clientId: '',
+    scope: '',
+    redirectUri: '',
+    authorizationEndpoint: '',
+    tokenEndpoint:         '',
+    logoutEndpoint:        '',
+    onRefreshTokenExpire: (event) => window.confirm('Session expired. Refresh page to continue using the site?') && event.login(),
+}
+
+
+const authConfig_init = () => {
+    if (authConfig.clientId === '') {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "/api/frontend/oauth", false); // `false` makes the request synchronous
+        xhr.overrideMimeType("application/json");
+        xhr.send(null);
+
+        if (xhr.status === 200) {
+            let data = JSON.parse(xhr.responseText);
+            authConfig.clientId = data.clientId;
+            authConfig.scope = data.scope;
+            authConfig.redirectUri = data.redirectUri;
+            authConfig.authorizationEndpoint = data.authorizationEndpoint;
+            authConfig.tokenEndpoint = data.tokenEndpoint;
+            authConfig.logoutEndpoint = data.logoutEndpoint;
+            console.log(authConfig)
+        }
+    }
+}
+
+authConfig_init();
+
+configure({enforceActions: "observed"});
 
 ReactDOM.render(
     <Provider {...stores}>
-        <BrowserRouter>
-            <Container fluid={true}>
-                <Ping />
-                <Row>
-                    <NavBar />
-                </Row>
-                <Row>
-                    <Col sm={4}> </Col>
-                </Row>
-                <Switch>
-                    <Route exact path="/" component={WelcomeApp} />
-                    <Route exact path="/pages/about" component={AboutApp} />
-                    <Route exact path="/login" component={Login} />
+        <AuthProvider authConfig={authConfig}>
 
-                    <Route exact path="/pages/logout" component={Logout} />
+            <BrowserRouter>
+                <Container fluid={true}>
+                    <Ping/>
+                    <Row>
+                        <NavBar/>
+                    </Row>
+                    <Row>
+                        <Col sm={4}><UserInfo/></Col>
+                    </Row>
+                    <Switch>
+                        <Route exact path="/" component={WelcomeApp}/>
+                        <Route exact path="/pages/about" component={AboutApp}/>
+                        <Route exact path="/pages/list" component={ListConnectionsApp}/>
+                        <Route path="/pages/details/:connectionId?"
+                            component={ConnectionDetails}
+                        />
+                        <Route exact path="/pages/newDesign" component={NewDesignApp}/>
+                        <Route exact path="/pages/timeout" component={TimeoutApp}/>
+                        <Route exact path="/pages/error" component={ErrorApp}/>
+                        <Route exact path="/pages/status" component={StatusApp}/>
+                        <Route exact path="/pages/map" component={MapApp}/>
 
-                    <PrivateRoute exact path="/pages/list" component={ListConnectionsApp} />
-                    <PrivateRoute
-                        path="/pages/details/:connectionId?"
-                        component={ConnectionDetails}
-                    />
-                    <PrivateRoute exact path="/pages/newDesign" component={NewDesignApp} />
-                    <PrivateRoute exact path="/pages/timeout" component={TimeoutApp} />
-                    <PrivateRoute exact path="/pages/error" component={ErrorApp} />
-                    <PrivateRoute exact path="/pages/account" component={AccountApp} />
-                    <PrivateRoute exact path="/pages/status" component={StatusApp} />
-                    <PrivateRoute exact path="/pages/map" component={MapApp} />
-                    <AdminRoute exact path="/pages/admin/users" component={AdminUsersApp} />
-                    <AdminRoute exact path="/pages/admin/tags" component={AdminTagsApp} />
-                </Switch>
-            </Container>
-        </BrowserRouter>
+                    </Switch>
+                </Container>
+            </BrowserRouter>
+        </AuthProvider>
     </Provider>,
     document.getElementById("react")
-);
+)
+;

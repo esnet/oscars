@@ -6,7 +6,6 @@ import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.syslog.Syslogger;
 import net.es.oscars.sb.nso.resv.LegacyPopulator;
-import net.es.oscars.security.db.UserPopulator;
 import net.es.oscars.topo.beans.TopoException;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.pop.TopoPopulator;
@@ -25,13 +24,13 @@ import java.util.concurrent.Executor;
 @Component
 public class Startup {
 
-    private List<StartupComponent> components;
-    private StartupProperties startupProperties;
-    private Syslogger syslogger;
+    private final List<StartupComponent> components;
+    private final StartupProperties startupProperties;
+    private final Syslogger syslogger;
 
-    private TopoPopulator topoPopulator;
+    private final TopoPopulator topoPopulator;
 
-    private LegacyPopulator legacyPopulator;
+    private final LegacyPopulator legacyPopulator;
 
     @Getter
     private boolean inStartup = true;
@@ -56,7 +55,6 @@ public class Startup {
     public Startup(StartupProperties startupProperties,
                    Syslogger syslogger,
                    TopoPopulator topoPopulator,
-                   UserPopulator userPopulator,
                    UIPopulator uiPopulator, LegacyPopulator legacyPopulator) {
         this.startupProperties = startupProperties;
         this.topoPopulator = topoPopulator;
@@ -64,7 +62,6 @@ public class Startup {
         this.legacyPopulator = legacyPopulator;
 
         components = new ArrayList<>();
-        components.add(userPopulator);
         components.add(uiPopulator);
     }
 
@@ -83,15 +80,12 @@ public class Startup {
         topoPopulator.refresh(false);
         legacyPopulator.importPssToNso();
 
-
-
-
         try {
             for (StartupComponent sc : this.components) {
                 sc.startup();
             }
         } catch (StartupException ex) {
-            ex.printStackTrace();
+            log.error(ex.getMessage(), ex);
             System.out.println("Exiting..");
             System.exit(1);
         }
