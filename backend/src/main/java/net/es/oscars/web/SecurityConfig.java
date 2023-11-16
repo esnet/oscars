@@ -15,7 +15,6 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.session.SessionRegistryImpl;
@@ -25,13 +24,11 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.util.*;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
-import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -50,23 +47,17 @@ public class SecurityConfig {
     protected SessionAuthenticationStrategy sessionAuthenticationStrategy() {
         return new RegisterSessionAuthenticationStrategy(new SessionRegistryImpl());
     }
+
     @Order(1)
     @Bean
     public SecurityFilterChain clientFilterChain(HttpSecurity http) throws Exception {
         log.info("clientFilterChain");
 
-        http
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(antMatcher("/api/**")).permitAll()
-                        .requestMatchers(antMatcher("/services/**")).permitAll()
-                        .requestMatchers(antMatcher("/protected/**")).authenticated()
-                        .anyRequest().authenticated()
+        http.securityMatcher("/api/**", "/services/**")
+                .authorizeHttpRequests(authorize ->
+                    authorize.anyRequest().permitAll()
                 )
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
-
+                .csrf(AbstractHttpConfigurer::disable);
 
         return http.build();
     }
@@ -76,21 +67,20 @@ public class SecurityConfig {
     public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) throws Exception {
         log.info("resourceServerFilterChain");
 
-        http.authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(new AntPathRequestMatcher("/protected/**"))
-                .hasAuthority(ROLE_OSCARS_USER)
-                .anyRequest()
-                .authenticated()
-        )
+        http.securityMatcher("/protected/**")
+                .authorizeHttpRequests(authorize ->
+                    authorize.anyRequest().hasAuthority(ROLE_OSCARS_USER)
+                )
+                .oauth2ResourceServer(oauth2 ->
+                    oauth2.jwt(
+                        jwt -> jwt.jwtAuthenticationConverter(new OscarsAuthenticationConverter(authProperties))
+                    )
+                )
                 .csrf(AbstractHttpConfigurer::disable);
 
-        http.oauth2ResourceServer((oauth2) ->
-                oauth2.jwt(
-                        jwt -> jwt.jwtAuthenticationConverter(new OscarsAuthenticationConverter(authProperties))
-                )
-        );
         return http.build();
     }
+
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
         return http.getSharedObject(AuthenticationManagerBuilder.class)
@@ -100,6 +90,7 @@ public class SecurityConfig {
     @Slf4j
     public static class OscarsAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
         private final AuthProperties authProperties;
+
         public OscarsAuthenticationConverter(AuthProperties authProperties) {
             this.authProperties = authProperties;
         }
