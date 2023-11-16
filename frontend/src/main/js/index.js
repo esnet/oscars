@@ -58,6 +58,10 @@ const stores = {
 };
 const UserInfo = () => {
     const {token, tokenData} = useContext(AuthContext);
+    if (token) {
+        accountStore.setLoggedinToken(token);
+        accountStore.setLoggedinUsername(tokenData.preferred_username)
+    }
 
     return <>
         <h4>Access Token</h4>

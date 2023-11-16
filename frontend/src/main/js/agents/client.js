@@ -1,5 +1,5 @@
-import {useContext} from "react";
-import {AuthContext} from "react-oauth2-code-pkce";
+
+import accountStore from "../stores/accountStore";
 
 class MyXHRClient {
     loadJSON(opts) {
@@ -59,7 +59,7 @@ class MyXHRClient {
     }
 
     submitWithToken(method, url, payload) {
-        const {token} = useContext(AuthContext)
+        let token = accountStore.loggedin.token;
 
         let headers = { Authorization: "Bearer "+token };
 
