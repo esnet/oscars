@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.util.DbAccess;
+import net.es.oscars.app.util.UsernameGetter;
 import net.es.oscars.resv.db.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.ConnectionMode;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -156,9 +158,9 @@ public class HoldController {
 
         int duration = connection.getEnd() - connection.getBegin();
 
+        connection.setUsername(UsernameGetter.username(authentication));
         // try to get starting now() with same duration
-        String username = authentication.getName();
-        connection.setUsername(username);
+
 
         Instant now = Instant.now();
 
@@ -193,8 +195,7 @@ public class HoldController {
             return in;
         }
 
-        String username = authentication.getName();
-        in.setUsername(username);
+        in.setUsername(UsernameGetter.username(authentication));
 
         Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         long secs = exp.toEpochMilli() / 1000L;

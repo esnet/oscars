@@ -5,6 +5,7 @@ import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.exc.StartupException;
+import net.es.oscars.app.util.UsernameGetter;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.sb.nso.resv.NsoResvException;
@@ -24,6 +25,7 @@ import net.es.oscars.web.beans.ConnectionList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -82,11 +84,10 @@ public class ConnController {
     public ConnChangeResult commit(Authentication authentication, @RequestBody String connectionId)
             throws StartupException, NsoResvException, PCEException, ConnException {
         this.checkStartup();
-        String username = authentication.getName();
+
+
         Connection c = connSvc.findConnection(connectionId);
-        if (!c.getUsername().equals(username)) {
-            c.setUsername(username);
-        }
+        c.setUsername(UsernameGetter.username(authentication));
 
         // String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(c);
         log.debug("committing : \n"+connectionId);

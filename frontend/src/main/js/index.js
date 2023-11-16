@@ -64,7 +64,7 @@ const UserInfo = () => {
     if (tokenData) {
         accountStore.setLoggedinUsername(tokenData.preferred_username)
     }
-    console.log(JSON.stringify(tokenData, null, 2))
+    // console.log(JSON.stringify(tokenData, null, 2))
     return <>
     </>
 }
@@ -111,11 +111,12 @@ ReactDOM.render(
             <BrowserRouter>
                 <Container fluid={true}>
                     <Ping/>
+                    <UserInfo/>
                     <Row>
                         <NavBar/>
                     </Row>
                     <Row>
-                        <Col sm={4}><UserInfo/></Col>
+                        <Col sm={4}></Col>
                     </Row>
                     <Switch>
                         <Route exact path="/" component={WelcomeApp}/>
