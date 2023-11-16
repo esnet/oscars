@@ -25,7 +25,6 @@ import net.es.oscars.web.beans.ConnectionList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,9 +52,12 @@ public class ConnController {
     @Autowired
     private NsiService nsiSvc;
 
+    @Autowired
+    private UsernameGetter usernameGetter;
+
     @ExceptionHandler(StartupException.class)
     @ResponseStatus(value = HttpStatus.SERVICE_UNAVAILABLE)
-    public void handleStartup(StartupException ex) {
+    public void handleStartup() {
         log.warn("Still in startup");
     }
 
@@ -67,7 +69,7 @@ public class ConnController {
 
     @ExceptionHandler(NoSuchElementException.class)
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
-    public void handleResourceNotFoundException(NoSuchElementException ex) {
+    public void handleResourceNotFoundException() {
         log.warn("requested an item which did not exist");
     }
 
@@ -87,7 +89,7 @@ public class ConnController {
 
 
         Connection c = connSvc.findConnection(connectionId);
-        c.setUsername(UsernameGetter.username(authentication));
+        c.setUsername(usernameGetter.username(authentication));
 
         // String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(c);
         log.debug("committing : \n"+connectionId);
@@ -159,7 +161,7 @@ public class ConnController {
     @ResponseBody
     public List<RouterCommandHistory> history(@PathVariable String connectionId) throws StartupException, ConnException {
         this.checkStartup();
-        if (connectionId == null || connectionId.equals("")) {
+        if (connectionId == null || connectionId.isEmpty()) {
             log.info("no connectionId!");
             throw new ConnException("no connectionId");
         }

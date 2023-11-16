@@ -20,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,6 +45,9 @@ public class HoldController {
     @Autowired
     private ConnService connSvc;
 
+
+    @Autowired
+    private UsernameGetter usernameGetter;
 
     @Autowired
     private DbAccess dbAccess;
@@ -158,7 +160,7 @@ public class HoldController {
 
         int duration = connection.getEnd() - connection.getBegin();
 
-        connection.setUsername(UsernameGetter.username(authentication));
+        connection.setUsername(usernameGetter.username(authentication));
         // try to get starting now() with same duration
 
 
@@ -195,7 +197,7 @@ public class HoldController {
             return in;
         }
 
-        in.setUsername(UsernameGetter.username(authentication));
+        in.setUsername(usernameGetter.username(authentication));
 
         Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         long secs = exp.toEpochMilli() / 1000L;

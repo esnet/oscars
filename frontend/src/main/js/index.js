@@ -38,8 +38,6 @@ import userStore from "./stores/userStore";
 import modalStore from "./stores/modalStore";
 import tagStore from "./stores/tagStore";
 
-
-
 require("../css/styles.css");
 
 
@@ -57,14 +55,15 @@ const stores = {
     modalStore
 };
 const UserInfo = () => {
-    const {token, tokenData} = useContext(AuthContext);
-    if (token) {
-        accountStore.setLoggedinToken(token);
+    if (!accountStore.loggedin.anonymous) {
+        const {token, tokenData} = useContext(AuthContext);
+        if (token) {
+            accountStore.setLoggedinToken(token);
+        }
+        if (tokenData) {
+            accountStore.setLoggedinUsername(tokenData.preferred_username)
+        }
     }
-    if (tokenData) {
-        accountStore.setLoggedinUsername(tokenData.preferred_username)
-    }
-    // console.log(JSON.stringify(tokenData, null, 2))
     return <>
     </>
 }
@@ -79,7 +78,6 @@ let authConfig = {
     onRefreshTokenExpire: (event) => window.confirm('Session expired. Refresh page to continue using the site?') && event.login(),
 }
 
-
 const authConfig_init = () => {
     if (authConfig.clientId === '') {
         const xhr = new XMLHttpRequest();
@@ -89,53 +87,68 @@ const authConfig_init = () => {
 
         if (xhr.status === 200) {
             let data = JSON.parse(xhr.responseText);
-            authConfig.clientId = data.clientId;
-            authConfig.scope = data.scope;
-            authConfig.redirectUri = data.redirectUri;
-            authConfig.authorizationEndpoint = data.authorizationEndpoint;
-            authConfig.tokenEndpoint = data.tokenEndpoint;
-            authConfig.logoutEndpoint = data.logoutEndpoint;
-            console.log(authConfig)
+            if (data.enabled) {
+                accountStore.setLoggedinAnonymous(false);
+
+                authConfig.clientId = data.clientId;
+                authConfig.scope = data.scope;
+                authConfig.redirectUri = data.redirectUri;
+                authConfig.authorizationEndpoint = data.authorizationEndpoint;
+                authConfig.tokenEndpoint = data.tokenEndpoint;
+                authConfig.logoutEndpoint = data.logoutEndpoint;
+                console.log(authConfig)
+            } else {
+                accountStore.setLoggedinAnonymous(true);
+            }
         }
     }
 }
 
 authConfig_init();
-
 configure({enforceActions: "observed"});
 
-ReactDOM.render(
-    <Provider {...stores}>
-        <AuthProvider authConfig={authConfig}>
+const contents = <BrowserRouter>
+    <Container fluid={true}>
+        <Ping/>
+        <UserInfo/>
+        <Row>
+            <NavBar/>
+        </Row>
+        <Row>
+            <Col sm={4}></Col>
+        </Row>
+        <Switch>
+            <Route exact path="/" component={WelcomeApp}/>
+            <Route exact path="/pages/about" component={AboutApp}/>
+            <Route exact path="/pages/list" component={ListConnectionsApp}/>
+            <Route path="/pages/details/:connectionId?" component={ConnectionDetails} />
+            <Route exact path="/pages/newDesign" component={NewDesignApp}/>
+            <Route exact path="/pages/timeout" component={TimeoutApp}/>
+            <Route exact path="/pages/error" component={ErrorApp}/>
+            <Route exact path="/pages/status" component={StatusApp}/>
+            <Route exact path="/pages/map" component={MapApp}/>
 
-            <BrowserRouter>
-                <Container fluid={true}>
-                    <Ping/>
-                    <UserInfo/>
-                    <Row>
-                        <NavBar/>
-                    </Row>
-                    <Row>
-                        <Col sm={4}></Col>
-                    </Row>
-                    <Switch>
-                        <Route exact path="/" component={WelcomeApp}/>
-                        <Route exact path="/pages/about" component={AboutApp}/>
-                        <Route exact path="/pages/list" component={ListConnectionsApp}/>
-                        <Route path="/pages/details/:connectionId?"
-                            component={ConnectionDetails}
-                        />
-                        <Route exact path="/pages/newDesign" component={NewDesignApp}/>
-                        <Route exact path="/pages/timeout" component={TimeoutApp}/>
-                        <Route exact path="/pages/error" component={ErrorApp}/>
-                        <Route exact path="/pages/status" component={StatusApp}/>
-                        <Route exact path="/pages/map" component={MapApp}/>
+        </Switch>
+    </Container>
+</BrowserRouter>
 
-                    </Switch>
-                </Container>
-            </BrowserRouter>
-        </AuthProvider>
-    </Provider>,
-    document.getElementById("react")
-)
-;
+if (accountStore.loggedin.anonymous) {
+    ReactDOM.render(
+        <Provider {...stores}>
+            {contents}
+        </Provider>,
+        document.getElementById("react")
+    );
+
+} else {
+    ReactDOM.render(
+        <Provider {...stores}>
+            <AuthProvider authConfig={authConfig}>
+                {contents}
+            </AuthProvider>
+        </Provider>,
+        document.getElementById("react")
+    );
+}
+
+

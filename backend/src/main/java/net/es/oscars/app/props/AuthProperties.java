@@ -13,6 +13,8 @@ import java.util.List;
 @Component
 @NoArgsConstructor
 public class AuthProperties {
+    private boolean oauthEnabled;
+
     private List<String> userGroups;
 
     private List<String> adminGroups;

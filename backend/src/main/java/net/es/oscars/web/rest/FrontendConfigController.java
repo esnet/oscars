@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.props.AuthProperties;
 import net.es.oscars.app.props.FrontendProperties;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,9 +15,11 @@ import org.springframework.web.bind.annotation.*;
 public class FrontendConfigController {
 
     private final FrontendProperties frontendProperties;
+    private final AuthProperties authProperties;
 
-    public FrontendConfigController(FrontendProperties frontendProperties) {
+    public FrontendConfigController(FrontendProperties frontendProperties, AuthProperties authProperties) {
         this.frontendProperties = frontendProperties;
+        this.authProperties = authProperties;
     }
 
 
@@ -26,6 +29,7 @@ public class FrontendConfigController {
     public FrontendOauthConfig getOauthConfig() {
 
         return FrontendOauthConfig.builder()
+                .enabled(authProperties.isOauthEnabled())
                 .clientId(frontendProperties.getOauthClientId())
                 .authorizationEndpoint(frontendProperties.getOauthAuthEndpoint())
                 .logoutEndpoint(frontendProperties.getOauthLogoutEndpoint())
@@ -41,6 +45,7 @@ public class FrontendConfigController {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class FrontendOauthConfig {
+        Boolean enabled;
         String clientId;
         String authorizationEndpoint;
         String tokenEndpoint;

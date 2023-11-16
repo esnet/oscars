@@ -4,7 +4,6 @@ package net.es.oscars.web;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.AuthProperties;
-import net.es.topo.common.devel.DevelUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -64,18 +63,24 @@ public class SecurityConfig {
     @Order(2)
     @Bean
     public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) throws Exception {
-
-        http.securityMatcher("/protected/**")
-                .authorizeHttpRequests(authorize ->
-                    authorize.anyRequest().hasAuthority(ROLE_OSCARS_USER)
-                )
-                .oauth2ResourceServer(oauth2 ->
-                    oauth2.jwt(
-                        jwt -> jwt.jwtAuthenticationConverter(new OscarsAuthenticationConverter(authProperties))
+        if (!authProperties.isOauthEnabled()) {
+            http.securityMatcher("/protected/**")
+                    .authorizeHttpRequests(authorize ->
+                            authorize.anyRequest().permitAll()
                     )
-                )
-                .csrf(AbstractHttpConfigurer::disable);
-
+                    .csrf(AbstractHttpConfigurer::disable);
+        } else {
+            http.securityMatcher("/protected/**")
+                    .authorizeHttpRequests(authorize ->
+                            authorize.anyRequest().hasAuthority(ROLE_OSCARS_USER)
+                    )
+                    .oauth2ResourceServer(oauth2 ->
+                            oauth2.jwt(
+                                    jwt -> jwt.jwtAuthenticationConverter(new OscarsAuthenticationConverter(authProperties))
+                            )
+                    )
+                    .csrf(AbstractHttpConfigurer::disable);
+        }
         return http.build();
     }
 
