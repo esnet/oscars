@@ -3,6 +3,7 @@ package net.es.oscars.web;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.props.AuthProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -34,6 +35,14 @@ import static org.springframework.security.web.util.matcher.AntPathRequestMatche
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    public static String ROLE_OSCARS_USER = "ROLE_OSCARS_USER";
+    public static String ROLE_OSCARS_ADMIN = "ROLE_OSCARS_ADMIN";
+
+    private final AuthProperties authProperties;
+
+    public SecurityConfig(AuthProperties authProperties) {
+        this.authProperties = authProperties;
+    }
 
     @Bean
     protected SessionAuthenticationStrategy sessionAuthenticationStrategy() {
@@ -63,13 +72,13 @@ public class SecurityConfig {
     public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(new AntPathRequestMatcher("/protected/**"))
-                .hasAuthority("OSCARS_USER")
+                .hasAuthority(ROLE_OSCARS_USER)
                 .anyRequest()
                 .authenticated()
         );
         http.oauth2ResourceServer((oauth2) ->
                 oauth2.jwt(
-                        jwt -> jwt.jwtAuthenticationConverter(new OscarsAuthenticationConverter())
+                        jwt -> jwt.jwtAuthenticationConverter(new OscarsAuthenticationConverter(authProperties))
                 )
         );
         return http.build();
@@ -82,16 +91,9 @@ public class SecurityConfig {
 
     @Slf4j
     public static class OscarsAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
-        private final List<String> allowedGroups;
-        private final List<String> adminGroups;
-        public OscarsAuthenticationConverter() {
-            allowedGroups = new ArrayList<>();
-            adminGroups = new ArrayList<>();
-            allowedGroups.add("svc_network_admin");
-            allowedGroups.add("svc_seg_admin");
-            allowedGroups.add("svc_oscars_user");
-            allowedGroups.add("svc_oscars_admin");
-            adminGroups.add("svc_oscars_admin");
+        private final AuthProperties authProperties;
+        public OscarsAuthenticationConverter(AuthProperties authProperties) {
+            this.authProperties = authProperties;
         }
 
         @Override
@@ -105,16 +107,16 @@ public class SecurityConfig {
             Set<SimpleGrantedAuthority> authorities = new HashSet<>();
             List<String> tokenGroups = new ArrayList<>(jwt.getClaim("groups"));
 
-            for (String group : allowedGroups) {
+            for (String group : authProperties.getUserGroups()) {
                 if (tokenGroups.contains(group)) {
                     log.info("is an oscars user");
-                    authorities.add(new SimpleGrantedAuthority("ROLE_OSCARS_USER"));
+                    authorities.add(new SimpleGrantedAuthority(ROLE_OSCARS_USER));
                 }
             }
-            for (String group : adminGroups) {
+            for (String group : authProperties.getAdminGroups()) {
                 if (tokenGroups.contains(group)) {
                     log.info("is an oscars admin");
-                    authorities.add(new SimpleGrantedAuthority("ROLE_OSCARS_ADMIN"));
+                    authorities.add(new SimpleGrantedAuthority(ROLE_OSCARS_ADMIN));
                 }
             }
 
