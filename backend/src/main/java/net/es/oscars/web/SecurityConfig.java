@@ -51,7 +51,6 @@ public class SecurityConfig {
     @Order(1)
     @Bean
     public SecurityFilterChain clientFilterChain(HttpSecurity http) throws Exception {
-        log.info("clientFilterChain");
 
         http.securityMatcher("/api/**", "/services/**")
                 .authorizeHttpRequests(authorize ->
@@ -65,7 +64,6 @@ public class SecurityConfig {
     @Order(2)
     @Bean
     public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) throws Exception {
-        log.info("resourceServerFilterChain");
 
         http.securityMatcher("/protected/**")
                 .authorizeHttpRequests(authorize ->
@@ -97,29 +95,23 @@ public class SecurityConfig {
 
         @Override
         public AbstractAuthenticationToken convert(@NonNull Jwt source) {
-            log.info("converting token");
             return new JwtAuthenticationToken(source,
                     Stream.concat(new JwtGrantedAuthoritiesConverter().convert(source).stream(),
                             makeAuthsFromGroups(source).stream()).collect(toSet()));
         }
 
         private Collection<? extends GrantedAuthority> makeAuthsFromGroups(Jwt jwt) {
-            DevelUtils.dumpDebug("making authorities", jwt);
 
             Set<SimpleGrantedAuthority> authorities = new HashSet<>();
             List<String> tokenGroups = new ArrayList<>(jwt.getClaim("groups"));
-            DevelUtils.dumpDebug("token groups", tokenGroups);
-            DevelUtils.dumpDebug("auth properties", authProperties);
 
             for (String group : authProperties.getUserGroups()) {
                 if (tokenGroups.contains(group)) {
-                    log.info("is an oscars user");
                     authorities.add(new SimpleGrantedAuthority(ROLE_OSCARS_USER));
                 }
             }
             for (String group : authProperties.getAdminGroups()) {
                 if (tokenGroups.contains(group)) {
-                    log.info("is an oscars admin");
                     authorities.add(new SimpleGrantedAuthority(ROLE_OSCARS_ADMIN));
                 }
             }
