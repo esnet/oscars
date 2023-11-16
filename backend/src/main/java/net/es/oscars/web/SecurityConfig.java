@@ -4,6 +4,7 @@ package net.es.oscars.web;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.AuthProperties;
+import net.es.topo.common.devel.DevelUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -34,6 +35,7 @@ import static org.springframework.security.web.util.matcher.AntPathRequestMatche
 
 @Configuration
 @EnableWebSecurity
+@Slf4j
 public class SecurityConfig {
     public static String ROLE_OSCARS_USER = "ROLE_OSCARS_USER";
     public static String ROLE_OSCARS_ADMIN = "ROLE_OSCARS_ADMIN";
@@ -51,6 +53,8 @@ public class SecurityConfig {
     @Order(1)
     @Bean
     public SecurityFilterChain clientFilterChain(HttpSecurity http) throws Exception {
+        log.info("clientFilterChain");
+
         http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(antMatcher("/api/**")).permitAll()
@@ -70,12 +74,16 @@ public class SecurityConfig {
     @Order(2)
     @Bean
     public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) throws Exception {
+        log.info("resourceServerFilterChain");
+
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(new AntPathRequestMatcher("/protected/**"))
                 .hasAuthority(ROLE_OSCARS_USER)
                 .anyRequest()
                 .authenticated()
-        );
+        )
+                .csrf(AbstractHttpConfigurer::disable);
+
         http.oauth2ResourceServer((oauth2) ->
                 oauth2.jwt(
                         jwt -> jwt.jwtAuthenticationConverter(new OscarsAuthenticationConverter(authProperties))
@@ -98,14 +106,19 @@ public class SecurityConfig {
 
         @Override
         public AbstractAuthenticationToken convert(@NonNull Jwt source) {
+            log.info("converting token");
             return new JwtAuthenticationToken(source,
                     Stream.concat(new JwtGrantedAuthoritiesConverter().convert(source).stream(),
-                            extractGroupRoles(source).stream()).collect(toSet()));
+                            makeAuthsFromGroups(source).stream()).collect(toSet()));
         }
 
-        private Collection<? extends GrantedAuthority> extractGroupRoles(Jwt jwt) {
+        private Collection<? extends GrantedAuthority> makeAuthsFromGroups(Jwt jwt) {
+            DevelUtils.dumpDebug("making authorities", jwt);
+
             Set<SimpleGrantedAuthority> authorities = new HashSet<>();
             List<String> tokenGroups = new ArrayList<>(jwt.getClaim("groups"));
+            DevelUtils.dumpDebug("token groups", tokenGroups);
+            DevelUtils.dumpDebug("auth properties", authProperties);
 
             for (String group : authProperties.getUserGroups()) {
                 if (tokenGroups.contains(group)) {
