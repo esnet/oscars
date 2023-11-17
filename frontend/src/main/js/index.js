@@ -2,15 +2,12 @@ import React, {useContext} from "react";
 
 import ReactDOM from "react-dom";
 
-import {AuthContext} from "react-oauth2-code-pkce"
-
+import {AuthContext, AuthProvider} from "react-oauth2-code-pkce"
 
 import "bootstrap/dist/css/bootstrap.css";
 
 import {configure} from "mobx";
 import {Provider} from "mobx-react";
-
-
 
 import accountStore from "./stores/accountStore";
 import commonStore from "./stores/commonStore";
@@ -47,8 +44,8 @@ let authConfig = {
     scope: '',
     redirectUri: '',
     authorizationEndpoint: '',
-    tokenEndpoint:         '',
-    logoutEndpoint:        '',
+    tokenEndpoint: '',
+    logoutEndpoint: '',
     onRefreshTokenExpire: (event) => window.confirm('Session expired. Refresh page to continue using the site?') && event.login(),
 }
 const UserInfo = () => {
@@ -58,6 +55,7 @@ const UserInfo = () => {
             accountStore.setLoggedinToken(token);
         }
         if (tokenData) {
+            console.log(tokenData)
             accountStore.setLoggedinUsername(tokenData.preferred_username)
         }
     }
@@ -99,14 +97,20 @@ auth_init();
 configure({enforceActions: "observed"});
 
 
-ReactDOM.render(
-    <Provider {...stores}>
-        <UserInfo />
-        <Root allowedGroups={allowedGroups}
-              authConfig={authConfig}
-              anonymous={anonymous}/>
-    </Provider>,
-    document.getElementById("react")
-);
-
+if (anonymous) {
+    ReactDOM.render(
+        <Provider {...stores}>
+            <Root anonymous={true} />
+        </Provider>,
+        document.getElementById("react"));
+} else {
+    ReactDOM.render(
+        <AuthProvider authConfig={props.authConfig}>
+            <Provider {...stores}>
+                <UserInfo/>
+                <Root allowedGroups={allowedGroups} anonymous={false} />
+            </Provider>
+        </AuthProvider>,
+        document.getElementById("react"));
+}
 
