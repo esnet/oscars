@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.util.DbAccess;
+import net.es.oscars.app.util.UsernameGetter;
 import net.es.oscars.resv.db.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.ConnectionMode;
@@ -46,6 +47,9 @@ public class HoldController {
 
 
     @Autowired
+    private UsernameGetter usernameGetter;
+
+    @Autowired
     private DbAccess dbAccess;
 
     @Value("${resv.timeout}")
@@ -59,7 +63,7 @@ public class HoldController {
 
     @ExceptionHandler(StartupException.class)
     @ResponseStatus(value = HttpStatus.SERVICE_UNAVAILABLE)
-    public void handleStartup(StartupException ex) {
+    public void handleStartup() {
         log.warn("Still in startup");
     }
 
@@ -74,13 +78,14 @@ public class HoldController {
             throw new StartupException("OSCARS shutting down");
         }
 
+        Instant expiration = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         ReentrantLock connLock = dbAccess.getConnLock();
         if (connLock.isLocked()) {
-            log.debug("connection lock already locked; extend hold blocking ...");
+            log.debug("connection already locked; extend hold returning");
+            return expiration;
         }
 
         connLock.lock();
-        Instant expiration = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         try {
             Optional<Connection> maybeConnection = connRepo.findByConnectionId(connectionId);
             if (maybeConnection.isPresent()) {
@@ -155,9 +160,9 @@ public class HoldController {
 
         int duration = connection.getEnd() - connection.getBegin();
 
+        connection.setUsername(usernameGetter.username(authentication));
         // try to get starting now() with same duration
-        String username = authentication.getName();
-        connection.setUsername(username);
+
 
         Instant now = Instant.now();
 
@@ -192,8 +197,7 @@ public class HoldController {
             return in;
         }
 
-        String username = authentication.getName();
-        in.setUsername(username);
+        in.setUsername(usernameGetter.username(authentication));
 
         Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         long secs = exp.toEpochMilli() / 1000L;

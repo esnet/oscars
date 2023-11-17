@@ -1,3 +1,4 @@
+
 import accountStore from "../stores/accountStore";
 
 class MyXHRClient {
@@ -59,7 +60,8 @@ class MyXHRClient {
 
     submitWithToken(method, url, payload) {
         let token = accountStore.loggedin.token;
-        let headers = { Authentication: token };
+
+        let headers = { Authorization: "Bearer "+token };
 
         return this.loadJSON({ method: method, url: url, headers: headers, params: payload });
     }
