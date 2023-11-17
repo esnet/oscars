@@ -62,6 +62,15 @@ const UserInfo = () => {
         }
         if (tokenData) {
             accountStore.setLoggedinUsername(tokenData.preferred_username)
+            accountStore.setAllowedGroups(tokenData.groups)
+            let allowed = false;
+            for (group in accountStore.loggedin.claimedGroups) {
+                if (tokenData.groups.includes(group)) {
+                    allowed = true;
+                    break;
+                }
+            }
+            accountStore.setAllowed(allowed);
         }
     }
     return <>
@@ -78,7 +87,7 @@ let authConfig = {
     onRefreshTokenExpire: (event) => window.confirm('Session expired. Refresh page to continue using the site?') && event.login(),
 }
 
-const authConfig_init = () => {
+const auth_init = () => {
     if (authConfig.clientId === '') {
         const xhr = new XMLHttpRequest();
         xhr.open("GET", "/api/frontend/oauth", false); // `false` makes the request synchronous
@@ -89,6 +98,7 @@ const authConfig_init = () => {
             let data = JSON.parse(xhr.responseText);
             if (data.enabled) {
                 accountStore.setLoggedinAnonymous(false);
+                accountStore.setAllowedGroups(data.allowedGroups);
 
                 authConfig.clientId = data.clientId;
                 authConfig.scope = data.scope;
@@ -99,15 +109,16 @@ const authConfig_init = () => {
                 console.log(authConfig)
             } else {
                 accountStore.setLoggedinAnonymous(true);
+                accountStore.setAllowed(true);
             }
         }
     }
 }
 
-authConfig_init();
+auth_init();
 configure({enforceActions: "observed"});
 
-const contents = <BrowserRouter>
+let contents = <BrowserRouter>
     <Container fluid={true}>
         <Ping/>
         <UserInfo/>
@@ -131,6 +142,16 @@ const contents = <BrowserRouter>
         </Switch>
     </Container>
 </BrowserRouter>
+
+if (!accountStore.loggedin.allowed) {
+    contents =     <Container fluid={true}>
+        <Row>
+            <Col sm={4}>Your account is not allowed on OSCARS</Col>
+        </Row>
+
+    </Container>
+}
+
 
 if (accountStore.loggedin.anonymous) {
     ReactDOM.render(

@@ -6,7 +6,10 @@ class AccountStore {
         username: "",
         token: "",
         admin: false,
-        anonymous: false
+        anonymous: false,
+        allowed: false,
+        claimedGroups: [],
+        allowedGroups: [],
     };
 
     isLoggedIn() {
@@ -45,6 +48,15 @@ class AccountStore {
     @action setLoggedinAnonymous(a) {
         this.loggedin.anonymous = a;
     }
+    @action setClaimedGroups(a) {
+        this.loggedin.claimedGroups = a;
+    }
+    @action setAllowedGroups(a) {
+        this.loggedin.allowedGroups = a;
+    }
 
+    @action setAllowed(a) {
+        this.loggedin.allowed = a;
+    }
 }
 export default new AccountStore();

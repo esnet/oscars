@@ -10,6 +10,9 @@ import net.es.oscars.app.props.AuthProperties;
 import net.es.oscars.app.props.FrontendProperties;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Slf4j
 @RestController
 public class FrontendConfigController {
@@ -36,6 +39,7 @@ public class FrontendConfigController {
                 .tokenEndpoint(frontendProperties.getOauthTokenEndpoint())
                 .redirectUri(frontendProperties.getOauthRedirectUri())
                 .scope(frontendProperties.getOauthScope())
+                .allowedGroups(new ArrayList<>(authProperties.getUserGroups()))
                 .build();
     }
 
@@ -52,6 +56,7 @@ public class FrontendConfigController {
         String logoutEndpoint;
         String redirectUri;
         String scope;
+        List<String> allowedGroups;
     }
 
 }
