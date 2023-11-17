@@ -1,32 +1,13 @@
-import React from "react";
+import React, {useContext} from "react";
 
 import ReactDOM from "react-dom";
 
-import { BrowserRouter, Route, Switch, Redirect } from "react-router-dom";
-import { Container, Row, Col } from "reactstrap";
+import {AuthContext, AuthProvider} from "react-oauth2-code-pkce"
+
 import "bootstrap/dist/css/bootstrap.css";
 
-import { configure } from "mobx";
-import { Provider } from "mobx-react";
-
-import ListConnectionsApp from "./apps/listConnections";
-import NewDesignApp from "./apps/designApp";
-import WelcomeApp from "./apps/welcome";
-import AboutApp from "./apps/about";
-import TimeoutApp from "./apps/timeout";
-import ErrorApp from "./apps/error";
-
-import StatusApp from "./apps/statusApp";
-import MapApp from "./apps/mapApp";
-import AccountApp from "./apps/accountApp";
-import AdminUsersApp from "./apps/usersAdminApp";
-import AdminTagsApp from "./apps/adminTagsApp";
-import ConnectionDetails from "./apps/detailsApp";
-import Login from "./apps/login";
-import Logout from "./apps/logout";
-
-import NavBar from "./components/navbar";
-import Ping from "./components/ping";
+import {configure} from "mobx";
+import {Provider} from "mobx-react";
 
 import accountStore from "./stores/accountStore";
 import commonStore from "./stores/commonStore";
@@ -39,55 +20,10 @@ import connsStore from "./stores/connsStore";
 import userStore from "./stores/userStore";
 import modalStore from "./stores/modalStore";
 import tagStore from "./stores/tagStore";
+import Root from "./Root";
 
 require("../css/styles.css");
 
-const PrivateRoute = ({ component: Component, ...rest }) => (
-    <Route
-        {...rest}
-        render={props =>
-            accountStore.isLoggedIn() ? (
-                <Component {...props} />
-            ) : (
-                <Redirect
-                    to={{
-                        pathname: "/login",
-                        state: { from: props.location }
-                    }}
-                />
-            )
-        }
-    />
-);
-
-const AdminRoute = ({ component: Component, ...rest }) => (
-    <Route
-        {...rest}
-        render={props => {
-            if (accountStore.isLoggedIn() && accountStore.isAdmin()) {
-                return <Component {...props} />;
-            }
-            if (accountStore.isLoggedIn()) {
-                return (
-                    <Redirect
-                        to={{
-                            pathname: "/",
-                            state: { from: props.location }
-                        }}
-                    />
-                );
-            }
-            return (
-                <Redirect
-                    to={{
-                        pathname: "/login",
-                        state: { from: props.location }
-                    }}
-                />
-            );
-        }}
-    />
-);
 
 const stores = {
     accountStore,
@@ -103,42 +39,77 @@ const stores = {
     modalStore
 };
 
-configure({ enforceActions: "observed" });
+let authConfig = {
+    clientId: '',
+    scope: '',
+    redirectUri: '',
+    authorizationEndpoint: '',
+    tokenEndpoint: '',
+    logoutEndpoint: '',
+    onRefreshTokenExpire: (event) => window.confirm('Session expired. Refresh page to continue using the site?') && event.login(),
+}
 
-ReactDOM.render(
-    <Provider {...stores}>
-        <BrowserRouter>
-            <Container fluid={true}>
-                <Ping />
-                <Row>
-                    <NavBar />
-                </Row>
-                <Row>
-                    <Col sm={4}> </Col>
-                </Row>
-                <Switch>
-                    <Route exact path="/" component={WelcomeApp} />
-                    <Route exact path="/pages/about" component={AboutApp} />
-                    <Route exact path="/login" component={Login} />
+const UserInfo = () => {
+    if (!accountStore.loggedin.anonymous) {
+        const {token, tokenData} = useContext(AuthContext);
+        if (token) {
+            accountStore.setLoggedinToken(token);
+        }
+        if (tokenData) {
+            accountStore.setLoggedinUsername(tokenData.preferred_username)
+        }
+    }
+    return <>
+    </>
+}
 
-                    <Route exact path="/pages/logout" component={Logout} />
+let allowedGroups = [];
+let anonymous = false;
 
-                    <PrivateRoute exact path="/pages/list" component={ListConnectionsApp} />
-                    <PrivateRoute
-                        path="/pages/details/:connectionId?"
-                        component={ConnectionDetails}
-                    />
-                    <PrivateRoute exact path="/pages/newDesign" component={NewDesignApp} />
-                    <PrivateRoute exact path="/pages/timeout" component={TimeoutApp} />
-                    <PrivateRoute exact path="/pages/error" component={ErrorApp} />
-                    <PrivateRoute exact path="/pages/account" component={AccountApp} />
-                    <PrivateRoute exact path="/pages/status" component={StatusApp} />
-                    <PrivateRoute exact path="/pages/map" component={MapApp} />
-                    <AdminRoute exact path="/pages/admin/users" component={AdminUsersApp} />
-                    <AdminRoute exact path="/pages/admin/tags" component={AdminTagsApp} />
-                </Switch>
-            </Container>
-        </BrowserRouter>
-    </Provider>,
-    document.getElementById("react")
-);
+const auth_init = () => {
+    if (authConfig.clientId === '') {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "/api/frontend/oauth", false); // `false` makes the request synchronous
+        xhr.overrideMimeType("application/json");
+        xhr.send(null);
+
+        if (xhr.status === 200) {
+            let data = JSON.parse(xhr.responseText);
+            if (data.enabled) {
+                anonymous = false;
+                allowedGroups = data.allowedGroups;
+
+                authConfig.clientId = data.clientId;
+                authConfig.scope = data.scope;
+                authConfig.redirectUri = data.redirectUri;
+                authConfig.authorizationEndpoint = data.authorizationEndpoint;
+                authConfig.tokenEndpoint = data.tokenEndpoint;
+                authConfig.logoutEndpoint = data.logoutEndpoint;
+            } else {
+                anonymous = true;
+            }
+        }
+    }
+}
+
+auth_init();
+configure({enforceActions: "observed"});
+
+
+if (anonymous) {
+    ReactDOM.render(
+        <Provider {...stores}>
+            <Root anonymous={true} />
+        </Provider>,
+        document.getElementById("react"));
+} else {
+    ReactDOM.render(
+        <AuthProvider authConfig={authConfig}>
+            <Provider {...stores}>
+                <UserInfo/>
+                <Root allowedGroups={allowedGroups} anonymous={false} />
+            </Provider>
+        </AuthProvider>,
+        document.getElementById("react"));
+}
+

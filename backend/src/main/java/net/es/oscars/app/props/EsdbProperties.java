@@ -18,6 +18,8 @@ public class EsdbProperties {
     @NonNull
     private String uri;
 
+    private boolean enabled;
+
     public String getUri() {
         if (uri.endsWith("/")) {
             return uri;
