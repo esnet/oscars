@@ -21,10 +21,7 @@ function Root(props) {
     } else {
         const {tokenData} = useContext(AuthContext);
         if (tokenData) {
-            console.log(tokenData)
-            console.log(props.allowedGroups)
-            for (group in tokenData.groups) {
-                console.log("evaluating claimed group "+group)
+            for (const group of tokenData.groups) {
                 if (props.allowedGroups.includes(group)) {
                     allowed = true;
                     break;
@@ -32,7 +29,6 @@ function Root(props) {
             }
         }
     }
-    console.log("user allowed? "+allowed)
 
     if (!allowed) {
         return <Container fluid={true}>

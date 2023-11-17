@@ -48,6 +48,7 @@ let authConfig = {
     logoutEndpoint: '',
     onRefreshTokenExpire: (event) => window.confirm('Session expired. Refresh page to continue using the site?') && event.login(),
 }
+
 const UserInfo = () => {
     if (!accountStore.loggedin.anonymous) {
         const {token, tokenData} = useContext(AuthContext);
@@ -105,7 +106,7 @@ if (anonymous) {
         document.getElementById("react"));
 } else {
     ReactDOM.render(
-        <AuthProvider authConfig={props.authConfig}>
+        <AuthProvider authConfig={authConfig}>
             <Provider {...stores}>
                 <UserInfo/>
                 <Root allowedGroups={allowedGroups} anonymous={false} />
