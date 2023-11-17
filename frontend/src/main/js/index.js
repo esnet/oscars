@@ -22,7 +22,6 @@ import StatusApp from "./apps/statusApp";
 import MapApp from "./apps/mapApp";
 import ConnectionDetails from "./apps/detailsApp";
 
-
 import NavBar from "./components/navbar";
 import Ping from "./components/ping";
 
@@ -61,15 +60,19 @@ const UserInfo = () => {
             accountStore.setLoggedinToken(token);
         }
         if (tokenData) {
+            console.log(tokenData)
             accountStore.setLoggedinUsername(tokenData.preferred_username)
             accountStore.setAllowedGroups(tokenData.groups)
             let allowed = false;
             for (group in accountStore.loggedin.claimedGroups) {
+                console.log("evaluating claimed group "+group)
                 if (tokenData.groups.includes(group)) {
                     allowed = true;
                     break;
                 }
             }
+            console.log("user allowed? "+allowed)
+
             accountStore.setAllowed(allowed);
         }
     }
@@ -106,7 +109,7 @@ const auth_init = () => {
                 authConfig.authorizationEndpoint = data.authorizationEndpoint;
                 authConfig.tokenEndpoint = data.tokenEndpoint;
                 authConfig.logoutEndpoint = data.logoutEndpoint;
-                console.log(authConfig)
+                console.log(data)
             } else {
                 accountStore.setLoggedinAnonymous(true);
                 accountStore.setAllowed(true);
@@ -138,17 +141,15 @@ let contents = <BrowserRouter>
             <Route exact path="/pages/error" component={ErrorApp}/>
             <Route exact path="/pages/status" component={StatusApp}/>
             <Route exact path="/pages/map" component={MapApp}/>
-
         </Switch>
     </Container>
 </BrowserRouter>
 
 if (!accountStore.loggedin.allowed) {
-    contents =     <Container fluid={true}>
+    contents = <Container fluid={true}>
         <Row>
             <Col sm={4}>Your account is not allowed on OSCARS</Col>
         </Row>
-
     </Container>
 }
 
