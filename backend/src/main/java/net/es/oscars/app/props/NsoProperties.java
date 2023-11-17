@@ -37,6 +37,10 @@ public class NsoProperties {
     @NonNull
     public String password;
 
+    public Integer retryAttempts;
+
+    public Integer backoffMillisecs;
+
     public Boolean sdpIdsGloballyUnique;
 
 }

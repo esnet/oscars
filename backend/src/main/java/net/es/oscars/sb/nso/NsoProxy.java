@@ -75,7 +75,7 @@ public class NsoProxy {
         log.info("NSO server base URI: " + props.getUri());
     }
 
-    @Retryable(backoff = @Backoff(delay = 15000))
+    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public void deleteServices(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoCommitException {
         YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
 
@@ -109,7 +109,7 @@ public class NsoProxy {
         }
     }
 
-    @Retryable(backoff = @Backoff(delay = 15000))
+    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public void buildServices(NsoServicesWrapper wrapper) throws NsoCommitException {
         String path = "restconf/data/tailf-ncs:services";
         String restPath = props.getUri() + path;
@@ -147,13 +147,14 @@ public class NsoProxy {
         }
     }
 
-    @Retryable(backoff = @Backoff(delay = 15000))
+    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public void syncFrom(String device) {
         String path = "restconf/data/tailf-ncs:devices/device=%s/sync-from".formatted(device);
         String restPath = props.getUri() + path;
         restTemplate.postForLocation(restPath, HttpEntity.EMPTY);
     }
 
+    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public String buildDryRun(NsoServicesWrapper wrapper) throws NsoDryrunException {
         String path = "restconf/data/tailf-ncs:services?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
@@ -179,6 +180,7 @@ public class NsoProxy {
             throw new NsoDryrunException(ex.getMessage());
         }
     }
+    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public String dismantleDryRun(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoDryrunException {
         YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
 
