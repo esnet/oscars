@@ -1,6 +1,5 @@
 package net.es.oscars.resv.svc;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +12,6 @@ import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.resv.db.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
-import net.es.oscars.esdb.ESDBService;
 import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.svc.TopoService;
@@ -80,9 +78,6 @@ public class ConnService {
 
     @Autowired
     private TopoService topoService;
-
-    @Autowired
-    private ESDBService esdbService;
 
     @Autowired
     ConnUtils connUtils;
@@ -212,6 +207,7 @@ public class ConnService {
                         String vlanStr = vlan.toString();
                         if (fixtureVlanStr.contains(vlanStr)) {
                             add = true;
+                            break;
                         }
                     }
                 }
@@ -364,7 +360,6 @@ public class ConnService {
             c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
 
             connRepo.saveAndFlush(c);
-            esdbService.reserveEsdbVlans(c);
             nsoResourceService.reserve(c);
 
             connRepo.saveAndFlush(c);
@@ -459,7 +454,6 @@ public class ConnService {
                 logService.logEvent(c.getConnectionId(), ev);
 
             }
-            esdbService.releaseEsdbVlans(c);
         }
 
 
@@ -934,19 +928,20 @@ public class ConnService {
             error.append("invalid interval! VLANs and bandwidths not checked\n");
         }
 
-        Validity v = Validity.builder()
+        return Validity.builder()
                 .message(error.toString())
                 .valid(valid)
                 .build();
-        
+
+        /*
         try {
             String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(v);
             // log.info(pretty);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
+         */
 
-        return v;
 
 
     }

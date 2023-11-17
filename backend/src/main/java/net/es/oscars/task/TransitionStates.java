@@ -4,14 +4,12 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.util.DbAccess;
-import net.es.oscars.esdb.ESDBService;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,19 +25,18 @@ import java.util.concurrent.locks.ReentrantLock;
 @Component
 public class TransitionStates {
 
-    @Autowired
-    private ConnectionRepository connRepo;
-    @Autowired
-    private Startup startup;
+    private final ConnectionRepository connRepo;
+    private final Startup startup;
 
-    @Autowired
-    private NsiService nsiService;
+    private final NsiService nsiService;
 
-    @Autowired
-    private DbAccess dbAccess;
-
-    @Autowired
-    private ESDBService esdbService;
+    private final DbAccess dbAccess;
+    public TransitionStates(ConnectionRepository connRepo, Startup startup, NsiService nsiService, DbAccess dbAccess) {
+        this.connRepo = connRepo;
+        this.startup = startup;
+        this.nsiService = nsiService;
+        this.dbAccess = dbAccess;
+    }
 
     @Scheduled(fixedDelay = 5000)
     @Transactional
@@ -100,18 +97,15 @@ public class TransitionStates {
                     nsiService.resvTimedOut(mapping);
                 }
 
-                if (deleteThese.size() == 0 && archiveThese.size() == 0) {
+                if (deleteThese.isEmpty() && archiveThese.isEmpty()) {
                     return;
                 }
 
-                deleteThese.forEach(c -> {
-                    log.debug("Deleting "+c.getConnectionId());
-                });
+                deleteThese.forEach(c -> log.debug("Deleting "+c.getConnectionId()));
                 connRepo.deleteAll(deleteThese);
 
                 archiveThese.forEach(c -> {
                     log.debug("Archiving "+c.getConnectionId());
-                    esdbService.releaseEsdbVlans(c);
                     c.setPhase(Phase.ARCHIVED);
                     c.setReserved(null);
                     connRepo.saveAndFlush(c);
