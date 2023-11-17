@@ -56,7 +56,6 @@ const UserInfo = () => {
             accountStore.setLoggedinToken(token);
         }
         if (tokenData) {
-            console.log(tokenData)
             accountStore.setLoggedinUsername(tokenData.preferred_username)
         }
     }
@@ -86,7 +85,6 @@ const auth_init = () => {
                 authConfig.authorizationEndpoint = data.authorizationEndpoint;
                 authConfig.tokenEndpoint = data.tokenEndpoint;
                 authConfig.logoutEndpoint = data.logoutEndpoint;
-                console.log(data)
             } else {
                 anonymous = true;
             }
