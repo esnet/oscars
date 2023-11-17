@@ -2,28 +2,15 @@ import React, {useContext} from "react";
 
 import ReactDOM from "react-dom";
 
-import {AuthContext, AuthProvider} from "react-oauth2-code-pkce"
+import {AuthContext} from "react-oauth2-code-pkce"
 
-import {BrowserRouter, Route, Switch} from "react-router-dom";
-import {Container, Row, Col} from "reactstrap";
+
 import "bootstrap/dist/css/bootstrap.css";
 
 import {configure} from "mobx";
 import {Provider} from "mobx-react";
 
-import ListConnectionsApp from "./apps/listConnections";
-import NewDesignApp from "./apps/designApp";
-import WelcomeApp from "./apps/welcome";
-import AboutApp from "./apps/about";
-import TimeoutApp from "./apps/timeout";
-import ErrorApp from "./apps/error";
 
-import StatusApp from "./apps/statusApp";
-import MapApp from "./apps/mapApp";
-import ConnectionDetails from "./apps/detailsApp";
-
-import NavBar from "./components/navbar";
-import Ping from "./components/ping";
 
 import accountStore from "./stores/accountStore";
 import commonStore from "./stores/commonStore";
@@ -36,6 +23,7 @@ import connsStore from "./stores/connsStore";
 import userStore from "./stores/userStore";
 import modalStore from "./stores/modalStore";
 import tagStore from "./stores/tagStore";
+import Root from "./Root";
 
 require("../css/styles.css");
 
@@ -53,32 +41,6 @@ const stores = {
     tagStore,
     modalStore
 };
-const UserInfo = () => {
-    if (!accountStore.loggedin.anonymous) {
-        const {token, tokenData} = useContext(AuthContext);
-        if (token) {
-            accountStore.setLoggedinToken(token);
-        }
-        if (tokenData) {
-            console.log(tokenData)
-            accountStore.setLoggedinUsername(tokenData.preferred_username)
-            accountStore.setAllowedGroups(tokenData.groups)
-            let allowed = false;
-            for (group in accountStore.loggedin.claimedGroups) {
-                console.log("evaluating claimed group "+group)
-                if (tokenData.groups.includes(group)) {
-                    allowed = true;
-                    break;
-                }
-            }
-            console.log("user allowed? "+allowed)
-
-            accountStore.setAllowed(allowed);
-        }
-    }
-    return <>
-    </>
-}
 
 let authConfig = {
     clientId: '',
@@ -89,6 +51,22 @@ let authConfig = {
     logoutEndpoint:        '',
     onRefreshTokenExpire: (event) => window.confirm('Session expired. Refresh page to continue using the site?') && event.login(),
 }
+const UserInfo = () => {
+    if (!accountStore.loggedin.anonymous) {
+        const {token, tokenData} = useContext(AuthContext);
+        if (token) {
+            accountStore.setLoggedinToken(token);
+        }
+        if (tokenData) {
+            accountStore.setLoggedinUsername(tokenData.preferred_username)
+        }
+    }
+    return <>
+    </>
+}
+
+let allowedGroups = [];
+let anonymous = false;
 
 const auth_init = () => {
     if (authConfig.clientId === '') {
@@ -100,8 +78,8 @@ const auth_init = () => {
         if (xhr.status === 200) {
             let data = JSON.parse(xhr.responseText);
             if (data.enabled) {
-                accountStore.setLoggedinAnonymous(false);
-                accountStore.setAllowedGroups(data.allowedGroups);
+                anonymous = false;
+                allowedGroups = data.allowedGroups;
 
                 authConfig.clientId = data.clientId;
                 authConfig.scope = data.scope;
@@ -111,8 +89,7 @@ const auth_init = () => {
                 authConfig.logoutEndpoint = data.logoutEndpoint;
                 console.log(data)
             } else {
-                accountStore.setLoggedinAnonymous(true);
-                accountStore.setAllowed(true);
+                anonymous = true;
             }
         }
     }
@@ -121,56 +98,15 @@ const auth_init = () => {
 auth_init();
 configure({enforceActions: "observed"});
 
-let contents = <BrowserRouter>
-    <Container fluid={true}>
-        <Ping/>
-        <UserInfo/>
-        <Row>
-            <NavBar/>
-        </Row>
-        <Row>
-            <Col sm={4}></Col>
-        </Row>
-        <Switch>
-            <Route exact path="/" component={WelcomeApp}/>
-            <Route exact path="/pages/about" component={AboutApp}/>
-            <Route exact path="/pages/list" component={ListConnectionsApp}/>
-            <Route path="/pages/details/:connectionId?" component={ConnectionDetails} />
-            <Route exact path="/pages/newDesign" component={NewDesignApp}/>
-            <Route exact path="/pages/timeout" component={TimeoutApp}/>
-            <Route exact path="/pages/error" component={ErrorApp}/>
-            <Route exact path="/pages/status" component={StatusApp}/>
-            <Route exact path="/pages/map" component={MapApp}/>
-        </Switch>
-    </Container>
-</BrowserRouter>
 
-if (!accountStore.loggedin.allowed) {
-    contents = <Container fluid={true}>
-        <Row>
-            <Col sm={4}>Your account is not allowed on OSCARS</Col>
-        </Row>
-    </Container>
-}
-
-
-if (accountStore.loggedin.anonymous) {
-    ReactDOM.render(
-        <Provider {...stores}>
-            {contents}
-        </Provider>,
-        document.getElementById("react")
-    );
-
-} else {
-    ReactDOM.render(
-        <Provider {...stores}>
-            <AuthProvider authConfig={authConfig}>
-                {contents}
-            </AuthProvider>
-        </Provider>,
-        document.getElementById("react")
-    );
-}
+ReactDOM.render(
+    <Provider {...stores}>
+        <UserInfo />
+        <Root allowedGroups={allowedGroups}
+              authConfig={authConfig}
+              anonymous={anonymous}/>
+    </Provider>,
+    document.getElementById("react")
+);
 
 
