@@ -1,7 +1,6 @@
 import React from "react";
 import Octicon from "react-octicon";
 import { Graph, alg } from "graphlib";
-import { toJS } from "mobx";
 
 class Validator {
     label(state) {
@@ -26,17 +25,13 @@ class Validator {
     }
 
     fixtureState(fixture) {
-        if (!fixture.locked) {
-            return false;
-        }
-        return true;
+        return fixture.locked;
+
     }
 
     pipeState(pipe) {
-        if (!pipe.locked) {
-            return false;
-        }
-        return true;
+        return pipe.locked;
+
     }
 
     fixtureMapColor(fixture) {
@@ -123,10 +118,8 @@ class Validator {
             g.setEdge(p.a, p.z, p.a + " - " + p.z);
         });
         const connected = alg.components(g);
-        if (connected.length === 1) {
-            return true;
-        }
-        return false;
+        return connected.length === 1;
+
     }
 
     validateConnection(params) {
@@ -212,7 +205,26 @@ class Validator {
         if (val === "") {
             return "error";
         }
-        return "success";
+        if (/^[a-zA-Z0-9\s\]\[)(@!#%{};<>._-]+$/.test(val)) {
+            return "success";
+        }
+        return "error"
+    }
+    serviceIdControl(val) {
+        if (typeof val === "undefined") {
+            return "success";
+        }
+        if (val.length === 0) {
+            return "success";
+        }
+        if (val.length > 0 && val.length < 4) {
+            return "error";
+        }
+        // must be alphanumeric
+        if (/^[a-zA-Z0-9]+$/.test(val)) {
+            return "success";
+        }
+        return "error";
     }
 
     mtuControl(val) {

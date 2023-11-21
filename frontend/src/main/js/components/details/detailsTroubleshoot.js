@@ -8,10 +8,9 @@ import {
     CardBody,
     Button,
     Form,
-    UncontrolledAccordion,
     AccordionItem,
     AccordionHeader,
-    AccordionBody
+    AccordionBody, Accordion
 } from "reactstrap";
 
 import myClient from "../../agents/client";
@@ -22,17 +21,14 @@ class DetailsTroubleshoot extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            loading: true
+            loading: true,
+            open: ''
         };
     }
 
     componentWillMount() {
         const connectionId = this.props.connsStore.store.current.connectionId;
         this.updateMacInfo(connectionId);
-    }
-
-    componentWillUnmount() {
-        // this.props.connsStore.clearCurrent();
     }
 
     refresh = () => {
@@ -47,7 +43,7 @@ class DetailsTroubleshoot extends Component {
         if (this.props.connsStore.store.current.phase !== 'RESERVED') {
             return;
         }
-
+        this.setState({loading: true})
 
         myClient.submitWithToken("POST", "/api/mac/info", macInfoRequest).then(
             action(response => {
@@ -58,18 +54,25 @@ class DetailsTroubleshoot extends Component {
         );
     };
 
+    toggle = (id) => {
+        if (this.state.open === id) {
+            this.setState({open : ''})
+        } else {
+            this.setState({open : id})
+        }
+    };
 
     render() {
         let cs = this.props.connsStore;
         const macInfo = cs.store.macInfo;
         let contents = <div>Loading..</div>;
         if (cs.store.current.phase !== 'RESERVED') {
-            contents = '<p>Only available for RESERVED connections</p>'
+            contents = <pre>Only available for RESERVED connections</pre>
         } else if (!this.state.loading) {
 
             let macLearning = <div>No mac learning data loaded</div>
             if (macInfo['connection-id']) {
-                macLearning = <UncontrolledAccordion>
+                macLearning = <Accordion  open={this.state.open} toggle={this.toggle} >
                     {
                         macInfo['results'].map((result, idx) => {
                             let message = result['fdb'];
@@ -82,16 +85,16 @@ class DetailsTroubleshoot extends Component {
                             }
                             let headerString = result['device'] + ' (' + timestamp + ')';
                             return <AccordionItem key={idx}>
-                                <AccordionHeader targetId={idx}>{headerString}</AccordionHeader>
-                                <AccordionBody accordionId={idx}>
+                                <AccordionHeader targetId={idx+""}>{headerString}</AccordionHeader>
+                                <AccordionBody accordionId={idx+""}>
                                     <pre>{message}</pre>
                                 </AccordionBody>
                             </AccordionItem>
                         })
                     }
-                </UncontrolledAccordion>
+                </Accordion>
             }
-            contents = <Form inline onSubmit={e => {
+            contents = <Form inline="true" onSubmit={e => {
                 e.preventDefault();
             }}>
                 {macLearning}

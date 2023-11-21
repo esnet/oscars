@@ -266,6 +266,9 @@ public class NsoProxy {
             log.error("No device or live status args available");
             return null;
         }
+        if (props.isMockLiveShowCommands()) {
+            return "This is mock data for 'show "+liveStatusRequest.getArgs()+"'";
+        }
         String path = "restconf/data/tailf-ncs:devices/device=" + device + "/live-status/tailf-ned-alu-sr-stats:exec/show";
         String restPath = props.getUri() + path;
 

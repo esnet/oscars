@@ -26,12 +26,13 @@ public class Connection {
                       @JsonProperty("deployment-intent") @NonNull DeploymentIntent deploymentIntent,
                       @JsonProperty("username") @NonNull String username,
                       @JsonProperty("description") @NonNull String description,
+                      @JsonProperty("service-id") String serviceId,
                       @JsonProperty("reserved") Reserved reserved,
                       @JsonProperty("tags") List<Tag> tags,
                       @JsonProperty("held") Held held,
                       @JsonProperty("archived") Archived archived,
-                      @JsonProperty("connection_mtu") Integer connection_mtu,
-                      @JsonProperty("last_modified") Integer last_modified) {
+                      @JsonProperty("connection_mtu") @NonNull Integer connection_mtu,
+                      @JsonProperty("last_modified") @NonNull Integer last_modified) {
         this.connectionId = connectionId;
         this.phase = phase;
         this.mode = mode;
@@ -40,6 +41,7 @@ public class Connection {
         this.deploymentIntent = deploymentIntent;
         this.username = username;
         this.description = description;
+        this.serviceId = serviceId;
         this.reserved = reserved;
         this.tags = tags;
         this.held = held;
@@ -78,6 +80,9 @@ public class Connection {
 
     @NonNull
     private String username;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String serviceId;
 
     @OneToMany(cascade = CascadeType.ALL)
     @JsonInclude(JsonInclude.Include.NON_NULL)

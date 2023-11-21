@@ -4,7 +4,7 @@ import { observer, inject } from "mobx-react";
 
 import { withRouter } from "react-router-dom";
 
-import { Button, Card, CardBody, CardHeader, FormGroup, Label, Input } from "reactstrap";
+import {Button, Card, CardBody, CardHeader, Label, Input, InputGroup} from "reactstrap";
 import PropTypes from "prop-types";
 
 @inject("connsStore", "commonStore")
@@ -38,9 +38,10 @@ class DetailsControls extends Component {
             <Card>
                 <CardHeader>Search</CardHeader>
                 <CardBody>
-                    <FormGroup>
-                        <Label>Connection ID:</Label>{" "}
+                    <InputGroup>
+                        <Label hidden for="connectionId">Connection ID:</Label>
                         <Input
+                            id="connectionId"
                             type="text"
                             innerRef={ref => {
                                 this.connectionIdRef = ref;
@@ -49,28 +50,27 @@ class DetailsControls extends Component {
                             onKeyPress={this.handleKeyPress}
                             placeholder='Connection ID ("Z0K2")'
                         />
-                    </FormGroup>
+                        <Button
+                            color="info"
+                            disabled={!connLoaded}
+                            onClick={() => {
+                                this.props.refresh();
+                            }}
+                            className="float-left"
+                        >
+                            Refresh
+                        </Button>
+                        <Button
+                            color="primary"
+                            onClick={() => {
+                                this.load();
+                            }}
+                            className="float-right"
+                        >
+                            Load
+                        </Button>
 
-                    <Button
-                        color="info"
-                        disabled={!connLoaded}
-                        onClick={() => {
-                            this.props.refresh();
-                        }}
-                        className="float-left"
-                    >
-                        Refresh
-                    </Button>
-
-                    <Button
-                        color="primary"
-                        onClick={() => {
-                            this.load();
-                        }}
-                        className="float-right"
-                    >
-                        Load
-                    </Button>
+                    </InputGroup>
                 </CardBody>
             </Card>
         );

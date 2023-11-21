@@ -706,6 +706,7 @@ public class NsiService {
                     .end(end.intValue())
                     .fixtures(fixturesAndJunctions.getLeft())
                     .junctions(fixturesAndJunctions.getRight())
+                    .serviceId(null)
                     .pipes(pipes)
                     .tags(tags)
                     .username("nsi")

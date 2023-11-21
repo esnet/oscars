@@ -3,10 +3,10 @@ import React, { Component } from "react";
 import { observer, inject } from "mobx-react";
 
 import ConfirmModal from "../confirmModal";
-import { Alert, Button, ListGroup, ListGroupItem, Input, Form, FormGroup } from "reactstrap";
+import { Button, ListGroup, ListGroupItem, Input, Form, FormGroup } from "reactstrap";
 import myClient from "../../agents/client";
 import Moment from "moment/moment";
-import { autorun, action, toJS} from "mobx";
+import { autorun, action } from "mobx";
 import { size } from "lodash-es";
 import HelpPopover from "../helpPopover";
 import { withRouter } from "react-router-dom";
@@ -681,31 +681,6 @@ class DetailsButtons extends Component {
             );
         }
 
-        let regenerate = null;
-        const canRegenerate = controls.regenerate.allowed && !controls.regenerate.working;
-        if (controls.regenerate.show) {
-            showSpecialHeader = true;
-            regenerate = (
-                <ListGroupItem>
-                    <ConfirmModal
-                        body="This will re-generate all router configs. Do NOT use on migrated reservations!"
-                        header="Regenerate configs"
-                        uiElement={
-                            <Button
-                                className="pull-right"
-                                disabled={!canRegenerate}
-                                color="warning"
-                            >
-                                Regenerate router config
-                            </Button>
-                        }
-                        onConfirm={this.doRegenCommands}
-                    />{" "}
-                    {this.help("regenerate")}
-                </ListGroupItem>
-            );
-        }
-
         let controlsHeader = null;
         if (controls.show) {
             controlsHeader = <ListGroupItem color="info">Controls {overallHelp}</ListGroupItem>;
@@ -762,7 +737,6 @@ class DetailsButtons extends Component {
                 {release}
                 <br />
                 {specialHeader}
-                {regenerate}
                 <br />
                 {cloneButton}
                 <br />
