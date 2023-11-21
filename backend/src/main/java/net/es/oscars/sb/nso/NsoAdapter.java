@@ -1,11 +1,9 @@
 package net.es.oscars.sb.nso;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.db.NsoSdpVcIdDAO;
 import net.es.oscars.sb.nso.ent.NsoSdpVcId;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
@@ -48,6 +46,9 @@ public class NsoAdapter {
 
     @Autowired
     private NsoProxy nsoProxy;
+
+    @Autowired
+    private NsoProperties nsoProperties;
 
     @Autowired
     private NsoVcIdDAO nsoVcIdDAO;
@@ -94,7 +95,7 @@ public class NsoAdapter {
                 if (commandType.equals(CommandType.BUILD)) {
                     NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
                     commands = oscarsServices.asCliCommands();
-                    log.info(commands);
+                    log.info("\n"+commands);
                     dumpDebug(conn.getConnectionId()+" BUILD services", oscarsServices);
                     dryRun = nsoProxy.buildDryRun(oscarsServices);
                     nsoProxy.buildServices(oscarsServices);
@@ -102,7 +103,7 @@ public class NsoAdapter {
                 } else {
                     NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
                     commands = dismantle.asCliCommands();
-                    log.info(commands);
+                    log.info("\n"+commands);
                     dryRun = nsoProxy.dismantleDryRun(dismantle);
                     nsoProxy.deleteServices(dismantle);
                     newDepState = DeploymentState.UNDEPLOYED;
@@ -181,7 +182,7 @@ public class NsoAdapter {
         if (!isProtect) {
             List<NsoLSP.Hop> nsoHops = new ArrayList<>();
             int i = 1;
-            List<MplsHop> mplsHops = null;
+            List<MplsHop> mplsHops;
             try {
                 mplsHops = miscHelper.mplsHops(hops);
             } catch (PSSException e) {
@@ -214,7 +215,7 @@ public class NsoAdapter {
 
     public NsoOscarsDismantle nsoOscarsDismantle(Connection conn) {
         Integer vcId = nsoVcIdDAO.findNsoVcIdByConnectionId(conn.getConnectionId()).orElseThrow().getVcId();
-        Components cmp = null;
+        Components cmp;
         if (conn.getReserved() != null) {
             cmp = conn.getReserved().getCmp();
         } else {
@@ -232,8 +233,8 @@ public class NsoAdapter {
 
             if (pipe.getProtect()) {
                 lspNamePiece = "-PRT-";
-                azInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getZ().getDeviceUrn()+","+pipe.getA().getDeviceUrn();;
-                zaInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getA().getDeviceUrn()+","+pipe.getZ().getDeviceUrn();;
+                azInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getZ().getDeviceUrn()+","+pipe.getA().getDeviceUrn();
+                zaInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getA().getDeviceUrn()+","+pipe.getZ().getDeviceUrn();
                 lspInstanceKeys.add(azInstanceKey);
                 lspInstanceKeys.add(zaInstanceKey);
             }
@@ -342,10 +343,17 @@ public class NsoAdapter {
                     .egressMbps(egBw)
                     .build();
 
+            Boolean cflowd = null;
+            switch (nsoProperties.getCflowd()) {
+                case ENABLED -> cflowd = true;
+                case DISABLED -> cflowd = false;
+            }
+
             NsoVPLS.Endpoint endpoint = NsoVPLS.Endpoint.builder()
                     .ifce(portIfce)
                     .vlanId(f.getVlan().getVlanId())
                     .layer2Description(conn.getConnectionId())
+                    .cflowd(cflowd)
                     .qos(qos)
                     .build();
             dc.getEndpoint().add(endpoint);
