@@ -15,6 +15,7 @@ class ConnectionsStore {
                     ending: null
                 }
             },
+            serviceId: "",
             tags: [],
             dirty: false
         },
@@ -242,10 +243,7 @@ class ConnectionsStore {
                 let conn = JSON.parse(response);
                 transformer.fixSerialization(conn);
                 this.setCurrent(conn);
-            }),
-            failure => {
-                // do nothing
-            }
+            })
         );
     }
 

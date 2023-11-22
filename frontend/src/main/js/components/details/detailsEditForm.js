@@ -1,24 +1,9 @@
-import React, { Component } from "react";
+import React, {Component} from "react";
 import chrono from "chrono-node";
-import { action } from "mobx";
-import { observer, inject } from "mobx-react";
+import {action} from "mobx";
+import {inject, observer} from "mobx-react";
 import Moment from "moment";
-import {
-    Alert,
-    Button,
-    Collapse,
-    Col,
-    Form,
-    FormFeedback,
-    FormGroup,
-    FormText,
-    Input,
-    Label,
-    Modal,
-    ModalBody,
-    ModalFooter,
-    ModalHeader
-} from "reactstrap";
+import {Button, Col, Collapse, Form, FormFeedback, FormGroup, FormText, Input, InputGroup, Label} from "reactstrap";
 import ToggleDisplay from "react-toggle-display";
 
 import myClient from "../../agents/client";
@@ -115,7 +100,7 @@ class DetailsEditForm extends Component {
         });
     };
 
-    handleDescriptionSave = e => {
+    handleDescriptionSave = () => {
         const conn = this.props.connsStore.store.current;
         const desc = this.props.connsStore.editSchedule.description;
         const modification = {
@@ -240,11 +225,10 @@ class DetailsEditForm extends Component {
 
         // Format input box text
         const splitValue = this.endingDate.value.split(" ");
-        const formattedEnding = splitValue[0] + " " + splitValue[1];
-        this.endingDate.value = formattedEnding;
+        this.endingDate.value = splitValue[0] + " " + splitValue[1];
     };
 
-    handleEndingSave = e => {
+    handleEndingSave = () => {
         const conn = this.props.connsStore.store.current;
         const ending = this.props.connsStore.editSchedule.ending;
         const modification = {
@@ -288,55 +272,51 @@ class DetailsEditForm extends Component {
 
         return (
             <Form>
-                <FormGroup row>
+                <InputGroup>
                     <Label for="description" sm={2}>
                         Description
                     </Label>
-                    <Col sm={7}>
-                        <Input
-                            type="text"
-                            defaultValue={conn.description}
-                            innerRef={ref => {
-                                this.description = ref;
-                            }}
-                            disabled={es.description.buttons.input}
-                            invalid={es.description.validationState === "error"}
-                            onChange={this.handleDescriptionChange}
-                        />
-                        <FormFeedback>{es.description.validationText}</FormFeedback>
-                        {es.description.saved === true ? (
-                            <DetailsModal name="editDescription" />
-                        ) : (
-                            ""
-                        )}
-                        <Collapse isOpen={!es.description.buttons.collapseText}>
-                            <FormGroup>
-                                <FormText>
-                                    Original Description: {es.description.originalDescription}
-                                </FormText>
-                            </FormGroup>
-                        </Collapse>
-                    </Col>
-                    <Col sm={1.5}>
-                        <ToggleDisplay show={es.description.buttons.buttonText === "Edit"}>
-                            <Button color="primary" onClick={this.handleDescriptionEdit}>
-                                Edit
-                            </Button>
-                        </ToggleDisplay>
-                        <ToggleDisplay show={es.description.buttons.buttonText === "Cancel"}>
-                            <Button color="primary" onClick={this.handleDescriptionCancel}>
-                                Cancel
-                            </Button>
-                        </ToggleDisplay>
-                    </Col>
-                    <Col sm={1}>
-                        <Button
-                            color="success"
-                            disabled={es.description.buttons.save}
-                            onClick={this.handleDescriptionSave}
-                        >
-                            Save
+                    <Input
+                        type="text"
+                        defaultValue={conn.description}
+                        innerRef={ref => {
+                            this.description = ref;
+                        }}
+                        disabled={es.description.buttons.input}
+                        invalid={es.description.validationState === "error"}
+                        onChange={this.handleDescriptionChange}
+                    />
+                    <FormFeedback>{es.description.validationText}</FormFeedback>
+                    {es.description.saved === true ? (
+                        <DetailsModal name="editDescription" />
+                    ) : (
+                        ""
+                    )}
+                    <ToggleDisplay show={es.description.buttons.buttonText === "Edit"}>
+                        <Button color="primary" onClick={this.handleDescriptionEdit}>
+                            Edit
                         </Button>
+                    </ToggleDisplay>
+                    <ToggleDisplay show={es.description.buttons.buttonText === "Cancel"}>
+                        <Button color="primary" onClick={this.handleDescriptionCancel}>
+                            Cancel
+                        </Button>
+                    </ToggleDisplay>
+                    <Button
+                        color="success"
+                        disabled={es.description.buttons.save}
+                        onClick={this.handleDescriptionSave}
+                    >
+                        Save
+                    </Button>
+                </InputGroup>
+
+                <FormGroup row>
+                    <Label for="serviceId" sm={2}>
+                        ServiceId
+                    </Label>
+                    <Col sm={10}>
+                        <Input type="text" defaultValue={conn.serviceId} disabled />
                     </Col>
                 </FormGroup>
 
@@ -358,59 +338,53 @@ class DetailsEditForm extends Component {
                     </Col>
                 </FormGroup>
 
-                <FormGroup row>
+                <InputGroup>
                     <Label for="ending" sm={2}>
                         Ending
                     </Label>
-                    <Col sm={7}>
-                        <Input
-                            type="text"
-                            defaultValue={es.ending.originalTime}
-                            innerRef={ref => {
-                                this.endingDate = ref;
-                            }}
-                            disabled={es.ending.buttons.input}
-                            invalid={es.ending.validationState === "error"}
-                            onChange={this.handleEndingChange}
-                        />
-                        <FormFeedback>{es.ending.validationText}</FormFeedback>
-                        {es.ending.saved ? <DetailsModal name="editEnding" /> : ""}
-                        <Collapse isOpen={!es.ending.buttons.collapseText}>
-                            <FormGroup>
-                                <FormText>Original Ending Time: {es.ending.originalTime}</FormText>
-                                <FormText>
-                                    Valid Range between {validStartingTime} to {validEndingTime}
-                                </FormText>
-                                <FormText>{`Parsed Value: ${es.ending.parsedValue}`}</FormText>
-                            </FormGroup>
-                        </Collapse>
-                    </Col>
-                    <Col sm={1.5}>
-                        <ToggleDisplay show={es.ending.buttons.buttonText === "Edit"}>
-                            <Button 
-                                color="primary" 
-                                disabled={conn.phase === "ARCHIVED" ? true : false} 
-                                onClick={this.handleEndingEdit}
-                            >
-                                Edit
-                            </Button>
-                        </ToggleDisplay>
-                        <ToggleDisplay show={es.ending.buttons.buttonText === "Cancel"}>
-                            <Button color="primary" onClick={this.handleEndingCancel}>
-                                Cancel
-                            </Button>
-                        </ToggleDisplay>
-                    </Col>
-                    <Col sm={1}>
+                    <Input
+                        type="text"
+                        defaultValue={es.ending.originalTime}
+                        innerRef={ref => {
+                            this.endingDate = ref;
+                        }}
+                        disabled={es.ending.buttons.input}
+                        invalid={es.ending.validationState === "error"}
+                        onChange={this.handleEndingChange}
+                    />
+                    <FormFeedback>{es.ending.validationText}</FormFeedback>
+                    {es.ending.saved ? <DetailsModal name="editEnding" /> : ""}
+                    <Collapse isOpen={!es.ending.buttons.collapseText}>
+                        <FormGroup>
+                            <FormText>Original Ending Time: {es.ending.originalTime}</FormText>
+                            <FormText>
+                                Valid Range between {validStartingTime} to {validEndingTime}
+                            </FormText>
+                            <FormText>{`Parsed Value: ${es.ending.parsedValue}`}</FormText>
+                        </FormGroup>
+                    </Collapse>
+                    <ToggleDisplay show={es.ending.buttons.buttonText === "Edit"}>
                         <Button
-                            color="success"
-                            disabled={es.ending.buttons.save}
-                            onClick={this.handleEndingSave}
+                            color="primary"
+                            disabled={conn.phase === "ARCHIVED"}
+                            onClick={this.handleEndingEdit}
                         >
-                            Save
+                            Edit
                         </Button>
-                    </Col>
-                </FormGroup>
+                    </ToggleDisplay>
+                    <ToggleDisplay show={es.ending.buttons.buttonText === "Cancel"}>
+                        <Button color="primary" onClick={this.handleEndingCancel}>
+                            Cancel
+                        </Button>
+                    </ToggleDisplay>
+                    <Button
+                        color="success"
+                        disabled={es.ending.buttons.save}
+                        onClick={this.handleEndingSave}
+                    >
+                        Save
+                    </Button>
+                </InputGroup>
             </Form>
         );
     }

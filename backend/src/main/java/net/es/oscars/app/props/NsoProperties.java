@@ -32,6 +32,11 @@ public class NsoProperties {
         }
     }
 
+    public boolean mockLiveShowCommands;
+
+    @NonNull
+    public String routingDomain;
+
     @NonNull
     public String username;
 

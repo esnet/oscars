@@ -4,13 +4,12 @@ import { observer, inject } from "mobx-react";
 import { action, autorun } from "mobx";
 import Octicon from "react-octicon";
 import ToggleDisplay from "react-toggle-display";
-import { Alert, Form, Label, Button, Card, CardBody, FormGroup, Input, Collapse } from "reactstrap";
+import { Alert, Form, Label, Button, Card, CardBody, FormGroup, Input } from "reactstrap";
 
 import myClient from "../../agents/client";
 import validator from "../../lib/validation";
 import CommitButton from "./commitButton";
 import HelpPopover from "../helpPopover";
-import TagControls from "./tagControls";
 
 @inject("controlsStore", "designStore", "modalStore")
 @observer
@@ -70,7 +69,12 @@ class ConnectionControls extends Component {
         };
         this.props.controlsStore.setParamsForConnection(params);
     };
-
+    onServiceIdChange = e => {
+        const params = {
+            serviceId: e.target.value
+        };
+        this.props.controlsStore.setParamsForConnection(params);
+    };
     onBuildModeChange = e => {
         const params = {
             mode: e.target.value
@@ -106,7 +110,7 @@ class ConnectionControls extends Component {
                     details page to build / dismantle it.
                 </p>
                 <p>
-                    Mode seleciton is not final. In the connection details page, you can switch
+                    Mode selection is not final. In the connection details page, you can switch
                     between modes, as long as end time has not been reached.
                 </p>
                 <p>In either mode, once end time is reached the connection will be dismantled.</p>
@@ -180,7 +184,7 @@ class ConnectionControls extends Component {
                             <Label>Description:</Label>
                             <Input
                                 type="text"
-                                placeholder="Type a description"
+                                placeholder="Certain special chars not allowed"
                                 valid={validator.descriptionControl(conn.description) === "success"}
                                 invalid={
                                     validator.descriptionControl(conn.description) !== "success"
@@ -210,16 +214,18 @@ class ConnectionControls extends Component {
                             />
                         </FormGroup>
                         <FormGroup>
-                            <Button
-                                color="secondary"
-                                onClick={this.toggle}
-                                style={{ marginBottom: "0.5rem" }}
-                            >
-                                Click to fill project details
-                            </Button>
-                            <Collapse isOpen={this.state.collapse}>
-                                <TagControls />
-                            </Collapse>
+                            {" "}
+                            <Label>Service identifier (optional):</Label>
+                            <Input
+                                type="text"
+                                placeholder="a-zA-Z0-9 length 4-6"
+                                valid={validator.serviceIdControl(conn.serviceId) === "success"}
+                                invalid={
+                                    validator.serviceIdControl(conn.serviceId) !== "success"
+                                }
+                                defaultValue={conn.serviceId}
+                                onChange={this.onServiceIdChange}
+                            />
                         </FormGroup>
                         <FormGroup>
                             <ToggleDisplay show={!conn.validation.acceptable}>

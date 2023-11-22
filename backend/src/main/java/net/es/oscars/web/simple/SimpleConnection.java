@@ -26,6 +26,8 @@ public class SimpleConnection {
     protected Integer heldUntil;
     protected String username;
     protected Phase phase;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    protected String serviceId;
     protected BuildMode mode;
     protected State state;
     @Builder.Default
