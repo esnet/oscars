@@ -49,10 +49,15 @@ public class NsoServicesWrapper {
                 for (NsoVPLS.Endpoint ep : dc.getEndpoint()) {
                     vplsSetCmds.append("set services vpls %d device %s endpoint %s %d layer2-description %s%n".formatted(vpls.getVcId(), dc.getDevice(), ep.getIfce(), ep.getVlanId(), ep.getLayer2Description()));
                     if (ep.getQos() != null) {
-                        vplsSetCmds.append("set services vpls %d device %s endpoint %s %d qos qos-id %d ingress-mbps %d egress-mbps %d excess-action %s%n"
+                        String cflowd = "";
+                        if (ep.getCflowd() != null && ep.getCflowd()) {
+                            cflowd = "cflowd";
+                        }
+
+                        vplsSetCmds.append("set services vpls %d device %s endpoint %s %d qos qos-id %d ingress-mbps %d egress-mbps %d excess-action %s %s%n"
                                 .formatted(vpls.getVcId(), dc.getDevice(), ep.getIfce(), ep.getVlanId(),
                                         ep.getQos().getQosId(), ep.getQos().getIngressMbps(), ep.getQos().getEgressMbps(),
-                                        ep.getQos().getExcessAction().toString().toLowerCase()));
+                                        ep.getQos().getExcessAction().toString().toLowerCase(), cflowd));
                     }
                 }
                 for (NsoVPLS.SDP sdp : vpls.getSdp()) {
