@@ -103,7 +103,7 @@ public class NsoAdapter {
                 if (commandType.equals(CommandType.BUILD)) {
                     NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
                     commands = oscarsServices.asCliCommands();
-                    log.info(commands);
+                    log.info("\n"+commands);
                     dumpDebug(conn.getConnectionId()+" BUILD services", oscarsServices);
                     dryRun = nsoProxy.buildDryRun(oscarsServices);
                     nsoProxy.buildServices(oscarsServices);
@@ -111,7 +111,7 @@ public class NsoAdapter {
                 } else {
                     NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
                     commands = dismantle.asCliCommands();
-                    log.info(commands);
+                    log.info("\n"+commands);
                     dryRun = nsoProxy.dismantleDryRun(dismantle);
                     nsoProxy.deleteServices(dismantle);
                     newDepState = DeploymentState.UNDEPLOYED;
@@ -271,6 +271,7 @@ public class NsoAdapter {
 
                 azInstanceKey = azLspName+","+pipe.getA().getDeviceUrn();
                 zaInstanceKey = zaLspName+","+pipe.getZ().getDeviceUrn();
+
                 lspInstanceKeys.add(azInstanceKey);
                 lspInstanceKeys.add(zaInstanceKey);
             }
@@ -379,10 +380,17 @@ public class NsoAdapter {
                     .egressMbps(egBw)
                     .build();
 
+            Boolean cflowd = null;
+            switch (nsoProperties.getCflowd()) {
+                case ENABLED -> cflowd = true;
+                case DISABLED -> cflowd = false;
+            }
+
             NsoVPLS.Endpoint endpoint = NsoVPLS.Endpoint.builder()
                     .ifce(portIfce)
                     .vlanId(f.getVlan().getVlanId())
                     .layer2Description(conn.getConnectionId())
+                    .cflowd(cflowd)
                     .qos(qos)
                     .build();
             dc.getEndpoint().add(endpoint);
