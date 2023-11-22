@@ -1,12 +1,5 @@
 FROM maven:3.9.2  AS builder
 
-#  build and install NSI stuff
-COPY nsi/pom.xml /build/nsi/pom.xml
-WORKDIR /build/nsi
-RUN --mount=type=cache,target=/root/.m2 mvn dependency:resolve-plugins dependency:go-offline -B
-COPY nsi/src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -q -N install
-
 
 WORKDIR /build/backend
 COPY backend/pom.xml pom.xml
