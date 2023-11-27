@@ -72,21 +72,3 @@ services:
         condition: service_healthy
     links:
       - oscars-backend:8201
-
-
-# beginning of nextjs work; not for production or ocd-stack use
-  oscars-frontend-next:
-    container_name: oscars-frontend-next
-    image: oscars-frontend-next
-    build:
-      context: frontend-next
-      dockerfile: ../deploy/devel/frontend-next.dockerfile
-    ports:
-      - "3000:3000"
-    networks:
-      - topo-net
-    depends_on:
-      oscars-backend:
-        condition: service_healthy
-    links:
-      - oscars-backend:${OSCARS_BACKEND_WEB_PORT:-8201}
