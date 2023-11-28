@@ -221,12 +221,6 @@
             <artifactId>jaxws-api</artifactId>
             <version>2.3.1</version>
         </dependency>
-        <dependency>
-            <groupId>net.es.oscars</groupId>
-            <artifactId>nsi</artifactId>
-            <version>1.1.1</version>
-        </dependency>
-
 
         <dependency>
             <groupId>org.javassist</groupId>
