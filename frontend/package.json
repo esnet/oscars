@@ -1,13 +1,13 @@
 {
   "name": "oscars-frontend",
-  "version": "1.1.1",
+  "version": "1.1.4",
   "description": "OSCARS frontend",
   "repository": {
     "type": "git",
     "url": "git://github.com/esnet/oscars.git"
   },
   "dependencies": {
-    "bootstrap": "^4.5.2",
+    "bootstrap": "^5.3.2",
     "chokidar": "^3.5.3",
     "chrono-node": "^2.3.4",
     "classnames": "^2.2.6",
@@ -34,13 +34,14 @@
     "react-jss": "^10.3.0",
     "react-lazylog": "^3.3.1",
     "react-nestable": "^1.3.0",
+    "react-oauth2-code-pkce": "^1.15.2",
     "react-octicon": "^3.0.1",
     "react-router-dom": "^5.2.0",
     "react-select-plus": "^1.2.0",
     "react-table": "^6.11.5",
     "react-tag-input": "^6.4.3",
     "react-toggle-display": "^2.2.0",
-    "reactstrap": "^8.5.1",
+    "reactstrap": "^9.2.1",
     "safe-json-stringify": "^1.2.0",
     "serialize-javascript": "^4.0.0",
     "visjs-network": "^4.24.11"
@@ -68,7 +69,7 @@
     ]
   },
   "devDependencies": {
-    "@babel/core": "^7.11.1",
+    "@babel/core": "^7.23.3",
     "@babel/plugin-proposal-class-properties": "^7.10.4",
     "@babel/plugin-proposal-decorators": "^7.10.5",
     "@babel/polyfill": "^7.10.4",
@@ -97,7 +98,7 @@
     "lint-staged": "^8.2.1",
     "lodash-webpack-plugin": "^0.11.5",
     "mini-css-extract-plugin": "^0.6.0",
-    "mocha": "^6.2.3",
+    "mocha": "10.1.0",
     "prettier": "^1.19.1",
     "style-loader": "^0.23.1",
     "url-loader": "^1.1.2",

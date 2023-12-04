@@ -1,1 +1,0 @@
-# From next.js docker multi-env example 

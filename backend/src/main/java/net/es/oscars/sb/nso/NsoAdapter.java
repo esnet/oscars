@@ -1,11 +1,9 @@
 package net.es.oscars.sb.nso;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.db.NsoSdpVcIdDAO;
 import net.es.oscars.sb.nso.ent.NsoSdpVcId;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
@@ -33,44 +31,55 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.*;
 
+import static net.es.oscars.resv.svc.ResvLibrary.validateServiceId;
 import static net.es.topo.common.devel.DevelUtils.dumpDebug;
 
 @Component
 @Slf4j
 public class NsoAdapter {
     public static String NSO_TEMPLATE_VERSION = "NSO 1.1";
+    public static String WORK_LSP_NAME_PIECE = "WRK";
+    public static String PROTECT_LSP_NAME_PIECE = "PRT";
+    public static String LSP_NAME_DELIMITER = "-";
 
-    @Autowired
-    private NsoProxy nsoProxy;
+    private final NsoProperties nsoProperties;
 
-    @Autowired
-    private NsoVcIdDAO nsoVcIdDAO;
+    private final NsoProxy nsoProxy;
 
-    @Autowired
-    private NsoQosSapPolicyIdDAO nsoQosSapPolicyIdDAO;
+    private final NsoVcIdDAO nsoVcIdDAO;
 
-    @Autowired
-    private NsoSdpIdDAO nsoSdpIdDAO;
+    private final NsoQosSapPolicyIdDAO nsoQosSapPolicyIdDAO;
 
-    @Autowired
-    private NsoSdpVcIdDAO nsoSdpVcIdDAO;
+    private final NsoSdpIdDAO nsoSdpIdDAO;
 
-    @Autowired
-    private CommandHistoryRepository historyRepo;
+    private final NsoSdpVcIdDAO nsoSdpVcIdDAO;
 
-    @Autowired
-    private RouterCommandsRepository rcr;
+    private final CommandHistoryRepository historyRepo;
 
-    @Autowired
-    private MiscHelper miscHelper;
+    private final RouterCommandsRepository rcr;
 
-    public final static String ROUTING_DOMAIN = "esnet-293"; // FIXME: this needs to come from topology, probably
+    private final MiscHelper miscHelper;
+
+    public NsoAdapter(NsoProperties nsoProperties, NsoProxy nsoProxy, MiscHelper miscHelper,
+                      NsoVcIdDAO nsoVcIdDAO, NsoQosSapPolicyIdDAO nsoQosSapPolicyIdDAO, NsoSdpIdDAO nsoSdpIdDAO,
+                      NsoSdpVcIdDAO nsoSdpVcIdDAO, CommandHistoryRepository historyRepo, RouterCommandsRepository rcr) {
+        this.nsoProperties = nsoProperties;
+        this.nsoProxy = nsoProxy;
+        this.nsoVcIdDAO = nsoVcIdDAO;
+        this.nsoQosSapPolicyIdDAO = nsoQosSapPolicyIdDAO;
+        this.nsoSdpIdDAO = nsoSdpIdDAO;
+        this.nsoSdpVcIdDAO = nsoSdpVcIdDAO;
+        this.historyRepo = historyRepo;
+        this.rcr = rcr;
+        this.miscHelper = miscHelper;
+    }
+
+
     public SouthboundTaskResult processTask(Connection conn, CommandType commandType, State intent)  {
         log.info("processing southbound NSO task "+conn.getConnectionId()+" "+commandType.toString());
 
@@ -94,7 +103,7 @@ public class NsoAdapter {
                 if (commandType.equals(CommandType.BUILD)) {
                     NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
                     commands = oscarsServices.asCliCommands();
-                    log.info(commands);
+                    log.info("\n"+commands);
                     dumpDebug(conn.getConnectionId()+" BUILD services", oscarsServices);
                     dryRun = nsoProxy.buildDryRun(oscarsServices);
                     nsoProxy.buildServices(oscarsServices);
@@ -102,7 +111,7 @@ public class NsoAdapter {
                 } else {
                     NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
                     commands = dismantle.asCliCommands();
-                    log.info(commands);
+                    log.info("\n"+commands);
                     dryRun = nsoProxy.dismantleDryRun(dismantle);
                     nsoProxy.deleteServices(dismantle);
                     newDepState = DeploymentState.UNDEPLOYED;
@@ -161,13 +170,11 @@ public class NsoAdapter {
                 .commandType(commandType)
                 .build();
     }
-    public NsoLSP makeNsoLSP(String connectionId, VlanJunction thisJunction, VlanJunction otherJunction, List<EroHop> hops, boolean isProtect) throws NsoGenException {
+    public NsoLSP makeNsoLSP(Connection conn, VlanJunction thisJunction, VlanJunction otherJunction, List<EroHop> hops, boolean isProtect) throws NsoGenException {
 
-        String lspNamePiece = "-WRK-";
         int holdSetupPriority = 5;
         NsoLspPathType pathType = NsoLspPathType.STRICT;
         if (isProtect) {
-            lspNamePiece = "-PRT-";
             holdSetupPriority = 4;
             pathType = NsoLspPathType.LOOSE;
         }
@@ -181,7 +188,7 @@ public class NsoAdapter {
         if (!isProtect) {
             List<NsoLSP.Hop> nsoHops = new ArrayList<>();
             int i = 1;
-            List<MplsHop> mplsHops = null;
+            List<MplsHop> mplsHops;
             try {
                 mplsHops = miscHelper.mplsHops(hops);
             } catch (PSSException e) {
@@ -197,9 +204,10 @@ public class NsoAdapter {
             }
             mplsPath.setHop(nsoHops);
         }
+        String lspName = lspName(conn, isProtect, otherJunction.getDeviceUrn());
 
         return NsoLSP.builder()
-                .name(connectionId + lspNamePiece + otherJunction.getDeviceUrn())
+                .name(lspName)
                 .device(thisJunction.getDeviceUrn())
                 .primary(mplsPath)
                 .secondary(null)
@@ -208,13 +216,38 @@ public class NsoAdapter {
                         .device(otherJunction.getDeviceUrn())
                         .build())
                 // .metric() we don't need it
-                .routingDomain(ROUTING_DOMAIN)
+                .routingDomain(nsoProperties.getRoutingDomain())
                 .build();
     }
 
+    public static String lspName(Connection c, boolean protect, String target) {
+
+        List<String> parts = new ArrayList<>();
+
+        if (c.getServiceId() != null && !c.getServiceId().isEmpty()) {
+            if (validateServiceId(c.getServiceId())) {
+                parts.add(c.getServiceId());
+            } else {
+                log.info("serviceId "+c.getServiceId()+" did not pass validation");
+            }
+        }
+
+        parts.add(c.getConnectionId());
+        if (protect) {
+            parts.add(PROTECT_LSP_NAME_PIECE);
+        } else {
+            parts.add(WORK_LSP_NAME_PIECE);
+        }
+        parts.add(target);
+
+        return String.join(LSP_NAME_DELIMITER, parts);
+    }
+
+
+
     public NsoOscarsDismantle nsoOscarsDismantle(Connection conn) {
         Integer vcId = nsoVcIdDAO.findNsoVcIdByConnectionId(conn.getConnectionId()).orElseThrow().getVcId();
-        Components cmp = null;
+        Components cmp;
         if (conn.getReserved() != null) {
             cmp = conn.getReserved().getCmp();
         } else {
@@ -222,18 +255,23 @@ public class NsoAdapter {
         }
         List<String> lspInstanceKeys = new ArrayList<>();
         for (VlanPipe pipe : cmp.getPipes()) {
-            String lspNamePiece = "-WRK-";
             // LSP instance key is "lspname,device"
             // we do it both for A-Z and Z-A
-            String azInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getZ().getDeviceUrn()+","+pipe.getA().getDeviceUrn();
-            String zaInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getA().getDeviceUrn()+","+pipe.getZ().getDeviceUrn();
+            String azLspName = lspName(conn, false, pipe.getZ().getDeviceUrn());
+            String zaLspName = lspName(conn, false, pipe.getA().getDeviceUrn());
+
+            String azInstanceKey = azLspName+","+pipe.getA().getDeviceUrn();
+            String zaInstanceKey = zaLspName+","+pipe.getZ().getDeviceUrn();
             lspInstanceKeys.add(azInstanceKey);
             lspInstanceKeys.add(zaInstanceKey);
 
             if (pipe.getProtect()) {
-                lspNamePiece = "-PRT-";
-                azInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getZ().getDeviceUrn()+","+pipe.getA().getDeviceUrn();;
-                zaInstanceKey = conn.getConnectionId() + lspNamePiece + pipe.getA().getDeviceUrn()+","+pipe.getZ().getDeviceUrn();;
+                azLspName = lspName(conn, true, pipe.getZ().getDeviceUrn());
+                zaLspName = lspName(conn, true, pipe.getA().getDeviceUrn());
+
+                azInstanceKey = azLspName+","+pipe.getA().getDeviceUrn();
+                zaInstanceKey = zaLspName+","+pipe.getZ().getDeviceUrn();
+
                 lspInstanceKeys.add(azInstanceKey);
                 lspInstanceKeys.add(zaInstanceKey);
             }
@@ -255,7 +293,7 @@ public class NsoAdapter {
         if (conn.getReserved().getCmp().getJunctions().size() > 1) {
             for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
                 // primary path
-                NsoLSP azLsp = makeNsoLSP(conn.getConnectionId(), pipe.getA(), pipe.getZ(), pipe.getAzERO(), false);
+                NsoLSP azLsp = makeNsoLSP(conn, pipe.getA(), pipe.getZ(), pipe.getAzERO(), false);
                 LspMapKey azKey = LspMapKey.builder()
                         .device(pipe.getA().getDeviceUrn())
                         .target(pipe.getZ().getDeviceUrn())
@@ -263,7 +301,7 @@ public class NsoAdapter {
                         .build();
                 lspNames.put(azKey, azLsp.getName());
                 lspInstances.add(azLsp);
-                NsoLSP zaLsp = makeNsoLSP(conn.getConnectionId(), pipe.getZ(), pipe.getA(), pipe.getZaERO(), false);
+                NsoLSP zaLsp = makeNsoLSP(conn, pipe.getZ(), pipe.getA(), pipe.getZaERO(), false);
                 LspMapKey zaKey = LspMapKey.builder()
                         .device(pipe.getZ().getDeviceUrn())
                         .target(pipe.getA().getDeviceUrn())
@@ -274,7 +312,7 @@ public class NsoAdapter {
                 lspInstances.add(zaLsp);
 
                 if (pipe.getProtect()) {
-                    NsoLSP azProtectLsp = makeNsoLSP(conn.getConnectionId(), pipe.getA(), pipe.getZ(), pipe.getAzERO(), true);
+                    NsoLSP azProtectLsp = makeNsoLSP(conn, pipe.getA(), pipe.getZ(), pipe.getAzERO(), true);
                     lspInstances.add(azProtectLsp);
                     LspMapKey azProtectKey = LspMapKey.builder()
                             .device(pipe.getA().getDeviceUrn())
@@ -283,7 +321,7 @@ public class NsoAdapter {
                             .build();
                     lspNames.put(azProtectKey, azProtectLsp.getName());
 
-                    NsoLSP zaProtectLsp = makeNsoLSP(conn.getConnectionId(), pipe.getZ(), pipe.getA(), pipe.getZaERO(), true);
+                    NsoLSP zaProtectLsp = makeNsoLSP(conn, pipe.getZ(), pipe.getA(), pipe.getZaERO(), true);
                     lspInstances.add(zaProtectLsp);
                     LspMapKey zaProtectKey = LspMapKey.builder()
                             .device(pipe.getZ().getDeviceUrn())
@@ -342,10 +380,17 @@ public class NsoAdapter {
                     .egressMbps(egBw)
                     .build();
 
+            Boolean cflowd = null;
+            switch (nsoProperties.getCflowd()) {
+                case ENABLED -> cflowd = true;
+                case DISABLED -> cflowd = false;
+            }
+
             NsoVPLS.Endpoint endpoint = NsoVPLS.Endpoint.builder()
                     .ifce(portIfce)
                     .vlanId(f.getVlan().getVlanId())
                     .layer2Description(conn.getConnectionId())
+                    .cflowd(cflowd)
                     .qos(qos)
                     .build();
             dc.getEndpoint().add(endpoint);
@@ -475,7 +520,7 @@ public class NsoAdapter {
                 .description(nsoDescription)
                 .name(conn.getConnectionId())
                 .qosMode(NsoVplsQosMode.GUARANTEED)
-                .routingDomain(ROUTING_DOMAIN)
+                .routingDomain(nsoProperties.getRoutingDomain())
                 .vcId(vcid)
                 .sdp(sdps)
                 .device(vplsDeviceMap.values().stream().toList())

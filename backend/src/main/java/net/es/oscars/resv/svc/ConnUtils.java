@@ -5,7 +5,7 @@ import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
-import net.es.oscars.topo.enums.CommandParamType;
+import net.es.oscars.sb.nso.db.NsoVcIdDAO;
 import net.es.oscars.web.simple.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.IntStream;
 
@@ -26,6 +25,9 @@ import java.util.stream.IntStream;
 public class ConnUtils {
     @Autowired
     private ConnectionRepository connRepo;
+
+    @Autowired
+    private NsoVcIdDAO nsoVcIdDAO;
 
     public String genUniqueConnectionId() {
         boolean found = false;
@@ -78,22 +80,7 @@ public class ConnUtils {
         c.setReserved(reserved);
     }
 
-    public static Held heldFromReserved(Connection c) {
 
-        Components cmp = c.getReserved().getCmp();
-        Schedule sch = copySchedule(c.getReserved().getSchedule());
-        sch.setPhase(Phase.HELD);
-
-        Instant exp = Instant.now().plus(15L, ChronoUnit.MINUTES);
-
-        Components heldCmp = copyComponents(cmp, sch);
-        return Held.builder()
-                .cmp(heldCmp)
-                .connectionId(c.getConnectionId())
-                .schedule(sch)
-                .expiration(exp)
-                .build();
-    }
 
     public static void archiveFromReserved(Connection c) {
         Components cmp = c.getReserved().getCmp();
@@ -224,6 +211,7 @@ public class ConnUtils {
             throw new IllegalArgumentException(c.getConnectionId() + " not in HELD phase");
         }
         c.setDescription(in.getDescription());
+        c.setServiceId(in.getServiceId());
         c.setUsername(in.getUsername());
         c.setMode(in.getMode());
 
@@ -375,7 +363,7 @@ public class ConnUtils {
         }
     }
 
-    public static SimpleConnection fromConnection(Connection c, Boolean return_svc_ids) {
+    public SimpleConnection fromConnection(Connection c, Boolean return_svc_ids) {
         Schedule s;
         Components cmp;
 
@@ -413,6 +401,13 @@ public class ConnUtils {
         List<Junction> junctions = new ArrayList<>();
         List<Pipe> pipes = new ArrayList<>();
 
+        Integer vcid;
+        if (return_svc_ids) {
+            vcid = nsoVcIdDAO.findNsoVcIdByConnectionId(c.getConnectionId()).orElseThrow().getVcId();
+        } else {
+            vcid = null;
+        }
+
         cmp.getFixtures().forEach(f -> {
             Fixture simpleF = Fixture.builder()
                     .inMbps(f.getIngressBandwidth())
@@ -423,18 +418,7 @@ public class ConnUtils {
                     .vlan(f.getVlan().getVlanId())
                     .build();
             if (return_svc_ids) {
-                Set<CommandParam> cps = f.getJunction().getCommandParams();
-                Integer svcId = null;
-                for (CommandParam cp : cps) {
-                    if (cp.getParamType().equals(CommandParamType.ALU_SVC_ID)) {
-                        if (svcId == null) {
-                            svcId = cp.getResource();
-                        } else if (svcId > cp.getResource()) {
-                            svcId = cp.getResource();
-                        }
-                    }
-                }
-                simpleF.setSvcId(svcId);
+                simpleF.setSvcId(vcid);
             }
 
             fixtures.add(simpleF);
@@ -459,6 +443,7 @@ public class ConnUtils {
                 .begin(b.intValue())
                 .end(e.intValue())
                 .connectionId(c.getConnectionId())
+                .serviceId(c.getServiceId())
                 .tags(simpleTags)
                 .description(c.getDescription())
                 .mode(c.getMode())

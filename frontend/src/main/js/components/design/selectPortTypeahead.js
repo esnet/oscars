@@ -4,7 +4,7 @@ import { inject, observer } from "mobx-react";
 import { toJS } from "mobx";
 import { size } from "lodash-es";
 
-import { Form, FormGroup, InputGroup, InputGroupAddon, InputGroupText, Card } from "reactstrap";
+import { Form, FormGroup, InputGroup, InputGroupText, Card } from "reactstrap";
 
 import transformer from "../../lib/transform";
 import HelpPopover from "../helpPopover";
@@ -79,7 +79,7 @@ class SelectPortTypeahead extends Component {
 
         return (
             <Card>
-                <Form inline>
+                <Form inline="true">
                     <FormGroup>
                         <InputGroup>
                             <Typeahead
@@ -89,9 +89,7 @@ class SelectPortTypeahead extends Component {
                                 options={options}
                                 onChange={this.onTypeaheadSelection}
                             />
-                            <InputGroupAddon addonType="append">
-                                <InputGroupText>{help}</InputGroupText>
-                            </InputGroupAddon>
+                            <InputGroupText>{help}</InputGroupText>
                         </InputGroup>
                     </FormGroup>
                 </Form>

@@ -7,8 +7,7 @@ import {
     FormText,
     FormFeedback,
     InputGroup,
-    InputGroupText,
-    InputGroupAddon
+    InputGroupText
 } from "reactstrap";
 import Validator from "../../lib/validation";
 import PropTypes from "prop-types";
@@ -38,15 +37,11 @@ export default class PipeBwInput extends Component {
         let feedback = null;
         if (this.props.direction === "A_TO_Z") {
             prepend = (
-                <InputGroupAddon addonType="prepend">
-                    <InputGroupText>&gt;</InputGroupText>
-                </InputGroupAddon>
+                <InputGroupText>&gt;</InputGroupText>
             );
         } else {
             append = (
-                <InputGroupAddon addonType="append">
-                    <InputGroupText>&lt;</InputGroupText>
-                </InputGroupAddon>
+                <InputGroupText>&lt;</InputGroupText>
             );
         }
 

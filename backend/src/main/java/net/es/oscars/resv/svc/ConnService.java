@@ -1,6 +1,5 @@
 package net.es.oscars.resv.svc;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +12,6 @@ import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.resv.db.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
-import net.es.oscars.esdb.ESDBService;
 import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.svc.TopoService;
@@ -82,7 +80,7 @@ public class ConnService {
     private TopoService topoService;
 
     @Autowired
-    private ESDBService esdbService;
+    ConnUtils connUtils;
 
     @Value("${pss.default-mtu:9000}")
     private Integer defaultMtu;
@@ -123,11 +121,9 @@ public class ConnService {
         List<Connection> connIdFiltered = reservedAndArchived;
 
         if (filter.getConnectionId() != null) {
-            Pattern pattern = Pattern.compile(filter.getConnectionId(), Pattern.CASE_INSENSITIVE);
             connIdFiltered = new ArrayList<>();
             for (Connection c : reservedAndArchived) {
-                Matcher matcher = pattern.matcher(c.getConnectionId());
-                if (matcher.find()) {
+                if (c.getConnectionId().toLowerCase().contains(filter.getConnectionId().toLowerCase())) {
                     connIdFiltered.add(c);
                 }
             }
@@ -135,22 +131,15 @@ public class ConnService {
 
         List<Connection> descFiltered = connIdFiltered;
         if (filter.getDescription() != null) {
-            Pattern pattern = Pattern.compile(filter.getDescription(), Pattern.CASE_INSENSITIVE);
 
             descFiltered = new ArrayList<>();
             for (Connection c : connIdFiltered) {
-                boolean found = false;
-                Matcher descMatcher = pattern.matcher(c.getDescription());
-                if (descMatcher.find()) {
-                    found = true;
-                }
+                boolean found = c.getDescription().toLowerCase().contains(filter.getDescription().toLowerCase());
                 for (Tag tag : c.getTags()) {
-                    Matcher matcher = pattern.matcher(tag.getContents());
-                    if (matcher.find()) {
+                    if (tag.getContents().toLowerCase().contains(filter.getDescription().toLowerCase())) {
                         found = true;
                     }
-                    matcher = pattern.matcher(tag.getCategory());
-                    if (matcher.find()) {
+                    if (tag.getCategory().toLowerCase().contains(filter.getDescription().toLowerCase())) {
                         found = true;
                     }
                 }
@@ -218,6 +207,7 @@ public class ConnService {
                         String vlanStr = vlan.toString();
                         if (fixtureVlanStr.contains(vlanStr)) {
                             add = true;
+                            break;
                         }
                     }
                 }
@@ -370,7 +360,6 @@ public class ConnService {
             c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
 
             connRepo.saveAndFlush(c);
-            esdbService.reserveEsdbVlans(c);
             nsoResourceService.reserve(c);
 
             connRepo.saveAndFlush(c);
@@ -465,7 +454,6 @@ public class ConnService {
                 logService.logEvent(c.getConnectionId(), ev);
 
             }
-            esdbService.releaseEsdbVlans(c);
         }
 
 
@@ -514,7 +502,7 @@ public class ConnService {
 
     public Validity validateCommit(Connection in) throws ConnException {
 
-        Validity v = this.validate(fromConnection(in, false), ConnectionMode.NEW);
+        Validity v = this.validate(connUtils.fromConnection(in, false), ConnectionMode.NEW);
 
         StringBuilder error = new StringBuilder(v.getMessage());
         boolean valid = v.isValid();
@@ -527,7 +515,7 @@ public class ConnService {
         }
 
         List<VlanJunction> junctions = in.getHeld().getCmp().getJunctions();
-        if (junctions.size() < 1) {
+        if (junctions.isEmpty()) {
             valid = false;
             error.append("No junctions; minimum is 1");
         }
@@ -940,19 +928,20 @@ public class ConnService {
             error.append("invalid interval! VLANs and bandwidths not checked\n");
         }
 
-        Validity v = Validity.builder()
+        return Validity.builder()
                 .message(error.toString())
                 .valid(valid)
                 .build();
-        
+
+        /*
         try {
             String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(v);
             // log.info(pretty);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
+         */
 
-        return v;
 
 
     }
@@ -960,7 +949,7 @@ public class ConnService {
 
 
     public Connection findConnection(String connectionId) {
-        if (connectionId == null || connectionId.equals("")) {
+        if (connectionId == null || connectionId.isEmpty()) {
             throw new IllegalArgumentException("Null or empty connectionId");
         }
 //        log.info("looking for connectionId "+ connectionId);

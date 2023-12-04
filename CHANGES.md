@@ -1,4 +1,11 @@
 # OSCARS Release Notes
+### 1.1.4
+>  Nov 2023
+- [OS-146](https://esnet.atlassian.net/browse/OS-146) Modify OSCARS provisioning to add description to LSP name.
+- [OS-147](https://esnet.atlassian.net/browse/OS-147) Add cflowd to OSCARS circuit provisioning
+- [OS-242](https://esnet.atlassian.net/browse/OS-242) Externalize NSI class files
+
+
 ## 1.0.45
 > Apr, 2023
 - Maintenance release

@@ -15,6 +15,7 @@ class ConnectionsStore {
                     ending: null
                 }
             },
+            serviceId: "",
             tags: [],
             dirty: false
         },
@@ -28,6 +29,7 @@ class ConnectionsStore {
         statuses: new Map(),
         history: new Map(),
         eventLog: [],
+        macInfo: {},
         cloned: {
             cloneable: false,
             message: ""
@@ -214,6 +216,10 @@ class ConnectionsStore {
         this.store.conns = resvs;
     }
 
+    @action setMacInfo(macInfo) {
+        this.store.macInfo = macInfo;
+    }
+
     @action refreshCommands() {
         if (size(this.store.current.connectionId) > 0) {
             myClient
@@ -237,10 +243,7 @@ class ConnectionsStore {
                 let conn = JSON.parse(response);
                 transformer.fixSerialization(conn);
                 this.setCurrent(conn);
-            }),
-            failure => {
-                // do nothing
-            }
+            })
         );
     }
 

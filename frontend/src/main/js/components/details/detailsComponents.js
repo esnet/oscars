@@ -50,6 +50,18 @@ class DetailsComponents extends Component {
     };
 
     render() {
+
+        if (typeof(this.props.connsStore.store.current) === "undefined") {
+            console.log('undefined store.current');
+            return <p>Loading connection..</p>;
+        } else if (typeof(this.props.connsStore.store.current.archived) === "undefined") {
+            console.log('undefined store.current.archived');
+            return <p>Loading connection..</p>;
+        } else if (typeof(this.props.connsStore.store.current.archived.cmp) === "undefined") {
+            console.log('undefined store.current.archived.cmp');
+            return <p>Loading connection..</p>;
+        }
+
         const cmp = this.props.connsStore.store.current.archived.cmp;
         if (size(cmp.junctions) === 0) {
             return <p>Loading connection..</p>;

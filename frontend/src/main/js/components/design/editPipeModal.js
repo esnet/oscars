@@ -64,7 +64,6 @@ class EditPipeModal extends Component {
                 message: ""
             }
         });
-        this.pathUpdateDispose();
         this.validationDispose();
     }
 

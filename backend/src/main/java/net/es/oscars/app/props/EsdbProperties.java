@@ -18,6 +18,10 @@ public class EsdbProperties {
     @NonNull
     private String uri;
 
+    private boolean enabled;
+
+    private String vlanSyncPeriod = "PT10M";
+
     public String getUri() {
         if (uri.endsWith("/")) {
             return uri;

@@ -14,12 +14,11 @@ import {
 } from "reactstrap";
 import classnames from "classnames";
 
-// import DetailsButtons from "./detailsButtons";
 import DetailsDrawing from "./detailsDrawing";
 import DetailsEditForm from "./detailsEditForm";
 import DetailsHistory from "./detailsHistory";
-import DetailsTags from "./detailsTags";
 import HelpPopover from "../helpPopover";
+import DetailsTroubleshoot from "./detailsTroubleshoot";
 
 @inject("connsStore")
 @observer
@@ -115,17 +114,6 @@ class DetailsGeneral extends Component {
                             <NavItem>
                                 <NavLink
                                     href="#"
-                                    className={classnames({ active: this.state.tab === "tags" })}
-                                    onClick={() => {
-                                        this.setTab("tags");
-                                    }}
-                                >
-                                    Tags
-                                </NavLink>
-                            </NavItem>
-                            <NavItem>
-                                <NavLink
-                                    href="#"
                                     className={classnames({ active: this.state.tab === "drawing" })}
                                     onClick={() => {
                                         this.setTab("drawing");
@@ -145,6 +133,17 @@ class DetailsGeneral extends Component {
                                     History
                                 </NavLink>
                             </NavItem>
+                            <NavItem>
+                                <NavLink
+                                    href="#"
+                                    className={classnames({ active: this.state.tab === "troubleshoot" })}
+                                    onClick={() => {
+                                        this.setTab("troubleshoot");
+                                    }}
+                                >
+                                    Troubleshoot
+                                </NavLink>
+                            </NavItem>
                         </Nav>
                         <TabContent activeTab={this.state.tab}>
                             <TabPane tabId="info" title="Info">
@@ -155,14 +154,14 @@ class DetailsGeneral extends Component {
                                 {/* <br /> */}
                                 {/* <DetailsButtons /> */}
                             </TabPane>
-                            <TabPane tabId="tags" title="Tags">
-                                <DetailsTags />
-                            </TabPane>
                             <TabPane tabId="drawing" title="Drawing">
                                 <DetailsDrawing />
                             </TabPane>
                             <TabPane tabId="history" title="History">
                                 <DetailsHistory />
+                            </TabPane>
+                            <TabPane tabId="troubleshoot" title="Troubleshoot">
+                                <DetailsTroubleshoot />
                             </TabPane>
                         </TabContent>
                     </CardBody>
@@ -173,7 +172,7 @@ class DetailsGeneral extends Component {
         }
     }
 
-    phaseHelp(phase) {
+    phaseHelp() {
         const header = <span>Phase help</span>;
         let body = (
             <span>
@@ -200,7 +199,7 @@ class DetailsGeneral extends Component {
         );
     }
 
-    stateHelp(state) {
+    stateHelp() {
         const header = <span>State help</span>;
         let body = (
             <span>
@@ -229,7 +228,7 @@ class DetailsGeneral extends Component {
         );
     }
 
-    modeHelp(mode) {
+    modeHelp() {
         const header = <span>Build mode help</span>;
         let body = (
             <span>

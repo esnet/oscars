@@ -3,6 +3,8 @@ package net.es.oscars.web.rest;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
+import net.es.oscars.app.util.DbAccess;
+import net.es.oscars.app.util.UsernameGetter;
 import net.es.oscars.resv.db.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.ConnectionMode;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static net.es.oscars.resv.svc.ConnUtils.updateConnection;
 
@@ -42,6 +45,13 @@ public class HoldController {
     @Autowired
     private ConnService connSvc;
 
+
+    @Autowired
+    private UsernameGetter usernameGetter;
+
+    @Autowired
+    private DbAccess dbAccess;
+
     @Value("${resv.timeout}")
     private Integer resvTimeout;
 
@@ -53,14 +63,14 @@ public class HoldController {
 
     @ExceptionHandler(StartupException.class)
     @ResponseStatus(value = HttpStatus.SERVICE_UNAVAILABLE)
-    public void handleStartup(StartupException ex) {
+    public void handleStartup() {
         log.warn("Still in startup");
     }
 
     @RequestMapping(value = "/protected/extend_hold/{connectionId:.+}", method = RequestMethod.GET)
     @Transactional
     public Instant extendHold(@PathVariable String connectionId)
-            throws StartupException {
+            throws StartupException, NoSuchElementException {
 
         if (startup.isInStartup()) {
             throw new StartupException("OSCARS starting up");
@@ -68,25 +78,33 @@ public class HoldController {
             throw new StartupException("OSCARS shutting down");
         }
 
-        Optional<Connection> maybeConnection = connRepo.findByConnectionId(connectionId);
-
-        Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
-
-        if (maybeConnection.isPresent()) {
-            Connection conn = maybeConnection.get();
-            if (conn.getPhase().equals(Phase.HELD) && conn.getHeld() != null) {
-                conn.getHeld().setExpiration(exp);
-                connRepo.save(conn);
-                return exp;
-            } else {
-                log.debug("pretending to extend hold for a non-HELD connection");
-                return exp;
-            }
-
-        } else {
-            return Instant.MIN;
+        Instant expiration = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
+        ReentrantLock connLock = dbAccess.getConnLock();
+        if (connLock.isLocked()) {
+            log.debug("connection already locked; extend hold returning");
+            return expiration;
         }
 
+        connLock.lock();
+        try {
+            Optional<Connection> maybeConnection = connRepo.findByConnectionId(connectionId);
+            if (maybeConnection.isPresent()) {
+                Connection conn = maybeConnection.get();
+                if (conn.getPhase().equals(Phase.HELD) && conn.getHeld() != null) {
+                    conn.getHeld().setExpiration(expiration);
+                    connRepo.save(conn);
+                } else {
+                    log.debug("pretending to extend hold for a non-HELD connection");
+                }
+            } else {
+                throw new NoSuchElementException("connection not found");
+            }
+
+        } finally {
+            // log.debug("unlocked connections");
+            connLock.unlock();
+        }
+        return expiration;
     }
 
 
@@ -142,9 +160,9 @@ public class HoldController {
 
         int duration = connection.getEnd() - connection.getBegin();
 
+        connection.setUsername(usernameGetter.username(authentication));
         // try to get starting now() with same duration
-        String username = authentication.getName();
-        connection.setUsername(username);
+
 
         Instant now = Instant.now();
 
@@ -179,8 +197,7 @@ public class HoldController {
             return in;
         }
 
-        String username = authentication.getName();
-        in.setUsername(username);
+        in.setUsername(usernameGetter.username(authentication));
 
         Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         long secs = exp.toEpochMilli() / 1000L;

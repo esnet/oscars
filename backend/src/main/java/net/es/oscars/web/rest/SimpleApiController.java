@@ -26,6 +26,8 @@ public class SimpleApiController {
     @Autowired
     private ConnController connController;
 
+    @Autowired ConnUtils connUtils;
+
 
     @Autowired
     private Startup startup;
@@ -103,7 +105,7 @@ public class SimpleApiController {
         if (c == null) {
             return  null;
         } else {
-            return ConnUtils.fromConnection(c, false);
+            return connUtils.fromConnection(c, false);
         }
 
     }
@@ -136,7 +138,7 @@ public class SimpleApiController {
         List<Connection> connections = connController.list(f).getConnections();
         List<SimpleConnection> result = new ArrayList<>();
         for (Connection c : connections) {
-            result.add(ConnUtils.fromConnection(c, return_svc_ids));
+            result.add(connUtils.fromConnection(c, return_svc_ids));
         }
         return result;
     }
@@ -152,7 +154,7 @@ public class SimpleApiController {
         List<Connection> connections = connController.list(f).getConnections();
         List<SimpleConnection> result = new ArrayList<>();
         for (Connection c : connections) {
-            result.add(ConnUtils.fromConnection(c, false));
+            result.add(connUtils.fromConnection(c, false));
         }
         return result;
     }

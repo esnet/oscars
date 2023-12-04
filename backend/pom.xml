@@ -7,16 +7,16 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.1.4</version>
+        <version>3.1.5</version>
         <relativePath/>
     </parent>
 
     <groupId>net.es.oscars</groupId>
     <artifactId>backend</artifactId>
     <name>backend</name>
-    <version>1.1.1</version>
+    <version>1.1.4</version>
 
-    <description>OSCARS 1.1.1 backend</description>
+    <description>OSCARS backend</description>
     <properties>
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
@@ -31,11 +31,15 @@
         <rpm.home>/usr/local/esnet/oscars-backend</rpm.home>
     </properties>
 
-    <!-- ESnet gitlab topo-common repo -->
+    <!-- ESnet gitlab topo-common & nsi-soap repos -->
     <repositories>
         <repository>
-            <id>gitlab-maven</id>
+            <id>topo-common</id>
             <url>https://gitlab.es.net/api/v4/projects/781/packages/maven</url>
+        </repository>
+        <repository>
+            <id>nsi-soap</id>
+            <url>https://gitlab.es.net/api/v4/projects/828/packages/maven</url>
         </repository>
     </repositories>
 
@@ -64,7 +68,12 @@
         <dependency>
             <groupId>net.es.topo.common</groupId>
             <artifactId>topo-common</artifactId>
-            <version>0.0.22-SNAPSHOT</version>
+            <version>0.0.23</version>
+        </dependency>
+        <dependency>
+            <groupId>net.es.nsi</groupId>
+            <artifactId>soap</artifactId>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -76,6 +85,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
         <!-- for serializing JSONBs into psql -->
         <dependency>
             <groupId>io.hypersistence</groupId>
@@ -121,12 +140,17 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
-            <version>3.1.4</version>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.ws</groupId>
             <artifactId>spring-ws-core</artifactId>
             <version>4.0.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.retry</groupId>
+            <artifactId>spring-retry</artifactId>
+            <version>2.0.4</version>
         </dependency>
 
         <dependency>
@@ -143,6 +167,7 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
@@ -196,35 +221,11 @@
             <artifactId>jaxws-api</artifactId>
             <version>2.3.1</version>
         </dependency>
-        <dependency>
-            <groupId>net.es.oscars</groupId>
-            <artifactId>nsi</artifactId>
-            <version>1.1.1</version>
-        </dependency>
-
 
         <dependency>
             <groupId>org.javassist</groupId>
             <artifactId>javassist</artifactId>
             <version>3.29.2-GA</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>0.11.5</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>0.11.5</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>0.11.5</version>
-            <scope>runtime</scope>
         </dependency>
 
         <dependency>

@@ -226,6 +226,7 @@ class HoldTimer extends Component {
                 connection_mtu: conn.connection_mtu,
                 mode: conn.mode,
                 description: conn.description,
+                serviceId: conn.serviceId,
                 username: "",
                 phase: "HELD",
                 state: "WAITING",

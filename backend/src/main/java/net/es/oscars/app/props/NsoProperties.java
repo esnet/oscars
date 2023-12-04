@@ -2,6 +2,7 @@ package net.es.oscars.app.props;
 
 
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -31,12 +32,38 @@ public class NsoProperties {
         }
     }
 
+    public boolean mockLiveShowCommands;
+
+    @NonNull
+    public String routingDomain;
+
     @NonNull
     public String username;
 
     @NonNull
     public String password;
 
+    public Integer retryAttempts;
+
+    public Integer backoffMillisecs;
+
     public Boolean sdpIdsGloballyUnique;
+
+    public CflowdOptions cflowd;
+
+    @Getter
+    public enum CflowdOptions {
+        ENABLED("enabled"), DISABLED("disabled"), NOT_SUPPORTED("not-supported");
+        private final String key;
+
+        CflowdOptions(String key) {
+            this.key = key;
+        }
+
+        @Override
+        public String toString() {
+            return getKey();
+        }
+    }
 
 }

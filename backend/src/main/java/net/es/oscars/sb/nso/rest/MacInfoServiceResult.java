@@ -1,9 +1,6 @@
 package net.es.oscars.sb.nso.rest;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
 @NoArgsConstructor
@@ -13,12 +10,12 @@ public class MacInfoServiceResult extends MacInfoResult {
     private Integer serviceId;
 
     public MacInfoResult getMacInfoResult() {
-        MacInfoResult ret = new MacInfoResult();
-        ret.setDevice(this.getDevice());
-        ret.setStatus(this.getStatus());
-        ret.setErrorMessage(this.getErrorMessage());
-        ret.setTimestamp(this.getTimestamp());
-        ret.setFdbQueryResult(this.getFdbQueryResult());
-        return ret;
+        return MacInfoResult.builder()
+                .device(this.getDevice())
+                .status(this.getStatus())
+                .errorMessage(this.getErrorMessage())
+                .timestamp(this.getTimestamp())
+                .fdbQueryResult(this.getFdbQueryResult())
+                .build();
     }
 }

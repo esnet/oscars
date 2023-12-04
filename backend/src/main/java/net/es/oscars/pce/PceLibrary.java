@@ -53,7 +53,7 @@ public class PceLibrary {
     }
 
     public static void pathCost(PcePath pcePath, GraphPath<TopoUrn, TopoAdjcy> path, Map<TopoAdjcy, Double> costs) {
-        Double cost = 0D;
+        double cost = 0D;
         for (TopoAdjcy ta : path.getEdgeList()) {
             cost = cost + costs.get(ta);
         }
@@ -97,7 +97,7 @@ public class PceLibrary {
 
             if (i % 3 == 1) {
 
-                if (!baselineEgressBw.keySet().contains(urn)) {
+                if (!baselineEgressBw.containsKey(urn)) {
 
                     log.error("problem processing "+urn+" in ERO:" + hopsToLogFormat(azHops));
                     throw new PCEException("Could not locate " + urn + " in baseline egress");
@@ -106,7 +106,7 @@ public class PceLibrary {
                         pcePath.setAzBaseline(baselineEgressBw.get(urn));
                     }
                 }
-                if (!availEgressBw.keySet().contains(urn)) {
+                if (!availEgressBw.containsKey(urn)) {
                     log.error("problem processing "+urn+" in ERO:" + hopsToLogFormat(azHops));
                     throw new PCEException("Could not locate " + urn + " in avail egress");
                 } else {
@@ -117,7 +117,7 @@ public class PceLibrary {
                 }
 
             } else if (i % 3 == 2) {
-                if (!baselineIngressBw.keySet().contains(urn)) {
+                if (!baselineIngressBw.containsKey(urn)) {
                     log.error("problem processing "+urn+" in ERO:" + hopsToLogFormat(azHops));
                     throw new PCEException("Could not locate " + urn + " in baseline ingress");
                 } else {
@@ -126,7 +126,7 @@ public class PceLibrary {
                     }
 
                 }
-                if (!availIngressBw.keySet().contains(urn)) {
+                if (!availIngressBw.containsKey(urn)) {
                     log.error("problem processing "+urn+" in ERO:" + hopsToLogFormat(azHops));
                     throw new PCEException("Could not locate " + urn + " in avail ingress");
                 } else {
@@ -161,7 +161,7 @@ public class PceLibrary {
         }
 
 
-        if (pcePath.getAzEro().size() == 0) {
+        if (pcePath.getAzEro().isEmpty()) {
             pcePath.setAzAvailable(-1);
             pcePath.setZaAvailable(-1);
             pcePath.setAzBaseline(-1);
@@ -173,7 +173,7 @@ public class PceLibrary {
     public static List<EroHop> toEro(GraphPath<TopoUrn, TopoAdjcy> path) {
 
         List<EroHop> ero = new ArrayList<>();
-        if (path != null && path.getEdgeList().size() > 0) {
+        if (path != null && !path.getEdgeList().isEmpty()) {
             int i = 0;
             for (TopoUrn topoUrn: path.getVertexList()) {
                 if (i % 3 == 0) {

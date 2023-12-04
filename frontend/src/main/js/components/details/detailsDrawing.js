@@ -136,6 +136,17 @@ class DetailsDrawing extends Component {
     // this automagically updates the map;
     disposeOfMapUpdate = autorun(
         () => {
+            if (typeof(this.props.connsStore.store.current) === "undefined") {
+                console.log('undefined store.current');
+                return;
+            } else if (typeof(this.props.connsStore.store.current.archived) === "undefined") {
+                console.log('undefined store.current.archived');
+                return;
+            } else if (typeof(this.props.connsStore.store.current.archived.cmp) === "undefined") {
+                console.log('undefined store.current.archived.cmp');
+                return;
+            }
+
             let design = this.props.connsStore.store.current.archived.cmp;
             let junctions = toJS(design.junctions);
             let fixtures = toJS(design.fixtures);

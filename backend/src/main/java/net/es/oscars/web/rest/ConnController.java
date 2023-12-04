@@ -5,6 +5,7 @@ import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.exc.StartupException;
+import net.es.oscars.app.util.UsernameGetter;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.sb.nso.resv.NsoResvException;
@@ -51,9 +52,12 @@ public class ConnController {
     @Autowired
     private NsiService nsiSvc;
 
+    @Autowired
+    private UsernameGetter usernameGetter;
+
     @ExceptionHandler(StartupException.class)
     @ResponseStatus(value = HttpStatus.SERVICE_UNAVAILABLE)
-    public void handleStartup(StartupException ex) {
+    public void handleStartup() {
         log.warn("Still in startup");
     }
 
@@ -65,7 +69,7 @@ public class ConnController {
 
     @ExceptionHandler(NoSuchElementException.class)
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
-    public void handleResourceNotFoundException(NoSuchElementException ex) {
+    public void handleResourceNotFoundException() {
         log.warn("requested an item which did not exist");
     }
 
@@ -82,11 +86,10 @@ public class ConnController {
     public ConnChangeResult commit(Authentication authentication, @RequestBody String connectionId)
             throws StartupException, NsoResvException, PCEException, ConnException {
         this.checkStartup();
-        String username = authentication.getName();
+
+
         Connection c = connSvc.findConnection(connectionId);
-        if (!c.getUsername().equals(username)) {
-            c.setUsername(username);
-        }
+        c.setUsername(usernameGetter.username(authentication));
 
         // String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(c);
         log.debug("committing : \n"+connectionId);
@@ -158,7 +161,7 @@ public class ConnController {
     @ResponseBody
     public List<RouterCommandHistory> history(@PathVariable String connectionId) throws StartupException, ConnException {
         this.checkStartup();
-        if (connectionId == null || connectionId.equals("")) {
+        if (connectionId == null || connectionId.isEmpty()) {
             log.info("no connectionId!");
             throw new ConnException("no connectionId");
         }
