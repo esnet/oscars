@@ -29,12 +29,10 @@ import java.util.Optional;
 public class NsoLiveStatusController {
 
     private final LiveStatusFdbCacheManager fdbCacheManager;
-
     private final NsoVcIdDAO nsoVcIdDAO;
-
     private final ConnService connSvc;
 
-    public MacInfoController(LiveStatusFdbCacheManager fdbCacheManager, NsoVcIdDAO nsoVcIdDAO, ConnService connSvc) {
+    public NsoLiveStatusController(LiveStatusFdbCacheManager fdbCacheManager, NsoVcIdDAO nsoVcIdDAO, ConnService connSvc) {
         this.fdbCacheManager = fdbCacheManager;
         this.nsoVcIdDAO = nsoVcIdDAO;
         this.connSvc = connSvc;
