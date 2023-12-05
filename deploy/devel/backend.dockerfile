@@ -6,11 +6,11 @@ COPY backend/pom.xml pom.xml
 
 RUN --mount=type=cache,target=/root/.m2 mvn org.apache.maven.plugins:maven-dependency-plugin:3.5.0:resolve-plugins org.apache.maven.plugins:maven-dependency-plugin:3.5.0:go-offline  \
     -Daether.remoteRepositoryFilter.groupId=true  \
-    -Daether.remoteRepositoryFilter.groupId.basedir=.remoteRepositoryFilters
+    -Daether.remoteRepositoryFilter.groupId.basedir=/build/backend/.remoteRepositoryFilters
 
 RUN --mount=type=cache,target=/root/.m2 mvn verify --fail-never  \
     -Daether.remoteRepositoryFilter.groupId=true  \
-    -Daether.remoteRepositoryFilter.groupId.basedir=.remoteRepositoryFilters
+    -Daether.remoteRepositoryFilter.groupId.basedir=/build/backend/.remoteRepositoryFilters
 
 # build and package spring app
 COPY backend/src ./src
