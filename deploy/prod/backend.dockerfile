@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn  \
 RUN --mount=type=cache,target=/root/.m2 mvn  \
     package --fail-never \
     -Daether.remoteRepositoryFilter.groupId=true  \
-    -Daether.remoteRepositoryFilter.groupId.basedir=./build/backend/remoteRepositoryFilters
+    -Daether.remoteRepositoryFilter.groupId.basedir=/build/backend/.remoteRepositoryFilters
 
 # build and package spring app
 COPY backend/src ./src
