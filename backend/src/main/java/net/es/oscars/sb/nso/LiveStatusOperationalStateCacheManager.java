@@ -3,11 +3,14 @@ package net.es.oscars.sb.nso;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import net.es.oscars.sb.nso.rest.DeviceServiceIdKeyPair;
@@ -99,16 +102,20 @@ public class LiveStatusOperationalStateCacheManager {
     }
 
     // SDP live status cache functions
-    public LiveStatusSdpResult refreshSdp(String device, int serviceId) {
+    public ArrayList<LiveStatusSdpResult> refreshSdp(String device, int serviceId) {
         log.info("Refresh SAP string for " + device + "service ID " + serviceId);
 
         Instant now = Instant.now();
+        ArrayList<LiveStatusSdpResult> resultList = new ArrayList<>();
         LiveStatusSdpResult result = new LiveStatusSdpResult();
-
 
         // create local key and query device
         DeviceServiceIdKeyPair key = new DeviceServiceIdKeyPair(device, serviceId);
-        String reply = nsoProxy.getLiveStatusServiceSdp(device, serviceId);
+        //String reply = nsoProxy.getLiveStatusServiceSdp(device, serviceId);
+
+        // mock value
+        String mockReply = "\n\r\n===============================================================================\r\nServices: Service Destination Points\r\n===============================================================================\r\nSdpId            Type     Far End addr    Adm     Opr       I.Lbl     E.Lbl\r\n-------------------------------------------------------------------------------\r\n7002:7005        Spok     134.55.200.174  Up      Up        524108    524262\r\n7003:7008        Spok     134.55.200.174  Up      Down      524101    None\r\n-------------------------------------------------------------------------------\r\nNumber of SDPs : 2\r\n-------------------------------------------------------------------------------\r\n===============================================================================\r\nA:star-cr6# ";
+        String reply = mockReply;
 
         if (reply != null) {
 
@@ -119,86 +126,92 @@ public class LiveStatusOperationalStateCacheManager {
                 log.error(reply);
                 result.setStatus(false);
                 result.setErrorMessage(reply);
-            } else {
-                /*
-                    ===============================================================================
-                    Services: Service Destination Points
-                    ===============================================================================
-                    SdpId            Type     Far End addr    Adm     Opr       I.Lbl     E.Lbl
-                    -------------------------------------------------------------------------------
-                    7002:7005        Spok     134.55.200.174  Up      Up        524108    524262
-                    7003:7008        Spok     134.55.200.174  Up      Down      524101    None
-                    -------------------------------------------------------------------------------
-                    Number of SDPs : 2
-                    -------------------------------------------------------------------------------
-                    ===============================================================================
-                 */
-
-
-                // extract lines with SAPs
-                ArrayList<String> sdpsList = new ArrayList();
-                String[] lines = reply.split("\r\n");
-                Pattern regex = Pattern.compile("[0-9]{1}");
-                for (String line : lines) {
-                    Matcher m = regex.matcher(line);
-                    if (m.find()) {
-                        sdpsList.add(line);
-                    }
-                }
-
-                // extract SDP data
-
-                for (int i = 0; i < sdpsList.size(); i++) {
-                    result = new LiveStatusSdpResult();
-                    result.setDevice(device);
-                    // result.setServiceId(serviceId);
-                    result.setTimestamp(now);
-
-                    String line = sdpsList.get(i);
-                    String[] sdpIdAndInfo = line.split(":");
-
-
-                    if (sdpIdAndInfo.length != 2) {
-                        // error
-                    }
-
-                    int sdpId = 0;
-                    try {
-                        sdpId = Integer.parseInt(sdpIdAndInfo[0]);
-                    } catch (NumberFormatException error) {
-                        log.info("");
-                    }
-                    result.setSdpId(sdpId);
-
-                    String[] sdpInfo = sdpIdAndInfo[1].split(" ");
-
-                    log.info("---> DEBUG: " + sdpInfo[1]);
-
-                    // result.setType(sdpInfo[1]);
-                    // result.setFarEnd(sdpInfo[2]);
-
-                    // if (sdpInfo[3].equals("up")) {}
-                        // result.setAdminState(true);
-                    // } else {
-                    //   // result.setAdminState(false);
-                    // }
-
-                    // if (sdpInfo[4].equals("up")) {}
-                        // result.setOperationalState(true);
-                    // } else {
-                    //   // result.setOperationalState(false);
-                    // }
-
-
-                    result.setStatus(true);
-
-                }
-
-
+                resultList.add(result);
+                return resultList;
             }
 
+            /*
+                ===============================================================================
+                Services: Service Destination Points
+                ===============================================================================
+                SdpId            Type     Far End addr    Adm     Opr       I.Lbl     E.Lbl
+                -------------------------------------------------------------------------------
+                7002:7005        Spok     134.55.200.174  Up      Up        524108    524262
+                7003:7008        Spok     134.55.200.174  Up      Down      524101    None
+                -------------------------------------------------------------------------------
+                Number of SDPs : 2
+                -------------------------------------------------------------------------------
+                ===============================================================================
+                */
 
 
+            // extract lines with SDPs
+            ArrayList<String> sdpsList = new ArrayList<>();
+            String[] lines = reply.split("\r\n");
+            Pattern regex = Pattern.compile("^[0-9]{1}");
+            for (String line : lines) {
+                Matcher m = regex.matcher(line);
+                if (m.find()) {
+                    sdpsList.add(line);
+                }
+            }
+
+            // extract SDP data - simple line format parsing
+            for (int i = 0; i < sdpsList.size(); i++) {
+                result = new LiveStatusSdpResult();
+                result.setDevice(device);
+                // result.setServiceId(serviceId);
+                result.setTimestamp(now);
+
+                String line = sdpsList.get(i);
+                log.info("LINE :" + line);
+                String[] sdpIdAndInfo = line.split(":");
+
+
+                if (sdpIdAndInfo.length != 2) {
+                    log.error("SDP data parsing error - line format error: SDP ID and info");
+                    break;
+                }
+
+                int sdpId = 0;
+                try {
+                    sdpId = Integer.parseInt(sdpIdAndInfo[0]);
+                } catch (NumberFormatException error) {
+                    log.info("Couldn't parse SDP ID");
+                    error.printStackTrace();
+                }
+                result.setSdpId(sdpId);
+
+                // remaining part example -> "7005        Spok     134.55.200.174  Up      Up        524108    524262"
+                String singleWhitespace = sdpIdAndInfo[1].replaceAll("\\s{2,}", " ");
+                String[] sdpInfo = singleWhitespace.split(" ");
+
+                int remainingElements = 7;
+                if (sdpInfo.length != remainingElements) {
+                    log.error("SDP data parsing error - line format error: data arguments");
+                    break;
+                }
+
+                result.setType(sdpInfo[1]);
+                result.setFarEndAddress(sdpInfo[2]);
+
+                if (sdpInfo[3].equals("Up")) {
+                    result.setAdminState(true);
+                } else {
+                    result.setAdminState(false);
+                }
+
+                if (sdpInfo[4].equals("Up")) {
+                    result.setOperationalState(true);
+                } else {
+                    result.setOperationalState(false);
+                }
+
+                result.setStatus(true);
+                resultList.add(result);
+            }
+
+            return resultList;
         }
 
         return null;
@@ -206,10 +219,8 @@ public class LiveStatusOperationalStateCacheManager {
 
 
 
-
-
     // SAP
-    public LiveStatusSapResult getRefreshedSap(String device, int serviceId) {
+    public ArrayList<LiveStatusSapResult> getRefreshedSap(String device, int serviceId) {
         return null;
     }
 
@@ -219,6 +230,17 @@ public class LiveStatusOperationalStateCacheManager {
 
     public LiveStatusSapResult getSap(String device, int serviceId, Instant olderThanTimestamp) {
         return null;
+    }
+
+
+    @Scheduled(fixedDelayString = "5", timeUnit = TimeUnit.SECONDS)
+    public void debug() {
+
+        ArrayList<LiveStatusSdpResult> resultList = refreshSdp("testDevice", 7000);
+        for(LiveStatusSdpResult result : resultList) {
+            log.info("DEBUG: " + result.toString());
+        }
+
     }
 
 
