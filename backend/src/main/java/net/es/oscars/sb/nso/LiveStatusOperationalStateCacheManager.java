@@ -2,6 +2,7 @@ package net.es.oscars.sb.nso;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -26,14 +27,17 @@ public class LiveStatusOperationalStateCacheManager {
 
     final private NsoProxy nsoProxy;
     private Map<DeviceServiceIdKeyPair, MacInfoServiceResult> macCache;
-
-    private Map<DeviceServiceIdKeyPair, LiveStatusSapResult> sapCache;
-    private Map<DeviceServiceIdKeyPair, LiveStatusSdpResult> sdpCache;
-    private Map<DeviceServiceIdKeyPair, LiveStatusLspResult> lspCache;
+    private Map<DeviceServiceIdKeyPair, ArrayList<LiveStatusSapResult>> sapCache;
+    private Map<DeviceServiceIdKeyPair, ArrayList<LiveStatusSdpResult>> sdpCache;
+    private Map<DeviceServiceIdKeyPair, ArrayList<LiveStatusLspResult>> lspCache;
 
 
     public LiveStatusOperationalStateCacheManager(NsoProxy nsoProxy) {
         this.nsoProxy = nsoProxy;
+        this.macCache = new HashMap<>();
+        this.sapCache = new HashMap<>();
+        this.sdpCache = new HashMap<>();
+        this.lspCache = new HashMap<>();
     }
 
     // learned MAC address live status cache functions
@@ -103,7 +107,7 @@ public class LiveStatusOperationalStateCacheManager {
 
     // SDP live status cache functions
     public ArrayList<LiveStatusSdpResult> refreshSdp(String device, int serviceId) {
-        log.info("Refresh SAP string for " + device + "service ID " + serviceId);
+        log.info("Refresh SDP info for " + device + "service ID " + serviceId);
 
         Instant now = Instant.now();
         ArrayList<LiveStatusSdpResult> resultList = new ArrayList<>();
@@ -119,11 +123,7 @@ public class LiveStatusOperationalStateCacheManager {
 
         if (reply != null) {
 
-            // check for erroror or regular result
-            // MINOR: CLI Invalid service id "8000".
-            // MINOR: CLI Invalid service "sdp".
-            if (reply.contains("MINOR") || reply.contains("Invalid")) {
-                log.error(reply);
+            if (!checkLiveStatusReply(reply)) {
                 result.setStatus(false);
                 result.setErrorMessage(reply);
                 resultList.add(result);
@@ -146,15 +146,7 @@ public class LiveStatusOperationalStateCacheManager {
 
 
             // extract lines with SDPs
-            ArrayList<String> sdpsList = new ArrayList<>();
-            String[] lines = reply.split("\r\n");
-            Pattern regex = Pattern.compile("^[0-9]{1}");
-            for (String line : lines) {
-                Matcher m = regex.matcher(line);
-                if (m.find()) {
-                    sdpsList.add(line);
-                }
-            }
+            ArrayList<String> sdpsList = this.getDataLines(reply);
 
             // extract SDP data - simple line format parsing
             for (int i = 0; i < sdpsList.size(); i++) {
@@ -166,7 +158,6 @@ public class LiveStatusOperationalStateCacheManager {
                 String line = sdpsList.get(i);
                 log.info("LINE :" + line);
                 String[] sdpIdAndInfo = line.split(":");
-
 
                 if (sdpIdAndInfo.length != 2) {
                     log.error("SDP data parsing error - line format error: SDP ID and info");
@@ -195,22 +186,14 @@ public class LiveStatusOperationalStateCacheManager {
                 result.setType(sdpInfo[1]);
                 result.setFarEndAddress(sdpInfo[2]);
 
-                if (sdpInfo[3].equals("Up")) {
-                    result.setAdminState(true);
-                } else {
-                    result.setAdminState(false);
-                }
-
-                if (sdpInfo[4].equals("Up")) {
-                    result.setOperationalState(true);
-                } else {
-                    result.setOperationalState(false);
-                }
+                result.setAdminState(convertStatus(sdpInfo[3]));
+                result.setOperationalState(convertStatus(sdpInfo[4]));
 
                 result.setStatus(true);
                 resultList.add(result);
             }
 
+            this.sdpCache.put(key, resultList);
             return resultList;
         }
 
@@ -218,8 +201,108 @@ public class LiveStatusOperationalStateCacheManager {
     }
 
 
-
     // SAP
+    public ArrayList<LiveStatusSapResult> refreshSap(String device, int serviceId) {
+
+        log.info("Refresh SAP info for " + device + "service ID " + serviceId);
+
+        Instant now = Instant.now();
+        ArrayList<LiveStatusSapResult> resultList = new ArrayList<>();
+        LiveStatusSapResult result = new LiveStatusSapResult();
+
+        // create local key and query device
+        DeviceServiceIdKeyPair key = new DeviceServiceIdKeyPair(device, serviceId);
+        //String reply = nsoProxy.getLiveStatusServiceSdp(device, serviceId);
+
+        // mock value
+        String mockReply = "\n\r\n===============================================================================\r\nSAP(Summary), Service 7005\r\n===============================================================================\r\nPortId                          SvcId      Ing.  Ing.    Egr.  Egr.   Adm  Opr\r\n                                           QoS   Fltr    QoS   Fltr        \r\n-------------------------------------------------------------------------------\r\n2/1/c5/1:1814                   7005       7001  none    7001  none   Up   Up\r\n-------------------------------------------------------------------------------\r\nNumber of SAPs : 1\r\n-------------------------------------------------------------------------------\r\n===============================================================================\r\nA:star-cr6# ";
+        String reply = mockReply;
+        // request devices device star-cr6 live-status exec show args service id 7005 sap
+
+
+        /*
+         *  ===============================================================================
+            SAP(Summary), Service 7005
+            ===============================================================================
+            PortId                          SvcId      Ing.  Ing.    Egr.  Egr.   Adm  Opr
+                                                       QoS   Fltr    QoS   Fltr
+            -------------------------------------------------------------------------------
+            2/1/c5/1:1814                   7005       7001  none    7001  none   Up   Up
+            -------------------------------------------------------------------------------
+            Number of SAPs : 1
+            -------------------------------------------------------------------------------
+            ===============================================================================
+         */
+
+        if (reply == null) {
+            log.info("Live status request returned null");
+            return null;
+        }
+
+        if (!checkLiveStatusReply(reply)) {
+            result.setStatus(false);
+            result.setErrorMessage(reply);
+            resultList.add(result);
+            return resultList;
+        }
+
+        // extract lines with SAPs
+        ArrayList<String> sapsList = this.getDataLines(reply);
+
+        // extract SAP data - simple line format parsing
+        for (int i = 0; i < sapsList.size(); i++) {
+
+            result = new LiveStatusSapResult();
+            result.setDevice(device);
+            //result.setServiceId(serviceId);
+            result.setTimestamp(now);
+
+            String line = sapsList.get(i);
+            log.info("LINE :" + line);
+            String[] sapIdAndInfo = line.split(":");
+
+            if (sapIdAndInfo.length != 2) {
+                log.error("SAP data parsing error - line format error: SAP ID and info");
+                break;
+            }
+
+            result.setPort(sapIdAndInfo[0]);
+
+            String singleWhitespace = sapIdAndInfo[1].replaceAll("\\s{2,}", " ");
+            String[] sapInfo = singleWhitespace.split(" ");
+
+            int remainingElements = 8;
+            if (sapInfo.length != remainingElements) {
+                log.error("SDP data parsing error - line format error: data arguments");
+                break;
+            }
+
+            int vlanId = 0;
+            int ingresQos = 0;
+            int egressQos = 0;
+            try {
+                vlanId = Integer.parseInt(sapInfo[0]);
+                ingresQos = Integer.parseInt(sapInfo[0]);
+                egressQos = Integer.parseInt(sapInfo[0]);
+            } catch (NumberFormatException error) {
+                log.info("Couldn't parse SAP VLAN ID or ingress / egress QoS");
+                error.printStackTrace();
+            }
+            result.setVlan(vlanId);
+            result.setIngressQos(ingresQos);
+            result.setEgressQos(egressQos);
+
+            result.setAdminState(convertStatus(sapInfo[6]));
+            result.setOperationalState(convertStatus(sapInfo[7]));
+
+            result.setStatus(true);
+            resultList.add(result);
+        }
+
+        this.sapCache.put(key, resultList);
+        return resultList;
+    }
+
     public ArrayList<LiveStatusSapResult> getRefreshedSap(String device, int serviceId) {
         return null;
     }
@@ -232,15 +315,98 @@ public class LiveStatusOperationalStateCacheManager {
         return null;
     }
 
+    public ArrayList<LiveStatusLspResult> refreshLsp(String device) {
+
+        /*
+            ===============================================================================
+            MPLS LSPs (Originating)
+            ===============================================================================
+            LSP Name                                            Tun     Fastfail  Adm  Opr
+            To                                                Id      Config
+            -------------------------------------------------------------------------------
+            doe-in-vpls_albq-cr6                                1       No        Up   Up
+            134.55.200.169
+            6999---srs70344a-cr6                                2       No        Up   Up
+            134.55.200.230
+            6999---pantex-cr6                                   50      No        Up   Up
+            134.55.200.216
+            JMTF-WRK-anl541b-cr6                                53      No        Up   Up
+            134.55.200.174
+            JMTF-PRT-anl541b-cr6                                54      No        Up   Up
+            134.55.200.174
+         */
+
+    }
+
+
+
+
+
 
     @Scheduled(fixedDelayString = "5", timeUnit = TimeUnit.SECONDS)
     public void debug() {
 
-        ArrayList<LiveStatusSdpResult> resultList = refreshSdp("testDevice", 7000);
-        for(LiveStatusSdpResult result : resultList) {
+        ArrayList<LiveStatusSdpResult> resultListSdp = refreshSdp("testDevice", 7000);
+        for(LiveStatusSdpResult result : resultListSdp) {
             log.info("DEBUG: " + result.toString());
         }
 
+        ArrayList<LiveStatusSapResult> resultListSap = refreshSap("testDevice", 7000);
+        for(LiveStatusSapResult result : resultListSap) {
+            log.info("DEBUG: " + result.toString());
+        }
+
+    } // DEBUG - TEST - DEBUG - TEST
+
+
+    // auxilery methods
+
+    /**
+     * Extracts live status output lines with actual data
+     * @param input the live status reply
+     * @return an array of strings with the data
+     */
+    public ArrayList<String> getDataLines(String input) {
+        if(input == null) return null;
+        ArrayList<String> data = new ArrayList<>();
+        String[] lines = input.split("\r\n");
+        Pattern regex = Pattern.compile("^[0-9]{1}");
+        for (String line : lines) {
+            Matcher m = regex.matcher(line);
+            if (m.find()) {
+                data.add(line);
+            }
+        }
+        return data;
+    }
+
+    /**
+     * Checks for live status error key words
+     * @param input the live status reply
+     * @return true if valid input and false if an error was detected
+     */
+    public boolean checkLiveStatusReply(String input) {
+        // check for error or regular result
+        // MINOR: CLI Invalid service id "8000".
+        // MINOR: CLI Invalid service "sdp".
+        if (input == null) return false;
+        if (input.contains("MINOR") || input.contains("Invalid")) {
+            log.error(input);
+            return false;
+        }
+        return true;
+    }
+
+
+    /**
+     * Converts the live status status values Up / Down into boolean true / false
+     * @param status String with the status value
+     * @return true if status is Up otherwise false
+     */
+    public boolean convertStatus(String status) {
+        if (status == null) return false;
+        if (status.equals("Up")) return true;
+        return false;
     }
 
 
