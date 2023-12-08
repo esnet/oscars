@@ -17,30 +17,20 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(callSuper=false)
 public class LiveStatusLspResult extends LiveStatusResult {
 
-    List<LspEntry> lsps;
+    private String name;
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class LspEntry {
+    private String to;
 
-        private String name;
+    @JsonProperty("tunnel-id")
+    private Integer tunnelId;
 
-        private String to;
+    @JsonProperty("fast-fail-config")
+    private Boolean fastFailConf;
 
-        @JsonProperty("tunnel-id")
-        private Integer tunnelId;
+    @JsonProperty("admin-state")
+    private Boolean adminState;
 
-        @JsonProperty("oper-state")
-        private Boolean fastFailConf;
-
-        @JsonProperty("admin-state")
-        private Boolean adminState;
-
-        @JsonProperty("oper-state")
-        private Boolean operationalState;
-
-    }
+    @JsonProperty("oper-state")
+    private Boolean operationalState;
 
 }
