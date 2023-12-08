@@ -120,7 +120,6 @@ public class LiveStatusOperationalStateCacheManager {
         String mockReply = "\n\r\n===============================================================================\r\nServices: Service Destination Points\r\n===============================================================================\r\nSdpId            Type     Far End addr    Adm     Opr       I.Lbl     E.Lbl\r\n-------------------------------------------------------------------------------\r\n7002:7005        Spok     134.55.200.174  Up      Up        524108    524262\r\n7003:7008        Spok     134.55.200.174  Up      Down      524101    None\r\n-------------------------------------------------------------------------------\r\nNumber of SDPs : 2\r\n-------------------------------------------------------------------------------\r\n===============================================================================\r\nA:star-cr6# ";
         String reply = mockReply;
 
-
         /*
             ===============================================================================
             Services: Service Destination Points
@@ -191,6 +190,37 @@ public class LiveStatusOperationalStateCacheManager {
         this.sdpCache.put(key, resultList);
         return resultList;
 
+    }
+
+    public ArrayList<LiveStatusSdpResult> getRefreshedSdp(String device, int serviceId) {
+        return refreshSdp(device, serviceId);
+    }
+
+    public ArrayList<LiveStatusSdpResult> getCachedSdp(String device, int serviceId) {
+        return this.sdpCache.get(new DeviceServiceIdKeyPair(device, serviceId));
+    }
+
+    public ArrayList<LiveStatusSdpResult> getSdp(String device, int serviceId, Instant olderThanTimestamp) {
+        if (olderThanTimestamp == null) return null;
+
+        // get cached SDPs
+        ArrayList<LiveStatusSdpResult> tmp = getCachedSdp(device, serviceId);
+        if (tmp == null) {
+            // nothing cached - get refreshed SDPs
+            tmp = getRefreshedSdp(device, serviceId);
+            if (tmp == null) return null;
+            else return tmp;
+        }
+
+        // check all timestamps and update if one is older than olderThanTimestamp
+        for (LiveStatusSdpResult element : tmp) {
+            if (element.getTimestamp().isBefore(olderThanTimestamp)) {
+                // if not get a refreshed one
+                tmp = getRefreshedSdp(device, serviceId);
+                break;
+            }
+        }
+        return tmp;
     }
 
 
@@ -289,15 +319,34 @@ public class LiveStatusOperationalStateCacheManager {
     }
 
     public ArrayList<LiveStatusSapResult> getRefreshedSap(String device, int serviceId) {
-        return null;
+        return refreshSap(device, serviceId);
     }
 
-    public LiveStatusSapResult getCachedSap(String device, int serviceId) {
-        return null;
+    public ArrayList<LiveStatusSapResult> getCachedSap(String device, int serviceId) {
+        return this.sapCache.get(new DeviceServiceIdKeyPair(device, serviceId));
     }
 
-    public LiveStatusSapResult getSap(String device, int serviceId, Instant olderThanTimestamp) {
-        return null;
+    public ArrayList<LiveStatusSapResult> getSap(String device, int serviceId, Instant olderThanTimestamp) {
+        if (olderThanTimestamp == null) return null;
+
+        // get cached SAPs
+        ArrayList<LiveStatusSapResult> tmp = getCachedSap(device, serviceId);
+        if (tmp == null) {
+            // nothing cached - get refreshed SAPs
+            tmp = getRefreshedSap(device, serviceId);
+            if (tmp == null) return null;
+            else return tmp;
+        }
+
+        // check all timestamps and update if one is older than olderThanTimestamp
+        for (LiveStatusSapResult element : tmp) {
+            if (element.getTimestamp().isBefore(olderThanTimestamp)) {
+                // if not get a refreshed one
+                tmp = getRefreshedSap(device, serviceId);
+                break;
+            }
+        }
+        return tmp;
     }
 
     public ArrayList<LiveStatusLspResult> refreshLsp(String device) {
@@ -321,7 +370,7 @@ public class LiveStatusOperationalStateCacheManager {
             134.55.200.174
          */
 
-        log.info("Refresh SAP info for " + device);
+        log.info("Refresh LSP info for " + device);
 
         Instant now = Instant.now();
         ArrayList<LiveStatusLspResult> resultList = new ArrayList<>();
@@ -391,8 +440,40 @@ public class LiveStatusOperationalStateCacheManager {
 
     }
 
+    public ArrayList<LiveStatusLspResult> getRefreshedLsp(String device) {
+        return refreshLsp(device);
+    }
+
+    public ArrayList<LiveStatusLspResult> getCachedLsp(String device) {
+        return this.lspCache.get(device);
+    }
+
+    public ArrayList<LiveStatusLspResult> getLsp(String device, Instant olderThanTimestamp) {
+        if (olderThanTimestamp == null) return null;
+
+        // get cached SAPs
+        ArrayList<LiveStatusLspResult> tmp = getCachedLsp(device);
+        if (tmp == null) {
+            // nothing cached - get refreshed SAPs
+            tmp = getRefreshedLsp(device);
+            if (tmp == null) return null;
+            else return tmp;
+        }
+
+        // check all timestamps and update if one is older than olderThanTimestamp
+        for (LiveStatusLspResult element : tmp) {
+            if (element.getTimestamp().isBefore(olderThanTimestamp)) {
+                // if not get a refreshed one
+                tmp = getRefreshedLsp(device);
+                break;
+            }
+        }
+        return tmp;
+    }
 
 
+
+    // DEBUG - TEST - DEBUG - TEST
     @Scheduled(fixedDelayString = "5", timeUnit = TimeUnit.SECONDS)
     public void debug() {
 
@@ -412,6 +493,7 @@ public class LiveStatusOperationalStateCacheManager {
         }
 
     } // DEBUG - TEST - DEBUG - TEST
+
 
 
     // auxilery methods
