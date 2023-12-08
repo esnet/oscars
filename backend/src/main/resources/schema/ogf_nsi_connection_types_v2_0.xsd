@@ -47,7 +47,7 @@
             
             5. Provision - Provider NSA has been given permission to setup a
             reservation (associated with a previous reserve message) on
-            the Requester NSA's behalf but subject to the constraints of
+            the Requester NSA's behalf but subject to the intents of
             the requested service.
             
             6. Release - Provider NSA should release the provisioned resources

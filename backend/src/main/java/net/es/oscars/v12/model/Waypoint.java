@@ -1,44 +1,28 @@
-package net.es.oscars.v12.model.constraint;
+package net.es.oscars.v12.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
 
-import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
 
-
+@Builder
+@AllArgsConstructor
+@Entity
 @Getter
 @Setter
 @ToString
 @RequiredArgsConstructor
-@Builder
-@AllArgsConstructor
-@Entity
-public class L2VPNConstraints {
+public class Waypoint {
     @Id
     @GeneratedValue
     Long id;
 
-    Integer version;
+    WaypointType type;
 
-    String user;
-
-    @JsonProperty("effective-since")
-    Instant effectiveSince;
-
-    Instant start;
-    Instant end;
-
-    @OneToMany(cascade = CascadeType.ALL)
-    @ToString.Exclude
-    List<LspConstraint> lsps;
-
-    @OneToMany(cascade = CascadeType.ALL)
-    @ToString.Exclude
-    List<L2VPNEndpointConstraint> endpoints;
+    String urn;
 
     @Override
     public final boolean equals(Object o) {
@@ -47,7 +31,7 @@ public class L2VPNConstraints {
         Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
         Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
         if (thisEffectiveClass != oEffectiveClass) return false;
-        L2VPNConstraints that = (L2VPNConstraints) o;
+        Waypoint that = (Waypoint) o;
         return getId() != null && Objects.equals(getId(), that.getId());
     }
 

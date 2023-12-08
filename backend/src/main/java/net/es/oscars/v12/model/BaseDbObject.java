@@ -1,31 +1,24 @@
-package net.es.oscars.v12.model.constraint;
+package net.es.oscars.v12.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
-import net.es.oscars.v12.model.enums.QosExcessAction;
+import net.es.oscars.v12.model.intent.EndpointIntent;
 import org.hibernate.proxy.HibernateProxy;
 
 import java.util.Objects;
 
-@Builder
+@MappedSuperclass
 @AllArgsConstructor
 @Entity
+@Builder
 @Getter
 @Setter
 @ToString
 @RequiredArgsConstructor
-public class QosConstraint {
+public class BaseDbObject {
     @Id
     @GeneratedValue
-    Long id;
-
-    Integer mbps;
-
-    @JsonProperty("excess-action")
-    QosExcessAction excessAction;
+    private Long id;
 
     @Override
     public final boolean equals(Object o) {
@@ -34,7 +27,7 @@ public class QosConstraint {
         Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
         Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
         if (thisEffectiveClass != oEffectiveClass) return false;
-        QosConstraint that = (QosConstraint) o;
+        EndpointIntent that = (EndpointIntent) o;
         return getId() != null && Objects.equals(getId(), that.getId());
     }
 

@@ -1,12 +1,17 @@
-package net.es.oscars.v12.model.resource;
+package net.es.oscars.v12.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
 import lombok.*;
-import net.es.oscars.v12.model.constraint.L2VPNEndpointConstraint;
 import org.hibernate.proxy.HibernateProxy;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 
 @Getter
 @Setter
@@ -15,30 +20,14 @@ import java.util.Objects;
 @Builder
 @AllArgsConstructor
 @Entity
-public class L2VPNEndpointResource {
-
+public class TimeInterval {
     @Id
     @GeneratedValue
     Long id;
 
-    @OneToOne(cascade=CascadeType.ALL)
-    @JoinTable(name="ENDPOINT_TO_CONSTRAINT")
-    L2VPNEndpointConstraint constraint;
-
-    @JsonProperty("pe-router")
-    String peRouter;
-
-    @JsonProperty("pe-router-port")
-    String peRouterPort;
-
-    @JsonProperty("vlan-id")
-    int vlanId;
-
-    @OneToOne(cascade= CascadeType.ALL)
-    QosResource ingress;
-
-    @OneToOne(cascade=CascadeType.ALL)
-    QosResource egress;
+    Instant start;
+    Instant end;
+    Boolean indefinite;
 
     @Override
     public final boolean equals(Object o) {
@@ -47,7 +36,7 @@ public class L2VPNEndpointResource {
         Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
         Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
         if (thisEffectiveClass != oEffectiveClass) return false;
-        L2VPNEndpointResource that = (L2VPNEndpointResource) o;
+        TimeInterval that = (TimeInterval) o;
         return getId() != null && Objects.equals(getId(), that.getId());
     }
 
@@ -55,4 +44,6 @@ public class L2VPNEndpointResource {
     public final int hashCode() {
         return this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
     }
+
+
 }

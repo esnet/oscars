@@ -1,13 +1,17 @@
-package net.es.oscars.v12.model.resource;
+package net.es.oscars.v12.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
-import net.es.oscars.v12.model.constraint.LspConstraint;
+import net.es.oscars.v12.model.intent.L2VPNIntent;
+import net.es.oscars.v12.model.resource.L2VPNResource;
 import org.hibernate.proxy.HibernateProxy;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+
 
 @Getter
 @Setter
@@ -16,32 +20,33 @@ import java.util.Objects;
 @Builder
 @AllArgsConstructor
 @Entity
-public class LspResource {
+public class L2VPN {
     @Id
     @GeneratedValue
     Long id;
 
-    @OneToOne(cascade= CascadeType.ALL)
-    @JoinTable(name="LSP_TO_CONSTRAINT")
-    LspConstraint constraint;
+    @JsonProperty("connection-id")
+    String connectionId;
 
-    @JsonProperty("a-pe-router")
-    String aPeRouter;
+    Boolean released;
 
-    @JsonProperty("z-pe-router")
-    String zPeRouter;
+    Boolean markedForRelease;
 
-    @JsonProperty("az-qos")
-    @OneToOne(cascade = CascadeType.ALL)
-    QosResource azQos;
+    @OneToMany
+    @ToString.Exclude
+    List<L2VPNIntent> intents;
 
-    @JsonProperty("za-qos")
-    @OneToOne(cascade = CascadeType.ALL)
-    QosResource zaQos;
+    @OneToMany
+    @ToString.Exclude
+    List<L2VPNResource> resources;
 
-    @ElementCollection
-    List<String> ero;
-
+    public void invalidateLastIntent(Instant effectiveUntil) {
+        if (intents != null) {
+            L2VPNIntent last = intents.get(intents.size() - 1);
+            last.getValidity().setIndefinite(false);
+            last.getValidity().setEnd(effectiveUntil);
+        }
+    }
 
     @Override
     public final boolean equals(Object o) {
@@ -50,7 +55,7 @@ public class LspResource {
         Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
         Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
         if (thisEffectiveClass != oEffectiveClass) return false;
-        LspResource that = (LspResource) o;
+        L2VPN that = (L2VPN) o;
         return getId() != null && Objects.equals(getId(), that.getId());
     }
 

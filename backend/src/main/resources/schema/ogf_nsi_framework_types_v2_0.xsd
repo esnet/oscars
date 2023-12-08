@@ -172,7 +172,7 @@ Open Grid Forum NSI Framework v2.0 - NSI framework common types schema.
         <xsd:annotation>
             <xsd:documentation xml:lang="en">
                 The time zone support of W3C XML Schema is quite controversial
-                and needs some additional constraints to avoid comparison
+                and needs some additional intents to avoid comparison
                 problems. These patterns can be kept relatively simple since
                 the syntax of the datetime is already checked by the schema
                 validator and only simple additional checks need to be added.
