@@ -28,17 +28,16 @@
         <lombok.version>1.18.30</lombok.version>
 
         <cucumber.options>--tags @unit --strict</cucumber.options>
-        <rpm.home>/usr/local/esnet/oscars-backend</rpm.home>
     </properties>
 
     <!-- ESnet gitlab topo-common & nsi-soap repos -->
     <repositories>
         <repository>
-            <id>topo-common</id>
+            <id>topocommon</id>
             <url>https://gitlab.es.net/api/v4/projects/781/packages/maven</url>
         </repository>
         <repository>
-            <id>nsi-soap</id>
+            <id>nsi</id>
             <url>https://gitlab.es.net/api/v4/projects/828/packages/maven</url>
         </repository>
     </repositories>
