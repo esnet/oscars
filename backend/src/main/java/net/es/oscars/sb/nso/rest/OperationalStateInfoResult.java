@@ -1,5 +1,6 @@
 package net.es.oscars.sb.nso.rest;
 
+import java.time.Instant;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -12,20 +13,31 @@ import lombok.NoArgsConstructor;
 
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper=false)
 public class OperationalStateInfoResult extends LiveStatusResult {
 
-    @JsonProperty("sdp")
-    private List<Sdp> sdps;
+    @Builder
+    OperationalStateInfoResult(String device, Instant timestamp, Boolean status, String errorMessage,
+            List<LiveStatusSdpResult> sdps, List<LiveStatusSapResult> saps, List<LiveStatusLspResult> lsps) {
+        super(device, timestamp, status, errorMessage);
+        this.sdps = sdps;
+        this.saps = saps;
+        this.lsps = lsps;
+    }
 
-    @JsonProperty("lsp")
-    private List<Lsp> lsps;
+    @JsonProperty("sdp")
+    private List<LiveStatusSdpResult> sdps;
 
     @JsonProperty("sap")
-    private List<Sap> saps;
+    private List<LiveStatusSapResult> saps;
 
+    @JsonProperty("lsp")
+    private List<LiveStatusLspResult> lsps;
+
+    /*
     @Data
     @Builder
     @NoArgsConstructor
@@ -60,5 +72,6 @@ public class OperationalStateInfoResult extends LiveStatusResult {
         @JsonProperty("oper-state")
         Boolean operationalState;
     }
+    */
 
 }

@@ -6,18 +6,25 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.web.beans.NsoLiveStatusRequest;
+import net.es.oscars.web.beans.OperationalStateInfoResponse;
 import net.es.oscars.web.beans.MacInfoResponse;
+import net.es.oscars.sb.nso.rest.LiveStatusLspResult;
+import net.es.oscars.sb.nso.rest.LiveStatusSapResult;
+import net.es.oscars.sb.nso.rest.LiveStatusSdpResult;
 import net.es.oscars.sb.nso.rest.MacInfoResult;
+import net.es.oscars.sb.nso.rest.OperationalStateInfoResult;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.VlanFixture;
 import net.es.oscars.sb.nso.LiveStatusFdbCacheManager;
+import net.es.oscars.sb.nso.LiveStatusOperationalStateCacheManager;
 import net.es.oscars.sb.nso.db.NsoVcIdDAO;
 import net.es.oscars.sb.nso.ent.NsoVcId;
 
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,11 +36,16 @@ import java.util.Optional;
 public class NsoLiveStatusController {
 
     private final LiveStatusFdbCacheManager fdbCacheManager;
+    private final LiveStatusOperationalStateCacheManager operationalStateCacheManager;
     private final NsoVcIdDAO nsoVcIdDAO;
     private final ConnService connSvc;
 
-    public NsoLiveStatusController(LiveStatusFdbCacheManager fdbCacheManager, NsoVcIdDAO nsoVcIdDAO, ConnService connSvc) {
+    public NsoLiveStatusController(LiveStatusFdbCacheManager fdbCacheManager,
+            LiveStatusOperationalStateCacheManager operationalStateCacheManager,
+            NsoVcIdDAO nsoVcIdDAO,
+            ConnService connSvc) {
         this.fdbCacheManager = fdbCacheManager;
+        this.operationalStateCacheManager = operationalStateCacheManager;
         this.nsoVcIdDAO = nsoVcIdDAO;
         this.connSvc = connSvc;
     }
@@ -90,13 +102,12 @@ public class NsoLiveStatusController {
 
         List<MacInfoResult> results = new LinkedList<>();
 
-
         log.debug("Run live-status request on devices");
         for (String device : devicesFromRest) {
             if (devicesFromId.contains(device)) {
                 if (conn.getState().equals(State.ACTIVE) &&
                         conn.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
-                    log.debug("Fetch FDB from FDBCacheManager for " + device + " service id " + vcid);
+                    log.debug("Fetch FDB from LiveStatusCacheManager for " + device + " service id " + vcid);
                     results.add(fdbCacheManager
                             .get(device, vcid, request.getRefreshIfOlderThan()).getMacInfoResult());
 
@@ -118,12 +129,90 @@ public class NsoLiveStatusController {
     }
 
 
-
     @RequestMapping(value = "/api/operational-state/info", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public MacInfoResponse getOperationalStateInfo(@RequestBody NsoLiveStatusRequest request) {
-        return null;
+    public OperationalStateInfoResponse getOperationalStateInfo(@RequestBody NsoLiveStatusRequest request) {
+
+        // OperationalStateInfoResponse(Devices/Circuit) -> list<OperationalStateInfoResult(Device/ID)> -> SDPs, SAPs, LSPs
+        log.info("MAC info request");
+        log.info("Request:" + request.toString());
+
+        String connectionId = request.getConnectionId();
+        if (connectionId == null) {
+            log.info("Operational State info request has no connection id!");
+            throw new IllegalArgumentException();
+        }
+
+        HashSet<String> devicesFromId = new HashSet<String>();
+        List<String> devicesFromRest = request.getDeviceIds();
+
+        // get circuit vc-id
+        Optional<NsoVcId> optVcid = nsoVcIdDAO.findNsoVcIdByConnectionId(connectionId);
+        Integer vcid = 0;
+        if (optVcid.isPresent()) {
+            vcid = optVcid.get().getVcId();
+        } else {
+            log.info("Couldn't find VC-ID for OSCARS circuit " + connectionId);
+            throw new NoSuchElementException();
+        }
+
+        // find devices in circuit
+        Connection conn = connSvc.findConnection(connectionId);
+        if (conn == null) {
+            log.info("Couldn't find OSCARS circuit for connection id " + connectionId);
+            throw new NoSuchElementException();
+        }
+
+        for (VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
+            String deviceUrn = f.getJunction().getDeviceUrn();
+            devicesFromId.add(deviceUrn);
+            log.debug("Adding device: " + deviceUrn);
+        }
+
+        // if no devices are listed in the request we use all devices from the circuit
+        if (devicesFromRest == null || devicesFromRest.isEmpty()) {
+            devicesFromRest = new LinkedList<>(devicesFromId);
+        }
+
+        OperationalStateInfoResponse response = new OperationalStateInfoResponse();
+        response.setTimestamp(Instant.now());
+        response.setConnectionId(request.getConnectionId()); // cp connId from request
+
+        Instant timestamp = request.getRefreshIfOlderThan();
+        List<OperationalStateInfoResult> results = new ArrayList<>();
+
+        log.debug("Run live-status request on devices for operational states");
+        for (String device : devicesFromRest) {
+            if (devicesFromId.contains(device)) {
+                if (conn.getState().equals(State.ACTIVE) &&
+                        conn.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
+                    log.debug("Fetch SDPs, SAPs, and LSPs from LiveStatusCacheManager for " + device + " service id " + vcid);
+
+                    ArrayList<LiveStatusSdpResult> tmpSdps = operationalStateCacheManager.getSdp(device, vcid, timestamp);
+                    ArrayList<LiveStatusSapResult> tmpSaps = operationalStateCacheManager.getSap(device, vcid, timestamp);
+                    ArrayList<LiveStatusLspResult> tmpLsps = operationalStateCacheManager.getLsp(device, timestamp);
+
+                    OperationalStateInfoResult resultElement = new OperationalStateInfoResult();
+                    resultElement.setSdps(tmpSdps);
+                    resultElement.setSaps(tmpSaps);
+                    resultElement.setLsps(tmpLsps);
+
+                    results.add(resultElement);
+
+                } else {
+                    results.add(OperationalStateInfoResult.builder()
+                                    .device(device)
+                                    .errorMessage("Not deployed")
+                                    .status(false)
+                                    .timestamp(timestamp)
+                                    .build());
+                }
+            }
+        }
+        response.setResults(results);
+        return response;
+
     }
 
 

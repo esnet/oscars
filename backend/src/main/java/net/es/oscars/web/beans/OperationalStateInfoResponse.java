@@ -6,7 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import net.es.oscars.sb.nso.rest.LiveStatusResult;
+
+import net.es.oscars.sb.nso.rest.OperationalStateInfoResult;
+
 
 @Data
 @NoArgsConstructor
@@ -14,6 +16,6 @@ import net.es.oscars.sb.nso.rest.LiveStatusResult;
 @EqualsAndHashCode(callSuper=false)
 public class OperationalStateInfoResponse extends LiveStatusResponse {
 
-    private List<LiveStatusResult> results;
+    private List<OperationalStateInfoResult> results;
 
 }
