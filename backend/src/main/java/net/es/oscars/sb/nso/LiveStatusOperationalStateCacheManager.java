@@ -41,7 +41,7 @@ public class LiveStatusOperationalStateCacheManager {
 
     // learned MAC address live status cache functions
     public MacInfoServiceResult refreshMacs(String device, int serviceId) {
-        log.info("Refresh FDB string for " + device + "service ID " + serviceId);
+        log.info("Refresh FDB string for " + device + " service ID " + serviceId);
 
         MacInfoServiceResult result = new MacInfoServiceResult();
         result.setDevice(device);
@@ -106,7 +106,7 @@ public class LiveStatusOperationalStateCacheManager {
 
     // SDP live status cache functions
     public ArrayList<LiveStatusSdpResult> refreshSdp(String device, int serviceId) {
-        log.info("Refresh SDP info for " + device + "service ID " + serviceId);
+        log.info("Refresh SDP info for " + device + " service ID " + serviceId);
 
         Instant now = Instant.now();
         ArrayList<LiveStatusSdpResult> resultList = new ArrayList<>();
@@ -150,7 +150,7 @@ public class LiveStatusOperationalStateCacheManager {
             result.setTimestamp(now);
 
             String line = sdpsList.get(i);
-            log.info("LINE :" + line);
+            log.debug("LINE :" + line);
             String[] sdpIdAndInfo = line.split(":");
 
             if (sdpIdAndInfo.length != 2) {
@@ -227,7 +227,7 @@ public class LiveStatusOperationalStateCacheManager {
     // SAP
     public ArrayList<LiveStatusSapResult> refreshSap(String device, int serviceId) {
 
-        log.info("Refresh SAP info for " + device + "service ID " + serviceId);
+        log.info("Refresh SAP info for " + device + " service ID " + serviceId);
 
         Instant now = Instant.now();
         ArrayList<LiveStatusSapResult> resultList = new ArrayList<>();
@@ -273,7 +273,7 @@ public class LiveStatusOperationalStateCacheManager {
             result.setTimestamp(now);
 
             String line = sapsList.get(i);
-            log.info("LINE :" + line);
+            log.debug("LINE :" + line);
             String[] sapIdAndInfo = line.split(":");
 
             if (sapIdAndInfo.length != 2) {
@@ -399,7 +399,7 @@ public class LiveStatusOperationalStateCacheManager {
             result.setTimestamp(now);
 
             String line = lspsList.get(i);
-            log.info("LINE :" + line);
+            log.debug("LINE :" + line);
 
             String singleWhitespace = line.replaceAll("\\s{2,}", " ");
             String[] lspInfo = singleWhitespace.split(" ");

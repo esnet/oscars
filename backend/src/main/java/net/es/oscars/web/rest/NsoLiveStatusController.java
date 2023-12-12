@@ -1,6 +1,10 @@
 package net.es.oscars.web.rest;
 
 import jakarta.transaction.Transactional;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import net.es.oscars.resv.enums.DeploymentState;
@@ -133,19 +137,86 @@ public class NsoLiveStatusController {
     @ResponseBody
     @Transactional
     public OperationalStateInfoResponse getOperationalStateInfo(@RequestBody NsoLiveStatusRequest request) {
+        log.info("Operational state (SDPs, SAPs, LSPs) info request");
 
-        // OperationalStateInfoResponse(Devices/Circuit) -> list<OperationalStateInfoResult(Device/ID)> -> SDPs, SAPs, LSPs
-        log.info("MAC info request");
+        // filter and extract request data
+        RequestData requestData = getRequestData(request);
+        if(requestData  == null) {
+            log.info("Couldn't extract REST request data");
+            throw new NoSuchElementException();
+        }
+        List<String> devices = requestData.getDevices();
+        int serviceId = requestData.getServiceId();
+        Connection conn = requestData.getConn();
+
+        // start building REST return
+        OperationalStateInfoResponse response = new OperationalStateInfoResponse();
+        response.setTimestamp(Instant.now());
+        response.setConnectionId(request.getConnectionId()); // cp connId from request
+
+        Instant timestamp = request.getRefreshIfOlderThan();
+        List<OperationalStateInfoResult> results = new ArrayList<>();
+
+        log.debug("Run live-status request on devices for operational states");
+        for (String device : devices) {
+            if (conn.getState().equals(State.ACTIVE) &&
+                    conn.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
+                log.info("Fetch SDPs, SAPs, and LSPs from LiveStatusCacheManager for " + device + " service id " + serviceId);
+
+                ArrayList<LiveStatusSdpResult> tmpSdps = operationalStateCacheManager.getSdp(device, serviceId, timestamp);
+                ArrayList<LiveStatusSapResult> tmpSaps = operationalStateCacheManager.getSap(device, serviceId, timestamp);
+                ArrayList<LiveStatusLspResult> tmpLsps = operationalStateCacheManager.getLsp(device, timestamp);
+
+                OperationalStateInfoResult resultElement = new OperationalStateInfoResult();
+                resultElement.setDevice(device);
+                resultElement.setTimestamp(timestamp);
+                resultElement.setStatus(true);
+                resultElement.setSdps(tmpSdps);
+                resultElement.setSaps(tmpSaps);
+                resultElement.setLsps(tmpLsps);
+
+                results.add(resultElement);
+
+            } else {
+                results.add(OperationalStateInfoResult.builder()
+                                .device(device)
+                                .errorMessage("Not deployed")
+                                .status(false)
+                                .timestamp(timestamp)
+                                .build());
+            }
+        }
+        response.setResults(results);
+        return response;
+
+    }
+
+    // helper methods and POJOs
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    private static class RequestData {
+        private List<String> devices;
+        private int serviceId;
+        private Connection conn;
+    }
+
+
+    private RequestData getRequestData(NsoLiveStatusRequest request) {
+
         log.info("Request:" + request.toString());
 
         String connectionId = request.getConnectionId();
         if (connectionId == null) {
-            log.info("Operational State info request has no connection id!");
+            log.info("REST request has no connection id!");
             throw new IllegalArgumentException();
         }
 
         HashSet<String> devicesFromId = new HashSet<String>();
         List<String> devicesFromRest = request.getDeviceIds();
+        List<String> devices = new ArrayList<String>();
 
         // get circuit vc-id
         Optional<NsoVcId> optVcid = nsoVcIdDAO.findNsoVcIdByConnectionId(connectionId);
@@ -172,47 +243,21 @@ public class NsoLiveStatusController {
 
         // if no devices are listed in the request we use all devices from the circuit
         if (devicesFromRest == null || devicesFromRest.isEmpty()) {
-            devicesFromRest = new LinkedList<>(devicesFromId);
+            devicesFromRest = new ArrayList<>(devicesFromId);
         }
 
-        OperationalStateInfoResponse response = new OperationalStateInfoResponse();
-        response.setTimestamp(Instant.now());
-        response.setConnectionId(request.getConnectionId()); // cp connId from request
-
-        Instant timestamp = request.getRefreshIfOlderThan();
-        List<OperationalStateInfoResult> results = new ArrayList<>();
-
-        log.debug("Run live-status request on devices for operational states");
-        for (String device : devicesFromRest) {
-            if (devicesFromId.contains(device)) {
-                if (conn.getState().equals(State.ACTIVE) &&
-                        conn.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
-                    log.debug("Fetch SDPs, SAPs, and LSPs from LiveStatusCacheManager for " + device + " service id " + vcid);
-
-                    ArrayList<LiveStatusSdpResult> tmpSdps = operationalStateCacheManager.getSdp(device, vcid, timestamp);
-                    ArrayList<LiveStatusSapResult> tmpSaps = operationalStateCacheManager.getSap(device, vcid, timestamp);
-                    ArrayList<LiveStatusLspResult> tmpLsps = operationalStateCacheManager.getLsp(device, timestamp);
-
-                    OperationalStateInfoResult resultElement = new OperationalStateInfoResult();
-                    resultElement.setSdps(tmpSdps);
-                    resultElement.setSaps(tmpSaps);
-                    resultElement.setLsps(tmpLsps);
-
-                    results.add(resultElement);
-
-                } else {
-                    results.add(OperationalStateInfoResult.builder()
-                                    .device(device)
-                                    .errorMessage("Not deployed")
-                                    .status(false)
-                                    .timestamp(timestamp)
-                                    .build());
-                }
+        // extract subset
+        for(String device : devicesFromRest) {
+            if(devicesFromId.contains(device)) {
+                devices.add(device);
             }
         }
-        response.setResults(results);
-        return response;
 
+        return RequestData.builder()
+                .devices(devices)
+                .serviceId(vcid)
+                .conn(conn)
+                .build();
     }
 
 
