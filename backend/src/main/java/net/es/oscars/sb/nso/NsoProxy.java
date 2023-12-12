@@ -13,6 +13,7 @@ import net.es.oscars.sb.nso.rest.NsoHeaderRequestInterceptor;
 import net.es.oscars.sb.nso.rest.NsoResponseErrorHandler;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
+import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
@@ -229,20 +230,20 @@ public class NsoProxy {
         return YangPatchWrapper.builder().patch(deletePatch).build();
     }
 
-
     // NSO live status fdb query stuff
     public String getLiveStatusFdbInfo(String device) {
-        if (device == null) {
-            log.error("No device provided");
-            return null;
+        String args = "service fdb-info";
+        if (props.isMockLiveShowCommands()) {
+            return "This is mock data for 'show " + args + "'";
         }
-        LiveStatusRequest request = new LiveStatusRequest();
-        request.setArgs("service fdb-info");
-        return getLiveStatusShow(device, request);
+        return getLiveStatusShowArgs(device, args);
     }
 
     public String getLiveStatusAllFdbMacs(String device) {
         String args = "service fdb-mac";
+        if (props.isMockLiveShowCommands()) {
+            return "This is mock data for 'show " + args + "'";
+        }
         return getLiveStatusShowArgs(device, args);
     }
 
@@ -254,24 +255,39 @@ public class NsoProxy {
         return getLiveStatusShowArgs(device, args);
     }
 
+    // SAP
     public String getLiveStatusServiceSap(String device, int serviceId) {
         String args = "service id " + serviceId + " sap";
         if (props.isMockLiveShowCommands()) {
-            return "This is mock data for 'show " + args + "'";
+            return LiveStatusMockData.SDP_MOCK_DATA;
         }
         return getLiveStatusShowArgs(device, args);
     }
 
+    // SDP
     public String getLiveStatusServiceSdp(String device, int serviceId) {
         String args = "service id " + serviceId + " sdp";
+        if (props.isMockLiveShowCommands()) {
+            return LiveStatusMockData.SAP_MOCK_DATA;
+        }
         return getLiveStatusShowArgs(device, args);
     }
 
+    // LSP
     public String getLiveStatusRouterMplsLsp(String device) {
         String args = "router mpls lsp";
+        if (props.isMockLiveShowCommands()) {
+            return LiveStatusMockData.LSP_MOCK_DATA;
+        }
         return getLiveStatusShowArgs(device, args);
     }
 
+    /**
+     * Formats live status query arguments and executes and live status query
+     * @param device the device for the query
+     * @param args the live status arguments / argument string
+     * @return the result as returned by NSO as a string
+     */
     public String getLiveStatusShowArgs(String device, String args) {
         if (device == null) {
             log.error("No device provided");
@@ -286,6 +302,12 @@ public class NsoProxy {
         return getLiveStatusShow(device, request);
     }
 
+    /**
+     * Executes a live status query via the NSO REST API
+     * @param device device for the query
+     * @param liveStatusRequest the request parameters
+     * @return the result as returned by NSO as a string
+     */
     public String getLiveStatusShow(String device, LiveStatusRequest liveStatusRequest) {
         if (device == null || liveStatusRequest == null) {
             log.error("No device or live status args available");
