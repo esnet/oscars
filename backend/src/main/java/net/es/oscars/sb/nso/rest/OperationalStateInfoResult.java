@@ -37,41 +37,4 @@ public class OperationalStateInfoResult extends LiveStatusResult {
     @JsonProperty("lsp")
     private List<LiveStatusLspResult> lsps;
 
-    /*
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @EqualsAndHashCode(callSuper=false)
-    private static class Sdp extends StateAttribute {
-        Integer id;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @EqualsAndHashCode(callSuper=false)
-    private static class Lsp extends StateAttribute {
-        String name;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @EqualsAndHashCode(callSuper=false)
-    private static class Sap extends StateAttribute {
-        String port;
-        Integer vlan;
-    }
-
-    private static class StateAttribute {
-        @JsonProperty("admin-state")
-        Boolean adminState;
-        @JsonProperty("oper-state")
-        Boolean operationalState;
-    }
-    */
-
 }

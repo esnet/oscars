@@ -180,6 +180,7 @@ public class NsoProxy {
             throw new NsoDryrunException(ex.getMessage());
         }
     }
+
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public String dismantleDryRun(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoDryrunException {
         YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
@@ -241,27 +242,23 @@ public class NsoProxy {
     }
 
     public String getLiveStatusAllFdbMacs(String device) {
-        if (device == null) {
-            log.error("No device provided");
-            return null;
-        }
-        LiveStatusRequest request = new LiveStatusRequest();
-        request.setArgs("service fdb-mac");
-        return getLiveStatusShow(device, request);
+        String args = "service fdb-mac";
+        return getLiveStatusShowArgs(device, args);
     }
 
     public String getLiveStatusServiceMacs(String device, int serviceId) {
-        if (device == null) {
-            log.error("No device provided");
-            return null;
+        String args = "service id " + serviceId + " fdb detail";
+        if (props.isMockLiveShowCommands()) {
+            return "This is mock data for 'show " + args + "'";
         }
-        LiveStatusRequest request = new LiveStatusRequest();
-        request.setArgs("service id " + serviceId + " fdb detail");
-        return getLiveStatusShow(device, request);
+        return getLiveStatusShowArgs(device, args);
     }
 
     public String getLiveStatusServiceSap(String device, int serviceId) {
         String args = "service id " + serviceId + " sap";
+        if (props.isMockLiveShowCommands()) {
+            return "This is mock data for 'show " + args + "'";
+        }
         return getLiveStatusShowArgs(device, args);
     }
 
@@ -294,9 +291,7 @@ public class NsoProxy {
             log.error("No device or live status args available");
             return null;
         }
-        if (props.isMockLiveShowCommands()) {
-            return "This is mock data for 'show "+liveStatusRequest.getArgs()+"'";
-        }
+
         String path = "restconf/data/tailf-ncs:devices/device=" + device + "/live-status/tailf-ned-alu-sr-stats:exec/show";
         String restPath = props.getUri() + path;
 

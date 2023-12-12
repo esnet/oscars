@@ -4,13 +4,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import net.es.oscars.sb.nso.rest.DeviceServiceIdKeyPair;
@@ -44,35 +42,23 @@ public class LiveStatusOperationalStateCacheManager {
         log.info("Refresh FDB string for " + device + " service ID " + serviceId);
 
         MacInfoServiceResult result = new MacInfoServiceResult();
+        Instant now = Instant.now();
+
         result.setDevice(device);
         result.setServiceId(serviceId);
-        result.setTimestamp(Instant.now());
+        result.setTimestamp(now);
 
         DeviceServiceIdKeyPair key = new DeviceServiceIdKeyPair(device, serviceId);
-
         String reply = nsoProxy.getLiveStatusServiceMacs(device, serviceId);
 
-        if (reply != null) {
-            // check for invalid service ID
-            // Error message example:
-            // - wrong service ID: "\nMINOR: CLI Invalid service id \"7001\".\r\nA:llnl-cr6# "
-            String invalidServiceId = "Invalid service id";
-            if (reply.contains(invalidServiceId)) {
-                String error = invalidServiceId + " " + serviceId;
-                log.error(error);
-                result.setErrorMessage(error);
-                result.setStatus(false);
-            } else {
-                result.setStatus(true);
-                result.setFdbQueryResult(reply);
-            }
-
-
-        } else {
-            String error = "error refreshing FDB MAC table from " + device + " with service id " + serviceId;
-            log.error(error);
-            result.setErrorMessage(error);
+        if (!checkLiveStatusReply(reply)) {
+            log.error( "error refreshing FDB MAC table from " + device + " with service id " + serviceId);
+            result = (MacInfoServiceResult) createErrorResult(reply, now);
+            return result;
         }
+
+        result.setStatus(true);
+        result.setFdbQueryResult(reply);
 
         macCache.put(key, result);
         return result;
@@ -117,22 +103,20 @@ public class LiveStatusOperationalStateCacheManager {
         //String reply = nsoProxy.getLiveStatusServiceSdp(device, serviceId);
 
         // mock value
-        String mockReply = "\n\r\n===============================================================================\r\nServices: Service Destination Points\r\n===============================================================================\r\nSdpId            Type     Far End addr    Adm     Opr       I.Lbl     E.Lbl\r\n-------------------------------------------------------------------------------\r\n7002:7005        Spok     134.55.200.174  Up      Up        524108    524262\r\n7003:7008        Spok     134.55.200.174  Up      Down      524101    None\r\n-------------------------------------------------------------------------------\r\nNumber of SDPs : 2\r\n-------------------------------------------------------------------------------\r\n===============================================================================\r\nA:star-cr6# ";
+        String mockReply = "\n\r\n" +
+                "===============================================================================\r\n" +
+                "Services: Service Destination Points\r\n" +
+                "===============================================================================\r\n" +
+                "SdpId            Type     Far End addr    Adm     Opr       I.Lbl     E.Lbl\r\n" +
+                "-------------------------------------------------------------------------------\r\n" +
+                "7002:7005        Spok     134.55.200.174  Up      Up        524108    524262\r\n" +
+                "7003:7008        Spok     134.55.200.174  Up      Down      524101    None\r\n" +
+                "-------------------------------------------------------------------------------\r\n" +
+                "Number of SDPs : 2\r\n" +
+                "-------------------------------------------------------------------------------\r\n" +
+                "===============================================================================\r\n" +
+                "A:star-cr6# ";
         String reply = mockReply;
-
-        /*
-            ===============================================================================
-            Services: Service Destination Points
-            ===============================================================================
-            SdpId            Type     Far End addr    Adm     Opr       I.Lbl     E.Lbl
-            -------------------------------------------------------------------------------
-            7002:7005        Spok     134.55.200.174  Up      Up        524108    524262
-            7003:7008        Spok     134.55.200.174  Up      Down      524101    None
-            -------------------------------------------------------------------------------
-            Number of SDPs : 2
-            -------------------------------------------------------------------------------
-            ===============================================================================
-        */
 
         if (!checkLiveStatusReply(reply)) {
             result = (LiveStatusSdpResult) createErrorResult(reply, now);
@@ -238,23 +222,21 @@ public class LiveStatusOperationalStateCacheManager {
         //String reply = nsoProxy.getLiveStatusServiceSap(device, serviceId);
 
         // mock value
-        String mockReply = "\n\r\n===============================================================================\r\nSAP(Summary), Service 7005\r\n===============================================================================\r\nPortId                          SvcId      Ing.  Ing.    Egr.  Egr.   Adm  Opr\r\n                                           QoS   Fltr    QoS   Fltr        \r\n-------------------------------------------------------------------------------\r\n2/1/c5/1:1814                   7005       7001  none    7001  none   Up   Up\r\n-------------------------------------------------------------------------------\r\nNumber of SAPs : 1\r\n-------------------------------------------------------------------------------\r\n===============================================================================\r\nA:star-cr6# ";
-        String reply = mockReply;
-
         // request devices device star-cr6 live-status exec show args service id 7005 sap
-        /*
-         *  ===============================================================================
-            SAP(Summary), Service 7005
-            ===============================================================================
-            PortId                          SvcId      Ing.  Ing.    Egr.  Egr.   Adm  Opr
-                                                       QoS   Fltr    QoS   Fltr
-            -------------------------------------------------------------------------------
-            2/1/c5/1:1814                   7005       7001  none    7001  none   Up   Up
-            -------------------------------------------------------------------------------
-            Number of SAPs : 1
-            -------------------------------------------------------------------------------
-            ===============================================================================
-         */
+        String mockReply = "\n\r\n" +
+                "===============================================================================\r\n" +
+                "SAP(Summary), Service 7005\r\n" +
+                "===============================================================================\r\n" +
+                "PortId                          SvcId      Ing.  Ing.    Egr.  Egr.   Adm  Opr\r\n" +
+                "                                           QoS   Fltr    QoS   Fltr        \r\n" +
+                "-------------------------------------------------------------------------------\r\n" +
+                "2/1/c5/1:1814                   7005       7001  none    7001  none   Up   Up\r\n" +
+                "-------------------------------------------------------------------------------\r\n" +
+                "Number of SAPs : 1\r\n" +
+                "-------------------------------------------------------------------------------\r\n" +
+                "===============================================================================\r\n" +
+                "A:star-cr6# ";
+        String reply = mockReply;
 
         if (!checkLiveStatusReply(reply)) {
             result = (LiveStatusSapResult) createErrorResult(reply, now);
@@ -349,37 +331,37 @@ public class LiveStatusOperationalStateCacheManager {
         return tmp;
     }
 
+    // LSP
     public ArrayList<LiveStatusLspResult> refreshLsp(String device) {
-
-        /*
-            ===============================================================================
-            MPLS LSPs (Originating)
-            ===============================================================================
-            LSP Name                                            Tun     Fastfail  Adm  Opr
-            To                                                Id      Config
-            -------------------------------------------------------------------------------
-            doe-in-vpls_albq-cr6                                1       No        Up   Up
-            134.55.200.169
-            6999---srs70344a-cr6                                2       No        Up   Up
-            134.55.200.230
-            6999---pantex-cr6                                   50      No        Up   Up
-            134.55.200.216
-            JMTF-WRK-anl541b-cr6                                53      No        Up   Up
-            134.55.200.174
-            JMTF-PRT-anl541b-cr6                                54      No        Up   Up
-            134.55.200.174
-         */
-
         log.info("Refresh LSP info for " + device);
 
         Instant now = Instant.now();
         ArrayList<LiveStatusLspResult> resultList = new ArrayList<>();
         LiveStatusLspResult result = new LiveStatusLspResult();
 
-        // create local key and query device
+        // query device
         //String reply = nsoProxy.getLiveStatusRouterMplsLsp(device);
-        String mockReply = "\n\r\n===============================================================================\r\nMPLS LSPs (Originating)\r\n===============================================================================\r\nLSP Name                                            Tun     Fastfail  Adm  Opr\r\n  To                                                Id      Config         \r\n-------------------------------------------------------------------------------\r\ndoe-in-vpls_albq-cr6                                1       No        Up   Up\r\n  134.55.200.169                                                           \r\n6999---srs70344a-cr6                                2       No        Up   Up\r\n  134.55.200.230                                                           \r\n6999---pantex-cr6                                   50      No        Up   Up\r\n  134.55.200.216                                                           \r\nJMTF-WRK-anl541b-cr6                                53      No        Up   Up\r\n  134.55.200.174                                                           \r\nJMTF-PRT-anl541b-cr6                                54      No        Up   Up\r\n  134.55.200.174                                                           \r\n-------------------------------------------------------------------------------\r\nLSPs : 100\r\n===============================================================================\r\nA:star-cr6# ";
-
+        String mockReply = "\n\r\n" +
+                "===============================================================================\r\n" +
+                "MPLS LSPs (Originating)\r\n" +
+                "===============================================================================\r\n" +
+                "LSP Name                                            Tun     Fastfail  Adm  Opr\r\n" +
+                "  To                                                Id      Config         \r\n" +
+                "-------------------------------------------------------------------------------\r\n" +
+                "doe-in-vpls_albq-cr6                                1       No        Up   Up\r\n" +
+                "  134.55.200.169                                                           \r\n" +
+                "6999---srs70344a-cr6                                2       No        Up   Up\r\n" +
+                "  134.55.200.230                                                           \r\n" +
+                "6999---pantex-cr6                                   50      No        Up   Up\r\n" +
+                "  134.55.200.216                                                           \r\n" +
+                "JMTF-WRK-anl541b-cr6                                53      No        Up   Up\r\n" +
+                "  134.55.200.174                                                           \r\n" +
+                "JMTF-PRT-anl541b-cr6                                54      No        Up   Up\r\n" +
+                "  134.55.200.174                                                           \r\n" +
+                "-------------------------------------------------------------------------------\r\n" +
+                "LSPs : 5\r\n" +
+                "===============================================================================\r\n" +
+                "A:star-cr6# ";
         String reply = mockReply;
 
         if (!checkLiveStatusReply(reply)) {
@@ -472,31 +454,7 @@ public class LiveStatusOperationalStateCacheManager {
     }
 
 
-
-    // DEBUG - TEST - DEBUG - TEST
-    @Scheduled(fixedDelayString = "5", timeUnit = TimeUnit.SECONDS)
-    public void debug() {
-
-        ArrayList<LiveStatusSdpResult> resultListSdp = refreshSdp("testDevice", 7000);
-        for(LiveStatusSdpResult result : resultListSdp) {
-            log.info("DEBUG - SDP: " + result.toString());
-        }
-
-        ArrayList<LiveStatusSapResult> resultListSap = refreshSap("testDevice", 7000);
-        for(LiveStatusSapResult result : resultListSap) {
-            log.info("DEBUG - SAP: " + result.toString());
-        }
-
-        ArrayList<LiveStatusLspResult> resultListLsp = refreshLsp("testDevice");
-        for(LiveStatusLspResult result : resultListLsp) {
-            log.info("DEBUG - LSP: " + result.toString());
-        }
-
-    } // DEBUG - TEST - DEBUG - TEST
-
-
-
-    // auxilery methods
+    // auxiliary methods
 
     /**
      * Extracts live status output lines with the actual data from an SDP / SAP query
@@ -556,7 +514,6 @@ public class LiveStatusOperationalStateCacheManager {
         return true;
     }
 
-
     /**
      * Create a lve status error
      * @param input the error
@@ -576,7 +533,6 @@ public class LiveStatusOperationalStateCacheManager {
         return ret;
     }
 
-
     /**
      * Converts the live status status values Up / Down into boolean true / false
      * @param status String with the status value
@@ -587,6 +543,5 @@ public class LiveStatusOperationalStateCacheManager {
         if (status.equals("Up")) return true;
         return false;
     }
-
 
 }
