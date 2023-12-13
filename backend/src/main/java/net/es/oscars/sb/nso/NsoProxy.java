@@ -255,18 +255,18 @@ public class NsoProxy {
         return getLiveStatusShowArgs(device, args);
     }
 
-    // SAP
-    public String getLiveStatusServiceSap(String device, int serviceId) {
-        String args = "service id " + serviceId + " sap";
+    // SDP
+    public String getLiveStatusServiceSdp(String device, int serviceId) {
+        String args = "service id " + serviceId + " sdp";
         if (props.isMockLiveShowCommands()) {
             return LiveStatusMockData.SDP_MOCK_DATA;
         }
         return getLiveStatusShowArgs(device, args);
     }
 
-    // SDP
-    public String getLiveStatusServiceSdp(String device, int serviceId) {
-        String args = "service id " + serviceId + " sdp";
+    // SAP
+    public String getLiveStatusServiceSap(String device, int serviceId) {
+        String args = "service id " + serviceId + " sap";
         if (props.isMockLiveShowCommands()) {
             return LiveStatusMockData.SAP_MOCK_DATA;
         }

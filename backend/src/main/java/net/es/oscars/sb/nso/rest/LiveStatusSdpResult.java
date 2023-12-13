@@ -15,6 +15,9 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(callSuper=false)
 public class LiveStatusSdpResult extends LiveStatusResult {
 
+    @JsonProperty("vc-id")
+    private Integer vcId;
+
     @JsonProperty("id")
     private Integer sdpId;
 

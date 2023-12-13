@@ -126,15 +126,6 @@ public class LiveStatusOperationalStateCacheManager {
                 break;
             }
 
-            int sdpId = 0;
-            try {
-                sdpId = Integer.parseInt(sdpIdAndInfo[0]);
-            } catch (NumberFormatException error) {
-                log.error("Couldn't parse SDP ID");
-                error.printStackTrace();
-            }
-            result.setSdpId(sdpId);
-
             // remaining part example -> "7005        Spok     134.55.200.174  Up      Up        524108    524262"
             String singleWhitespace = sdpIdAndInfo[1].replaceAll("\\s{2,}", " ");
             String[] sdpInfo = singleWhitespace.split(" ");
@@ -144,6 +135,18 @@ public class LiveStatusOperationalStateCacheManager {
                 log.error("SDP data parsing error - line format error: data arguments");
                 break;
             }
+
+            int vcId = 0;
+            int sdpId = 0;
+            try {
+                vcId = Integer.parseInt(sdpIdAndInfo[0]);
+                sdpId = Integer.parseInt(sdpInfo[0]);
+            } catch (NumberFormatException error) {
+                log.error("Couldn't parse VC/SDP ID");
+                error.printStackTrace();
+            }
+            result.setVcId(vcId);
+            result.setSdpId(sdpId);
 
             result.setType(sdpInfo[1]);
             result.setFarEndAddress(sdpInfo[2]);
@@ -237,7 +240,7 @@ public class LiveStatusOperationalStateCacheManager {
 
             int remainingElements = 8;
             if (sapInfo.length != remainingElements) {
-                log.error("SDP data parsing error - line format error: data arguments");
+                log.error("SAP data parsing error - line format error: data arguments");
                 break;
             }
 
