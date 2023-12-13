@@ -1,4 +1,4 @@
-package net.es.oscars.v12.model;
+package net.es.oscars.v12.model.common;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -7,10 +7,7 @@ import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 
 @Getter
@@ -25,8 +22,8 @@ public class TimeInterval {
     @GeneratedValue
     Long id;
 
-    Instant start;
-    Instant end;
+    Instant beginning;
+    Instant ending;
     Boolean indefinite;
 
     @Override

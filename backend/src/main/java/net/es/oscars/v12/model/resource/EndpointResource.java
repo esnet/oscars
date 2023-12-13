@@ -3,6 +3,7 @@ package net.es.oscars.v12.model.resource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
+import net.es.oscars.v12.model.common.BaseDbObject;
 
 @Getter
 @Setter
@@ -11,7 +12,7 @@ import lombok.*;
 @Builder
 @AllArgsConstructor
 @Entity
-public class EndpointResource extends Resource {
+public class EndpointResource extends BaseDbObject {
 
     String device;
 

@@ -1,24 +1,28 @@
-package net.es.oscars.v12.model;
+package net.es.oscars.v12.model.common;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
 import lombok.*;
-import net.es.oscars.v12.model.intent.EndpointIntent;
 import org.hibernate.proxy.HibernateProxy;
 
 import java.util.Objects;
 
-@MappedSuperclass
+@Builder
 @AllArgsConstructor
 @Entity
-@Builder
 @Getter
 @Setter
 @ToString
 @RequiredArgsConstructor
-public class BaseDbObject {
+public class Waypoint {
     @Id
     @GeneratedValue
-    private Long id;
+    Long id;
+
+    WaypointType type;
+
+    String urn;
 
     @Override
     public final boolean equals(Object o) {
@@ -27,7 +31,7 @@ public class BaseDbObject {
         Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
         Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
         if (thisEffectiveClass != oEffectiveClass) return false;
-        EndpointIntent that = (EndpointIntent) o;
+        Waypoint that = (Waypoint) o;
         return getId() != null && Objects.equals(getId(), that.getId());
     }
 

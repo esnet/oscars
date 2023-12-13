@@ -1,29 +1,22 @@
-package net.es.oscars.v12.model;
+package net.es.oscars.v12.model.common;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
+import net.es.oscars.v12.model.intent.EndpointIntent;
 import org.hibernate.proxy.HibernateProxy;
 
-import java.time.Instant;
 import java.util.Objects;
 
-
+@MappedSuperclass
+@AllArgsConstructor
 @Getter
 @Setter
 @ToString
 @RequiredArgsConstructor
-@Builder
-@AllArgsConstructor
-@Entity
-public class Versioning {
+public class BaseDbObject {
     @Id
     @GeneratedValue
-    Long id;
-
-    Integer version;
-    Instant updated;
+    private Long id;
 
     @Override
     public final boolean equals(Object o) {
@@ -32,7 +25,7 @@ public class Versioning {
         Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
         Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
         if (thisEffectiveClass != oEffectiveClass) return false;
-        Versioning that = (Versioning) o;
+        EndpointIntent that = (EndpointIntent) o;
         return getId() != null && Objects.equals(getId(), that.getId());
     }
 

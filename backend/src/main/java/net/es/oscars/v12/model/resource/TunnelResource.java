@@ -3,13 +3,11 @@ package net.es.oscars.v12.model.resource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
-import net.es.oscars.v12.model.TunnelType;
-import net.es.oscars.v12.model.Waypoint;
-import net.es.oscars.v12.model.intent.TunnelIntent;
-import org.hibernate.proxy.HibernateProxy;
+import net.es.oscars.v12.model.common.BaseDbObject;
+import net.es.oscars.v12.model.common.TunnelType;
+import net.es.oscars.v12.model.common.Waypoint;
 
 import java.util.List;
-import java.util.Objects;
 
 @Getter
 @Setter
@@ -18,7 +16,7 @@ import java.util.Objects;
 @Builder
 @AllArgsConstructor
 @Entity
-public class TunnelResource extends Resource {
+public class TunnelResource extends BaseDbObject {
 
     TunnelType type;
 
@@ -37,4 +35,7 @@ public class TunnelResource extends Resource {
     @OneToMany
     @ToString.Exclude
     List<Waypoint> waypoints;
+
+    Boolean protect;
+
 }

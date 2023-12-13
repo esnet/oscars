@@ -2,6 +2,7 @@ package net.es.oscars.v12.model.resource;
 
 import jakarta.persistence.*;
 import lombok.*;
+import net.es.oscars.v12.model.common.BaseDbObject;
 
 import java.util.List;
 
@@ -12,7 +13,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @Entity
-public class OverlayResource extends Resource {
+public class OverlayResource extends BaseDbObject {
 
     @OneToMany(cascade = CascadeType.ALL)
     @ToString.Exclude
