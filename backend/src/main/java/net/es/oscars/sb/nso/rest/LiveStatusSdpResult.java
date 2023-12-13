@@ -18,7 +18,7 @@ public class LiveStatusSdpResult extends LiveStatusResult {
     @JsonProperty("vc-id")
     private Integer vcId;
 
-    @JsonProperty("id")
+    @JsonProperty("sdp-id")
     private Integer sdpId;
 
     private String type;
