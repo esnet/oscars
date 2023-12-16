@@ -1,5 +1,6 @@
 package net.es.oscars.sb.nso.ent;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.persistence.Entity;
@@ -25,7 +26,8 @@ public class NsoVirtInterface {
 
     private String device;
 
-    private List<String> ipAddresses;
+    @Builder.Default
+    private List<String> ipAddresses = new ArrayList<>();
 
 
 }

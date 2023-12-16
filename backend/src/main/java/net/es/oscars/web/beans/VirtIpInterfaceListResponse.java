@@ -1,5 +1,6 @@
 package net.es.oscars.web.beans;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,8 +16,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class VirtIpInterfaceListResponse {
 
-    private String device;
-    @JsonProperty("ip-address")
-    private List<String> ipInterfaces;
+    @JsonProperty("output")
+    private List<ListEntry> list = new ArrayList<>();
+
+    @Data
+    public static class ListEntry {
+
+            private String device;
+            @JsonProperty("ip-address")
+            private List<String> ipInterfaces;
+
+    }
 
 }
