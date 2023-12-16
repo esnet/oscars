@@ -43,7 +43,7 @@ public class VirtInterfaceController {
     @ResponseBody
     @Transactional
     public void addVirtIpInterface(@RequestBody VirtIpInterfaceRequest request) {
-        log.info("request: " + request.toString());
+        log.debug("request: " + request.toString());
 
         verifyData(request);
 
@@ -51,15 +51,17 @@ public class VirtInterfaceController {
         String device = request.getDevice();
         String ipAndSubnet = request.getIpAndSubnet();
 
-        List<NsoVirtInterface> interfaces = virtInterfaceDAO.findNsoVirtInterfaceByConnectionId(connectionId);
+        List<NsoVirtInterface> interfaces = virtInterfaceDAO.findByConnectionId(connectionId);
 
         // if no instances exist: create first one for circuit and add virt ip
         if (interfaces == null || interfaces.isEmpty()) {
             NsoVirtInterface newEntry = new NsoVirtInterface();
             newEntry.setDevice(device);
+            newEntry.setConnectionId(connectionId);
             newEntry.setIpAddresses(new ArrayList<>());
             newEntry.getIpAddresses().add(ipAndSubnet);
             virtInterfaceDAO.save(newEntry);
+            log.info("Virt IP " + ipAndSubnet + " added to " + device + " for connection id " + connectionId);
             return;
         }
 
@@ -73,9 +75,11 @@ public class VirtInterfaceController {
             for (String existingIp : ifce.getIpAddresses()) {
                 if (existingIp.equals(ipAndSubnet)) {
                     ipExists = true;
+                    log.info("Found existing IP");
                 }
             }
         }
+        log.info("checked all ips");
         // if virt ip doesn't exist -> add virt ip
         NsoVirtInterface instanceToModify = null;
         if (!ipExists) {
@@ -117,7 +121,7 @@ public class VirtInterfaceController {
         String device = request.getDevice();
         String ipAndSubnet = request.getIpAndSubnet();
 
-        List<NsoVirtInterface> interfaces = virtInterfaceDAO.findNsoVirtInterfaceByConnectionId(connectionId);
+        List<NsoVirtInterface> interfaces = virtInterfaceDAO.findByConnectionId(connectionId);
         if(interfaces == null || interfaces.isEmpty()) {
             log.info("No virt IPs found");
             throw new NoSuchElementException();
@@ -157,7 +161,7 @@ public class VirtInterfaceController {
             throw new NoSuchElementException();
         }
 
-        List<NsoVirtInterface> interfaces = virtInterfaceDAO.findNsoVirtInterfaceByConnectionId(connectionId);
+        List<NsoVirtInterface> interfaces = virtInterfaceDAO.findByConnectionId(connectionId);
         if (interfaces == null) {
             log.info("No virtual IP entries found for connection id " + connectionId);
             throw new NoSuchElementException();
@@ -235,7 +239,7 @@ public class VirtInterfaceController {
         }
 
         // check ip address format
-        if (checkIpAddressAndSubnetFormat(ipAndSubnet)) {
+        if (!checkIpAddressAndSubnetFormat(ipAndSubnet)) {
             log.info("The provided IP/SUBNET info " + ipAndSubnet + " is invalid");
             throw new IllegalArgumentException();
         }

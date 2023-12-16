@@ -9,5 +9,5 @@ import net.es.oscars.sb.nso.ent.NsoVirtInterface;
 
 @Repository
 public interface NsoVirtInterfaceDAO extends CrudRepository<NsoVirtInterface, Long> {
-        List<NsoVirtInterface> findNsoVirtInterfaceByConnectionId(String connectionId);
+        List<NsoVirtInterface> findByConnectionId(String connectionId);
 }
