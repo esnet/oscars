@@ -1,6 +1,5 @@
 package net.es.oscars.web.rest;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -55,10 +54,10 @@ public class VirtInterfaceController {
 
         // if no instances exist: create first one for circuit and add virt ip
         if (interfaces == null || interfaces.isEmpty()) {
+            log.info("No existing instances for connection id" + connectionId + " found");
             NsoVirtInterface newEntry = new NsoVirtInterface();
             newEntry.setDevice(device);
             newEntry.setConnectionId(connectionId);
-            newEntry.setIpAddresses(new ArrayList<>());
             newEntry.getIpAddresses().add(ipAndSubnet);
             virtInterfaceDAO.save(newEntry);
             log.info("Virt IP " + ipAndSubnet + " added to " + device + " for connection id " + connectionId);
@@ -75,11 +74,11 @@ public class VirtInterfaceController {
             for (String existingIp : ifce.getIpAddresses()) {
                 if (existingIp.equals(ipAndSubnet)) {
                     ipExists = true;
-                    log.info("Found existing IP");
+                    log.info("Found identical IP " + ipAndSubnet + " for device " + ifce.getDevice() + " for connection id " + connectionId);
+                    break;
                 }
             }
         }
-        log.info("checked all ips");
         // if virt ip doesn't exist -> add virt ip
         NsoVirtInterface instanceToModify = null;
         if (!ipExists) {
@@ -88,16 +87,14 @@ public class VirtInterfaceController {
             // if no entry for this devices exists -> create new entry
             if (instanceToModify == null) {
                 instanceToModify = new NsoVirtInterface();
-            }
-
-            // if no list exists for the device entry -> create new virt ip list
-            if (instanceToModify.getIpAddresses() == null)  {
-                instanceToModify.setIpAddresses(new ArrayList<String>());
+                instanceToModify.setDevice(device);
+                instanceToModify.setConnectionId(connectionId);
             }
 
             // add virt ip
             instanceToModify.getIpAddresses().add(ipAndSubnet);
 
+            // add to DB
             virtInterfaceDAO.save(instanceToModify);
 
             log.info("Virt IP " + ipAndSubnet + " added to " + device + " for connection id " + connectionId);
@@ -132,8 +129,17 @@ public class VirtInterfaceController {
             for (String ipAddress : ifce.getIpAddresses()) {
                 if(ipAndSubnet.equals(ipAddress)) {
                     virtIpFound = true;
-                    virtInterfaceDAO.deleteById(ifce.getId());
+
+                    // if last ip address remove entry form DB else modify IP address list
+                    if (ifce.getIpAddresses().size() <= 1) {
+                        virtInterfaceDAO.deleteById(ifce.getId());
+                    } else {
+                        ifce.getIpAddresses().remove(ipAddress);
+                        virtInterfaceDAO.save(ifce);
+                    }
+
                     log.info("Virt IP " + ipAndSubnet + " removed from " + device + " with connection id " + connectionId);
+                    break;
                 }
             }
         }
@@ -177,6 +183,7 @@ public class VirtInterfaceController {
         return response;
     }
 
+
     /**
      * Validates if the request data is valid and throws an NoSuchElementException if
      * something is missing.
@@ -201,6 +208,7 @@ public class VirtInterfaceController {
             throw new NoSuchElementException();
         }
     }
+
 
     /**
      * Verifies that the request data is valid and the it corresponds with existing OSCARS
@@ -267,7 +275,7 @@ public class VirtInterfaceController {
             log.info("Error paring netmask");
             return false;
         }
-        if(netmask < 8 || netmask > 32) return false; // this matches the NSO validation
+        if(netmask < 8 || netmask > 32) return false; // this matches the NSO yang validation
 
         return true;
     }
