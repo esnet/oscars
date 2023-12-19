@@ -14,18 +14,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VirtIpInterfaceListResponse {
+public class VirtIpInterfaceResponse {
 
-    @JsonProperty("output")
-    private List<ListEntry> list = new ArrayList<>();
+    private String device;
 
-    @Data
-    public static class ListEntry {
+    @JsonProperty("ip-address")
+    private List<String> ipInterfaces;
 
-            private String device;
-            @JsonProperty("ip-address")
-            private List<String> ipInterfaces;
-
-    }
 
 }

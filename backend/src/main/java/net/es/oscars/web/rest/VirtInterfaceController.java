@@ -1,5 +1,6 @@
 package net.es.oscars.web.rest;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -20,8 +21,8 @@ import net.es.oscars.resv.ent.VlanFixture;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.sb.nso.db.NsoVirtInterfaceDAO;
 import net.es.oscars.sb.nso.ent.NsoVirtInterface;
-import net.es.oscars.web.beans.VirtIpInterfaceListResponse;
 import net.es.oscars.web.beans.VirtIpInterfaceRequest;
+import net.es.oscars.web.beans.VirtIpInterfaceResponse;
 
 @Slf4j
 @RestController
@@ -154,7 +155,7 @@ public class VirtInterfaceController {
     @RequestMapping(value = "/api/interface/list/{connectionId}", method = RequestMethod.GET)
     @ResponseBody
     @Transactional
-    public VirtIpInterfaceListResponse listVirtIpInterface(@PathVariable String connectionId) {
+    public List<VirtIpInterfaceResponse> listVirtIpInterface(@PathVariable String connectionId) {
 
         if (connectionId == null) {
             log.info("REST request connection id was null");
@@ -173,12 +174,12 @@ public class VirtInterfaceController {
             throw new NoSuchElementException();
         }
 
-        VirtIpInterfaceListResponse response = new VirtIpInterfaceListResponse();
+        List<VirtIpInterfaceResponse> response = new ArrayList<VirtIpInterfaceResponse>();
         for (NsoVirtInterface ifce : interfaces) {
-            VirtIpInterfaceListResponse.ListEntry entry = new VirtIpInterfaceListResponse.ListEntry();
+            VirtIpInterfaceResponse entry = new VirtIpInterfaceResponse();
             entry.setDevice(ifce.getDevice());
             entry.setIpInterfaces(ifce.getIpAddresses());
-            response.getList().add(entry);
+            response.add(entry);
         }
         return response;
     }
