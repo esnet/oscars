@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.common.net.InetAddresses;
 
 import lombok.extern.slf4j.Slf4j;
+
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.VlanFixture;
 import net.es.oscars.resv.svc.ConnService;
@@ -51,7 +53,9 @@ public class VirtInterfaceController {
         String device = request.getDevice();
         String ipAndSubnet = request.getIpAndSubnet();
 
-        List<NsoVirtInterface> interfaces = virtInterfaceDAO.findByConnectionId(connectionId);
+        String ipAddress = checkIpAddressAndSubnetFormat(ipAndSubnet);
+
+        Set<NsoVirtInterface> interfaces = virtInterfaceDAO.findByConnectionId(connectionId);
 
         // if no instances exist: create first one for circuit and add virt ip
         if (interfaces == null || interfaces.isEmpty()) {
@@ -66,17 +70,26 @@ public class VirtInterfaceController {
         }
 
         // if entries exist:
-        // 1. check all entries if ip/net already exists
+        // 1. check all entries if ip/net or ip already exists
         // 2. if yes -> error out | if no -> create / add entry
         boolean ipExists = false;
         HashMap<String, NsoVirtInterface> cache = new HashMap<String, NsoVirtInterface>();
         for (NsoVirtInterface ifce : interfaces) {
             cache.put(ifce.getDevice(), ifce);
-            for (String existingIp : ifce.getIpAddresses()) {
-                if (existingIp.equals(ipAndSubnet)) {
-                    ipExists = true;
-                    log.info("Found identical IP " + ipAndSubnet + " for device " + ifce.getDevice() + " for connection id " + connectionId);
-                    break;
+            String errorMsg = "Found identical IP " + ipAddress + " for device " + ifce.getDevice() + " for connection id " + connectionId;
+            if (ifce.getIpAddresses().contains(ipAndSubnet)) {
+                // check set for CIDR address - this should mostly work in case the address exists already
+                ipExists = true;
+                log.info(errorMsg);
+            } else {
+                // check again for IP address only - makes sure that there is no duplicate with another netmask /16 <=> /24
+                for (String existingIp : ifce.getIpAddresses()) {
+                    String existingIpAddress = checkIpAddressAndSubnetFormat(existingIp);
+                    if (ipAddress.equals(existingIpAddress)) {
+                        ipExists = true;
+                        log.info(errorMsg);
+                        break; // ip match found no further search required
+                    }
                 }
             }
         }
@@ -119,7 +132,7 @@ public class VirtInterfaceController {
         String device = request.getDevice();
         String ipAndSubnet = request.getIpAndSubnet();
 
-        List<NsoVirtInterface> interfaces = virtInterfaceDAO.findByConnectionId(connectionId);
+        Set<NsoVirtInterface> interfaces = virtInterfaceDAO.findByConnectionId(connectionId);
         if(interfaces == null || interfaces.isEmpty()) {
             log.info("No virt IPs found");
             throw new NoSuchElementException();
@@ -127,21 +140,19 @@ public class VirtInterfaceController {
 
         boolean virtIpFound = false;
         for (NsoVirtInterface ifce : interfaces) {
-            for (String ipAddress : ifce.getIpAddresses()) {
-                if(ipAndSubnet.equals(ipAddress)) {
-                    virtIpFound = true;
+            if (ifce.getIpAddresses().contains(ipAndSubnet)) {
+                virtIpFound = true;
 
-                    // if last ip address remove entry form DB else modify IP address list
-                    if (ifce.getIpAddresses().size() <= 1) {
-                        virtInterfaceDAO.deleteById(ifce.getId());
-                    } else {
-                        ifce.getIpAddresses().remove(ipAddress);
-                        virtInterfaceDAO.save(ifce);
-                    }
-
-                    log.info("Virt IP " + ipAndSubnet + " removed from " + device + " with connection id " + connectionId);
-                    break;
+                // if last ip address remove entry form DB else modify IP address list
+                if (ifce.getIpAddresses().size() <= 1) {
+                    virtInterfaceDAO.deleteById(ifce.getId());
+                } else {
+                    ifce.getIpAddresses().remove(ipAndSubnet);
+                    virtInterfaceDAO.save(ifce);
                 }
+
+                log.info("Virt IP " + ipAndSubnet + " removed from " + device + " with connection id " + connectionId);
+                break;
             }
         }
 
@@ -168,7 +179,7 @@ public class VirtInterfaceController {
             throw new NoSuchElementException();
         }
 
-        List<NsoVirtInterface> interfaces = virtInterfaceDAO.findByConnectionId(connectionId);
+        Set<NsoVirtInterface> interfaces = virtInterfaceDAO.findByConnectionId(connectionId);
         if (interfaces == null) {
             log.info("No virtual IP entries found for connection id " + connectionId);
             throw new NoSuchElementException();
@@ -178,7 +189,7 @@ public class VirtInterfaceController {
         for (NsoVirtInterface ifce : interfaces) {
             VirtIpInterfaceResponse entry = new VirtIpInterfaceResponse();
             entry.setDevice(ifce.getDevice());
-            entry.setIpInterfaces(ifce.getIpAddresses());
+            entry.setIpInterfaces(new ArrayList<String>(ifce.getIpAddresses()));
             response.add(entry);
         }
         return response;
@@ -248,37 +259,36 @@ public class VirtInterfaceController {
         }
 
         // check ip address format
-        if (!checkIpAddressAndSubnetFormat(ipAndSubnet)) {
+        if (checkIpAddressAndSubnetFormat(ipAndSubnet) == null) {
             log.info("The provided IP/SUBNET info " + ipAndSubnet + " is invalid");
             throw new IllegalArgumentException();
         }
     }
 
-
     /**
      * Checks for the correct IP/SUBNET notation in CIDR format, e.g. 10.0.0.1/24
      * The supported subnet range is 8 - 32
      * @param ipAndSubnet String with IP/SUBNET address in CIDR format
-     * @return true if string format is correct, otherwise false
+     * @return the IP address as a string or null if the format is not correct
      */
-    public boolean checkIpAddressAndSubnetFormat(String ipAndSubnet) {
-        if(ipAndSubnet == null) return false;
+    public String checkIpAddressAndSubnetFormat(String ipAndSubnet) {
+        if(ipAndSubnet == null) return null;
 
         String[] ipAndNetmask = ipAndSubnet.split("/");
-        if(ipAndNetmask.length != 2) return false;
+        if(ipAndNetmask.length != 2) return null;
 
-        if(!InetAddresses.isInetAddress(ipAndNetmask[0])) return false;
+        if(!InetAddresses.isInetAddress(ipAndNetmask[0])) return null;
 
         int netmask = -1;
         try {
              netmask = Integer.parseInt(ipAndNetmask[1]);
         } catch (NumberFormatException error) {
             log.info("Error paring netmask");
-            return false;
+            return null;
         }
-        if(netmask < 8 || netmask > 32) return false; // this matches the NSO yang validation
+        if(netmask < 8 || netmask > 32) return null; // this matches the NSO yang validation
 
-        return true;
+        return ipAndNetmask[0];
     }
 
 }
