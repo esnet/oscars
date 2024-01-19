@@ -76,7 +76,6 @@ public class TopoPopulator {
 
 
     public Topology loadTopology(String devicesFilename, String adjciesFilename) throws IOException {
-
         List<Device> devices = loadDevicesFromFile(devicesFilename);
         Map<String, Port> portMap = new HashMap<>();
         Map<String, Device> deviceMap = new HashMap<>();
@@ -146,6 +145,7 @@ public class TopoPopulator {
 
 
     public void refresh(boolean onlyLoadWhenFileNewer) throws ConsistencyException, TopoException, IOException {
+        log.info("topology refresg");
         Topology incoming = null;
         boolean updated = false;
         if (topoProperties.getUrl() != null) {
@@ -176,6 +176,7 @@ public class TopoPopulator {
     }
 
     public Topology loadFromDiscovery() throws TopoException, ResourceAccessException {
+        log.info("loading topology from discovery");
         RestTemplate restTemplate = new RestTemplate();
         OscarsOneTopo discTopo = restTemplate.getForObject(topoProperties.getUrl(), OscarsOneTopo.class);
         if (discTopo == null) {
@@ -281,6 +282,8 @@ public class TopoPopulator {
                 ports.put(port.getUrn(), port);
             }
         }
+
+        log.info("loaded a topology with "+devices.size()+" devices");
 
         return Topology.builder()
                 .adjcies(adjcies)

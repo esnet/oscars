@@ -40,8 +40,6 @@ public class TopoController {
     private Startup startup;
 
     // cache these in memory
-    private Map<String, List<Port>> eppd = new HashMap<>();
-    private Version cachedVersion = null;
 
     @ExceptionHandler(NoSuchElementException.class)
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
@@ -61,40 +59,25 @@ public class TopoController {
     public Map<String, List<Port>> ethernetPortsByDevice()
             throws ConsistencyException, StartupException {
         this.startupCheck();
+        Map<String, List<Port>> eppd = new HashMap<>();
 
-        boolean cacheShouldBeRefreshed = false;
 
         Topology topology = topologyStore.getTopology();
         if (topology.getVersion() == null) {
             throw new ConsistencyException("null current topology");
         } else {
-            log.info("topo id: "+topology.getVersion().getUpdated());
+            log.info("topo id: " + topology.getVersion().getUpdated());
         }
 
-        if (eppd.size() == 0 || cachedVersion == null) {
-            cacheShouldBeRefreshed = true;
-            log.info("updating cache before first time use");
-        } else if (cachedVersion.getUpdated().isBefore(topology.getVersion().getUpdated())) {
-            cacheShouldBeRefreshed = true;
-            log.info("updating cache because newer topology version available");
-        }
-
-        if (cacheShouldBeRefreshed) {
-            cachedVersion = topology.getVersion();
-
-
-            for (Device d : topology.getDevices().values()) {
-                List<Port> ports = new ArrayList<>();
-                for (Port p: d.getPorts()) {
-                    if (p.getCapabilities().contains(Layer.ETHERNET)) {
-                        ports.add(p);
-                    }
+        for (Device d : topology.getDevices().values()) {
+            List<Port> ports = new ArrayList<>();
+            for (Port p : d.getPorts()) {
+                if (p.getCapabilities().contains(Layer.ETHERNET)) {
+                    ports.add(p);
                 }
-                eppd.put(d.getUrn(), ports);
-
             }
+            eppd.put(d.getUrn(), ports);
         }
-
         return eppd;
     }
 
@@ -110,7 +93,7 @@ public class TopoController {
         Set<SimpleAdjcy> simpleAdjcies = new HashSet<>();
         for (TopoAdjcy adjcy : topoAdjcies) {
             if (adjcy.getA().getUrnType().equals(UrnType.PORT) &&
-                adjcy.getZ().getUrnType().equals(UrnType.PORT)) {
+                    adjcy.getZ().getUrnType().equals(UrnType.PORT)) {
                 SimpleAdjcy simpleAdjcy = SimpleAdjcy.builder()
                         .a(adjcy.getA().getDevice().getUrn())
                         .b(adjcy.getA().getPort().getUrn())
@@ -151,14 +134,14 @@ public class TopoController {
 
     @RequestMapping(value = "/api/topo/report", method = RequestMethod.GET)
     @ResponseBody
-    public ConsistencyReport report() throws StartupException  {
+    public ConsistencyReport report() throws StartupException {
         this.startupCheck();
         return consistencySvc.getLatestReport();
     }
 
     @RequestMapping(value = "/api/topo/locations", method = RequestMethod.GET)
     @ResponseBody
-    public Map<String, Location> locations() throws ConsistencyException, StartupException  {
+    public Map<String, Location> locations() throws ConsistencyException, StartupException {
         this.startupCheck();
 
         Topology topology = topologyStore.getTopology();

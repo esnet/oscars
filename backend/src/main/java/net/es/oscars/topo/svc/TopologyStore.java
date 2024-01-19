@@ -46,7 +46,7 @@ public class TopologyStore {
         this.clear();
         this.topology = incoming;
         this.update();
-        this.bumpVersion();
+        this.topology.setVersion(this.bumpVersion());
     }
 
 
