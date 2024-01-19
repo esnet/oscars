@@ -6,14 +6,14 @@ import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.*;
-import net.es.oscars.topo.ent.Device;
-import net.es.oscars.topo.ent.Port;
-import net.es.oscars.topo.ent.Version;
+import net.es.oscars.topo.beans.Device;
+import net.es.oscars.topo.beans.Port;
+import net.es.oscars.topo.beans.Version;
 import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.enums.UrnType;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.ConsistencyService;
-import net.es.oscars.topo.svc.TopoService;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.Interval;
 import net.es.oscars.web.beans.SimpleAdjcy;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +28,7 @@ import java.util.*;
 public class TopoController {
 
     @Autowired
-    private TopoService topoService;
+    private TopologyStore topologyStore;
 
     @Autowired
     private ConsistencyService consistencySvc;
@@ -64,11 +64,11 @@ public class TopoController {
 
         boolean cacheShouldBeRefreshed = false;
 
-        Topology topology = topoService.currentTopology();
+        Topology topology = topologyStore.getTopology();
         if (topology.getVersion() == null) {
             throw new ConsistencyException("null current topology");
         } else {
-            log.info("topo id: "+topology.getVersion().getId());
+            log.info("topo id: "+topology.getVersion().getUpdated());
         }
 
         if (eppd.size() == 0 || cachedVersion == null) {
@@ -104,7 +104,7 @@ public class TopoController {
             throws StartupException {
         this.startupCheck();
 
-        List<TopoAdjcy> topoAdjcies = topoService.getTopoAdjcies();
+        List<TopoAdjcy> topoAdjcies = topologyStore.getTopoAdjcies();
 
 
         Set<SimpleAdjcy> simpleAdjcies = new HashSet<>();
@@ -129,7 +129,7 @@ public class TopoController {
     @ResponseBody
     public Map<String, PortBwVlan> baseline() throws StartupException {
         this.startupCheck();
-        return topoService.baseline();
+        return topologyStore.getBaseline();
 
     }
 
@@ -146,7 +146,7 @@ public class TopoController {
     @ResponseBody
     public Version version() throws StartupException, ConsistencyException {
         this.startupCheck();
-        return topoService.getCurrent();
+        return topologyStore.getVersion();
     }
 
     @RequestMapping(value = "/api/topo/report", method = RequestMethod.GET)
@@ -161,7 +161,7 @@ public class TopoController {
     public Map<String, Location> locations() throws ConsistencyException, StartupException  {
         this.startupCheck();
 
-        Topology topology = topoService.currentTopology();
+        Topology topology = topologyStore.getTopology();
         Map<String, Location> loc = new HashMap<>();
 
         for (Device d : topology.getDevices().values()) {

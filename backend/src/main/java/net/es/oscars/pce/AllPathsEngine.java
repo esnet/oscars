@@ -9,9 +9,9 @@ import net.es.oscars.resv.ent.EroHop;
 import net.es.oscars.resv.ent.VlanPipe;
 import net.es.oscars.topo.beans.TopoAdjcy;
 import net.es.oscars.topo.beans.TopoUrn;
-import net.es.oscars.topo.ent.Version;
+import net.es.oscars.topo.beans.Version;
 import net.es.oscars.topo.enums.UrnType;
-import net.es.oscars.topo.svc.TopoService;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.PcePath;
 import net.es.oscars.web.beans.PceResponse;
 import org.apache.commons.lang3.tuple.Pair;
@@ -31,7 +31,7 @@ import java.util.*;
 @ConditionalOnProperty(name="pce.engine", havingValue="allpaths")
 
 public class AllPathsEngine implements Engine {
-    private final TopoService topoService;
+    private final TopologyStore topologyStore;
 
     @Value("#{new Double('${pce.long-path-ratio}')}")
     private Double longPathRatio;
@@ -45,8 +45,8 @@ public class AllPathsEngine implements Engine {
     private final Map<Pair<TopoUrn, TopoUrn>, List<GraphPath<TopoUrn, TopoAdjcy>>> pathsCache = new HashMap<>();
     private Version cacheTopoVersion = null;
 
-    public AllPathsEngine(TopoService topoService) {
-        this.topoService = topoService;
+    public AllPathsEngine(TopologyStore topologyStore) {
+        this.topologyStore = topologyStore;
     }
 
 
@@ -56,11 +56,11 @@ public class AllPathsEngine implements Engine {
 
 
         boolean versionChanged = false;
-        Version current = topoService.getCurrent();
+        Version current = topologyStore.getVersion();
 
         if (this.cacheTopoVersion == null) {
             versionChanged = true;
-        } else if (!this.cacheTopoVersion.getId().equals(current.getId())) {
+        } else if (!this.cacheTopoVersion.getUpdated().equals(current.getUpdated())) {
             versionChanged = true;
         }
         Pair<TopoUrn, TopoUrn> srcdst = Pair.of(src, dst);
@@ -97,9 +97,9 @@ public class AllPathsEngine implements Engine {
         Set<String> exclude = constraint.getExclude();
         List<String> ero = constraint.getEro();
 
-        Map<String, TopoUrn> baseline = topoService.getTopoUrnMap();
+        Map<String, TopoUrn> baseline = topologyStore.getTopoUrnMap();
 
-        List<TopoAdjcy> topoAdjcies = topoService.getTopoAdjcies();
+        List<TopoAdjcy> topoAdjcies = topologyStore.getTopoAdjcies();
         // two kinds of costing; one by hop count, one by metric
 
         Map<TopoAdjcy, Double> hopCosts = new HashMap<>();
@@ -118,8 +118,8 @@ public class AllPathsEngine implements Engine {
         }
 
 
-        TopoUrn src = topoService.getTopoUrnMap().get(requestPipe.getA().getDeviceUrn());
-        TopoUrn dst = topoService.getTopoUrnMap().get(requestPipe.getZ().getDeviceUrn());
+        TopoUrn src = topologyStore.getTopoUrnMap().get(requestPipe.getA().getDeviceUrn());
+        TopoUrn dst = topologyStore.getTopoUrnMap().get(requestPipe.getZ().getDeviceUrn());
 
         if (src == null) {
             throw new PCEException(requestPipe.getA().getDeviceUrn() + " not found in topology");

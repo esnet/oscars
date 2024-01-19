@@ -27,7 +27,7 @@ import net.es.oscars.sb.SouthboundTaskResult;
 import net.es.oscars.sb.nso.NsoProxy;
 import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.enums.UrnType;
-import net.es.oscars.topo.svc.TopoService;
+import net.es.oscars.topo.svc.TopologyStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -49,16 +49,16 @@ public class RancidAdapter {
     private RouterCommandsRepository rcr;
     private CommandHistoryRepository historyRepo;
     private LogService logService;
-    private TopoService topoService;
+    private TopologyStore topologyStore;
     private Syslogger syslogger;
 
     @Autowired
     public RancidAdapter(RancidProxy rancidProxy, RouterCommandsRepository rcr, CommandHistoryRepository historyRepo, Syslogger syslogger,
-                         TopoService topoService, LogService logService, NsoProxy nsoProxy, PssProperties properties) {
+                         TopologyStore topologyStore, LogService logService, NsoProxy nsoProxy, PssProperties properties) {
         this.rancidProxy = rancidProxy;
         this.rcr = rcr;
         this.historyRepo = historyRepo;
-        this.topoService = topoService;
+        this.topologyStore = topologyStore;
         this.logService = logService;
         this.nsoProxy = nsoProxy;
         this.properties = properties;
@@ -325,7 +325,7 @@ public class RancidAdapter {
     }
 
     private Command makeCmd(String connId, CommandType type, String device) throws PSSException {
-        TopoUrn devUrn = topoService.getTopoUrnMap().get(device);
+        TopoUrn devUrn = topologyStore.getTopoUrnMap().get(device);
         if (devUrn == null) {
             throw new PSSException("could not locate topo URN for "+device);
 

@@ -6,10 +6,9 @@ import net.es.oscars.resv.ent.VlanJunction;
 import net.es.oscars.resv.ent.VlanPipe;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.enums.UrnType;
-import net.es.oscars.topo.svc.TopoService;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.PceRequest;
 import net.es.oscars.web.beans.PceResponse;
-import net.es.topo.common.devel.DevelUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -18,12 +17,12 @@ import java.util.*;
 public class PceService {
     private final ResvService resvService;
     private final Engine pceEngine;
-    final TopoService topoService;
+    final TopologyStore topologyStore;
 
-    public PceService(ResvService resvService, Engine pceEngine, TopoService topoService) {
+    public PceService(ResvService resvService, Engine pceEngine, TopologyStore topologyStore) {
         this.resvService = resvService;
         this.pceEngine = pceEngine;
-        this.topoService = topoService;
+        this.topologyStore = topologyStore;
     }
 
 
@@ -74,9 +73,9 @@ public class PceService {
         aAndZ.add(vlanPipe.getA().getDeviceUrn());
         aAndZ.add(vlanPipe.getZ().getDeviceUrn());
         for (String aOrZ : aAndZ) {
-            if (!topoService.getTopoUrnMap().containsKey(aOrZ)) {
+            if (!topologyStore.getTopoUrnMap().containsKey(aOrZ)) {
                 throw new PCEException(aOrZ+ " not found in topology");
-            } else if (!topoService.getTopoUrnMap().get(aOrZ).getUrnType().equals(UrnType.DEVICE)) {
+            } else if (!topologyStore.getTopoUrnMap().get(aOrZ).getUrnType().equals(UrnType.DEVICE)) {
                 throw new PCEException(aOrZ+ " is not a device");
             }
         }
@@ -91,10 +90,10 @@ public class PceService {
             throw new PCEException("ERO last hop must match vlan pipe Z");
         }
         for (String hop : constraint.getEro()) {
-            if (!topoService.getTopoUrnMap().containsKey(hop)) {
+            if (!topologyStore.getTopoUrnMap().containsKey(hop)) {
                 throw new PCEException("ERO hop " + hop + " not found in topology");
             } else {
-                UrnType urnType = topoService.getTopoUrnMap().get(hop).getUrnType();
+                UrnType urnType = topologyStore.getTopoUrnMap().get(hop).getUrnType();
                 if (!urnType.equals(UrnType.DEVICE) && !urnType.equals(UrnType.PORT)) {
                     throw new PCEException("ERO hop " + hop + " must be a device or port");
                 }

@@ -1,14 +1,6 @@
-package net.es.oscars.topo.ent;
+package net.es.oscars.topo.beans;
 
 import lombok.*;
-import net.es.oscars.topo.beans.TopoUrn;
-import net.es.oscars.topo.enums.Layer;
-import org.jgrapht.graph.DefaultWeightedEdge;
-
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,11 +8,7 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Entity
 public class Point {
-    @Id
-    @GeneratedValue
-    private Long id;
 
     private String device;
     private String port;
@@ -101,7 +89,7 @@ public class Point {
             return false;
         }
         Point other = (Point) obj;
-        return id != null && id.equals(other.getId());
+        return other.getUrn().equals(this.getUrn());
     }
 
 }

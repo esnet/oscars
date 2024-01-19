@@ -9,14 +9,13 @@ import net.es.oscars.resv.ent.Components;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.VlanFixture;
 import net.es.oscars.resv.enums.Phase;
-import net.es.oscars.topo.db.PortRepository;
-import net.es.oscars.topo.ent.Port;
+import net.es.oscars.topo.beans.Port;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -29,18 +28,17 @@ public class EsdbVlanSync {
     private final ConnectionRepository cr;
     private final ESDBProxy esdbProxy;
     private final EsdbProperties esdbProperties;
-    private final PortRepository portRepo;
+    private final TopologyStore topologyStore;
 
-    public EsdbVlanSync(Startup startup, ConnectionRepository cr, ESDBProxy esdbProxy, EsdbProperties esdbProperties, PortRepository portRepo) {
+    public EsdbVlanSync(Startup startup, ConnectionRepository cr, ESDBProxy esdbProxy, EsdbProperties esdbProperties, TopologyStore topologyStore) {
         this.startup = startup;
         this.cr = cr;
         this.esdbProxy = esdbProxy;
         this.esdbProperties = esdbProperties;
-        this.portRepo = portRepo;
+        this.topologyStore = topologyStore;
     }
 
     @Scheduled(initialDelay = 10000,fixedDelayString ="${esdb.vlan-sync-period}" )
-    @Transactional
     public void processingLoop() {
         if (!esdbProperties.isEnabled()) {
             return;
@@ -138,7 +136,7 @@ public class EsdbVlanSync {
         }
         for (VlanFixture f : cmp.getFixtures()) {
             String portUrn = f.getPortUrn();
-            Optional<Port> maybePort = portRepo.findByUrn(portUrn);
+            Optional<Port> maybePort = topologyStore.findPortByUrn(portUrn);
             maybePort.ifPresent(port -> payloads.add(EsdbVlanPayload.builder()
                     .vlanId(f.getVlan().getVlanId())
                     .description(PREFIX+" " + c.getConnectionId() + " (" + c.getDescription() + ")")

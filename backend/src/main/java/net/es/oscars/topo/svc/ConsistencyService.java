@@ -8,10 +8,8 @@ import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.topo.beans.ConsistencyReport;
 import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.beans.TopoUrn;
-import net.es.oscars.topo.db.DeviceRepository;
-import net.es.oscars.topo.db.PortRepository;
-import net.es.oscars.topo.ent.Device;
-import net.es.oscars.topo.ent.Port;
+import net.es.oscars.topo.beans.Device;
+import net.es.oscars.topo.beans.Port;
 import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.enums.UrnType;
 import net.es.oscars.topo.pop.ConsistencyException;
@@ -31,21 +29,14 @@ import java.util.*;
 public class ConsistencyService {
     private ConnectionRepository connRepo;
 
-    private DeviceRepository deviceRepo;
-    private PortRepository portRepo;
-
 
     private ConsistencyReport latestReport;
 
-    private TopoService ts;
+    private TopologyStore ts;
 
     @Autowired
-    public ConsistencyService(PortRepository portRepo,
-                              DeviceRepository deviceRepo,
-                              ConnectionRepository connRepo,
-                              TopoService ts) {
-        this.portRepo = portRepo;
-        this.deviceRepo = deviceRepo;
+    public ConsistencyService(TopologyStore ts,
+                              ConnectionRepository connRepo) {
         this.connRepo = connRepo;
         this.ts = ts;
         this.latestReport = ConsistencyReport.builder()
@@ -62,7 +53,7 @@ public class ConsistencyService {
 
     public void checkConsistency() throws ConsistencyException {
         log.info("Checking topology consistency.");
-        if (ts.getCurrent() == null) {
+        if (ts.getVersion() == null) {
             throw new ConsistencyException("no current topology");
         }
 
@@ -70,7 +61,7 @@ public class ConsistencyService {
                 .issuesByConnectionId(new HashMap<>())
                 .issuesByUrn(new HashMap<>())
                 .generated(Instant.now())
-                .topologyUpdated(ts.getCurrent().getUpdated())
+                .topologyUpdated(ts.getVersion().getUpdated())
                 .build();
 
         List<Connection> reserved = connRepo.findByPhase(Phase.RESERVED);
@@ -143,8 +134,8 @@ public class ConsistencyService {
             for (EroHop hop : pipe.getAzERO()) {
                 String urn = hop.getUrn();
                 if (!ts.getTopoUrnMap().containsKey(urn)) {
-                    Optional<Device> maybeDev = deviceRepo.findByUrn(urn);
-                    Optional<Port> maybePort = portRepo.findByUrn(urn);
+                    Optional<Device> maybeDev = ts.findDeviceByUrn(urn);
+                    Optional<Port> maybePort = ts.findPortByUrn(urn);
 
                     if (maybeDev.isPresent()) {
                         log.error("Internal error: db device missing from current topo! " + urn);
@@ -187,7 +178,7 @@ public class ConsistencyService {
     public Port checkPortUrn(String urn) throws ConsistencyException {
         Map<String, TopoUrn> urnMap = ts.getTopoUrnMap();
         if (!urnMap.containsKey(urn)) {
-            Optional<Port> maybePort = portRepo.findByUrn(urn);
+            Optional<Port> maybePort = ts.findPortByUrn(urn);
             if (maybePort.isPresent()) {
                 return maybePort.get();
             } else {
@@ -213,7 +204,7 @@ public class ConsistencyService {
     public Device checkDeviceUrn(String urn) throws ConsistencyException {
         Map<String, TopoUrn> urnMap = ts.getTopoUrnMap();
         if (!urnMap.containsKey(urn)) {
-            Optional<Device> maybeDevice = deviceRepo.findByUrn(urn);
+            Optional<Device> maybeDevice = ts.findDeviceByUrn(urn);
             if (maybeDevice.isPresent()) {
                 return maybeDevice.get();
             } else {

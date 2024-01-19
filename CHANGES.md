@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.1.5
+> Jan 2024
+- Removed topology persistence
+
 ### 1.1.4
 >  Nov 2023
 - [OS-146](https://esnet.atlassian.net/browse/OS-146) Modify OSCARS provisioning to add description to LSP name.

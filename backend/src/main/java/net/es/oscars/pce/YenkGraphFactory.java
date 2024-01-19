@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.pce.beans.YenkEdge;
 import net.es.oscars.pce.beans.YenkVertex;
 import net.es.oscars.topo.beans.Topology;
-import net.es.oscars.topo.ent.Adjcy;
+import net.es.oscars.topo.beans.Adjcy;
 import net.es.oscars.topo.enums.Layer;
 import org.jgrapht.graph.SimpleWeightedGraph;
 

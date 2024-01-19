@@ -12,7 +12,7 @@ import net.es.oscars.resv.ent.VlanPipe;
 import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.enums.Layer;
-import net.es.oscars.topo.svc.TopoService;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.PcePath;
 import net.es.oscars.web.beans.PceResponse;
 import net.es.topo.common.devel.DevelUtils;
@@ -37,10 +37,10 @@ public class YenkEngine implements Engine {
 
     @Value("${pce.timeout:5}")
     private int timeout;
-    final TopoService topoService;
+    final TopologyStore topologyStore;
 
-    public YenkEngine(TopoService topoService) {
-        this.topoService = topoService;
+    public YenkEngine(TopologyStore topologyStore) {
+        this.topologyStore = topologyStore;
     }
 
     @Override
@@ -54,8 +54,8 @@ public class YenkEngine implements Engine {
         Integer pathForwardMbps = requestPipe.getAzBandwidth();
         Integer pathReverseMbps = requestPipe.getZaBandwidth();
 
-        Topology topology = topoService.currentTopology();
-        Map<String, TopoUrn> baseline = topoService.getTopoUrnMap();
+        Topology topology = topologyStore.getTopology();
+        Map<String, TopoUrn> baseline = topologyStore.getTopoUrnMap();
 
 
         SimpleWeightedGraph<YenkVertex, YenkEdge> yenkGraphByMplsMetric = YenkGraphFactory.yenkGraph(topology, availIngressBw, availEgressBw, Layer.MPLS);

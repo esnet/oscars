@@ -44,7 +44,7 @@ import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.enums.UrnType;
-import net.es.oscars.topo.svc.TopoService;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
 import org.apache.commons.lang3.StringUtils;
@@ -102,7 +102,7 @@ public class NsiService {
     private NsiStateEngine nsiStateEngine;
 
     @Autowired
-    private TopoService topoService;
+    private TopologyStore topologyStore;
 
     @Autowired
     private ResvService resvService;
@@ -848,7 +848,7 @@ public class NsiService {
         String in_z = this.internalUrnFromStp(dst);
         Long mbps = p2p.getCapacity();
 
-        TopoUrn a_urn = topoService.getTopoUrnMap().get(in_a);
+        TopoUrn a_urn = topologyStore.getTopoUrnMap().get(in_a);
         if (a_urn == null) {
             log.error("could not find stp " + src + ", converted to " + in_a);
             throw new NsiException("src STP not found in topology " + src, NsiErrors.LOOKUP_ERROR);
@@ -856,7 +856,7 @@ public class NsiService {
             throw new NsiException("src STPs is not a port " + src, NsiErrors.LOOKUP_ERROR);
         }
 
-        TopoUrn z_urn = topoService.getTopoUrnMap().get(in_z);
+        TopoUrn z_urn = topologyStore.getTopoUrnMap().get(in_z);
         if (z_urn == null) {
             log.error("could not find stp " + src + ", converted to " + in_z);
             throw new NsiException("dst STP not found in topology " + dst, NsiErrors.LOOKUP_ERROR);
