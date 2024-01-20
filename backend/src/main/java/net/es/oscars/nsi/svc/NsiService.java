@@ -29,8 +29,8 @@ import net.es.oscars.nsi.db.NsiRequesterNSARepository;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.ent.NsiRequesterNSA;
 import net.es.oscars.pce.PceService;
-import net.es.oscars.sb.SouthboundQueuer;
 import net.es.oscars.resv.db.ConnectionRepository;
+import net.es.oscars.sb.SouthboundQueuer;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.BuildMode;
 import net.es.oscars.resv.enums.ConnectionMode;
@@ -75,8 +75,8 @@ public class NsiService {
     @Value("${nml.topo-name}")
     private String topoName;
 
-    @Value("${resv.timeout}")
-    private Integer resvTimeout;
+    @Value("${nsi.resv-timeout}")
+    private Integer nsiResvTimeout;
 
     @Value("${nsi.provider-nsa}")
     private String providerNsa;
@@ -89,14 +89,13 @@ public class NsiService {
 
     final public static String SERVICE_TYPE = "http://services.ogf.org/nsi/2013/12/descriptions/EVTS.A-GOLE";
     final public static String DEFAULT_PROTOCOL_VERSION = "application/vdn.ogf.nsi.cs.v2.provider+soap";
-
+    final public static String NSI_TYPES = "http://schemas.ogf.org/nsi/2013/12/framework/types";
 
     @Autowired
     private NsiMappingRepository nsiRepo;
 
     @Autowired
     private NsiRequesterNSARepository requesterNsaRepo;
-
 
     @Autowired
     private NsiStateEngine nsiStateEngine;
@@ -114,7 +113,7 @@ public class NsiService {
     private ConnService connSvc;
 
     @Autowired
-    private ConnectionRepository connRepo;
+    private NsiConnectionAccess nsiConnectionAccess;
 
     @Autowired
     private ClientUtil clientUtil;
@@ -124,11 +123,9 @@ public class NsiService {
 
     @Autowired
     private ObjectMapper jacksonObjectMapper;
-    private static String nsBase = "http://schemas.ogf.org/nml/2013/05/base#";
-    private static String nsDefs = "http://schemas.ogf.org/nsi/2013/12/services/definition";
-    private static String nsEth = "http://schemas.ogf.org/nml/2012/10/ethernet";
-    public static String nsTypes = "http://schemas.ogf.org/nsi/2013/12/framework/types";
 
+    @Autowired
+    private ConnectionRepository connRepo;
 
     /* async operations */
     public void reserve(CommonHeaderType header, ReserveType rt, NsiMapping mapping) {
@@ -187,7 +184,7 @@ public class NsiService {
             log.info("starting commit task");
             try {
                 nsiStateEngine.commit(NsiEvent.COMMIT_START, mapping);
-                Connection c = this.getOscarsConnection(mapping);
+                Connection c = nsiConnectionAccess.getOscarsConnection(mapping);
                 if (!c.getPhase().equals(Phase.HELD)) {
                     throw new NsiException("Invalid connection phase", NsiErrors.TRANS_ERROR);
                 }
@@ -229,7 +226,7 @@ public class NsiService {
 
         Executors.newCachedThreadPool().submit(() -> {
             try {
-                Connection c = this.getOscarsConnection(mapping);
+                Connection c = nsiConnectionAccess.getOscarsConnection(mapping);
                 nsiStateEngine.abort(NsiEvent.ABORT_START, mapping);
                 if (!c.getPhase().equals(Phase.HELD)) {
                     throw new NsiException("invalid reservation phase, cannot abort", NsiErrors.TRANS_ERROR);
@@ -257,7 +254,7 @@ public class NsiService {
 
         Executors.newCachedThreadPool().submit(() -> {
             try {
-                Connection c = this.getOscarsConnection(mapping);
+                Connection c = nsiConnectionAccess.getOscarsConnection(mapping);
                 if (!c.getPhase().equals(Phase.RESERVED)) {
                     log.error("cannot provision unless RESERVED");
                     return null;
@@ -294,7 +291,7 @@ public class NsiService {
 
         Executors.newCachedThreadPool().submit(() -> {
             try {
-                Connection c = this.getOscarsConnection(mapping);
+                Connection c = nsiConnectionAccess.getOscarsConnection(mapping);
                 if (!c.getPhase().equals(Phase.RESERVED)) {
                     log.error("cannot release unless RESERVED");
                     return null;
@@ -335,7 +332,7 @@ public class NsiService {
 
         Executors.newCachedThreadPool().submit(() -> {
             try {
-                Connection c = this.getOscarsConnection(mapping);
+                Connection c = nsiConnectionAccess.getOscarsConnection(mapping);
                 // the cancel only needs to happen if we are not in FORCED_END or PASSED_END_TIME
                 if (mapping.getLifecycleState().equals(LifecycleStateEnumType.CREATED)) {
                     connSvc.release(c);
@@ -394,7 +391,7 @@ public class NsiService {
                 log.info("starting async query task");
                 String nsaId = header.getRequesterNSA();
                 String corrId = header.getCorrelationId();
-                if (!this.getRequesterNsa(nsaId).isPresent()) {
+                if (this.getRequesterNsa(nsaId).isEmpty()) {
                     throw new NsiException("Unknown requester nsa id " + nsaId, NsiErrors.SEC_ERROR);
                 }
 
@@ -425,7 +422,7 @@ public class NsiService {
                 log.info("starting recursive query task");
                 String nsaId = header.getRequesterNSA();
                 String corrId = header.getCorrelationId();
-                if (!this.getRequesterNsa(nsaId).isPresent()) {
+                if (this.getRequesterNsa(nsaId).isEmpty()) {
                     throw new NsiException("Unknown requester nsa id " + nsaId, NsiErrors.SEC_ERROR);
                 }
 
@@ -528,8 +525,8 @@ public class NsiService {
     }
 
     public QueryRecursiveResultType toQRRT(NsiMapping mapping) throws NsiException {
-        Optional<Connection> mc = this.getMaybeOscarsConnection(mapping);
-        if (!mc.isPresent()) {
+        Optional<Connection> mc = nsiConnectionAccess.getMaybeOscarsConnection(mapping);
+        if (mc.isEmpty()) {
             log.error("nsi mapping for nonexistent OSCARS connection " + mapping.getOscarsConnectionId());
             return null;
         }
@@ -568,8 +565,8 @@ public class NsiService {
     }
 
     public QuerySummaryResultType toQSRT(NsiMapping mapping) throws NsiException {
-        Optional<Connection> mc = this.getMaybeOscarsConnection(mapping);
-        if (!mc.isPresent()) {
+        Optional<Connection> mc = nsiConnectionAccess.getMaybeOscarsConnection(mapping);
+        if (mc.isEmpty()) {
             log.error("nsi mapping for nonexistent OSCARS connection " + mapping.getOscarsConnectionId());
             return null;
         }
@@ -664,15 +661,15 @@ public class NsiService {
 
         ReservationRequestCriteriaType crit = rt.getCriteria();
 
-        Long mbpsLong = p2p.getCapacity();
-        Integer mbps = mbpsLong.intValue();
+        long mbpsLong = p2p.getCapacity();
+        Integer mbps = (int) mbpsLong;
 
         Interval interval = this.nsiToOscarsSchedule(crit.getSchedule());
-        Long begin = interval.getBeginning().getEpochSecond();
-        Long end = interval.getEnding().getEpochSecond();
+        long begin = interval.getBeginning().getEpochSecond();
+        long end = interval.getEnding().getEpochSecond();
 
-        Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
-        Long expSecs = exp.toEpochMilli() / 1000L;
+        Instant exp = Instant.now().plus(nsiResvTimeout, ChronoUnit.SECONDS);
+        long expSecs = exp.toEpochMilli() / 1000L;
         log.info("got schedule and bw");
 
         List<SimpleTag> tags = new ArrayList<>();
@@ -698,12 +695,12 @@ public class NsiService {
             SimpleConnection simpleConnection = SimpleConnection.builder()
                     .connectionId(mapping.getOscarsConnectionId())
                     .description(rt.getDescription())
-                    .heldUntil(expSecs.intValue())
+                    .heldUntil((int) expSecs)
                     .phase(Phase.HELD)
                     .state(State.WAITING)
                     .mode(BuildMode.MANUAL)
-                    .begin(begin.intValue())
-                    .end(end.intValue())
+                    .begin((int) begin)
+                    .end((int) end)
                     .fixtures(fixturesAndJunctions.getLeft())
                     .junctions(fixturesAndJunctions.getRight())
                     .serviceId(null)
@@ -728,7 +725,7 @@ public class NsiService {
 
             } catch (ConnException ex) {
                 TypeValuePairType tvp = new TypeValuePairType();
-                tvp.setNamespace(nsTypes);
+                tvp.setNamespace(NSI_TYPES);
                 tvp.setType("connectionId");
 
                 return NsiHoldResult.builder()
@@ -783,7 +780,7 @@ public class NsiService {
     public List<Pipe> pipesFor(Interval interval, Integer mbps,
                                List<Junction> junctions, List<String> include)
             throws NsiException {
-        if (junctions.size() == 0) {
+        if (junctions.isEmpty()) {
             throw new NsiException("no junctions - at least one required", NsiErrors.PCE_ERROR);
         } else if (junctions.size() == 1) {
             // no pipes required
@@ -846,7 +843,7 @@ public class NsiService {
         String dst = p2p.getDestSTP();
         String in_a = this.internalUrnFromStp(src);
         String in_z = this.internalUrnFromStp(dst);
-        Long mbps = p2p.getCapacity();
+        long mbps = p2p.getCapacity();
 
         TopoUrn a_urn = topologyStore.getTopoUrnMap().get(in_a);
         if (a_urn == null) {
@@ -936,14 +933,14 @@ public class NsiService {
         Fixture aF = Fixture.builder()
                 .junction(aJ.getDevice())
                 .port(a_urn.getPort().getUrn())
-                .mbps(mbps.intValue())
+                .mbps((int) mbps)
                 .strict(strictPolicing)
                 .vlan(aVlanId)
                 .build();
         Fixture zF = Fixture.builder()
                 .junction(zJ.getDevice())
                 .port(z_urn.getPort().getUrn())
-                .mbps(mbps.intValue())
+                .mbps((int) mbps)
                 .strict(strictPolicing)
                 .vlan(zVlanId)
                 .build();
@@ -1015,7 +1012,7 @@ public class NsiService {
         if (stp == null) {
             log.error("null STP");
             throw new NsiException("null STP", NsiErrors.LOOKUP_ERROR);
-        } else if (stp.length() == 0) {
+        } else if (stp.isEmpty()) {
             log.error("empty STP");
             throw new NsiException("empty STP string", NsiErrors.LOOKUP_ERROR);
 
@@ -1031,13 +1028,14 @@ public class NsiService {
 
     public void errorNotify(NsiEvent event, NsiMapping mapping) throws NsiException, ServiceException, DatatypeConfigurationException {
         String nsaId = mapping.getNsaId();
-        if (!this.getRequesterNsa(nsaId).isPresent()) {
+        if (this.getRequesterNsa(nsaId).isEmpty()) {
             throw new NsiException("Unknown requester nsa id " + nsaId, NsiErrors.SEC_ERROR);
         }
         NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
         ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
         String corrId = this.newCorrelationId();
         Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
+
         ErrorEventType eet = new ErrorEventType();
         eet.setOriginatingConnectionId(mapping.getNsiConnectionId());
         eet.setOriginatingNSA(this.providerNsa);
@@ -1065,7 +1063,8 @@ public class NsiService {
         String corrId = inHeader.getCorrelationId();
 
         Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
-        Connection c = this.getOscarsConnection(mapping);
+
+        Connection c = nsiConnectionAccess.getOscarsConnection(mapping);
 
         ReserveConfirmedType rct = new ReserveConfirmedType();
 
@@ -1218,7 +1217,7 @@ public class NsiService {
     public void errCallback(NsiEvent event, NsiMapping mapping, String error, String errNum, List<TypeValuePairType> tvps, String corrId)
             throws NsiException, ServiceException {
         String nsaId = mapping.getNsaId();
-        if (!this.getRequesterNsa(nsaId).isPresent()) {
+        if (this.getRequesterNsa(nsaId).isEmpty()) {
             throw new NsiException("Unknown requester nsa id " + nsaId, NsiErrors.SEC_ERROR);
         }
         NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
@@ -1234,7 +1233,7 @@ public class NsiService {
         gft.setServiceException(this.makeSET(error, errNum, tvps, mapping));
 
         if (!event.equals(NsiEvent.RESV_FL)) {
-            Connection c = this.getOscarsConnection(mapping);
+            Connection c = nsiConnectionAccess.getOscarsConnection(mapping);
             ConnectionStatesType cst = this.makeConnectionStates(mapping, c);
 
             gft.setConnectionStates(cst);
@@ -1262,7 +1261,7 @@ public class NsiService {
             rrt.setNotificationId(0L);
             rrt.setOriginatingConnectionId(mapping.getNsiConnectionId());
             rrt.setOriginatingNSA(providerNsa);
-            rrt.setTimeoutValue(resvTimeout);
+            rrt.setTimeoutValue(nsiResvTimeout);
             port.reserveTimeout(rrt, outHeader);
         }
     }
@@ -1414,25 +1413,10 @@ public class NsiService {
 
     /* db funcs */
 
-    @Transactional
-    public Connection getOscarsConnection(NsiMapping mapping) throws NsiException {
-        // log.debug("getting oscars connection for "+mapping.getOscarsConnectionId());
-        Optional<Connection> c = connRepo.findByConnectionId(mapping.getOscarsConnectionId());
-        if (c.isEmpty()) {
-            throw new NsiException("OSCARS connection not found", NsiErrors.NO_SCH_ERROR);
-        } else {
-            return c.get();
-        }
-    }
 
-    @Transactional
-    public Optional<Connection> getMaybeOscarsConnection(NsiMapping mapping) throws NsiException {
-        // log.debug("getting oscars connection for "+mapping.getOscarsConnectionId());
-        return connRepo.findByConnectionId(mapping.getOscarsConnectionId());
-    }
 
     public NsiMapping getMapping(String nsiConnectionId) throws NsiException {
-        if (nsiConnectionId == null || nsiConnectionId.equals("")) {
+        if (nsiConnectionId == null || nsiConnectionId.isEmpty()) {
             throw new NsiException("null or blank connection id! " + nsiConnectionId, NsiErrors.MISSING_PARAM_ERROR);
         }
         List<NsiMapping> mappings = nsiRepo.findByNsiConnectionId(nsiConnectionId);
@@ -1460,7 +1444,7 @@ public class NsiService {
 
     public Optional<NsiRequesterNSA> getRequesterNsa(String nsaId) throws NsiException {
         List<NsiRequesterNSA> requesters = requesterNsaRepo.findByNsaId(nsaId);
-        if (requesters.size() == 0) {
+        if (requesters.isEmpty()) {
             return Optional.empty();
 
         } else if (requesters.size() >= 2) {
@@ -1538,7 +1522,7 @@ public class NsiService {
     }
 
     public String newCorrelationId() {
-        return "urn:uuid:" + UUID.randomUUID().toString();
+        return "urn:uuid:" + UUID.randomUUID();
     }
 
 }
