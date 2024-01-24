@@ -6,14 +6,14 @@ import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.*;
-import net.es.oscars.topo.ent.Device;
-import net.es.oscars.topo.ent.Port;
-import net.es.oscars.topo.ent.Version;
+import net.es.oscars.topo.beans.Device;
+import net.es.oscars.topo.beans.Port;
+import net.es.oscars.topo.beans.Version;
 import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.enums.UrnType;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.ConsistencyService;
-import net.es.oscars.topo.svc.TopoService;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.Interval;
 import net.es.oscars.web.beans.SimpleAdjcy;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +28,7 @@ import java.util.*;
 public class TopoController {
 
     @Autowired
-    private TopoService topoService;
+    private TopologyStore topologyStore;
 
     @Autowired
     private ConsistencyService consistencySvc;
@@ -40,8 +40,6 @@ public class TopoController {
     private Startup startup;
 
     // cache these in memory
-    private Map<String, List<Port>> eppd = new HashMap<>();
-    private Version cachedVersion = null;
 
     @ExceptionHandler(NoSuchElementException.class)
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
@@ -61,40 +59,25 @@ public class TopoController {
     public Map<String, List<Port>> ethernetPortsByDevice()
             throws ConsistencyException, StartupException {
         this.startupCheck();
+        Map<String, List<Port>> eppd = new HashMap<>();
 
-        boolean cacheShouldBeRefreshed = false;
 
-        Topology topology = topoService.currentTopology();
+        Topology topology = topologyStore.getTopology();
         if (topology.getVersion() == null) {
             throw new ConsistencyException("null current topology");
         } else {
-            log.info("topo id: "+topology.getVersion().getId());
+            log.info("topo id: " + topology.getVersion().getUpdated());
         }
 
-        if (eppd.size() == 0 || cachedVersion == null) {
-            cacheShouldBeRefreshed = true;
-            log.info("updating cache before first time use");
-        } else if (cachedVersion.getUpdated().isBefore(topology.getVersion().getUpdated())) {
-            cacheShouldBeRefreshed = true;
-            log.info("updating cache because newer topology version available");
-        }
-
-        if (cacheShouldBeRefreshed) {
-            cachedVersion = topology.getVersion();
-
-
-            for (Device d : topology.getDevices().values()) {
-                List<Port> ports = new ArrayList<>();
-                for (Port p: d.getPorts()) {
-                    if (p.getCapabilities().contains(Layer.ETHERNET)) {
-                        ports.add(p);
-                    }
+        for (Device d : topology.getDevices().values()) {
+            List<Port> ports = new ArrayList<>();
+            for (Port p : d.getPorts()) {
+                if (p.getCapabilities().contains(Layer.ETHERNET)) {
+                    ports.add(p);
                 }
-                eppd.put(d.getUrn(), ports);
-
             }
+            eppd.put(d.getUrn(), ports);
         }
-
         return eppd;
     }
 
@@ -104,13 +87,13 @@ public class TopoController {
             throws StartupException {
         this.startupCheck();
 
-        List<TopoAdjcy> topoAdjcies = topoService.getTopoAdjcies();
+        List<TopoAdjcy> topoAdjcies = topologyStore.getTopoAdjcies();
 
 
         Set<SimpleAdjcy> simpleAdjcies = new HashSet<>();
         for (TopoAdjcy adjcy : topoAdjcies) {
             if (adjcy.getA().getUrnType().equals(UrnType.PORT) &&
-                adjcy.getZ().getUrnType().equals(UrnType.PORT)) {
+                    adjcy.getZ().getUrnType().equals(UrnType.PORT)) {
                 SimpleAdjcy simpleAdjcy = SimpleAdjcy.builder()
                         .a(adjcy.getA().getDevice().getUrn())
                         .b(adjcy.getA().getPort().getUrn())
@@ -129,7 +112,7 @@ public class TopoController {
     @ResponseBody
     public Map<String, PortBwVlan> baseline() throws StartupException {
         this.startupCheck();
-        return topoService.baseline();
+        return topologyStore.getBaseline();
 
     }
 
@@ -146,22 +129,22 @@ public class TopoController {
     @ResponseBody
     public Version version() throws StartupException, ConsistencyException {
         this.startupCheck();
-        return topoService.getCurrent();
+        return topologyStore.getVersion();
     }
 
     @RequestMapping(value = "/api/topo/report", method = RequestMethod.GET)
     @ResponseBody
-    public ConsistencyReport report() throws StartupException  {
+    public ConsistencyReport report() throws StartupException {
         this.startupCheck();
         return consistencySvc.getLatestReport();
     }
 
     @RequestMapping(value = "/api/topo/locations", method = RequestMethod.GET)
     @ResponseBody
-    public Map<String, Location> locations() throws ConsistencyException, StartupException  {
+    public Map<String, Location> locations() throws ConsistencyException, StartupException {
         this.startupCheck();
 
-        Topology topology = topoService.currentTopology();
+        Topology topology = topologyStore.getTopology();
         Map<String, Location> loc = new HashMap<>();
 
         for (Device d : topology.getDevices().values()) {

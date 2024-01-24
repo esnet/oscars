@@ -1,14 +1,12 @@
-package net.es.oscars.topo.ent;
+package net.es.oscars.topo.beans;
 
 import lombok.*;
 
-import jakarta.persistence.Embeddable;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Embeddable
 @EqualsAndHashCode
 public class Layer3Ifce {
     private String urn;

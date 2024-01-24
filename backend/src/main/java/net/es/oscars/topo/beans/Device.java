@@ -1,72 +1,71 @@
-package net.es.oscars.topo.ent;
+package net.es.oscars.topo.beans;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.*;
-import net.es.oscars.topo.beans.IntRange;
+import net.es.oscars.dto.topo.DeviceModel;
+import net.es.oscars.topo.enums.DeviceType;
 import net.es.oscars.topo.enums.Layer;
-import org.hibernate.annotations.NaturalId;
 
-import jakarta.persistence.*;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-
 @Data
-@Entity
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class,
                   property = "urn")
-public class Port {
-    @Id
-    @GeneratedValue
-    private Long id;
+public class Device {
 
     @NonNull
-    @NaturalId
-    @Column(unique = true)
     private String urn;
 
-    @Basic
-    @Column(length = 65535)
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private ArrayList<String> tags;
+    @NonNull
+    private DeviceModel model;
+
+    private Integer esdbEquipmentId;
 
     @NonNull
-    @ManyToOne
-    @JsonBackReference(value="device")
-    private Device device;
-
-    @Column
-    @NonNull
-    private Integer reservableIngressBw;
-
-    @Column
-    @NonNull
-    private Integer reservableEgressBw;
-
-    @Column
-    private Integer esdbEquipmentInterfaceId;
-
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable
     @Builder.Default
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private Set<Layer3Ifce> ifces = new HashSet<>();
+    private Integer locationId = 0;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable
+    @NonNull
+    @Builder.Default
+    private Double latitude = 0D;
+
+    @NonNull
+    @Builder.Default
+    private Double longitude = 0D;
+
+    @NonNull
+    @Builder.Default
+    private String location = "";
+
+    @NonNull
+    private DeviceType type;
+
+    @NonNull
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private String ipv4Address;
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private String ipv6Address;
+
     @Builder.Default
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Set<IntRange> reservableVlans = new HashSet<>();
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable
     @Builder.Default
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Set<Layer> capabilities = new HashSet<>();
+
+    @NonNull
+    @Builder.Default
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private Set<Port> ports = new HashSet<>();
+
 
     @Override
     public int hashCode() {
@@ -84,13 +83,12 @@ public class Port {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        Port other = (Port) obj;
-        return id != null && id.equals(other.getId());
+        Device other = (Device) obj;
+        return other.getUrn().equals(this.getUrn());
     }
 
 
     public String toString() {
         return this.getClass().getSimpleName() + "-" + getUrn();
     }
-
 }

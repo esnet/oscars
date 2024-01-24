@@ -1,9 +1,8 @@
-package net.es.oscars.topo.ent;
+package net.es.oscars.topo.beans;
 
 import lombok.*;
 import net.es.oscars.topo.enums.Layer;
 
-import jakarta.persistence.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,16 +11,10 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Entity
 public class Adjcy {
-    @Id
-    @GeneratedValue
-    private Long id;
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     private Point a;
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     private Point z;
 
     @Override
@@ -41,7 +34,7 @@ public class Adjcy {
             return false;
         }
         Adjcy other = (Adjcy) obj;
-        return id != null && id.equals(other.getId());
+        return other.getA().equals(this.getA()) && other.getZ().equals(this.getZ());
     }
 
 
@@ -75,8 +68,6 @@ public class Adjcy {
     }
 
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable
     @Builder.Default
     private Map<Layer, Long> metrics = new HashMap<>();
 
@@ -86,7 +77,7 @@ public class Adjcy {
 
 
     public String toString() {
-        return this.getClass().getSimpleName() + "-" + this.getUrn() + " " + getId();
+        return this.getClass().getSimpleName() + "-" + this.getUrn();
     }
 
 

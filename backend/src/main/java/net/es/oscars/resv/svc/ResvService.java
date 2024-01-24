@@ -2,14 +2,13 @@ package net.es.oscars.resv.svc;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import net.es.oscars.app.props.PssProperties;
 import net.es.oscars.resv.beans.PeriodBandwidth;
 import net.es.oscars.resv.db.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.BwDirection;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.topo.beans.*;
-import net.es.oscars.topo.svc.TopoService;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.Interval;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
@@ -40,7 +39,7 @@ public class ResvService {
     private JunctionRepository jnctRepo;
 
     @Autowired
-    private TopoService topoService;
+    private TopologyStore topologyStore;
 
     public Map<String, List<PeriodBandwidth>> reservedIngBws(Interval interval, String connectionId) {
         List<Schedule> scheds = scheduleRepo.findOverlapping(interval.getBeginning(), interval.getEnding());
@@ -217,7 +216,7 @@ public class ResvService {
 
 
 
-        Map<String, TopoUrn> baseline = topoService.getTopoUrnMap();
+        Map<String, TopoUrn> baseline = topologyStore.getTopoUrnMap();
         return ResvLibrary.availableBandwidthMap(BwDirection.INGRESS, baseline, reservedIngBws);
 
     }
@@ -234,7 +233,7 @@ public class ResvService {
         }
         */
 
-        Map<String, TopoUrn> baseline = topoService.getTopoUrnMap();
+        Map<String, TopoUrn> baseline = topologyStore.getTopoUrnMap();
         return ResvLibrary.availableBandwidthMap(BwDirection.EGRESS, baseline, reservedEgBws);
     }
 
@@ -243,7 +242,7 @@ public class ResvService {
         Map<String, List<PeriodBandwidth>> reservedEgBws = reservedEgBws(interval, connectionId);
         Map<String, List<PeriodBandwidth>> reservedIngBws = reservedIngBws(interval, connectionId);
 
-        return ResvLibrary.portBwVlans(topoService.getTopoUrnMap(), reservedVlans, reservedIngBws, reservedEgBws);
+        return ResvLibrary.portBwVlans(topologyStore.getTopoUrnMap(), reservedVlans, reservedIngBws, reservedEgBws);
     }
 
     static private void addTo(Map<String, List<PeriodBandwidth>> bwMap, String urn, PeriodBandwidth pbw) {

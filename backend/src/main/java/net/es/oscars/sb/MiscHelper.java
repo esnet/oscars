@@ -6,8 +6,8 @@ import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.sb.beans.MplsHop;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.sb.nso.resv.NsoResvException;
-import net.es.oscars.topo.db.AdjcyRepository;
-import net.es.oscars.topo.ent.Adjcy;
+import net.es.oscars.topo.beans.Adjcy;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -19,7 +19,7 @@ import java.util.*;
 public class MiscHelper {
 
     @Autowired
-    private AdjcyRepository adjcyRepo;
+    private TopologyStore topologyStore;
 
 
     public List<MplsHop> mplsHops(List<EroHop> hops) throws PSSException {
@@ -71,7 +71,7 @@ public class MiscHelper {
     }
 
     private String findAddress(String aPort, String zPort) throws PSSException {
-        for (Adjcy adjcy : adjcyRepo.findAll()) {
+        for (Adjcy adjcy : topologyStore.getTopology().getAdjcies()) {
             if (adjcy.getA().getPortUrn().equals(aPort)
                     && adjcy.getZ().getPortUrn().equals(zPort)) {
                 return adjcy.getZ().getAddr();

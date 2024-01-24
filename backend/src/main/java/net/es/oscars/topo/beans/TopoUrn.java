@@ -1,9 +1,6 @@
 package net.es.oscars.topo.beans;
 
 import lombok.*;
-import net.es.oscars.topo.ent.Adjcy;
-import net.es.oscars.topo.ent.Device;
-import net.es.oscars.topo.ent.Port;
 import net.es.oscars.topo.enums.*;
 
 import java.util.HashSet;

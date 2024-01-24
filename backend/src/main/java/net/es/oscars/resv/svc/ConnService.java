@@ -14,7 +14,6 @@ import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.beans.PortBwVlan;
-import net.es.oscars.topo.svc.TopoService;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -77,10 +76,7 @@ public class ConnService {
     private DbAccess dbAccess;
 
     @Autowired
-    private TopoService topoService;
-
-    @Autowired
-    ConnUtils connUtils;
+    private ConnUtils connUtils;
 
     @Value("${pss.default-mtu:9000}")
     private Integer defaultMtu;

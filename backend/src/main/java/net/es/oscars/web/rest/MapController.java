@@ -4,13 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.topo.beans.*;
-import net.es.oscars.topo.db.DeviceRepository;
-import net.es.oscars.topo.db.AdjcyRepository;
-import net.es.oscars.topo.ent.Device;
-import net.es.oscars.topo.ent.Adjcy;
+import net.es.oscars.topo.beans.Device;
+import net.es.oscars.topo.beans.Adjcy;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.pop.UIPopulator;
-import net.es.oscars.topo.svc.TopoService;
+import net.es.oscars.topo.svc.TopologyStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -21,14 +19,9 @@ import java.util.*;
 @Slf4j
 public class MapController {
 
-    @Autowired
-    private DeviceRepository deviceRepo;
 
     @Autowired
-    private AdjcyRepository adjcyRepo;
-
-    @Autowired
-    private TopoService topoService;
+    private TopologyStore topologyStore;
 
     @Autowired
     private Startup startup;
@@ -98,7 +91,7 @@ public class MapController {
 
         MapGraph g = MapGraph.builder().edges(new ArrayList<>()).nodes(new ArrayList<>()).build();
         Map<String, Position> positionMap = uiPopulator.getPositions().getPositions();
-        Topology topology = topoService.currentTopology();
+        Topology topology = topologyStore.getTopology();
 
         for (Device d : topology.getDevices().values()) {
             MapNode n = addNode(d, positionMap);
@@ -117,7 +110,7 @@ public class MapController {
                 String aNodeId = pa.getA().getDevice();
                 String zNodeId = pa.getZ().getDevice();
 
-                Integer bandwidthFloor = topoService.minimalReservableBandwidth(pa);
+                Integer bandwidthFloor = topologyStore.minimalReservableBandwidth(pa);
                 String capString = bandwidthFloor + "Mbps";
                 if (bandwidthFloor >= 1000) {
                     double minCapDub = (double) bandwidthFloor / 1000;

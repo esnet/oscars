@@ -4,22 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.TopoProperties;
 import net.es.oscars.dto.topo.DeviceModel;
+import net.es.oscars.topo.beans.*;
 import net.es.oscars.topo.beans.IntRange;
-import net.es.oscars.topo.beans.TopoException;
-import net.es.oscars.topo.beans.Topology;
-import net.es.oscars.topo.db.AdjcyRepository;
-import net.es.oscars.topo.db.DeviceRepository;
-import net.es.oscars.topo.db.PortRepository;
-import net.es.oscars.topo.ent.*;
 import net.es.oscars.topo.enums.DeviceType;
 import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.svc.ConsistencyService;
-import net.es.oscars.topo.svc.TopoService;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.topo.common.model.oscars1.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import jakarta.transaction.Transactional;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
@@ -32,29 +26,18 @@ import java.util.*;
 @Slf4j
 @Service
 public class TopoPopulator {
-    private TopoProperties topoProperties;
-    private TopoService topoService;
-
-    private DeviceRepository deviceRepo;
-    private PortRepository portRepo;
-    private AdjcyRepository adjcyRepo;
-
-    private ConsistencyService consistencySvc;
+    private final TopoProperties topoProperties;
+    private final TopologyStore topologyStore;
+    private final ConsistencyService consistencySvc;
 
 
     @Autowired
-    public TopoPopulator(TopoService topoService,
-                         DeviceRepository deviceRepo,
-                         PortRepository portRepo,
-                         AdjcyRepository adjcyRepo,
+    public TopoPopulator(TopologyStore topologyStore,
                          ConsistencyService consistencySvc,
                          TopoProperties topoProperties) {
         this.topoProperties = topoProperties;
-        this.deviceRepo = deviceRepo;
-        this.portRepo = portRepo;
-        this.adjcyRepo = adjcyRepo;
-        this.topoService = topoService;
         this.consistencySvc = consistencySvc;
+        this.topologyStore = topologyStore;
     }
 
     public boolean fileLoadNeeded(Version version) {
@@ -62,7 +45,7 @@ public class TopoPopulator {
 
     }
 
-    public Instant fileLastModified() {
+    private Instant fileLastModified() {
         String devicesFilename = "./config/topo/" + topoProperties.getPrefix() + "-devices.json";
         File devFile = new File(devicesFilename);
         Instant devLastMod = Instant.ofEpochMilli(devFile.lastModified());
@@ -86,23 +69,13 @@ public class TopoPopulator {
         String devicesFilename = "./config/topo/" + topoProperties.getPrefix() + "-devices.json";
         String adjciesFilename = "./config/topo/" + topoProperties.getPrefix() + "-adjcies.json";
 
-        Topology current = topoService.currentTopology();
+        Topology current = topologyStore.getTopology();
         log.debug("Existing topology: dev: " + current.getDevices().size() + " adj: " + current.getAdjcies().size());
         return this.loadTopology(devicesFilename, adjciesFilename);
     }
 
-    public void replaceDbTopology(Topology incoming) {
-        deviceRepo.deleteAll();
-        portRepo.deleteAll();
-        adjcyRepo.deleteAll();
-        deviceRepo.saveAll(incoming.getDevices().values());
-        portRepo.saveAll(incoming.getPorts().values());
-        adjcyRepo.saveAll(incoming.getAdjcies());
-
-    }
 
     public Topology loadTopology(String devicesFilename, String adjciesFilename) throws IOException {
-
         List<Device> devices = loadDevicesFromFile(devicesFilename);
         Map<String, Port> portMap = new HashMap<>();
         Map<String, Device> deviceMap = new HashMap<>();
@@ -171,8 +144,8 @@ public class TopoPopulator {
     }
 
 
-    @Transactional
     public void refresh(boolean onlyLoadWhenFileNewer) throws ConsistencyException, TopoException, IOException {
+        log.info("topology refresg");
         Topology incoming = null;
         boolean updated = false;
         if (topoProperties.getUrl() != null) {
@@ -189,37 +162,21 @@ public class TopoPopulator {
 
             }
         } else {
-            Optional<Version> maybeV = topoService.latestVersion();
-            boolean fileLoadNeeded = true;
-
-            if (maybeV.isPresent()) {
-                if (onlyLoadWhenFileNewer) {
-                    fileLoadNeeded = fileLoadNeeded(maybeV.get());
-                }
-            } else {
-                log.info("no topology valid version present; first load?");
-
-            }
-
-            if (fileLoadNeeded) {
-                log.info("Need to load new topology files");
-                // load to DB from disk
-                incoming = loadFromDefaultFiles();
-                updated = true;
-            }
+            log.info("Need to load new topology files");
+            // load to DB from disk
+            incoming = loadFromDefaultFiles();
+            updated = true;
         }
 
         if (updated) {
-            replaceDbTopology(incoming);
-            topoService.bumpVersion();
-            // load to memory from DB
-            topoService.updateInMemoryTopo();
+            topologyStore.replaceTopology(incoming);
             // check consistency
             consistencySvc.checkConsistency();
         }
     }
 
     public Topology loadFromDiscovery() throws TopoException, ResourceAccessException {
+        log.info("loading topology from discovery");
         RestTemplate restTemplate = new RestTemplate();
         OscarsOneTopo discTopo = restTemplate.getForObject(topoProperties.getUrl(), OscarsOneTopo.class);
         if (discTopo == null) {
@@ -325,6 +282,8 @@ public class TopoPopulator {
                 ports.put(port.getUrn(), port);
             }
         }
+
+        log.info("loaded a topology with "+devices.size()+" devices");
 
         return Topology.builder()
                 .adjcies(adjcies)

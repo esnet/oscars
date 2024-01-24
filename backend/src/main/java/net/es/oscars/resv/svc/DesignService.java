@@ -6,7 +6,7 @@ import net.es.oscars.resv.ent.*;
 import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.enums.UrnType;
-import net.es.oscars.topo.svc.TopoService;
+import net.es.oscars.topo.svc.TopologyStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -19,10 +19,10 @@ import java.util.Map;
 @Slf4j
 public class DesignService {
     @Autowired
-    private TopoService topoService;
+    private TopologyStore topologyStore;
 
     public DesignResponse verifyDesign(Design design) {
-        Map<String, TopoUrn> topoUrnMap = topoService.getTopoUrnMap();
+        Map<String, TopoUrn> topoUrnMap = topologyStore.getTopoUrnMap();
 
         List<String > errors = new ArrayList<>();
         boolean valid = true;

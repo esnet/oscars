@@ -4,16 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.util.DbAccess;
 import net.es.oscars.topo.beans.TopoException;
-import net.es.oscars.topo.beans.Topology;
-import net.es.oscars.topo.ent.Version;
-import net.es.oscars.topo.svc.ConsistencyService;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.pop.TopoPopulator;
-import net.es.oscars.topo.svc.TopoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -32,7 +27,6 @@ public class RefreshTopology {
     private TopoPopulator topoPopulator;
 
     @Scheduled(fixedDelay = 300*1000) // millisecs
-    @Transactional
     public void processingLoop() {
         if (startup.isInStartup() || startup.isInShutdown()) {
             return;
