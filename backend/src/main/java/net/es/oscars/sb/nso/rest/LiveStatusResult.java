@@ -8,16 +8,21 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class LiveStatusResult {
 
     private String device;
+    @Builder.Default
     private Instant timestamp = null;
+    @Builder.Default
     private Boolean status = false;
+
+    @Builder.Default
     @JsonProperty("error-message")
     private String errorMessage = null;
 

@@ -8,20 +8,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper=false)
 public class MacInfoResult extends LiveStatusResult {
 
-    @Builder
-    MacInfoResult(String device, Instant timestamp, Boolean status, String errorMessage, String fdbQueryResult) {
-        super(device, timestamp, status, errorMessage);
-        this.fdbQueryResult = fdbQueryResult;
-    }
 
     @JsonProperty("fdb")
     @Builder.Default
