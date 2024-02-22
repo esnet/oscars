@@ -37,8 +37,19 @@ public class LiveStatusOperationalStateCacheManager {
         this.lspCache = new HashMap<>();
     }
 
-    // learned MAC address live status cache functions
-    public MacInfoServiceResult refreshMacs(String device, int serviceId) {
+
+    public MacInfoServiceResult getMacs(String device, int serviceId, Instant oldestAcceptableTimestamp) {
+
+        if (oldestAcceptableTimestamp == null) return null;
+
+        DeviceServiceIdKeyPair key = new DeviceServiceIdKeyPair(device, serviceId);
+        // check if already cached:
+        if (macCache.containsKey(key) && macCache.get(key).getTimestamp().isAfter(oldestAcceptableTimestamp)) {
+            return macCache.get(key);
+        }
+
+        // cache miss:
+
         log.info("Refresh FDB string for " + device + " service ID " + serviceId);
 
         MacInfoServiceResult result = new MacInfoServiceResult();
@@ -48,46 +59,18 @@ public class LiveStatusOperationalStateCacheManager {
         result.setServiceId(serviceId);
         result.setTimestamp(now);
 
-        DeviceServiceIdKeyPair key = new DeviceServiceIdKeyPair(device, serviceId);
         String reply = nsoProxy.getLiveStatusServiceMacs(device, serviceId);
+        result.setFdbQueryResult(reply);
 
         if (!checkLiveStatusReply(reply)) {
-            log.error( "error refreshing FDB MAC table from " + device + " with service id " + serviceId);
-            result = (MacInfoServiceResult) createErrorResult(reply, now);
-            return result;
+            log.error("error refreshing FDB MAC table from " + device + " with service id " + serviceId);
+            return (MacInfoServiceResult) createErrorResult(reply, now);
         }
 
         result.setStatus(true);
-        result.setFdbQueryResult(reply);
-
         macCache.put(key, result);
         return result;
-    }
 
-    public MacInfoServiceResult getRefreshedMacs(String device, int serviceId) {
-        return refreshMacs(device, serviceId);
-    }
-
-    public MacInfoServiceResult getCachedMacs(String device, int serviceId) {
-        return macCache.get(new DeviceServiceIdKeyPair(device, serviceId));
-    }
-
-    public MacInfoServiceResult getMacs(String device, int serviceId, Instant olderThanTimestamp) {
-        if (olderThanTimestamp == null) return null;
-
-        MacInfoServiceResult tmp = getCachedMacs(device, serviceId);
-        if (tmp == null) {
-            // nothing cached
-            tmp = getRefreshedMacs(device, serviceId);
-            if (tmp == null || tmp.getTimestamp() == null) return null;
-            else return tmp;
-        }
-
-        if (tmp.getTimestamp().isBefore(olderThanTimestamp)) {
-            // if not get a refreshed one
-            tmp = getRefreshedMacs(device, serviceId);
-        }
-        return tmp;
     }
 
     // SDP live status cache functions
@@ -351,7 +334,7 @@ public class LiveStatusOperationalStateCacheManager {
             }
             result.setTunnelId(tunnelId);
 
-            if(lspInfo[2].contains("No")) {
+            if (lspInfo[2].contains("No")) {
                 result.setFastFailConf(false);
             } else {
                 result.setFastFailConf(true);
@@ -406,11 +389,12 @@ public class LiveStatusOperationalStateCacheManager {
 
     /**
      * Extracts live status output lines with the actual data from an SDP / SAP query
+     *
      * @param input the live status reply
      * @return an array of strings with the data
      */
     public ArrayList<String> getDataLines(String input) {
-        if(input == null) return null;
+        if (input == null) return null;
         ArrayList<String> data = new ArrayList<>();
         String[] lines = input.split("\r\n");
         Pattern regex = Pattern.compile("^[0-9]{1}");
@@ -425,17 +409,18 @@ public class LiveStatusOperationalStateCacheManager {
 
     /**
      * Extracts live status output lines with the actual data from an LSP query
+     *
      * @param input the live status reply
      * @return an array of strings with the data
      */
     public ArrayList<String> getLspDataLines(String input) {
-        if(input == null) return null;
+        if (input == null) return null;
         ArrayList<String> data = new ArrayList<>();
         String[] lines = input.split("\r\n");
-        for (int i = 0; i < lines.length-1; i++) {
+        for (int i = 0; i < lines.length - 1; i++) {
             String line = lines[i];
             if (line.contains("Up") || line.contains("Down")) {
-                String tmp = line + " " + lines[i+1];
+                String tmp = line + " " + lines[i + 1];
                 data.add(tmp);
             }
         }
@@ -444,6 +429,7 @@ public class LiveStatusOperationalStateCacheManager {
 
     /**
      * Checks for live status error key words
+     *
      * @param input the live status reply
      * @return true if valid input and false if an error was detected
      */
@@ -464,25 +450,30 @@ public class LiveStatusOperationalStateCacheManager {
 
     /**
      * Create a lve status error
-     * @param input the error
+     *
+     * @param input   the error
      * @param instant the time the error occurred
      * @return a live status object containing the error
      */
     public LiveStatusResult createErrorResult(String input, Instant instant) {
-        String msg = "Live status request returned null";
-        LiveStatusResult ret = new LiveStatusResult();
-        ret.setStatus(false);
-        ret.setTimestamp(instant);
-        if (input != null) {
-            msg = input;
-        }
         log.info(input);
-        ret.setErrorMessage(input);
-        return ret;
+
+        String msg;
+        if (input == null) {
+            msg = "Live status request returned null";
+        } else {
+            msg = "Device error: " + input;
+        }
+        return LiveStatusResult.builder()
+                .status(false)
+                .timestamp(instant)
+                .errorMessage(msg)
+                .build();
     }
 
     /**
-     * Converts the live status status values Up / Down into boolean true / false
+     * Converts the live status values Up / Down into boolean true / false
+     *
      * @param status String with the status value
      * @return true if status is Up otherwise false
      */

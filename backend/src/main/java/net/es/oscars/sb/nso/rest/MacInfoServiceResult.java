@@ -1,10 +1,12 @@
 package net.es.oscars.sb.nso.rest;
 
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@SuperBuilder
 @EqualsAndHashCode(callSuper=false)
 public class MacInfoServiceResult extends MacInfoResult {
     private Integer serviceId;
