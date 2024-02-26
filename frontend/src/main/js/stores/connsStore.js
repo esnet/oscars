@@ -9,7 +9,10 @@ class ConnectionsStore {
         conns: [],
         current: {
             archived: {
-                cmp: {},
+                cmp: {
+                    fixtures: [],
+                    pipes: []
+                },
                 schedule: {
                     beginning: null,
                     ending: null
@@ -17,7 +20,6 @@ class ConnectionsStore {
             },
             serviceId: "",
             tags: [],
-            dirty: false
         },
         foundCurrent: false,
         pss: {
@@ -33,46 +35,8 @@ class ConnectionsStore {
         cloned: {
             cloneable: false,
             message: ""
-        }
-    };
-
-    @observable editSchedule = {
-        connectionId: "",
-        description: {
-            originalDescription: "",
-            updatedDescription: "",
-            acceptable: false,
-            validationText: "",
-            validationState: "success",
-            saved: false,
-            buttons: {
-                buttonText: "Edit",
-                edit: true,
-                save: true,
-                input: true,
-                collapseText: true
-            }
         },
-        ending: {
-            originalTime: "",
-            newTime: "",
-            acceptable: false,
-            validationText: "",
-            validationState: "success",
-            validSchedule: {
-                beginning: null,
-                ending: null
-            },
-            parsedValue: null,
-            saved: false,
-            buttons: {
-                buttonText: "Edit",
-                edit: true,
-                save: true,
-                input: true,
-                collapseText: true
-            }
-        }
+        refreshNeeded: false
     };
 
     @observable drawing = {
@@ -149,10 +113,6 @@ class ConnectionsStore {
         filtered: []
     };
 
-    @action setParamsForEditSchedule(params) {
-        mergeWith(this.editSchedule, params);
-    }
-
     @action setCloned(value) {
         this.store.cloned = value;
     }
@@ -206,6 +166,14 @@ class ConnectionsStore {
         this.store.current = {};
         this.store.foundCurrent = false;
     }
+
+    @action refreshedCurrent() {
+        this.store.current.refreshNeeded = false;
+    }
+    @action refreshCurrentPlease() {
+        this.store.current.refreshNeeded = true;
+    }
+
 
     @action setSelected(component) {
         this.store.selected = component;

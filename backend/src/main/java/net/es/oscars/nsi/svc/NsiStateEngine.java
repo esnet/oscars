@@ -15,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Component
@@ -26,6 +28,9 @@ public class NsiStateEngine {
     @Autowired
     private ConnUtils connUtils;
 
+    public Optional<NsiMapping> findMapping(String nsiConnectionId) {
+        return nsiRepo.findByNsiConnectionId(nsiConnectionId);
+    }
 
     public NsiMapping newMapping(String nsiConnectionId, String nsiGri, String nsaId, Integer version) throws ServiceException {
         if (nsiConnectionId == null || nsiConnectionId.isEmpty()) {
@@ -34,7 +39,7 @@ public class NsiStateEngine {
         if (nsiGri == null) {
             nsiGri = "";
         }
-        if (!nsiRepo.findByNsiConnectionId(nsiConnectionId).isEmpty()) {
+        if (nsiRepo.findByNsiConnectionId(nsiConnectionId).isPresent()) {
             throw new ServiceException("previously used nsi connection id! " + nsiConnectionId);
         }
         String oscarsConnectionId = connUtils.genUniqueConnectionId();

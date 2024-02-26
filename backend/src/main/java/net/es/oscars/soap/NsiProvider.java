@@ -85,19 +85,29 @@ public class NsiProvider implements ConnectionProviderPort {
             log.error(ex.getMessage(), ex);
             throw new ServiceException(ex.getMessage());
         }
+        NsiMapping mapping;
+
         if (reserve.getConnectionId() == null) {
             String nsiConnectionId = UUID.randomUUID().toString();
             reserve.setConnectionId(nsiConnectionId);
         }
-        NsiMapping mapping = stateEngine.newMapping(
-                reserve.getConnectionId(),
-                reserve.getGlobalReservationId(),
-                header.value.getRequesterNSA(),
-                reserve.getCriteria().getVersion()
-        );
 
-        log.info("triggering async reserve");
-        nsiService.reserve(header.value, reserve, mapping);
+        if (stateEngine.findMapping(reserve.getConnectionId()).isPresent()) {
+            mapping = stateEngine.findMapping(reserve.getConnectionId()).get();
+            log.info("triggering a modify");
+            nsiService.modify(header.value, reserve, mapping);
+        } else {
+            mapping = stateEngine.newMapping(
+                    reserve.getConnectionId(),
+                    reserve.getGlobalReservationId(),
+                    header.value.getRequesterNSA(),
+                    reserve.getCriteria().getVersion()
+            );
+
+            log.info("triggering a reserve");
+            nsiService.reserve(header.value, reserve, mapping);
+        }
+
         log.info("returning reserve ack");
 
         ReserveResponseType rrt = new ReserveResponseType();

@@ -61,14 +61,16 @@ public class SouthboundPeriodicChecker {
 
             Set<Connection> shouldBeDeployed = new HashSet<>();
 
-            //
+
+            // look at all RESERVED connections;
+            // expired ones need to be made UNDEPLOYED
+            // ones that just entered their activation schedule need to be made DEPLOYED
             List<Connection> reservedConns = connRepo.findByPhase(Phase.RESERVED);
             for (Connection c : reservedConns) {
                 Schedule s = c.getReserved().getSchedule();
                 if (s.getEnding().isBefore(Instant.now())) {
                     shouldBeMadeUndeployed.add(c);
                     shouldBeFinished.add(c.getConnectionId());
-
                 } else if (s.getBeginning().isBefore(Instant.now())) {
                     if (c.getMode().equals(BuildMode.AUTOMATIC)) {
                         shouldBeDeployed.add(c);
@@ -76,7 +78,7 @@ public class SouthboundPeriodicChecker {
                 }
             }
 
-            // modify the intents
+            // modify intents on connections
             for (Connection c: shouldBeDeployed)  {
                 if (c.getDeploymentIntent().equals(DeploymentIntent.SHOULD_BE_UNDEPLOYED)) {
                     log.info("was set to should-be-deployed "+c.getConnectionId());
@@ -101,6 +103,10 @@ public class SouthboundPeriodicChecker {
             List<Connection> undeployThese = connRepo
                     .findByDeploymentIntentAndDeploymentState(DeploymentIntent.SHOULD_BE_UNDEPLOYED, DeploymentState.DEPLOYED);
 
+            List<Connection> redeployThese = connRepo.findByDeploymentIntent(DeploymentIntent.SHOULD_BE_REDEPLOYED);
+
+
+
             // we only allow RESERVED connections that have a start time in the past to ever get deployed
             for (Connection c : deployThese) {
                 if (c.getPhase().equals(Phase.RESERVED) &&
@@ -123,6 +129,13 @@ public class SouthboundPeriodicChecker {
                 } else {
                     southboundQueuer.add(CommandType.DISMANTLE, c.getConnectionId(), State.FINISHED);
                 }
+            }
+
+            for (Connection c : redeployThese) {
+                log.info("needs to be redeployed - adding a queued job to REDEPLOY: "+c.getConnectionId());
+                c.setDeploymentState(DeploymentState.WAITING_TO_BE_REDEPLOYED);
+                connRepo.save(c);
+                southboundQueuer.add(CommandType.REDEPLOY, c.getConnectionId(), State.ACTIVE);
             }
 
             // run the PSS queue

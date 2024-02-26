@@ -370,6 +370,9 @@ public class ConnUtils {
         if (c.getPhase().equals(Phase.HELD)) {
             s = c.getHeld().getSchedule();
             cmp = c.getHeld().getCmp();
+        } else if (c.getPhase().equals(Phase.RESERVED)) {
+            s = c.getReserved().getSchedule();
+            cmp = c.getReserved().getCmp();
         } else {
             s = c.getArchived().getSchedule();
             cmp = c.getArchived().getCmp();

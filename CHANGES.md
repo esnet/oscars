@@ -1,4 +1,13 @@
 # OSCARS Release Notes
+
+### 1.2.0
+> Feb 2024
+- added in-service modification feature
+
+### 1.1.6
+> Feb 2024
+- fixed MAC address collection
+
 ### 1.1.5
 > Jan 2024
 - Removed topology persistence

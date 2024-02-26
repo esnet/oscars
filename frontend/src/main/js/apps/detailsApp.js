@@ -23,10 +23,12 @@ class DetailsApp extends Component {
         const pathConnectionId = this.props.match.params.connectionId;
         this.retrieve(pathConnectionId);
         this.periodicCheck();
+        this.refreshNeededCheck();
     }
 
     componentWillUnmount() {
         clearTimeout(this.timeoutId);
+        clearTimeout(this.onDemandRefreshTimeoutId);
         this.props.connsStore.clearCurrent();
     }
 
@@ -37,6 +39,16 @@ class DetailsApp extends Component {
         }, 30000);
     }
 
+    refreshNeededCheck() {
+        this.onDemandRefreshTimeoutId = setTimeout(() => {
+            const conn = this.props.connsStore.store.current;
+            if (conn.refreshNeeded) {
+                this.refresh();
+            }
+            this.refreshNeededCheck();
+        }, 1000);
+    }
+
     load = connectionId => {
         this.retrieve(connectionId);
     };
@@ -44,6 +56,7 @@ class DetailsApp extends Component {
     refresh = () => {
         const pathConnectionId = this.props.match.params.connectionId;
         this.retrieve(pathConnectionId);
+        this.props.connsStore.refreshedCurrent();
     };
 
     retrieve = connectionId => {

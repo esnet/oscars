@@ -14,7 +14,9 @@ public enum NsiErrors {
     NRM_ERROR ("00500"),
     UNAVAIL_ERROR ("00600"),
     SVC_ERROR ("00700"),
-    UNKNOWN_STP ("00701");
+    UNKNOWN_STP ("00701"),
+    HITLESS_MODIFICATION_NOT_POSSIBLE("00720");
+
 
 
     private String code;

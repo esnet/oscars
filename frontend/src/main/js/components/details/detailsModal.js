@@ -23,7 +23,7 @@ class DetailsModal extends Component {
         if (modalName === "editEnding") {
             this.props.connsStore.setParamsForEditSchedule({
                 ending: {
-                    saved: false
+                    updated: false
                 }
             });
         } else {

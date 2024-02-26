@@ -14,7 +14,7 @@
     <groupId>net.es.oscars</groupId>
     <artifactId>backend</artifactId>
     <name>backend</name>
-    <version>1.1.6</version>
+    <version>1.2.0</version>
 
     <description>OSCARS backend</description>
     <properties>
@@ -67,7 +67,7 @@
         <dependency>
             <groupId>net.es.topo.common</groupId>
             <artifactId>topo-common</artifactId>
-            <version>0.0.23</version>
+            <version>0.0.24</version>
         </dependency>
         <dependency>
             <groupId>net.es.nsi</groupId>
@@ -106,6 +106,23 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>2.15.2</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
