@@ -71,7 +71,6 @@ class DetailsHistory extends Component {
         const eventlog = cs.store.eventLog;
 
         if (typeof eventlog === 'undefined') {
-            console.log('undefined event log');
             return (
                 <div>
                     Waiting for event log.
@@ -81,7 +80,6 @@ class DetailsHistory extends Component {
             let rows = [];
             if (typeof eventlog.events !== 'undefined') {
                 eventlog.events.slice().reverse().map(c => {
-                    console.log(c)
                     let row = {
                         at: Moment(c.occurrence).format('Y/MM/DD HH:mm:ss'),
                         type: c.type,

@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.resv.ent.VlanJunction;
+import net.es.oscars.resv.enums.DeploymentIntent;
 import net.es.oscars.sb.ent.RouterCommands;
 import net.es.oscars.sb.nso.NsoAdapter;
 import net.es.oscars.sb.beans.QueueName;
@@ -13,6 +14,7 @@ import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
+import net.es.topo.common.devel.DevelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -70,6 +72,8 @@ public class SouthboundQueuer {
                     conn.setDeploymentState(DeploymentState.BEING_DEPLOYED);
                 } else if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
                     conn.setDeploymentState(DeploymentState.BEING_UNDEPLOYED);
+                } else if (wt.getCommandType().equals(CommandType.REDEPLOY)) {
+                    conn.setDeploymentState(DeploymentState.BEING_REDEPLOYED);
                 }
                 cr.save(conn);
 
@@ -92,6 +96,7 @@ public class SouthboundQueuer {
 
     @Transactional
     public void completeTask(SouthboundTaskResult result) {
+        DevelUtils.dumpDebug("complete task", result);
         SouthboundTask completed = null;
         for (SouthboundTask task : running) {
             if (task.getCommandType().equals(result.getCommandType()) &&
@@ -99,18 +104,21 @@ public class SouthboundQueuer {
                 completed = task;
 
                 CommandType rct = result.getCommandType();
-                // when the task was to build or dismantle we update the connection state
-                if (rct.equals(CommandType.BUILD) || rct.equals(CommandType.DISMANTLE)) {
+                // when the task was to build, dismantle or redeploy we update the connection state
+                if (rct.equals(CommandType.BUILD) || rct.equals(CommandType.DISMANTLE) || rct.equals(CommandType.REDEPLOY)) {
+
+                    // this is kinda funky
                     cr.findByConnectionId(task.getConnectionId()).ifPresent(c -> {
                                 c.setState(result.getState());
                                 c.setDeploymentState(result.getDeploymentState());
+                                if (rct.equals(CommandType.REDEPLOY)) {
+                                    c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED);
+                                }
                                 cr.save(c);
                             }
                     );
-
                 }
-
-                log.info("completed : " + result.getConnectionId() + " " + result.getCommandType());
+                log.info("completed : " + result.getConnectionId() + " " + result.getCommandType()+" "+result.getDeploymentState());
             }
         }
         if (completed != null) {

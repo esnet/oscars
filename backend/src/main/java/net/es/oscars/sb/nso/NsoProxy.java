@@ -2,8 +2,13 @@ package net.es.oscars.sb.nso;
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.app.props.NsoProperties;
@@ -17,6 +22,7 @@ import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
@@ -79,7 +85,19 @@ public class NsoProxy {
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public void deleteServices(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoCommitException {
         YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
+        submitYangPatch(wrapped);
 
+    }
+
+    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
+    public void redeployServices(NsoVPLS nsoVPLS, String connectionId) throws NsoCommitException {
+        log.info("redeploying services");
+        YangPatchWrapper wrapped = makeRedeployYangPatch(nsoVPLS, connectionId);
+        submitYangPatch(wrapped);
+    }
+
+    public void submitYangPatch(YangPatchWrapper wrapped) throws NsoCommitException {
+        DevelUtils.dumpDebug("yang patch", wrapped);
         String path = "restconf/data/";
         String restPath = props.getUri() + path;
 
@@ -99,10 +117,10 @@ public class NsoProxy {
                     }
                 } catch (JsonProcessingException ex) {
                     log.error(errorRef+ex.getMessage()+"\n"+response.getBody());
-                    throw new NsoCommitException(errorRef+"Unable to delete. NSO response parse error.");
+                    throw new NsoCommitException(errorRef+"Unable to YANG patch. NSO response parse error.");
                 }
-                log.error(errorRef+"Unable to delete. NSO error(s): " + errorStr);
-                throw new NsoCommitException(errorRef+"Unable to delete. NSO error(s): " + errorStr);
+                log.error(errorRef+"Unable to YANG patch. NSO error(s): " + errorStr);
+                throw new NsoCommitException(errorRef+"Unable to YANG patch. NSO error(s): " + errorStr);
             }
         } catch (RestClientException ex) {
             log.error(errorRef+"REST error %s".formatted(ex.getMessage()));
@@ -118,6 +136,7 @@ public class NsoProxy {
         String errorRef = "Error reference: [" + errorUuid + "]\n";
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
+        DevelUtils.dumpDebug("build services", wrapper);
 
         try {
             DevelUtils.dumpDebug("commit", wrapper);
@@ -230,6 +249,50 @@ public class NsoProxy {
         return YangPatchWrapper.builder().patch(deletePatch).build();
     }
 
+    public static YangPatchWrapper makeRedeployYangPatch(NsoVPLS vpls, String connectionId) {
+        List<YangPatch.YangEdit> edits = new ArrayList<>();
+
+        // TODO: (maybe) modify something else than the VPLS service endpoints
+        int vcid = vpls.getVcId();
+        int i = 0;
+        for (NsoVPLS.DeviceContainer dc : vpls.getDevice()) {
+            String vplsKey = "="+vcid;
+            String devKey = "="+dc.getDevice();
+
+            String path = "/tailf-ncs:services/esnet-vpls:vpls" +vplsKey+"/device"+devKey;
+
+            YangPatchDeviceWrapper deviceWrapper = YangPatchDeviceWrapper.builder()
+                    .device(dc)
+                    .build();
+
+            edits.add(YangPatch.YangEdit.builder()
+                    .editId("replace " + i)
+                    .operation("replace")
+                    .value(deviceWrapper)
+                    .target(path)
+                    .build());
+            i++;
+        }
+
+        YangPatch patch = YangPatch.builder()
+                .patchId("redeploy VPLS for "+connectionId)
+                .edit(edits)
+                .build();
+
+
+        return YangPatchWrapper.builder().patch(patch).build();
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class YangPatchDeviceWrapper {
+        @JsonProperty("esnet-vpls:device")
+        NsoVPLS.DeviceContainer device;
+
+    }
+
     // NSO live status fdb query stuff
     public String getLiveStatusFdbInfo(String device) {
         String args = "service fdb-info";
@@ -329,5 +392,6 @@ public class NsoProxy {
         }
         return null;
     }
+
 
 }

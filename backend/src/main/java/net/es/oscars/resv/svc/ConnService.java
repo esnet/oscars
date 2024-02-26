@@ -16,6 +16,7 @@ import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
+import net.es.topo.common.devel.DevelUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.graph.DefaultEdge;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityNotFoundException;
+
 import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -68,6 +70,13 @@ public class ConnService {
 
     @Autowired
     private ReservedRepository reservedRepo;
+
+
+    @Autowired
+    private FixtureRepository fixRepo;
+
+    @Autowired
+    private PipeRepository pipeRepo;
 
     @Autowired
     private ObjectMapper jacksonObjectMapper;
@@ -300,30 +309,138 @@ public class ConnService {
 
     }
 
-    public void modifySchedule(Connection c, ScheduleModifyRequest request) throws ModifyException {
+
+    public void modifySchedule(Connection c, Instant beginning, Instant ending) throws ModifyException {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
         }
-        if (request.getType().equals(ScheduleModifyType.BEGIN)) {
-            Instant newBeginning = Instant.ofEpochSecond(request.getTimestamp());
-            c.getReserved().getSchedule().setBeginning(newBeginning);
-            c.getArchived().getSchedule().setBeginning(newBeginning);
-            connRepo.save(c);
-        } else if (request.getType().equals(ScheduleModifyType.END)) {
-            Instant newEnding = Instant.ofEpochSecond(request.getTimestamp());
-            c.getReserved().getSchedule().setEnding(newEnding);
-            c.getArchived().getSchedule().setEnding(newEnding);
-            connRepo.save(c);
 
-        } else {
-            throw new ModifyException("Invalid schedule modification request");
+        c.getReserved().getSchedule().setEnding(ending);
+        c.getReserved().getSchedule().setBeginning(beginning);
+        Validity v = verifyModification(c);
+        if (v.isValid()) {
+            c.getArchived().getSchedule().setEnding(ending);
+            c.getArchived().getSchedule().setBeginning(ending);
+            connRepo.save(c);
+        }
+
+    }
+
+    public void modifyBandwidth(Connection c, Integer bandwidth) throws ModifyException {
+        if (!c.getPhase().equals(Phase.RESERVED)) {
+            throw new ModifyException("May only change schedule when RESERVED");
+        }
+        int max = findAvailableMaxBandwidth(c);
+        if (bandwidth > max) {
+            throw new ModifyException("New bandwidth above available");
+        }
+
+        for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
+            f.setIngressBandwidth(bandwidth);
+            f.setEgressBandwidth(bandwidth);
+            fixRepo.save(f);
+        }
+
+        for (VlanFixture f : c.getArchived().getCmp().getFixtures()) {
+            f.setIngressBandwidth(bandwidth);
+            f.setEgressBandwidth(bandwidth);
+            fixRepo.save(f);
+        }
+        for (VlanPipe p : c.getReserved().getCmp().getPipes()) {
+            p.setAzBandwidth(bandwidth);
+            p.setZaBandwidth(bandwidth);
+            pipeRepo.save(p);
+        }
+        for (VlanPipe p : c.getArchived().getCmp().getPipes()) {
+            p.setAzBandwidth(bandwidth);
+            p.setZaBandwidth(bandwidth);
+            pipeRepo.save(p);
+        }
+        if (c.getState().equals(State.ACTIVE) && c.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
+            c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_REDEPLOYED);
+        }
+    }
+
+    public Validity modifyNsi(Connection c, Integer bandwidth, Instant beginning, Instant ending) throws ModifyException {
+        if (beginning != null) {
+            c.getReserved().getSchedule().setBeginning(beginning);
+        }
+        if (ending != null) {
+            c.getReserved().getSchedule().setEnding(ending);
+        }
+
+        if (bandwidth != null) {
+            for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
+                f.setIngressBandwidth(bandwidth);
+                f.setEgressBandwidth(bandwidth);
+            }
+
+            for (VlanPipe p : c.getReserved().getCmp().getPipes()) {
+                p.setAzBandwidth(bandwidth);
+                p.setZaBandwidth(bandwidth);
+            }
+        }
+
+        Validity v = verifyModification(c);
+        if (v.isValid()) {
+            this.modifySchedule(c, beginning, ending);
+            this.modifyBandwidth(c, bandwidth);
+        }
+        return v;
+    }
+
+
+    public int findAvailableMaxBandwidth(Connection c) {
+        Interval interval = Interval.builder()
+                .beginning(c.getReserved().getSchedule().getBeginning())
+                .ending(c.getReserved().getSchedule().getEnding())
+                .build();
+
+        Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, c.getConnectionId());
+
+        Set<String> portUrns = new HashSet<>();
+        for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
+            portUrns.add(f.getPortUrn());
+        }
+
+        for (VlanPipe p : c.getReserved().getCmp().getPipes()) {
+            int i = 0;
+            for (EroHop hop : p.getAzERO()) {
+                if (i % 3 != 0) {
+                    portUrns.add(hop.getUrn());
+                }
+                i++;
+            }
+        }
+
+        int available = Integer.MAX_VALUE;
+        for (String portUrn : portUrns) {
+            if (availBwVlanMap.containsKey(portUrn)) {
+                PortBwVlan availableForPort = availBwVlanMap.get(portUrn);
+                if (availableForPort.getEgressBandwidth() < available) {
+                    available = availableForPort.getEgressBandwidth();
+                }
+                if (availableForPort.getIngressBandwidth() < available) {
+                    available = availableForPort.getIngressBandwidth();
+                }
+            }
+        }
+        return available;
+
+    }
+
+    public Validity verifyModification(Connection c) {
+        try {
+            return this.validate(connUtils.fromConnection(c, false), ConnectionMode.MODIFY);
+        } catch (ConnException e) {
+            throw new RuntimeException(e);
         }
 
     }
 
 
     public ConnChangeResult commit(Connection c) throws NsoResvException, PCEException, ConnException {
-        log.info("committing "+c.getConnectionId());
+        log.info("committing " + c.getConnectionId());
         Held h = c.getHeld();
 
         if (!c.getPhase().equals(Phase.HELD)) {
@@ -383,7 +500,6 @@ public class ConnService {
                 .when(Instant.now())
                 .build();
     }
-
 
 
     public ConnChangeResult release(Connection c) {
@@ -494,8 +610,6 @@ public class ConnService {
     }
 
 
-
-
     public Validity validateCommit(Connection in) throws ConnException {
 
         Validity v = this.validate(connUtils.fromConnection(in, false), ConnectionMode.NEW);
@@ -570,6 +684,8 @@ public class ConnService {
     public Validity validate(SimpleConnection in, ConnectionMode mode)
             throws ConnException {
 
+        DevelUtils.dumpDebug("validate conn", in);
+
         StringBuilder error = new StringBuilder();
         boolean valid = true;
         if (in == null) {
@@ -625,12 +741,12 @@ public class ConnService {
         } else {
             begin = Instant.ofEpochSecond(in.getBegin());
             Instant rejectBefore = Instant.now().minus(5, ChronoUnit.MINUTES);
-            if (begin.isBefore(rejectBefore)) {
+            if (begin.isBefore(rejectBefore) && !mode.equals(ConnectionMode.MODIFY)) {
                 beginValid = false;
                 error.append("Begin time is more than 5 minutes in the past\n");
             } else {
                 // if we are set to start to up to +30 sec from now,
-                // we will (silently) modify the begin timestamp and
+                // we (silently) modify the begin timestamp and we
                 // set it to +30 secs from now()
                 beginValid = true;
                 Instant earliestPossible = Instant.now().plus(30, ChronoUnit.SECONDS);
@@ -639,7 +755,6 @@ public class ConnService {
                     in.setBegin(Long.valueOf(begin.getEpochSecond()).intValue());
                 }
             }
-
         }
 
         Instant end;
@@ -794,11 +909,11 @@ public class ConnService {
                             fv.setValid(false);
                             valid = false;
                         }
-                        log.debug(f.getPort()+" vlan "+vlan+" contained in "+IntRange.asString(availVlanRanges)+" ? "+atLeastOneContains);
+                        log.debug(f.getPort() + " vlan " + vlan + " contained in " + IntRange.asString(availVlanRanges) + " ? " + atLeastOneContains);
                     }
                 } else {
                     fv.setValid(false);
-                    fv.setMessage(f.getPort()+" not in topology\n");
+                    fv.setMessage(f.getPort() + " not in topology\n");
                     error.append(fv.getMessage());
                     valid = false;
                 }
@@ -939,9 +1054,7 @@ public class ConnService {
          */
 
 
-
     }
-
 
 
     public Connection findConnection(String connectionId) {

@@ -1,23 +1,31 @@
 package net.es.oscars.web.rest;
 
+import lombok.Builder;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.resv.db.ConnectionRepository;
-import net.es.oscars.resv.ent.Connection;
+import net.es.oscars.resv.db.FixtureRepository;
+import net.es.oscars.resv.db.PipeRepository;
+import net.es.oscars.resv.ent.*;
+import net.es.oscars.resv.enums.DeploymentIntent;
+import net.es.oscars.resv.enums.DeploymentState;
+import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.LogService;
 import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.web.beans.*;
+import net.es.oscars.web.simple.Validity;
+import net.es.topo.common.devel.DevelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 
 
 @RestController
@@ -30,6 +38,7 @@ public class ModifyController {
 
     @Autowired
     private ConnectionRepository connRepo;
+
 
     @Autowired
     private ConnService connSvc;
@@ -50,132 +59,220 @@ public class ModifyController {
     @RequestMapping(value = "/protected/modify/description", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public void modifyDescription(@RequestBody DescriptionModifyRequest request)
-            throws StartupException, ModifyException {
+    public ModifyResponse modifyDescription(@RequestBody DescriptionModifyRequest request)
+            throws StartupException {
         this.checkStartup();
 
-        Connection c = connSvc.findConnection(request.getConnectionId());
-        if (request.getDescription() == null || request.getDescription().equals("")) {
-            throw new ModifyException("Description null or empty");
+        boolean success = false;
+        String explanation = "";
+        Connection c = null;
+        DevelUtils.dumpDebug("modify description", request);
+
+        try {
+            c = connSvc.findConnection(request.getConnectionId());
+            if (request.getDescription().isEmpty()) {
+                explanation = "Description null or empty";
+            } else {
+                c.setDescription(request.getDescription());
+                connRepo.save(c);
+                success = true;
+            }
+        } catch (NoSuchElementException ex) {
+            explanation = "connection "+request.getConnectionId()+" not found";
         }
-        c.setDescription(request.getDescription());
-        connRepo.save(c);
-    }
-
-
-    @RequestMapping(value = "/protected/modify/schedule", method = RequestMethod.POST)
-    @ResponseBody
-    @Transactional
-    public ScheduleModifyResponse modifySchedule(@RequestBody ScheduleModifyRequest request)
-            throws StartupException, ModifyException {
-        this.checkStartup();
-
-        boolean success;
-        List<String> overlapping = new ArrayList<>();
-        String reason;
-
-        Date date = new Date();
-        Long nowSecsL = date.getTime() / 1000;
-        Integer nowSecs = nowSecsL.intValue();
-
-        Connection c = connSvc.findConnection(request.getConnectionId());
-        Long prevEndL = c.getReserved().getSchedule().getEnding().getEpochSecond();
-        Integer prevEnd = prevEndL.intValue();
-
-        Long prevBeginL = c.getReserved().getSchedule().getBeginning().getEpochSecond();
-        Integer prevBegin = prevBeginL.intValue();
-
-        Integer newEnd = prevEnd;
-
-        if (request.getType() == null) {
-            throw new ModifyException("undefined schedule request type");
-        } else if (request.getType().equals(ScheduleModifyType.BEGIN)) {
-            throw new ModifyException("changing start time not supported");
-        }
-
-
-        // we will only be looking & validating end time
-        Integer reqEnd = request.getTimestamp();
-        if (reqEnd == null) {
-            success = false;
-            reason = "Null requested end time";
-        } else if (reqEnd < nowSecs - 60) {
-            success = false;
-            reason = "End time too far in the past";
-
-            // don't allow extending
-        } else if (reqEnd > prevEnd) {
-            success = false;
-            reason = "end time too far in the future";
-
-        // if reasonably close to now(), end ASAP
-        } else if (reqEnd < nowSecs) {
-
-            request.setTimestamp(nowSecs);
-            connSvc.modifySchedule(c, request);
-
-            newEnd = nowSecs;
-            success = true;
-            reason = "New end time before now(), ending immediately";
-
-
-        } else {
-            connSvc.modifySchedule(c, request);
-
-            success = true;
-            reason = "Modification successful";
-            newEnd = reqEnd;
-        }
-
-
-        return ScheduleModifyResponse.builder()
-                .overlapping(overlapping)
-                .reason(reason)
+        return ModifyResponse.builder()
                 .success(success)
-                .begin(prevBegin)
-                .end(newEnd)
+                .explanation(explanation)
+                .connection(c)
                 .build();
-
     }
 
     @RequestMapping(value = "/api/valid/schedule", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public IntRange validSchedule(@RequestBody ScheduleRangeRequest request)
-            throws StartupException, ModifyException {
+    public ScheduleRangeResponse validSchedule(@RequestBody ScheduleRangeRequest request)
+            throws StartupException {
         this.checkStartup();
 
-        Date date = new Date();
+        boolean allowed = false;
+        String explanation = "";
 
-        Connection c = connSvc.findConnection(request.getConnectionId());
-        Long beginSeconds = c.getReserved().getSchedule().getBeginning().getEpochSecond();
-        Long endSeconds = c.getReserved().getSchedule().getEnding().getEpochSecond();
+        Instant floor = Instant.now();
+        Instant ceiling = Instant.now();
+        try {
+            Connection c = connSvc.findConnection(request.getConnectionId());
+            if (c.getPhase() == Phase.RESERVED) {
+                switch (request.getType()) {
+                    case END -> {
+                        // TODO: make those hardcoded time amounts configurable
 
+                        // we can only modify the ending time to past the current time
+                        // therefore we leave response.beginning to now().
 
+                        // note that we can't use anything larger than ChronoUnit.DAYS in Instant.plus()
+                        ceiling = ceiling.plus(365 * 5, ChronoUnit.DAYS);
 
-        switch (request.getType()) {
-            case END:
-                Long startOfRange = beginSeconds;
-                Long nowSeconds = date.getTime() / 1000;
-                // start of valid range is the latest of now() and actual start time
-                if (nowSeconds > beginSeconds) {
-                    startOfRange = nowSeconds;
+                        c.getReserved().getSchedule().setEnding(ceiling);
+
+                        Validity v = connSvc.verifyModification(c);
+                        allowed = v.isValid();
+                        if (!allowed) {
+                            explanation = v.getMessage();
+                        } else {
+                            floor = c.getReserved().getSchedule().getBeginning().plus(300, ChronoUnit.SECONDS);
+                        }
+
+                    }
+                    case BEGIN -> {
+                        explanation = "changing start time currently unsupported";
+                    }
                 }
-                if (nowSeconds > endSeconds) {
-                    throw new ModifyException("current time past end time; cannot modify");
-                }
-                return IntRange.builder()
-                        .floor(startOfRange.intValue())
-                        .ceiling(endSeconds.intValue())
-                        .build();
-            case BEGIN:
-            default:
-                throw new ModifyException("changing start time currently unsupported");
+            } else {
+                explanation = "connection "+request.getConnectionId()+" not in RESERVED phase";
+            }
 
+        } catch (NoSuchElementException ex) {
+            explanation = "connection "+request.getConnectionId()+" not found";
         }
+
+        return ScheduleRangeResponse.builder()
+                .allowed(allowed)
+                .explanation(explanation)
+                .floor(floor)
+                .ceiling(ceiling)
+                .connectionId(request.getConnectionId())
+                .type(request.getType())
+                .build();
+    }
+    @RequestMapping(value = "/protected/modify/schedule", method = RequestMethod.POST)
+    @ResponseBody
+    @Transactional
+    public ModifyResponse modifySchedule(@RequestBody ScheduleModifyRequest request)
+            throws StartupException {
+        this.checkStartup();
+
+        DevelUtils.dumpDebug("sch modify", request);
+
+        boolean success = false;
+        String explanation = "";
+        Connection c = null;
+
+
+        if (request.getType().equals(ScheduleModifyType.BEGIN)) {
+            explanation = "modifying start time is not allowed at this point";
+        } else {
+
+            // TODO: migrate away from a unix timestamp
+            Instant inOneMinute = Instant.now().plus(60, ChronoUnit.SECONDS);
+            Instant requestedEnding = Instant.ofEpochMilli(request.getTimestamp() * 1000);
+
+            try {
+                c = connSvc.findConnection(request.getConnectionId());
+
+                // silently adjust requested end timestamp to now + 1 minute if requested to make it shorter
+                if (requestedEnding.isBefore(inOneMinute)) {
+                    requestedEnding = inOneMinute;
+                }
+
+                try {
+                    connSvc.modifySchedule(c, c.getReserved().getSchedule().getBeginning(), requestedEnding);
+                    success = true;
+                    explanation = "Modification successful";
+                } catch (ModifyException ex) {
+                    explanation = "Schedule modification failed: "+ex.getMessage();
+                }
+
+            } catch (NoSuchElementException ex) {
+                explanation = "connection "+request.getConnectionId()+" not found";
+            }
+        }
+
+        return ModifyResponse.builder()
+                .success(success)
+                .explanation(explanation)
+                .connection(c)
+                .build();
 
     }
 
+    @RequestMapping(value = "/protected/modify/bandwidth", method = RequestMethod.POST)
+    @ResponseBody
+    @Transactional
+    public ModifyResponse modifyBandwidth(@RequestBody BandwidthModifyRequest request)
+            throws StartupException {
+        this.checkStartup();
+
+        DevelUtils.dumpDebug("modify request", request);
+
+        boolean success = false;
+        String explanation = "";
+        Connection c = null;
+
+        try {
+            c = connSvc.findConnection(request.getConnectionId());
+            if (c.getPhase() == Phase.RESERVED) {
+                try {
+                    connSvc.modifyBandwidth(c, request.getBandwidth());
+                    success = true;
+                    explanation = "Modification successful";
+                } catch (ModifyException ex) {
+                    explanation = "Modification failed"+ex.getMessage();
+                }
+            } else {
+                explanation = "connection "+request.getConnectionId()+" not in RESERVED phase";
+            }
+
+        } catch (NoSuchElementException ex) {
+            explanation = "connection "+request.getConnectionId()+" not found";
+        }
+
+        return ModifyResponse.builder()
+                .success(success)
+                .explanation(explanation)
+                .connection(c)
+                .build();
+
+    }
+
+
+    @RequestMapping(value = "/api/valid/bandwidth", method = RequestMethod.POST)
+    @ResponseBody
+    @Transactional
+    public BandwidthRangeResponse validBandwidth(@RequestBody BandwidthRangeRequest request)
+            throws StartupException, ModifyException {
+        this.checkStartup();
+
+        boolean allowed = false;
+        String explanation = "";
+        int floor = 0;
+        int ceiling = 0;
+
+
+        try {
+            Connection c = connSvc.findConnection(request.getConnectionId());
+            if (c.getPhase() == Phase.RESERVED) {
+                allowed = true;
+                ceiling = connSvc.findAvailableMaxBandwidth(c);
+
+            } else {
+                explanation = "connection "+request.getConnectionId()+" not in RESERVED phase";
+            }
+
+        } catch (NoSuchElementException ex) {
+            explanation = "connection "+request.getConnectionId()+" not found";
+        }
+
+        BandwidthRangeResponse rr = BandwidthRangeResponse.builder()
+                .allowed(allowed)
+                .explanation(explanation)
+                .floor(floor)
+                .ceiling(ceiling)
+                .connectionId(request.getConnectionId())
+                .build();
+        DevelUtils.dumpDebug("bw range response", rr );
+        return rr;
+
+    }
 
     private void checkStartup() throws StartupException {
 

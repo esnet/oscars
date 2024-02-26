@@ -17,6 +17,7 @@ public interface ConnectionRepository extends JpaRepository<Connection, Long> {
     Optional<Connection> findByConnectionId(String connectionId);
     List<Connection> findByDeploymentIntentAndDeploymentState(DeploymentIntent intent, DeploymentState state);
 
+    List<Connection> findByDeploymentIntent(DeploymentIntent intent);
     List<Connection> findByPhase(Phase phase);
     List<Connection> findByPhaseIn(List<Phase> phases);
 

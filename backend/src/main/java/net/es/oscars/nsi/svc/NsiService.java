@@ -134,6 +134,8 @@ public class NsiService {
             try {
                 log.info("transitioning state");
                 nsiStateEngine.reserve(NsiEvent.RESV_START, mapping);
+
+
                 log.info("submitting hold");
                 NsiHoldResult result = this.submitHold(rt, mapping, header);
                 if (result.getSuccess()) {
@@ -175,6 +177,68 @@ public class NsiService {
                 }
             }
             log.info("ending reserve");
+        });
+    }
+    public void modify(CommonHeaderType header, ReserveType rt, NsiMapping mapping) {
+        Executors.newCachedThreadPool().submit(() -> {
+            log.info("starting modify task");
+            try {
+                Integer bandwidth = null;
+                Instant beginning = null;
+                Instant ending = null;
+
+                P2PServiceBaseType p2p = this.getP2PService(rt);
+                if (p2p != null) {
+                    long mbpsLong = p2p.getCapacity();
+                    bandwidth = (int) mbpsLong;
+                }
+
+                ReservationRequestCriteriaType crit = rt.getCriteria();
+                if (crit.getSchedule().getStartTime() != null) {
+                    log.info("got updated beginning");
+                    XMLGregorianCalendar xst = crit.getSchedule().getStartTime().getValue();
+                    beginning = xst.toGregorianCalendar().toInstant();
+                }
+
+                if (crit.getSchedule().getEndTime() != null) {
+                    log.info("got updated ending");
+                    XMLGregorianCalendar xet = crit.getSchedule().getEndTime().getValue();
+                    ending = xet.toGregorianCalendar().toInstant();
+                }
+
+                Connection c = connSvc.findConnection(mapping.getOscarsConnectionId());
+
+                Validity v = connSvc.modifyNsi(c, bandwidth, beginning, ending);
+                if (v.isValid()) {
+                    try {
+                        this.reserveConfirmCallback(mapping, header);
+                    } catch (WebServiceException | ServiceException cex) {
+                        log.error("reserve succeeded: then callback failed", cex);
+                    }
+                } else {
+                    try {
+                        this.errCallback(NsiEvent.RESV_FL, mapping,
+                                v.getMessage(),
+                                NsiErrors.RESV_ERROR.toString(),
+                                new ArrayList<>(),
+                                header.getCorrelationId());
+                    } catch (WebServiceException | ServiceException cex) {
+                        log.error("reserve failed: then callback failed", cex);
+                    }
+                }
+            } catch (Exception ex) {
+                log.error("Internal error: " + ex.getMessage(), ex);
+                try {
+                    this.errCallback(NsiEvent.RESV_FL, mapping,
+                            "OSCARS internal error in modify",
+                            NsiErrors.NRM_ERROR.toString(),
+                            new ArrayList<>(),
+                            header.getCorrelationId());
+                } catch (Exception cex) {
+                    log.error("modify failed: then callback failed", cex);
+                }
+            }
+            log.info("ending modify");
         });
     }
 
@@ -452,7 +516,7 @@ public class NsiService {
 
         Set<NsiMapping> mappings = new HashSet<>();
         for (String connId : query.getConnectionId()) {
-            mappings.addAll(nsiRepo.findByNsiConnectionId(connId));
+            nsiRepo.findByNsiConnectionId(connId).ifPresent(mappings::add);
         }
         for (String gri : query.getGlobalReservationId()) {
             mappings.addAll(nsiRepo.findByNsiGri(gri));
@@ -496,7 +560,7 @@ public class NsiService {
         } else {
             for (String connId : query.getConnectionId()) {
                 // log.debug("added mapping for nsi connId: "+connId);
-                mappings.addAll(nsiRepo.findByNsiConnectionId(connId));
+                nsiRepo.findByNsiConnectionId(connId).ifPresent(mappings::add);
             }
             for (String gri : query.getGlobalReservationId()) {
                 // log.debug("added mapping for gri : "+gri);
@@ -1419,14 +1483,11 @@ public class NsiService {
         if (nsiConnectionId == null || nsiConnectionId.isEmpty()) {
             throw new NsiException("null or blank connection id! " + nsiConnectionId, NsiErrors.MISSING_PARAM_ERROR);
         }
-        List<NsiMapping> mappings = nsiRepo.findByNsiConnectionId(nsiConnectionId);
-        if (mappings.isEmpty()) {
+        Optional<NsiMapping> mapping = nsiRepo.findByNsiConnectionId(nsiConnectionId);
+        if (mapping.isEmpty()) {
             throw new NsiException("unknown connection id " + nsiConnectionId, NsiErrors.NO_SCH_ERROR);
-        } else if (mappings.size() > 1) {
-            throw new NsiException("internal error: multiple mappings for connection id " + nsiConnectionId, NsiErrors.NRM_ERROR);
-
         } else {
-            return mappings.get(0);
+            return mapping.get();
         }
     }
 

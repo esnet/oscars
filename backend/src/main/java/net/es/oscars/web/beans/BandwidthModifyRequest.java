@@ -6,12 +6,10 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ScheduleModifyRequest {
+public class BandwidthModifyRequest {
     @NonNull
     protected String connectionId;
-    @NonNull
-    protected ScheduleModifyType type;
 
     @NonNull
-    protected Long timestamp;
+    protected Integer bandwidth;
 }

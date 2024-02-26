@@ -14,6 +14,7 @@ import commonStore from "./stores/commonStore";
 import controlsStore from "./stores/controlsStore";
 import heldStore from "./stores/heldStore";
 import mapStore from "./stores/mapStore";
+import modifyStore from "./stores/modifyStore";
 import designStore from "./stores/designStore";
 import topologyStore from "./stores/topologyStore";
 import connsStore from "./stores/connsStore";
@@ -31,6 +32,7 @@ const stores = {
     connsStore,
     controlsStore,
     mapStore,
+    modifyStore,
     designStore,
     heldStore,
     topologyStore,

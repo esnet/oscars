@@ -5,6 +5,8 @@ public enum CommandType {
     DISMANTLE,
     CONTROL_PLANE_STATUS,
     CONFIG_STATUS,
-    OPERATIONAL_STATUS
+    OPERATIONAL_STATUS,
+
+    REDEPLOY
 
 }
