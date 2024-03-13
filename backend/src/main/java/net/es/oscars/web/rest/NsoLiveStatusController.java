@@ -9,7 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
+import net.es.oscars.sb.nso.db.NsoSdpIdDAO;
+import net.es.oscars.sb.nso.db.NsoSdpVcIdDAO;
+import net.es.oscars.sb.nso.ent.NsoSdpId;
+import net.es.oscars.sb.nso.ent.NsoSdpVcId;
 import net.es.oscars.web.beans.NsoLiveStatusRequest;
+import net.es.oscars.web.beans.OperationalState;
 import net.es.oscars.web.beans.OperationalStateInfoResponse;
 import net.es.oscars.web.beans.MacInfoResponse;
 import net.es.oscars.sb.nso.rest.LiveStatusLspResult;
@@ -24,15 +29,16 @@ import net.es.oscars.sb.nso.LiveStatusOperationalStateCacheManager;
 import net.es.oscars.sb.nso.db.NsoVcIdDAO;
 import net.es.oscars.sb.nso.ent.NsoVcId;
 
+import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence.PRIMARY;
+import static net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence.SECONDARY;
 
 @Slf4j
 @RestController
@@ -41,14 +47,18 @@ public class NsoLiveStatusController {
     private final LiveStatusOperationalStateCacheManager operationalStateCacheManager;
     private final NsoVcIdDAO nsoVcIdDAO;
     private final ConnService connSvc;
+    private final NsoSdpIdDAO nsoSdpIdDAO;
+
+
 
     public NsoLiveStatusController(
             LiveStatusOperationalStateCacheManager operationalStateCacheManager,
             NsoVcIdDAO nsoVcIdDAO,
-            ConnService connSvc) {
+            ConnService connSvc, NsoSdpIdDAO nsoSdpIdDAO) {
         this.operationalStateCacheManager = operationalStateCacheManager;
         this.nsoVcIdDAO = nsoVcIdDAO;
         this.connSvc = connSvc;
+        this.nsoSdpIdDAO = nsoSdpIdDAO;
     }
 
     @RequestMapping(value = "/api/mac/info", method = RequestMethod.POST)
@@ -112,12 +122,25 @@ public class NsoLiveStatusController {
         int serviceId = requestData.getServiceId();
         Connection conn = requestData.getConn();
 
+        // this collects nsoSdpIds keyed off the device
+        Map<String, Set<NsoSdpId>> byDevice = nsoSdpIdDAO.findNsoSdpIdByConnectionId(conn.getConnectionId())
+                .stream().collect(
+                Collectors.groupingBy(
+                        NsoSdpId::getDevice,
+                        Collectors.mapping(
+                                Function.identity(),
+                                Collectors.toSet()
+                        )
+                )
+        );
+
+
         // start building REST return
         OperationalStateInfoResponse response = new OperationalStateInfoResponse();
         response.setTimestamp(Instant.now());
         response.setConnectionId(request.getConnectionId()); // cp connId from request
-
         Instant timestamp = request.getRefreshIfOlderThan();
+
         List<OperationalStateInfoResult> results = new ArrayList<>();
 
         log.debug("Run live-status request on devices for operational states");
@@ -150,6 +173,149 @@ public class NsoLiveStatusController {
             }
         }
         response.setResults(results);
+
+        for (OperationalStateInfoResult result : response.getResults()) {
+            String device = result.getDevice();
+
+            // endpoints are simple to map:
+            for (LiveStatusSapResult sapResult : result.getSaps()) {
+                OperationalState endpointState = OperationalState.DOWN;
+                if (sapResult.getOperationalState() && sapResult.getAdminState()) {
+                    endpointState = OperationalState.UP;
+                }
+                OperationalStateInfoResponse.UpDown operState = sapResult.getOperationalState() ?
+                        OperationalStateInfoResponse.UpDown.UP : OperationalStateInfoResponse.UpDown.DOWN;
+                OperationalStateInfoResponse.UpDown adminState = sapResult.getAdminState() ?
+                        OperationalStateInfoResponse.UpDown.UP : OperationalStateInfoResponse.UpDown.DOWN;
+                response.getEndpoints().add(OperationalStateInfoResponse.EndpointOpInfo.builder()
+                                .device(device)
+                                .vlanId(sapResult.getVlan())
+                                .port(sapResult.getPort())
+                                .operState(operState)
+                                .adminState(adminState)
+                                .state(endpointState)
+                                .build());
+            }
+
+
+            // mapping SDPs is slightly more complicated though
+            Map<String, Set<LiveStatusSdpResult>> byFarEnd = new HashMap<>();
+
+            // split these by far-end
+            for (LiveStatusSdpResult sdpResult : result.getSdps()) {
+                if (!byFarEnd.containsKey(sdpResult.getFarEndAddress())) {
+                    byFarEnd.put(sdpResult.getFarEndAddress(), new HashSet<>());
+                }
+                byFarEnd.get(sdpResult.getFarEndAddress()).add(sdpResult);
+            }
+
+            // for each far end, make a tunnel, then we have to figure out the health of the tunnel
+            // each tunnel is composed of a primary SDP and maybe a secondary one as well.
+            for (String farEnd : byFarEnd.keySet()) {
+                String targetDevice = farEnd;
+
+                Set<OperationalStateInfoResponse.SdpOpInfo> sdpOpInfos = new HashSet<>();
+                Map<NsoVplsSdpPrecedence, Boolean> okByPrecedence = new HashMap<>();
+
+                for (LiveStatusSdpResult sdpResult : byFarEnd.get(farEnd)) {
+
+                    OperationalStateInfoResponse.UpDown operState = sdpResult.getOperationalState() ?
+                            OperationalStateInfoResponse.UpDown.UP : OperationalStateInfoResponse.UpDown.DOWN;
+                    OperationalStateInfoResponse.UpDown adminState = sdpResult.getAdminState() ?
+                            OperationalStateInfoResponse.UpDown.UP : OperationalStateInfoResponse.UpDown.DOWN;
+
+                    NsoVplsSdpPrecedence precedence = PRIMARY;
+                    boolean foundIt = false;
+
+                    for (NsoSdpId nsoSdpId : byDevice.get(device)) {
+                        if (nsoSdpId.getSdpId().equals(sdpResult.getSdpId())) {
+                            if (nsoSdpId.getPrecedence().equals(PRIMARY.toString())) {
+                                foundIt = true;
+                                targetDevice = nsoSdpId.getTarget();
+                                break;
+                            } else if (nsoSdpId.getPrecedence().equals(SECONDARY.toString())) {
+                                precedence = SECONDARY;
+                                foundIt = true;
+                                targetDevice = nsoSdpId.getTarget();
+                                break;
+                            }
+                        }
+                    }
+                    if (foundIt) {
+                        boolean sdpOk = sdpResult.getAdminState() && sdpResult.getOperationalState();
+                        okByPrecedence.put(precedence, sdpOk);
+
+                        sdpOpInfos.add(OperationalStateInfoResponse.SdpOpInfo.builder()
+                                .sdpId(sdpResult.getSdpId())
+                                .vcId(sdpResult.getVcId())
+                                .operState(operState)
+                                .adminState(adminState)
+                                .precedence(precedence)
+                                .build());
+                    }
+                }
+
+                // the rule is...
+                // - if the primary SDP exists and is UP the tunnel is UP
+                //    - otherwise, if the secondary exists and is UP the tunnel is DEGRADED
+                //       - otherwise, the tunnel is DOWN
+                OperationalState tunnelState = OperationalState.DOWN;
+                if (okByPrecedence.containsKey(PRIMARY)) {
+                    if (okByPrecedence.get(PRIMARY)) {
+                        tunnelState = OperationalState.UP;
+                    } else {
+                        if (okByPrecedence.containsKey(NsoVplsSdpPrecedence.SECONDARY)) {
+                            if (okByPrecedence.get(NsoVplsSdpPrecedence.SECONDARY)) {
+                                tunnelState = OperationalState.DEGRADED;
+                            }
+                        }
+                    }
+                }
+                response.getTunnels().add(OperationalStateInfoResponse.TunnelOpInfo.builder()
+                                .state(tunnelState)
+                                .sdps(sdpOpInfos.stream().toList())
+                                .device(device)
+                                .remote(targetDevice)
+                        .build());
+
+            }
+        }
+
+        // overall state is...
+        // UP, only if ALL endpoints and tunnels are UP
+        // otherwise, DOWN only if any endpoint or tunnel is DOWN
+        // otherwise, it is DEGRADED
+
+        OperationalState overallState = OperationalState.UP;
+        // endpoints can really only be UP or DOWN
+        for (OperationalStateInfoResponse.EndpointOpInfo endpointOpInfo : response.getEndpoints()) {
+            if (endpointOpInfo.getState().equals(OperationalState.DOWN)) {
+                overallState = OperationalState.DOWN;
+            }
+        }
+
+        // if all endpoints are up, then check tunnels
+        boolean foundDown = false;
+        boolean foundDegraded = false;
+        if (overallState == OperationalState.UP) {
+            for (OperationalStateInfoResponse.TunnelOpInfo tunnelOpInfo : response.getTunnels()) {
+                if (tunnelOpInfo.getState().equals(OperationalState.DOWN)) {
+                    foundDown = true;
+                    break;
+                } else if (tunnelOpInfo.getState().equals(OperationalState.DEGRADED)) {
+                    foundDegraded = true;
+                }
+            }
+            if (foundDown) {
+                overallState = OperationalState.DOWN;
+            } else if (foundDegraded) {
+                overallState = OperationalState.DEGRADED;
+            }
+        }
+
+        response.setState(overallState);
+
+
         return response;
     }
 
