@@ -111,7 +111,7 @@ public class NsoAdapter {
                         log.info("\n"+commands);
                         dumpDebug(conn.getConnectionId()+" BUILD services", oscarsServices);
                         dryRun = nsoProxy.buildDryRun(oscarsServices);
-                        nsoProxy.buildServices(oscarsServices);
+                        nsoProxy.buildServices(oscarsServices, conn.getConnectionId());
                         newDepState = DeploymentState.DEPLOYED;
 
                     }
