@@ -184,7 +184,7 @@ class ScheduleEditForm extends Component {
     render() {
         const conn = this.props.connsStore.store.current;
         const es = this.props.modifyStore.editEnding;
-        const editAllowed = conn.phase === "RESERVED";
+        const editAllowed = conn.phase === "RESERVED" && conn.southbound === 'NSO';
 
         const beginning = Util.formatSchedule(conn.archived.schedule.beginning).verbose;
 

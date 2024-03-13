@@ -9,6 +9,7 @@ import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.db.FixtureRepository;
 import net.es.oscars.resv.db.PipeRepository;
 import net.es.oscars.resv.ent.*;
+import net.es.oscars.resv.enums.ConnectionSouthbound;
 import net.es.oscars.resv.enums.DeploymentIntent;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.Phase;
@@ -78,7 +79,7 @@ public class ModifyController {
                 success = true;
             }
         } catch (NoSuchElementException ex) {
-            explanation = "connection "+request.getConnectionId()+" not found";
+            explanation = "connection " + request.getConnectionId() + " not found";
         }
         return ModifyResponse.builder()
                 .success(success)
@@ -128,11 +129,11 @@ public class ModifyController {
                     }
                 }
             } else {
-                explanation = "connection "+request.getConnectionId()+" not in RESERVED phase";
+                explanation = "connection " + request.getConnectionId() + " not in RESERVED phase";
             }
 
         } catch (NoSuchElementException ex) {
-            explanation = "connection "+request.getConnectionId()+" not found";
+            explanation = "connection " + request.getConnectionId() + " not found";
         }
 
         return ScheduleRangeResponse.builder()
@@ -144,11 +145,12 @@ public class ModifyController {
                 .type(request.getType())
                 .build();
     }
+
     @RequestMapping(value = "/protected/modify/schedule", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
     public ModifyResponse modifySchedule(@RequestBody ScheduleModifyRequest request)
-            throws StartupException {
+            throws StartupException, ConnException {
         this.checkStartup();
 
         DevelUtils.dumpDebug("sch modify", request);
@@ -168,6 +170,9 @@ public class ModifyController {
 
             try {
                 c = connSvc.findConnection(request.getConnectionId());
+                if (!c.getSouthbound().equals(ConnectionSouthbound.NSO)) {
+                    throw new ConnException("Connection southbound must be NSO");
+                }
 
                 // silently adjust requested end timestamp to now + 1 minute if requested to make it shorter
                 if (requestedEnding.isBefore(inOneMinute)) {
@@ -179,11 +184,11 @@ public class ModifyController {
                     success = true;
                     explanation = "Modification successful";
                 } catch (ModifyException ex) {
-                    explanation = "Schedule modification failed: "+ex.getMessage();
+                    explanation = "Schedule modification failed: " + ex.getMessage();
                 }
 
             } catch (NoSuchElementException ex) {
-                explanation = "connection "+request.getConnectionId()+" not found";
+                explanation = "connection " + request.getConnectionId() + " not found";
             }
         }
 
@@ -216,14 +221,14 @@ public class ModifyController {
                     success = true;
                     explanation = "Modification successful";
                 } catch (ModifyException ex) {
-                    explanation = "Modification failed"+ex.getMessage();
+                    explanation = "Modification failed" + ex.getMessage();
                 }
             } else {
-                explanation = "connection "+request.getConnectionId()+" not in RESERVED phase";
+                explanation = "connection " + request.getConnectionId() + " not in RESERVED phase";
             }
 
         } catch (NoSuchElementException ex) {
-            explanation = "connection "+request.getConnectionId()+" not found";
+            explanation = "connection " + request.getConnectionId() + " not found";
         }
 
         return ModifyResponse.builder()
@@ -255,11 +260,11 @@ public class ModifyController {
                 ceiling = connSvc.findAvailableMaxBandwidth(c);
 
             } else {
-                explanation = "connection "+request.getConnectionId()+" not in RESERVED phase";
+                explanation = "connection " + request.getConnectionId() + " not in RESERVED phase";
             }
 
         } catch (NoSuchElementException ex) {
-            explanation = "connection "+request.getConnectionId()+" not found";
+            explanation = "connection " + request.getConnectionId() + " not found";
         }
 
         BandwidthRangeResponse rr = BandwidthRangeResponse.builder()
@@ -269,7 +274,7 @@ public class ModifyController {
                 .ceiling(ceiling)
                 .connectionId(request.getConnectionId())
                 .build();
-        DevelUtils.dumpDebug("bw range response", rr );
+        DevelUtils.dumpDebug("bw range response", rr);
         return rr;
 
     }
