@@ -1,4 +1,7 @@
 # OSCARS Release Notes
+### 1.2.1
+> Mar 2024
+- OS-264: commit labels for OSCARS NSO commits 
 
 ### 1.2.0
 > Feb 2024

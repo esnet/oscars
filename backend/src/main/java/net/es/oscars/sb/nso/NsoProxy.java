@@ -85,7 +85,8 @@ public class NsoProxy {
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public void deleteServices(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoCommitException {
         YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
-        submitYangPatch(wrapped);
+        String rollbackLabel = dismantle.getConnectionId() + "-dismantle";
+        submitYangPatch(wrapped, rollbackLabel);
 
     }
 
@@ -93,22 +94,23 @@ public class NsoProxy {
     public void redeployServices(NsoVPLS nsoVPLS, String connectionId) throws NsoCommitException {
         log.info("redeploying services");
         YangPatchWrapper wrapped = makeRedeployYangPatch(nsoVPLS, connectionId);
-        submitYangPatch(wrapped);
+        String rollbackLabel = connectionId + "-redeploy";
+        submitYangPatch(wrapped, rollbackLabel);
     }
 
-    public void submitYangPatch(YangPatchWrapper wrapped) throws NsoCommitException {
+    public void submitYangPatch(YangPatchWrapper wrapped, String rollbackLabel) throws NsoCommitException {
         DevelUtils.dumpDebug("yang patch", wrapped);
         String path = "restconf/data/";
-        String restPath = props.getUri() + path;
+        String restPath = props.getUri() + path + "?rollback-label=" + rollbackLabel;
 
         final HttpEntity<YangPatchWrapper> entity = new HttpEntity<>(wrapped);
         UUID errorUuid = UUID.randomUUID();
-        String errorRef = "Error reference: ["+errorUuid+"]\n";
+        String errorRef = "Error reference: [" + errorUuid + "]\n";
 
         try {
             ResponseEntity<String> response = patchTemplate.exchange(restPath, HttpMethod.PATCH, entity, String.class);
             if (response.getStatusCode().isError()) {
-                log.error("raw error: "+response.getBody());
+                log.error("raw error: " + response.getBody());
                 StringBuilder errorStr = new StringBuilder();
                 try {
                     YangPatchErrorResponse errorResponse = new ObjectMapper().readValue(response.getBody(), YangPatchErrorResponse.class);
@@ -116,22 +118,23 @@ public class NsoProxy {
                         errorStr.append(errObj.getErrorMessage()).append("\n");
                     }
                 } catch (JsonProcessingException ex) {
-                    log.error(errorRef+ex.getMessage()+"\n"+response.getBody());
-                    throw new NsoCommitException(errorRef+"Unable to YANG patch. NSO response parse error.");
+                    log.error(errorRef + ex.getMessage() + "\n" + response.getBody());
+                    throw new NsoCommitException(errorRef + "Unable to YANG patch. NSO response parse error.");
                 }
-                log.error(errorRef+"Unable to YANG patch. NSO error(s): " + errorStr);
-                throw new NsoCommitException(errorRef+"Unable to YANG patch. NSO error(s): " + errorStr);
+                log.error(errorRef + "Unable to YANG patch. NSO error(s): " + errorStr);
+                throw new NsoCommitException(errorRef + "Unable to YANG patch. NSO error(s): " + errorStr);
             }
         } catch (RestClientException ex) {
-            log.error(errorRef+"REST error %s".formatted(ex.getMessage()));
-            throw new NsoCommitException(errorRef+" REST Error: %s".formatted(ex.getMessage()));
+            log.error(errorRef + "REST error %s".formatted(ex.getMessage()));
+            throw new NsoCommitException(errorRef + " REST Error: %s".formatted(ex.getMessage()));
         }
     }
 
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
-    public void buildServices(NsoServicesWrapper wrapper) throws NsoCommitException {
+    public void buildServices(NsoServicesWrapper wrapper, String connectionId) throws NsoCommitException {
+        String rollbackLabel = connectionId+"-build";
         String path = "restconf/data/tailf-ncs:services";
-        String restPath = props.getUri() + path;
+        String restPath = props.getUri() + path + "?rollback-label="+rollbackLabel;
         UUID errorUuid = UUID.randomUUID();
         String errorRef = "Error reference: [" + errorUuid + "]\n";
         StringWriter sw = new StringWriter();
@@ -143,7 +146,7 @@ public class NsoProxy {
             ResponseEntity<IetfRestconfErrorResponse> response = restTemplate.postForEntity(restPath, wrapper, IetfRestconfErrorResponse.class);
 
             if (response.getStatusCode().isError()) {
-                log.error("raw error: "+response.getBody());
+                log.error("raw error: " + response.getBody());
                 StringBuilder errorStr = new StringBuilder();
                 if (response.getBody() != null) {
                     for (IetfRestconfErrorResponse.IetfError errObj : response.getBody().getErrors().getErrorList()) {
@@ -153,12 +156,12 @@ public class NsoProxy {
                 } else {
                     errorStr.append("empty response body\n");
                 }
-                log.error(errorRef+"Unable to commit. NSO error(s): " + errorStr);
+                log.error(errorRef + "Unable to commit. NSO error(s): " + errorStr);
                 throw new NsoCommitException("Unable to commit. NSO error(s): " + errorStr);
             }
         } catch (RestClientException ex) {
-            log.error(errorRef+"REST error %s".formatted(ex.getMessage()));
-            if (ex instanceof RestClientResponseException){
+            log.error(errorRef + "REST error %s".formatted(ex.getMessage()));
+            if (ex instanceof RestClientResponseException) {
                 log.info("Response body:\n" + ((RestClientResponseException) ex).getResponseBodyAsString());
             }
             ex.printStackTrace(pw);
@@ -185,7 +188,7 @@ public class NsoProxy {
             ResponseEntity<NsoDryRun> dryRunResponse = restTemplate.postForEntity(restPath, wrapper, NsoDryRun.class);
             if (dryRunResponse.getStatusCode().isError()) {
                 log.error("raw error: " + dryRunResponse.getBody());
-                throw new NsoDryrunException("unable to perform dry run "+ dryRunResponse.getBody());
+                throw new NsoDryrunException("unable to perform dry run " + dryRunResponse.getBody());
             } else {
                 if (dryRunResponse.getBody() == null) {
                     return "Null dry run body";
@@ -196,7 +199,7 @@ public class NsoProxy {
                 }
             }
         } catch (RestClientException ex) {
-            log.error(errorRef+"REST error %s".formatted(ex.getMessage()));
+            log.error(errorRef + "REST error %s".formatted(ex.getMessage()));
             throw new NsoDryrunException(ex.getMessage());
         }
     }
@@ -210,7 +213,7 @@ public class NsoProxy {
 
         final HttpEntity<YangPatchWrapper> entity = new HttpEntity<>(wrapped);
         UUID errorUuid = UUID.randomUUID();
-        String errorRef = "Error reference: ["+errorUuid+"]\n";
+        String errorRef = "Error reference: [" + errorUuid + "]\n";
 
         try {
             NsoDryRun response = patchTemplate.patchForObject(restPath, entity, NsoDryRun.class);
@@ -221,7 +224,7 @@ public class NsoProxy {
                 return "no dry-run available";
             }
         } catch (RestClientException ex) {
-            log.error(errorRef+"REST error %s".formatted(ex.getMessage()));
+            log.error(errorRef + "REST error %s".formatted(ex.getMessage()));
             throw new NsoDryrunException(ex.getMessage());
         }
     }
@@ -241,7 +244,7 @@ public class NsoProxy {
                     .build());
         }
         YangPatch deletePatch = YangPatch.builder()
-                .patchId("delete VPLS and LSP for"+dismantle.getConnectionId())
+                .patchId("delete VPLS and LSP for" + dismantle.getConnectionId())
                 .edit(edits)
                 .build();
 
@@ -256,10 +259,10 @@ public class NsoProxy {
         int vcid = vpls.getVcId();
         int i = 0;
         for (NsoVPLS.DeviceContainer dc : vpls.getDevice()) {
-            String vplsKey = "="+vcid;
-            String devKey = "="+dc.getDevice();
+            String vplsKey = "=" + vcid;
+            String devKey = "=" + dc.getDevice();
 
-            String path = "/tailf-ncs:services/esnet-vpls:vpls" +vplsKey+"/device"+devKey;
+            String path = "/tailf-ncs:services/esnet-vpls:vpls" + vplsKey + "/device" + devKey;
 
             YangPatchDeviceWrapper deviceWrapper = YangPatchDeviceWrapper.builder()
                     .device(dc)
@@ -275,7 +278,7 @@ public class NsoProxy {
         }
 
         YangPatch patch = YangPatch.builder()
-                .patchId("redeploy VPLS for "+connectionId)
+                .patchId("redeploy VPLS for " + connectionId)
                 .edit(edits)
                 .build();
 
@@ -347,8 +350,9 @@ public class NsoProxy {
 
     /**
      * Formats live status query arguments and executes and live status query
+     *
      * @param device the device for the query
-     * @param args the live status arguments / argument string
+     * @param args   the live status arguments / argument string
      * @return the result as returned by NSO as a string
      */
     public String getLiveStatusShowArgs(String device, String args) {
@@ -367,7 +371,8 @@ public class NsoProxy {
 
     /**
      * Executes a live status query via the NSO REST API
-     * @param device device for the query
+     *
+     * @param device            device for the query
      * @param liveStatusRequest the request parameters
      * @return the result as returned by NSO as a string
      */
