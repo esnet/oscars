@@ -257,16 +257,7 @@ public class ConnService {
         if (filter.getSouthbound() != null && !filter.getSouthbound().equals("any")) {
             southboundFiltered = new ArrayList<>();
             for (Connection c : intervalFiltered) {
-                List<RouterCommands> routerCommandsList = rcRepo.findByConnectionId(c.getConnectionId());
-                String thisSouthbound = "RANCID";
-                for (RouterCommands rc : routerCommandsList) {
-                    if (rc.getTemplateVersion().startsWith(NSO_TEMPLATE_VERSION) ||
-                            rc.getTemplateVersion().startsWith("NSO")) {
-                        thisSouthbound = "NSO";
-                        break;
-                    }
-                }
-                if (thisSouthbound.equals(filter.getSouthbound())) {
+                if (this.southbound(c.getConnectionId()).toString().equals(filter.getSouthbound())) {
                     southboundFiltered.add(c);
                 }
 
@@ -307,6 +298,17 @@ public class ConnService {
                 .build();
 
 
+    }
+
+    public ConnectionSouthbound southbound(String connectionId) {
+        List<RouterCommands> routerCommandsList = rcRepo.findByConnectionId(connectionId);
+        for (RouterCommands rc : routerCommandsList) {
+            if (rc.getTemplateVersion().startsWith(NSO_TEMPLATE_VERSION) ||
+                    rc.getTemplateVersion().startsWith("NSO")) {
+                return ConnectionSouthbound.NSO;
+            }
+        }
+        return ConnectionSouthbound.RANCID;
     }
 
 
@@ -1064,7 +1066,10 @@ public class ConnService {
 //        log.info("looking for connectionId "+ connectionId);
         Optional<Connection> cOpt = connRepo.findByConnectionId(connectionId);
         if (cOpt.isPresent()) {
-            return cOpt.get();
+
+            Connection c = cOpt.get();
+            c.setSouthbound(this.southbound(c.getConnectionId()));
+            return c;
         } else {
             throw new NoSuchElementException("connection not found for id " + connectionId);
 

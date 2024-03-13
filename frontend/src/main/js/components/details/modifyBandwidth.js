@@ -156,7 +156,7 @@ class BandwidthEditForm extends Component {
     render() {
 
         const conn = this.props.connsStore.store.current;
-        const editAllowed = conn.phase === "RESERVED";
+        const editAllowed = conn.phase === "RESERVED" && conn.southbound === 'NSO';
 
         const eb = this.props.modifyStore.editBandwidth;
         let input = <Input

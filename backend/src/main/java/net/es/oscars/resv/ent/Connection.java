@@ -105,4 +105,7 @@ public class Connection {
 
     @NonNull
     private Integer last_modified;
+
+    @Transient
+    public ConnectionSouthbound southbound;
 }
