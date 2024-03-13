@@ -32,6 +32,7 @@ class ConnectionsStore {
         history: new Map(),
         eventLog: [],
         macInfo: {},
+        opStateInfo: {},
         cloned: {
             cloneable: false,
             message: ""
@@ -187,7 +188,9 @@ class ConnectionsStore {
     @action setMacInfo(macInfo) {
         this.store.macInfo = macInfo;
     }
-
+    @action setOpStateInfo(opStateInfo) {
+        this.store.opStateInfo = opStateInfo;
+    }
     @action refreshCommands() {
         if (size(this.store.current.connectionId) > 0) {
             myClient

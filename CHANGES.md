@@ -2,6 +2,8 @@
 ### 1.2.1
 > Mar 2024
 - OS-264: commit labels for OSCARS NSO commits 
+- OS-249: operational state backend
+- OS-272: operational state frontend
 
 ### 1.2.0
 > Feb 2024
