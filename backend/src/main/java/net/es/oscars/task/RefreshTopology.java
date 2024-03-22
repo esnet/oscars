@@ -38,7 +38,7 @@ public class RefreshTopology {
         } else {
             topoLock.lock();
             try {
-                topoPopulator.refresh(true);
+                topoPopulator.refresh();
             } catch (TopoException ex) {
                 log.error("Topology import error!", ex);
             } catch (IOException ex) {

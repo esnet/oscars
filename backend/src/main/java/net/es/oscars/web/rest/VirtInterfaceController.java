@@ -1,10 +1,6 @@
 package net.es.oscars.web.rest;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -180,16 +176,12 @@ public class VirtInterfaceController {
         }
 
         Set<NsoVirtInterface> interfaces = virtInterfaceDAO.findByConnectionId(connectionId);
-        if (interfaces == null) {
-            log.info("No virtual IP entries found for connection id " + connectionId);
-            throw new NoSuchElementException();
-        }
 
         List<VirtIpInterfaceResponse> response = new ArrayList<VirtIpInterfaceResponse>();
         for (NsoVirtInterface ifce : interfaces) {
             VirtIpInterfaceResponse entry = new VirtIpInterfaceResponse();
             entry.setDevice(ifce.getDevice());
-            entry.setIpInterfaces(new ArrayList<String>(ifce.getIpAddresses()));
+            entry.setIpInterfaces(new ArrayList<>(ifce.getIpAddresses()));
             response.add(entry);
         }
         return response;

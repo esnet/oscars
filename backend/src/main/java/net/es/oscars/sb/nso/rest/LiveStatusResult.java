@@ -23,6 +23,9 @@ public class LiveStatusResult {
     private Boolean status = false;
 
     @Builder.Default
+    private String raw = "";
+
+    @Builder.Default
     @JsonProperty("error-message")
     private String errorMessage = null;
 

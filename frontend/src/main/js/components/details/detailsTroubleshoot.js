@@ -102,6 +102,7 @@ class DetailsTroubleshoot extends Component {
                     <Accordion open={this.state.open} toggle={this.toggle}>
                         {
                             macInfo['results'].map((result, idx) => {
+                                let key = 'mac-'+idx
                                 let message = result['fdb'];
                                 let timestamp = 'unknown';
                                 if (!result['status']) {
@@ -111,9 +112,9 @@ class DetailsTroubleshoot extends Component {
                                     timestamp = Moment(result['timestamp']).fromNow();
                                 }
                                 let headerString = result['device'] + ' (' + timestamp + ')';
-                                return <AccordionItem key={idx}>
-                                    <AccordionHeader targetId={idx + ""}>{headerString}</AccordionHeader>
-                                    <AccordionBody accordionId={idx + ""}>
+                                return <AccordionItem key={key}>
+                                    <AccordionHeader targetId={key}>{headerString}</AccordionHeader>
+                                    <AccordionBody accordionId={key}>
                                         <pre>{message}</pre>
                                     </AccordionBody>
                                 </AccordionItem>
@@ -145,6 +146,22 @@ class DetailsTroubleshoot extends Component {
                             );
                         })}
                     </ListGroup>
+                    <p>Raw show command output</p>
+                    <Accordion open={this.state.open} toggle={this.toggle}>
+                        {
+                            opStateInfo['results'].map((result, idx) => {
+                                let key = 'raw-'+idx
+                                let headerString = result['device'];
+                                let message = result['raw']
+                                return <AccordionItem key={key}>
+                                    <AccordionHeader targetId={key}>{headerString}</AccordionHeader>
+                                    <AccordionBody accordionId={key}>
+                                        <pre>{message}</pre>
+                                    </AccordionBody>
+                                </AccordionItem>
+                            })
+                        }
+                    </Accordion>
                 </>
 
             }

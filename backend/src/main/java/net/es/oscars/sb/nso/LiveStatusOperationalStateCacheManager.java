@@ -136,6 +136,7 @@ public class LiveStatusOperationalStateCacheManager {
 
             result.setAdminState(convertStatus(sdpInfo[3]));
             result.setOperationalState(convertStatus(sdpInfo[4]));
+            result.setRaw(reply);
 
             result.setStatus(true);
             resultList.add(result);
@@ -241,6 +242,7 @@ public class LiveStatusOperationalStateCacheManager {
             result.setVlan(vlanId);
             result.setIngressQos(ingresQos);
             result.setEgressQos(egressQos);
+            result.setRaw(reply);
 
             result.setAdminState(convertStatus(sapInfo[6]));
             result.setOperationalState(convertStatus(sapInfo[7]));
@@ -268,9 +270,7 @@ public class LiveStatusOperationalStateCacheManager {
         ArrayList<LiveStatusSapResult> tmp = getCachedSap(device, serviceId);
         if (tmp == null) {
             // nothing cached - get refreshed SAPs
-            tmp = getRefreshedSap(device, serviceId);
-            if (tmp == null) return null;
-            else return tmp;
+            return getRefreshedSap(device, serviceId);
         }
 
         // check all timestamps and update if one is older than olderThanTimestamp
@@ -343,6 +343,7 @@ public class LiveStatusOperationalStateCacheManager {
             result.setAdminState(convertStatus(lspInfo[3]));
             result.setOperationalState(convertStatus(lspInfo[4]));
             result.setTo(lspInfo[5]);
+            result.setRaw(reply);
 
             result.setStatus(true);
             resultList.add(result);
@@ -368,9 +369,7 @@ public class LiveStatusOperationalStateCacheManager {
         ArrayList<LiveStatusLspResult> tmp = getCachedLsp(device);
         if (tmp == null) {
             // nothing cached - get refreshed SAPs
-            tmp = getRefreshedLsp(device);
-            if (tmp == null) return null;
-            else return tmp;
+            return getRefreshedLsp(device);
         }
 
         // check all timestamps and update if one is older than olderThanTimestamp

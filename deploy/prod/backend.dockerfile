@@ -26,8 +26,8 @@ RUN mv ${JAR_FILE} backend.jar
 RUN java -Djarmode=layertools -jar backend.jar extract
 
 # 2. run stage
-FROM bellsoft/liberica-openjdk-alpine-musl:17
-RUN addgroup -S oscars && adduser -S oscars -G oscars
+FROM bellsoft/liberica-openjdk-centos:20
+RUN groupadd oscars && useradd -g oscars oscars
 RUN mkdir -p /app
 RUN mkdir -p /app/log
 RUN chown oscars -R /app

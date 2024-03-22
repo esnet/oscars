@@ -37,6 +37,7 @@ class ConnectionsStore {
             cloneable: false,
             message: ""
         },
+        addresses: [],
         refreshNeeded: false
     };
 
@@ -113,6 +114,9 @@ class ConnectionsStore {
         totalPages: 1,
         filtered: []
     };
+    @action setAddresses(addresses) {
+        this.store.addresses = addresses;
+    }
 
     @action setCloned(value) {
         this.store.cloned = value;
@@ -207,7 +211,22 @@ class ConnectionsStore {
                 );
         }
     }
-
+    @action refreshAddresses() {
+        if (size(this.store.current.connectionId) > 0) {
+            myClient
+                .submitWithToken("GET", "/api/interface/list/" + this.store.current.connectionId)
+                .then(
+                    action(response => {
+                        let addresses = JSON.parse(response);
+                        if (addresses.length !== 0) {
+                            this.setAddresses(addresses);
+                        } else {
+                            this.setAddresses([]);
+                        }
+                    })
+                );
+        }
+    }
     @action refreshCurrent() {
         myClient.submitWithToken("GET", "/api/conn/info/" + this.store.current.connectionId).then(
             action(response => {

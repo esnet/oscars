@@ -29,6 +29,7 @@ import net.es.oscars.sb.nso.LiveStatusOperationalStateCacheManager;
 import net.es.oscars.sb.nso.db.NsoVcIdDAO;
 import net.es.oscars.sb.nso.ent.NsoVcId;
 
+import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
 import org.springframework.web.bind.annotation.*;
 
@@ -142,6 +143,10 @@ public class NsoLiveStatusController {
         Instant timestamp = request.getRefreshIfOlderThan();
 
         List<OperationalStateInfoResult> results = new ArrayList<>();
+        Map<String, ArrayList<LiveStatusSdpResult>> allSdpsForDevice = new HashMap<>();
+        Map<String, ArrayList<LiveStatusSapResult>> allSapsForDevice = new HashMap<>();
+        // Map<String, ArrayList<LiveStatusLspResult>> allLspsForDevice = new HashMap<>();
+
 
         log.debug("Run live-status request on devices for operational states");
         for (String device : devices) {
@@ -150,17 +155,28 @@ public class NsoLiveStatusController {
                 log.info("Fetch SDPs, SAPs, and LSPs from LiveStatusCacheManager for " + device + " service id " + serviceId);
 
                 // get SDPs, SAPs, and LSPs from cache manager
-                ArrayList<LiveStatusSdpResult> tmpSdps = operationalStateCacheManager.getSdp(device, serviceId, timestamp);
-                ArrayList<LiveStatusSapResult> tmpSaps = operationalStateCacheManager.getSap(device, serviceId, timestamp);
-                ArrayList<LiveStatusLspResult> tmpLsps = operationalStateCacheManager.getLsp(device, timestamp);
+                allSdpsForDevice.put(device, operationalStateCacheManager.getSdp(device, serviceId, timestamp));
+                allSapsForDevice.put(device, operationalStateCacheManager.getSap(device, serviceId, timestamp));
+                // allLspsForDevice.put(device, operationalStateCacheManager.getLsp(device, timestamp));
 
-                OperationalStateInfoResult resultElement = new OperationalStateInfoResult();
-                resultElement.setDevice(device);
-                resultElement.setTimestamp(timestamp);
-                resultElement.setStatus(true);
-                resultElement.setSdps(tmpSdps);
-                resultElement.setSaps(tmpSaps);
-                resultElement.setLsps(tmpLsps);
+
+                String sdpRaw = "";
+                for (LiveStatusSdpResult sdpResult : allSdpsForDevice.get(device)) {
+                    sdpRaw = sdpResult.getRaw();
+                }
+                String sapRaw = "";
+                for (LiveStatusSapResult sapResult : allSapsForDevice.get(device)) {
+                    sdpRaw = sapResult.getRaw();
+                }
+
+                OperationalStateInfoResult resultElement = OperationalStateInfoResult.builder()
+                        .device(device)
+                        .timestamp(timestamp)
+                        .status(true)
+                        .raw(sdpRaw+"\n"+sapRaw)
+                        .build();
+
+                        new OperationalStateInfoResult();
 
                 results.add(resultElement);
             } else {
@@ -168,17 +184,19 @@ public class NsoLiveStatusController {
                                 .device(device)
                                 .errorMessage("Not deployed")
                                 .status(false)
+                                .raw("")
                                 .timestamp(timestamp)
                                 .build());
             }
         }
+
         response.setResults(results);
 
         for (OperationalStateInfoResult result : response.getResults()) {
             String device = result.getDevice();
 
             // endpoints are simple to map:
-            for (LiveStatusSapResult sapResult : result.getSaps()) {
+            for (LiveStatusSapResult sapResult : allSapsForDevice.get(device)) {
                 OperationalState endpointState = OperationalState.DOWN;
                 if (sapResult.getOperationalState() && sapResult.getAdminState()) {
                     endpointState = OperationalState.UP;
@@ -202,12 +220,13 @@ public class NsoLiveStatusController {
             Map<String, Set<LiveStatusSdpResult>> byFarEnd = new HashMap<>();
 
             // split these by far-end
-            for (LiveStatusSdpResult sdpResult : result.getSdps()) {
+            for (LiveStatusSdpResult sdpResult : allSdpsForDevice.get(device)) {
                 if (!byFarEnd.containsKey(sdpResult.getFarEndAddress())) {
                     byFarEnd.put(sdpResult.getFarEndAddress(), new HashSet<>());
                 }
                 byFarEnd.get(sdpResult.getFarEndAddress()).add(sdpResult);
             }
+
 
             // for each far end, make a tunnel, then we have to figure out the health of the tunnel
             // each tunnel is composed of a primary SDP and maybe a secondary one as well.

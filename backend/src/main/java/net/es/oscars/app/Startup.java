@@ -77,7 +77,7 @@ public class Startup {
             System.out.println("Exiting (startup.exit is true)");
             System.exit(0);
         }
-        topoPopulator.refresh(false);
+        topoPopulator.refresh();
         legacyPopulator.importPssToNso();
 
         try {

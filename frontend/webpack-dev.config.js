@@ -37,7 +37,8 @@ module.exports = {
     output: {
         path: PATHS.build,
         publicPath: "/",
-        filename: "bundle.js"
+        filename: '[hash].js',
+        chunkFilename: '[chunkhash].js',
     },
     performance: {
         hints: false
