@@ -40,138 +40,21 @@ public class TopoPopulator {
         this.topologyStore = topologyStore;
     }
 
-    public boolean fileLoadNeeded(Version version) {
-        return version.getUpdated().isBefore(fileLastModified());
 
-    }
-
-    private Instant fileLastModified() {
-        String devicesFilename = "./config/topo/" + topoProperties.getPrefix() + "-devices.json";
-        File devFile = new File(devicesFilename);
-        Instant devLastMod = Instant.ofEpochMilli(devFile.lastModified());
-
-        String adjciesFilename = "./config/topo/" + topoProperties.getPrefix() + "-adjcies.json";
-        File adjFile = new File(adjciesFilename);
-        Instant adjLastMod = Instant.ofEpochMilli(adjFile.lastModified());
-
-        Instant latest = devLastMod;
-        if (adjLastMod.isAfter(devLastMod)) {
-            latest = adjLastMod;
-        }
-        return latest;
-    }
-
-    public Topology loadFromDefaultFiles() throws ConsistencyException, IOException {
-        log.info("loading topology DB from files");
-        if (topoProperties == null) {
-            throw new ConsistencyException("Could not load topology properties!");
-        }
-        String devicesFilename = "./config/topo/" + topoProperties.getPrefix() + "-devices.json";
-        String adjciesFilename = "./config/topo/" + topoProperties.getPrefix() + "-adjcies.json";
-
-        Topology current = topologyStore.getTopology();
-        log.debug("Existing topology: dev: " + current.getDevices().size() + " adj: " + current.getAdjcies().size());
-        return this.loadTopology(devicesFilename, adjciesFilename);
-    }
-
-
-    public Topology loadTopology(String devicesFilename, String adjciesFilename) throws IOException {
-        List<Device> devices = loadDevicesFromFile(devicesFilename);
-        Map<String, Port> portMap = new HashMap<>();
-        Map<String, Device> deviceMap = new HashMap<>();
-        log.debug("Loaded topology from " + devicesFilename + " , " + adjciesFilename);
-        devices.forEach(d -> {
-            deviceMap.put(d.getUrn(), d);
-            // log.info("  d: "+d.getUrn());
-            d.getPorts().forEach(p -> {
-                // log.info("  +- "+p.getUrn());
-                portMap.put(p.getUrn(), p);
-            });
-        });
-
-        List<Adjcy> adjcies = loadAdjciesFromFile(adjciesFilename, portMap);
-
-        return Topology.builder()
-                .adjcies(adjcies)
-                .devices(deviceMap)
-                .ports(portMap)
-                .build();
-
-    }
-
-
-    private List<Device> loadDevicesFromFile(String filename) throws IOException {
-        File jsonFile = new File(filename);
-        ObjectMapper mapper = new ObjectMapper();
-        List<Device> devices = Arrays.asList(mapper.readValue(jsonFile, Device[].class));
-        for (Device d : devices) {
-            for (Port p : d.getPorts()) {
-                p.setDevice(d);
-            }
-        }
-        return devices;
-    }
-
-    private List<Adjcy> loadAdjciesFromFile(String filename, Map<String, Port> portMap) throws IOException {
-        File jsonFile = new File(filename);
-        ObjectMapper mapper = new ObjectMapper();
-        List<Adjcy> fromFile = Arrays.asList(mapper.readValue(jsonFile, Adjcy[].class));
-
-        List<Adjcy> filtered = new ArrayList<>();
-
-        fromFile.forEach(t -> {
-            String aPortUrn = t.getA().getPortUrn();
-            String zPortUrn = t.getZ().getPortUrn();
-            boolean add = true;
-            if (!portMap.containsKey(aPortUrn)) {
-                log.error("  " + aPortUrn + " not in topology");
-                add = false;
-            }
-            if (!portMap.containsKey(zPortUrn)) {
-                log.error("  " + zPortUrn + " not in topology");
-                add = false;
-            }
-
-            if (add) {
-                filtered.add(t);
-
-            } else {
-                log.error("Could not load an adjacency: " + t.getUrn());
-            }
-        });
-        return filtered;
-
-    }
-
-
-    public void refresh(boolean onlyLoadWhenFileNewer) throws ConsistencyException, TopoException, IOException {
-        log.info("topology refresg");
-        Topology incoming = null;
-        boolean updated = false;
-        if (topoProperties.getUrl() != null) {
-            try {
-                incoming = this.loadFromDiscovery();
-                updated = true;
-
-            } catch (ResourceAccessException ex) {
-                // typically an unknown host error
-                log.info(ex.getMessage());
-
-            } catch (TopoException ex) {
-                log.error(ex.getMessage());
-
-            }
-        } else {
-            log.info("Need to load new topology files");
-            // load to DB from disk
-            incoming = loadFromDefaultFiles();
-            updated = true;
-        }
-
-        if (updated) {
+    public void refresh() throws ConsistencyException, TopoException, IOException {
+        log.info("topology refresh");
+        try {
+            Topology incoming = this.loadFromDiscovery();
             topologyStore.replaceTopology(incoming);
             // check consistency
             consistencySvc.checkConsistency();
+
+        } catch (ResourceAccessException ex) {
+            // typically an unknown host error
+            log.info(ex.getMessage());
+
+        } catch (TopoException ex) {
+            log.error(ex.getMessage());
         }
     }
 

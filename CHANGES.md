@@ -1,4 +1,14 @@
 # OSCARS Release Notes
+### 1.2.2
+> Mar 2024
+- OS-227: add an ip interface frontend
+- OS-285: fix operational state bugs
+- OS-288: add opentelemetry jars
+- OS-286: add raw text for operational status
+- update Spring boot version
+- remove loading topology from JSON files
+
+
 ### 1.2.1
 > Mar 2024
 - OS-264: commit labels for OSCARS NSO commits 
