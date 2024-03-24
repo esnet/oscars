@@ -27,6 +27,7 @@ RUN java -Djarmode=layertools -jar backend.jar extract
 
 # 2. run stage
 FROM bellsoft/liberica-openjdk-centos:20
+RUN yum install -y nc
 RUN groupadd oscars && useradd -g oscars oscars
 RUN mkdir -p /app
 RUN mkdir -p /app/log
