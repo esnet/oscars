@@ -474,12 +474,22 @@ public class ConnService {
         try {
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
+            c.setArchived(null);
+
+            connRepo.save(c);
+
+            // try and delete any previous archived stuff that might exist
             archivedRepo.findByConnectionId(c.getConnectionId()).ifPresent(archivedRepo::delete);
 
             reservedFromHeld(c);
             archiveFromReserved(c);
 
             c.setHeld(null);
+            connRepo.saveAndFlush(c);
+
+            // try and delete any held components that might still be around
+            heldRepo.findByConnectionId(c.getConnectionId()).ifPresent(heldRepo::delete);
+
             c.setDeploymentState(DeploymentState.UNDEPLOYED);
             c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
             connRepo.saveAndFlush(c);
