@@ -188,12 +188,19 @@ public class HoldController {
             throw new StartupException("OSCARS shutting down");
         }
 
+        ReentrantLock connLock = dbAccess.getConnLock();
+        if (connLock.isLocked()) {
+            log.debug("connection lock already locked; will need to wait to complete hold");
+        }
+        connLock.lock();
+
         // TODO: Don't throw exception; populate all the Validity entries instead
         Validity v = connSvc.validate(in, ConnectionMode.NEW);
         if (!v.isValid()) {
             in.setValidity(v);
             log.info("did not update invalid connection "+in.getConnectionId());
             log.info("reason: "+v.getMessage());
+            connLock.unlock();
             return in;
         }
 
@@ -213,6 +220,7 @@ public class HoldController {
             Connection prev = maybeConnection.get();
             // don't throw an error, just return the input. makes sure
             if (!prev.getPhase().equals(Phase.HELD)) {
+                connLock.unlock();
                 return in;
             }
 
@@ -242,6 +250,7 @@ public class HoldController {
             // log.debug("new conn:\n" + pretty);
             connRepo.save(c);
         }
+        connLock.unlock();
 
         return in;
     }

@@ -445,6 +445,12 @@ public class ConnService {
     @Transactional
     public ConnChangeResult commit(Connection c) throws NsoResvException, PCEException, ConnException {
         log.info("committing " + c.getConnectionId());
+        ReentrantLock connLock = dbAccess.getConnLock();
+        if (connLock.isLocked()) {
+            log.debug("connection lock already locked; will need to wait to complete commit");
+        }
+        connLock.lock();
+
         Held h = c.getHeld();
 
         if (!c.getPhase().equals(Phase.HELD)) {
@@ -461,11 +467,7 @@ public class ConnService {
             throw new ConnException("Invalid connection for commit; errors follow: \n" + v.getMessage());
         }
 
-        ReentrantLock connLock = dbAccess.getConnLock();
-        if (connLock.isLocked()) {
-            log.debug("connection lock already locked; will need to wait to complete commit");
-        }
-        connLock.lock();
+
         try {
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
