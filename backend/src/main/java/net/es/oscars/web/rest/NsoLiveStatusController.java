@@ -188,8 +188,8 @@ public class NsoLiveStatusController {
         }
 
         response.setResults(results);
-        dumpDebug("allsdps", allSdpsForAllDevices);
-        dumpDebug("nsoSdpIds", nsoSdpIds);
+        // dumpDebug("allsdps", allSdpsForAllDevices);
+        // dumpDebug("nsoSdpIds", nsoSdpIds);
 
         for (OperationalStateInfoResult result : response.getResults()) {
             String device = result.getDevice();
@@ -216,7 +216,7 @@ public class NsoLiveStatusController {
 
             // mapping SDPs is slightly more complicated though
             List<NsoSdpId> deviceSdpIds = nsoSdpIds.stream().filter(sdpId -> sdpId.getDevice().equals(device)).toList();
-            dumpDebug("deviceSdpIds", deviceSdpIds);
+            // dumpDebug("deviceSdpIds", deviceSdpIds);
 
             // first collect our desired SDP ids and group them by remote end
             Map<String, Set<NsoSdpId>> byTarget = new HashMap<>();
@@ -226,7 +226,7 @@ public class NsoLiveStatusController {
                 }
                 byTarget.get(nsoSdpId.getTarget()).add(nsoSdpId);
             }
-            dumpDebug("byTarget on "+device, byTarget);
+            // dumpDebug("byTarget on "+device, byTarget);
 
             // for each far end, make a tunnel, then we have to figure out the health of the tunnel
             // each tunnel is composed of a primary SDP and maybe a secondary one as well.
@@ -266,8 +266,8 @@ public class NsoLiveStatusController {
                     }
 
                 }
-                dumpDebug("sdpOpInfos", sdpOpInfos);
-                dumpDebug("okByPrecedence", okByPrecedence);
+                // dumpDebug("sdpOpInfos", sdpOpInfos);
+                // dumpDebug("okByPrecedence", okByPrecedence);
 
                 // the rule is...
                 // - if the primary SDP exists and is UP the tunnel is UP
