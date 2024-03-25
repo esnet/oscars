@@ -24,9 +24,9 @@ import org.jgrapht.graph.Multigraph;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -41,7 +41,6 @@ import static net.es.oscars.sb.nso.NsoAdapter.NSO_TEMPLATE_VERSION;
 @Service
 @Slf4j
 @Data
-@Transactional
 public class ConnService {
 
     @Autowired
@@ -312,6 +311,7 @@ public class ConnService {
     }
 
 
+    @Transactional
     public void modifySchedule(Connection c, Instant beginning, Instant ending) throws ModifyException {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
@@ -328,6 +328,7 @@ public class ConnService {
 
     }
 
+    @Transactional
     public void modifyBandwidth(Connection c, Integer bandwidth) throws ModifyException {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
@@ -441,6 +442,7 @@ public class ConnService {
     }
 
 
+    @Transactional
     public ConnChangeResult commit(Connection c) throws NsoResvException, PCEException, ConnException {
         log.info("committing " + c.getConnectionId());
         Held h = c.getHeld();
@@ -470,11 +472,11 @@ public class ConnService {
 
             reservedFromHeld(c);
             archiveFromReserved(c);
+
             c.setHeld(null);
             c.setDeploymentState(DeploymentState.UNDEPLOYED);
             c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
 
-            connRepo.saveAndFlush(c);
             nsoResourceService.reserve(c);
 
             connRepo.saveAndFlush(c);
@@ -504,6 +506,7 @@ public class ConnService {
     }
 
 
+    @Transactional
     public ConnChangeResult release(Connection c) {
         // if it is HELD or DESIGN, just delete it
         if (c.getPhase().equals(Phase.HELD) || c.getPhase().equals(Phase.DESIGN)) {
