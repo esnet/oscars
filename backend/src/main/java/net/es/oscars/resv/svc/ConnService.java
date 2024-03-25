@@ -476,10 +476,9 @@ public class ConnService {
             c.setHeld(null);
             c.setDeploymentState(DeploymentState.UNDEPLOYED);
             c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
+            connRepo.saveAndFlush(c);
 
             nsoResourceService.reserve(c);
-
-            connRepo.saveAndFlush(c);
 
             Instant instant = Instant.now();
             c.setLast_modified((int) instant.getEpochSecond());
