@@ -190,7 +190,8 @@ public class HoldController {
 
         ReentrantLock connLock = dbAccess.getConnLock();
         if (connLock.isLocked()) {
-            log.debug("connection lock already locked; will need to wait to complete hold");
+            log.debug("connection lock already locked; returning from hold");
+            return null;
         }
         connLock.lock();
 

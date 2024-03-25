@@ -454,16 +454,19 @@ public class ConnService {
         Held h = c.getHeld();
 
         if (!c.getPhase().equals(Phase.HELD)) {
+            connLock.unlock();
             throw new PCEException("Connection not in HELD phase " + c.getConnectionId());
 
         }
         if (h == null) {
+            connLock.unlock();
             throw new PCEException("Null held " + c.getConnectionId());
         }
 
 
         Validity v = this.validateCommit(c);
         if (!v.isValid()) {
+            connLock.unlock();
             throw new ConnException("Invalid connection for commit; errors follow: \n" + v.getMessage());
         }
 
