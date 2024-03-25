@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import net.es.oscars.resv.enums.DeploymentState;
+import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.sb.nso.db.NsoSdpIdDAO;
 import net.es.oscars.sb.nso.ent.NsoSdpId;
@@ -122,20 +123,32 @@ public class NsoLiveStatusController {
         int serviceId = requestData.getServiceId();
         Connection conn = requestData.getConn();
 
-        // this collects nsoSdpIds that oscars would set up, keyed off the device
-        List<NsoSdpId> nsoSdpIds = nsoSdpIdDAO.findNsoSdpIdByConnectionId(conn.getConnectionId());
-
-
         // start building REST return
         OperationalStateInfoResponse response = new OperationalStateInfoResponse();
         response.setTimestamp(Instant.now());
         response.setConnectionId(request.getConnectionId()); // cp connId from request
+        boolean canGetLiveStatus = false;
+        if (conn.getPhase().equals(Phase.RESERVED)) {
+            if (conn.getState().equals(State.ACTIVE)) {
+                canGetLiveStatus = true;
+            }
+        }
+        if (!canGetLiveStatus) {
+            response.setState(OperationalState.DOWN);
+            return response;
+        }
+
+
+
         Instant timestamp = request.getRefreshIfOlderThan();
 
         List<OperationalStateInfoResult> results = new ArrayList<>();
         ArrayList<LiveStatusSdpResult> allSdpsForAllDevices = new ArrayList<>();
         Map<String, ArrayList<LiveStatusSapResult>> allSapsForDevice = new HashMap<>();
         // Map<String, ArrayList<LiveStatusLspResult>> allLspsForDevice = new HashMap<>();
+
+        // this collects nsoSdpIds that oscars would set up, keyed off the device
+        List<NsoSdpId> nsoSdpIds = nsoSdpIdDAO.findNsoSdpIdByConnectionId(conn.getConnectionId());
 
 
         log.debug("Run live-status request on devices and collect operational states");
