@@ -31,6 +31,7 @@ import net.es.oscars.sb.nso.ent.NsoVcId;
 
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -144,10 +145,11 @@ public class NsoLiveStatusController {
                     conn.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
                 log.info("Fetch SDPs, SAPs, and LSPs from LiveStatusCacheManager for " + device + " service id " + serviceId);
                 List<LiveStatusSdpResult> sdpsOnDevice = operationalStateCacheManager.getSdp(device, serviceId, timestamp);
+                List<LiveStatusSapResult> sapsOnDevice = operationalStateCacheManager.getSap(device, serviceId, timestamp);
 
                 // get SDPs, SAPs, and LSPs from cache manager
                 allSdpsForAllDevices.addAll(sdpsOnDevice);
-                allSapsForDevice.put(device, operationalStateCacheManager.getSap(device, serviceId, timestamp));
+                allSapsForDevice.put(device, new ArrayList<>(sapsOnDevice));
                 // allLspsForDevice.put(device, operationalStateCacheManager.getLsp(device, timestamp));
 
                 // this raw output is the same for all SDPs on the device
@@ -165,6 +167,8 @@ public class NsoLiveStatusController {
                         .device(device)
                         .timestamp(timestamp)
                         .status(true)
+                        .sdps(sdpsOnDevice)
+                        .saps(sapsOnDevice)
                         .raw(sdpRaw+"\n"+sapRaw)
                         .build();
 
@@ -176,6 +180,8 @@ public class NsoLiveStatusController {
                                 .device(device)
                                 .errorMessage("Not deployed")
                                 .status(false)
+                                .sdps(new ArrayList<>())
+                                .saps(new ArrayList<>())
                                 .raw("")
                                 .timestamp(timestamp)
                                 .build());
@@ -183,6 +189,8 @@ public class NsoLiveStatusController {
         }
 
         response.setResults(results);
+        dumpDebug("allsdps", allSdpsForAllDevices);
+        dumpDebug("nsoSdpIds", nsoSdpIds);
 
         for (OperationalStateInfoResult result : response.getResults()) {
             String device = result.getDevice();
@@ -207,26 +215,26 @@ public class NsoLiveStatusController {
                                 .build());
             }
 
-
             // mapping SDPs is slightly more complicated though
-            dumpDebug(allSdpsForAllDevices);
             List<NsoSdpId> deviceSdpIds = nsoSdpIds.stream().filter(sdpId -> sdpId.getDevice().equals(device)).toList();
+            dumpDebug("deviceSdpIds", deviceSdpIds);
 
-            // first we will see if the sdp id is up or down
-            Map<String, Set<NsoSdpId>> byRemote = new HashMap<>();
+            // first collect our desired SDP ids and group them by remote end
+            Map<String, Set<NsoSdpId>> byTarget = new HashMap<>();
             for (NsoSdpId nsoSdpId : deviceSdpIds) {
-                if (!byRemote.containsKey(nsoSdpId.getTarget())) {
-                    byRemote.put(nsoSdpId.getTarget(), new HashSet<>());
+                if (!byTarget.containsKey(nsoSdpId.getTarget())) {
+                    byTarget.put(nsoSdpId.getTarget(), new HashSet<>());
                 }
-                byRemote.get(nsoSdpId.getTarget()).add(nsoSdpId);
+                byTarget.get(nsoSdpId.getTarget()).add(nsoSdpId);
             }
+            dumpDebug("byRemote", byTarget);
 
             // for each far end, make a tunnel, then we have to figure out the health of the tunnel
             // each tunnel is composed of a primary SDP and maybe a secondary one as well.
-            for (String remote : byRemote.keySet()) {
+            for (String target : byTarget.keySet()) {
                 Map<NsoVplsSdpPrecedence, Boolean> okByPrecedence = new HashMap<>();
                 Set<OperationalStateInfoResponse.SdpOpInfo> sdpOpInfos = new HashSet<>();
-                for (NsoSdpId nsoSdpId : byRemote.get(remote)) {
+                for (NsoSdpId nsoSdpId : byTarget.get(target)) {
                     if (result.getSdps() != null) {
                         for (LiveStatusSdpResult sdpResult : result.getSdps()) {
                             if (sdpResult.getSdpId().equals(nsoSdpId.getSdpId())) {
@@ -257,8 +265,8 @@ public class NsoLiveStatusController {
                     }
 
                 }
-                dumpDebug( sdpOpInfos);
-                dumpDebug(okByPrecedence);
+                dumpDebug("sdpOpInfos", sdpOpInfos);
+                dumpDebug("okByPrecedence", okByPrecedence);
 
                 // the rule is...
                 // - if the primary SDP exists and is UP the tunnel is UP
@@ -280,7 +288,7 @@ public class NsoLiveStatusController {
                                 .state(tunnelState)
                                 .sdps(sdpOpInfos.stream().toList())
                                 .device(device)
-                                .remote(remote)
+                                .remote(target)
                         .build());
 
             }
@@ -390,7 +398,7 @@ public class NsoLiveStatusController {
                 .conn(conn)
                 .build();
     }
-    private void dumpDebug(Object o) {
+    private void dumpDebug(String context, Object o) {
         String pretty = null;
 
         try {
@@ -402,7 +410,7 @@ public class NsoLiveStatusController {
             log.error(ex.getMessage());
         }
 
-        log.info(pretty);
+        log.info(context+"\n"+pretty);
     }
 
 }

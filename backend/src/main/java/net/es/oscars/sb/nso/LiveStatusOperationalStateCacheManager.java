@@ -396,10 +396,19 @@ public class LiveStatusOperationalStateCacheManager {
         if (input == null) return null;
         ArrayList<String> data = new ArrayList<>();
         String[] lines = input.split("\r\n");
-        Pattern regex = Pattern.compile("^[0-9]{1}");
+
+        // starts with a number, i.e. for something like
+        // 1/1/c13/1:2012                  7072       7001  none    7001  none   Up   Up
+        Pattern startsWithNumber = Pattern.compile("^[0-9]{1}");
+
+        // some SAP lines look different and we want those too
+        // lag-50:3603                     7072       7005  none    7005  none   Up   Up
+        Pattern startsWithLag = Pattern.compile("^lag");
+
         for (String line : lines) {
-            Matcher m = regex.matcher(line);
-            if (m.find()) {
+            Matcher numberMatch = startsWithNumber.matcher(line);
+            Matcher lagMatch = startsWithLag.matcher(line);
+            if (numberMatch.find() || lagMatch.find()) {
                 data.add(line);
             }
         }
