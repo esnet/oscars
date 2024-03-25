@@ -159,7 +159,7 @@ public class NsoLiveStatusController {
 
                 String sapRaw = "";
                 for (LiveStatusSapResult sapResult : allSapsForDevice.get(device)) {
-                    sdpRaw = sapResult.getRaw();
+                    sapRaw = sapResult.getRaw();
                 }
 
                 OperationalStateInfoResult resultElement = OperationalStateInfoResult.builder()
