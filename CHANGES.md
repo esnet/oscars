@@ -1,4 +1,7 @@
 # OSCARS Release Notes
+### 1.2.3
+- OS-285: fix operational state bugs
+
 ### 1.2.2
 > Mar 2024
 - OS-227: add an ip interface frontend

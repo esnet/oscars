@@ -39,7 +39,7 @@ public class EsdbVlanSync {
         this.topologyStore = topologyStore;
     }
 
-    @Scheduled(initialDelay = 10000,fixedDelayString ="${esdb.vlan-sync-period}" )
+    @Scheduled(initialDelay = 120000, fixedDelayString ="${esdb.vlan-sync-period}" )
     public void processingLoop() {
         if (!esdbProperties.isEnabled()) {
             return;

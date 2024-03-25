@@ -95,6 +95,10 @@ public class LiveStatusOperationalStateCacheManager {
         ArrayList<String> sdpsList = this.getDataLines(reply);
 
         // extract SDP data - simple line format parsing
+        // incoming format:
+        // 7141:7087        Spok     134.55.200.173  Up      Up        524100    524267
+        // sdpId : vcId
+
         for (int i = 0; i < sdpsList.size(); i++) {
             result = new LiveStatusSdpResult();
             result.setDevice(device);
@@ -119,14 +123,13 @@ public class LiveStatusOperationalStateCacheManager {
                 break;
             }
 
-            int vcId = 0;
             int sdpId = 0;
+            int vcId = 0;
             try {
-                vcId = Integer.parseInt(sdpIdAndInfo[0]);
-                sdpId = Integer.parseInt(sdpInfo[0]);
+                sdpId = Integer.parseInt(sdpIdAndInfo[0]);
+                vcId = Integer.parseInt(sdpInfo[0]);
             } catch (NumberFormatException error) {
-                log.error("Couldn't parse VC/SDP ID");
-                error.printStackTrace();
+                log.error("Couldn't parse VC/SDP ID from "+line+" : "+error.getMessage());
             }
             result.setVcId(vcId);
             result.setSdpId(sdpId);
@@ -396,10 +399,19 @@ public class LiveStatusOperationalStateCacheManager {
         if (input == null) return null;
         ArrayList<String> data = new ArrayList<>();
         String[] lines = input.split("\r\n");
-        Pattern regex = Pattern.compile("^[0-9]{1}");
+
+        // starts with a number, i.e. for something like
+        // 1/1/c13/1:2012                  7072       7001  none    7001  none   Up   Up
+        Pattern startsWithNumber = Pattern.compile("^[0-9]{1}");
+
+        // some SAP lines look different and we want those too
+        // lag-50:3603                     7072       7005  none    7005  none   Up   Up
+        Pattern startsWithLag = Pattern.compile("^lag");
+
         for (String line : lines) {
-            Matcher m = regex.matcher(line);
-            if (m.find()) {
+            Matcher numberMatch = startsWithNumber.matcher(line);
+            Matcher lagMatch = startsWithLag.matcher(line);
+            if (numberMatch.find() || lagMatch.find()) {
                 data.add(line);
             }
         }
