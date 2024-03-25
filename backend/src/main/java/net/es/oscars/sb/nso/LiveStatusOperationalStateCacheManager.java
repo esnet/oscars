@@ -95,6 +95,10 @@ public class LiveStatusOperationalStateCacheManager {
         ArrayList<String> sdpsList = this.getDataLines(reply);
 
         // extract SDP data - simple line format parsing
+        // incoming format:
+        // 7141:7087        Spok     134.55.200.173  Up      Up        524100    524267
+        // sdpId : vcId
+
         for (int i = 0; i < sdpsList.size(); i++) {
             result = new LiveStatusSdpResult();
             result.setDevice(device);
@@ -119,14 +123,13 @@ public class LiveStatusOperationalStateCacheManager {
                 break;
             }
 
-            int vcId = 0;
             int sdpId = 0;
+            int vcId = 0;
             try {
-                vcId = Integer.parseInt(sdpIdAndInfo[0]);
-                sdpId = Integer.parseInt(sdpInfo[0]);
+                sdpId = Integer.parseInt(sdpIdAndInfo[0]);
+                vcId = Integer.parseInt(sdpInfo[0]);
             } catch (NumberFormatException error) {
-                log.error("Couldn't parse VC/SDP ID");
-                error.printStackTrace();
+                log.error("Couldn't parse VC/SDP ID from "+line+" : "+error.getMessage());
             }
             result.setVcId(vcId);
             result.setSdpId(sdpId);
