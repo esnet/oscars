@@ -1,5 +1,8 @@
 package net.es.oscars.web.rest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -206,7 +209,7 @@ public class NsoLiveStatusController {
 
 
             // mapping SDPs is slightly more complicated though
-            DevelUtils.dumpDebug("allsdps", allSdpsForAllDevices);
+            dumpDebug(allSdpsForAllDevices);
             List<NsoSdpId> deviceSdpIds = nsoSdpIds.stream().filter(sdpId -> sdpId.getDevice().equals(device)).toList();
 
             // first we will see if the sdp id is up or down
@@ -224,35 +227,38 @@ public class NsoLiveStatusController {
                 Map<NsoVplsSdpPrecedence, Boolean> okByPrecedence = new HashMap<>();
                 Set<OperationalStateInfoResponse.SdpOpInfo> sdpOpInfos = new HashSet<>();
                 for (NsoSdpId nsoSdpId : byRemote.get(remote)) {
-                    for (LiveStatusSdpResult sdpResult : result.getSdps()) {
-                        if (sdpResult.getSdpId().equals(nsoSdpId.getSdpId())) {
-                            OperationalStateInfoResponse.UpDown operState = sdpResult.getOperationalState() ?
-                                    UP : OperationalStateInfoResponse.UpDown.DOWN;
-                            OperationalStateInfoResponse.UpDown adminState = sdpResult.getAdminState() ?
-                                    UP : OperationalStateInfoResponse.UpDown.DOWN;
-                            String precedenceStr = nsoSdpId.getPrecedence();
-                            NsoVplsSdpPrecedence precedence = PRIMARY;
-                            if (precedenceStr.equals(SECONDARY.toString())) {
-                                precedence = SECONDARY;
+                    if (result.getSdps() != null) {
+                        for (LiveStatusSdpResult sdpResult : result.getSdps()) {
+                            if (sdpResult.getSdpId().equals(nsoSdpId.getSdpId())) {
+                                OperationalStateInfoResponse.UpDown operState = sdpResult.getOperationalState() ?
+                                        UP : OperationalStateInfoResponse.UpDown.DOWN;
+                                OperationalStateInfoResponse.UpDown adminState = sdpResult.getAdminState() ?
+                                        UP : OperationalStateInfoResponse.UpDown.DOWN;
+                                String precedenceStr = nsoSdpId.getPrecedence();
+                                NsoVplsSdpPrecedence precedence = PRIMARY;
+                                if (precedenceStr.equals(SECONDARY.toString())) {
+                                    precedence = SECONDARY;
+                                }
+                                if (operState.equals(UP) && adminState.equals(UP)) {
+                                    okByPrecedence.put(precedence, true);
+                                } else {
+                                    okByPrecedence.put(precedence, false);
+                                }
+                                sdpOpInfos.add(OperationalStateInfoResponse.SdpOpInfo.builder()
+                                        .sdpId(sdpResult.getSdpId())
+                                        .vcId(sdpResult.getVcId())
+                                        .operState(operState)
+                                        .adminState(adminState)
+                                        .precedence(precedence)
+                                        .build());
+                                break;
                             }
-                            if (operState.equals(UP) && adminState.equals(UP)) {
-                                okByPrecedence.put(precedence, true);
-                            } else {
-                                okByPrecedence.put(precedence, false);
-                            }
-                            sdpOpInfos.add(OperationalStateInfoResponse.SdpOpInfo.builder()
-                                    .sdpId(sdpResult.getSdpId())
-                                    .vcId(sdpResult.getVcId())
-                                    .operState(operState)
-                                    .adminState(adminState)
-                                    .precedence(precedence)
-                                    .build());
-                            break;
                         }
                     }
+
                 }
-                DevelUtils.dumpDebug("sdpOpInfos", sdpOpInfos);
-                DevelUtils.dumpDebug("okByPrecedence", okByPrecedence);
+                dumpDebug( sdpOpInfos);
+                dumpDebug(okByPrecedence);
 
                 // the rule is...
                 // - if the primary SDP exists and is UP the tunnel is UP
@@ -383,6 +389,20 @@ public class NsoLiveStatusController {
                 .serviceId(vcid)
                 .conn(conn)
                 .build();
+    }
+    private void dumpDebug(Object o) {
+        String pretty = null;
+
+        try {
+            pretty = (new ObjectMapper())
+                    .registerModule(new JavaTimeModule())
+                    .writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(o);
+        } catch (JsonProcessingException ex) {
+            log.error(ex.getMessage());
+        }
+
+        log.info(pretty);
     }
 
 }
