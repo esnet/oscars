@@ -51,7 +51,6 @@ public class NsoLiveStatusController {
     private final NsoSdpIdDAO nsoSdpIdDAO;
 
 
-
     public NsoLiveStatusController(
             LiveStatusOperationalStateCacheManager operationalStateCacheManager,
             NsoVcIdDAO nsoVcIdDAO,
@@ -70,7 +69,7 @@ public class NsoLiveStatusController {
 
         // filter and extract request data
         RequestData requestData = getRequestData(request);
-        if(requestData  == null) {
+        if (requestData == null) {
             log.info("Couldn't extract REST request data");
             throw new NoSuchElementException();
         }
@@ -95,11 +94,11 @@ public class NsoLiveStatusController {
                         .getMacs(device, serviceId, request.getRefreshIfOlderThan()).getMacInfoResult());
             } else {
                 results.add(MacInfoResult.builder()
-                                .device(device)
-                                .errorMessage("Not deployed")
-                                .status(false)
-                                .timestamp(Instant.now())
-                                .fdbQueryResult("Not deployed")
+                        .device(device)
+                        .errorMessage("Not deployed")
+                        .status(false)
+                        .timestamp(Instant.now())
+                        .fdbQueryResult("Not deployed")
                         .build());
             }
         }
@@ -115,7 +114,7 @@ public class NsoLiveStatusController {
 
         // filter and extract request data
         RequestData requestData = getRequestData(request);
-        if(requestData  == null) {
+        if (requestData == null) {
             log.info("Couldn't extract REST request data");
             throw new NoSuchElementException();
         }
@@ -124,7 +123,7 @@ public class NsoLiveStatusController {
         Connection conn = requestData.getConn();
 
         // this collects nsoSdpIds that oscars would set up, keyed off the device
-        List<NsoSdpId> nsoSdpIds =  nsoSdpIdDAO.findNsoSdpIdByConnectionId(conn.getConnectionId());
+        List<NsoSdpId> nsoSdpIds = nsoSdpIdDAO.findNsoSdpIdByConnectionId(conn.getConnectionId());
 
 
         // start building REST return
@@ -169,22 +168,22 @@ public class NsoLiveStatusController {
                         .status(true)
                         .sdps(sdpsOnDevice)
                         .saps(sapsOnDevice)
-                        .raw(sdpRaw+"\n"+sapRaw)
+                        .raw(sdpRaw + "\n" + sapRaw)
                         .build();
 
-                        new OperationalStateInfoResult();
+                new OperationalStateInfoResult();
 
                 results.add(resultElement);
             } else {
                 results.add(OperationalStateInfoResult.builder()
-                                .device(device)
-                                .errorMessage("Not deployed")
-                                .status(false)
-                                .sdps(new ArrayList<>())
-                                .saps(new ArrayList<>())
-                                .raw("")
-                                .timestamp(timestamp)
-                                .build());
+                        .device(device)
+                        .errorMessage("Not deployed")
+                        .status(false)
+                        .sdps(new ArrayList<>())
+                        .saps(new ArrayList<>())
+                        .raw("")
+                        .timestamp(timestamp)
+                        .build());
             }
         }
 
@@ -206,13 +205,13 @@ public class NsoLiveStatusController {
                 OperationalStateInfoResponse.UpDown adminState = sapResult.getAdminState() ?
                         UP : OperationalStateInfoResponse.UpDown.DOWN;
                 response.getEndpoints().add(OperationalStateInfoResponse.EndpointOpInfo.builder()
-                                .device(device)
-                                .vlanId(sapResult.getVlan())
-                                .port(sapResult.getPort())
-                                .operState(operState)
-                                .adminState(adminState)
-                                .state(endpointState)
-                                .build());
+                        .device(device)
+                        .vlanId(sapResult.getVlan())
+                        .port(sapResult.getPort())
+                        .operState(operState)
+                        .adminState(adminState)
+                        .state(endpointState)
+                        .build());
             }
 
             // mapping SDPs is slightly more complicated though
@@ -235,32 +234,31 @@ public class NsoLiveStatusController {
                 Map<NsoVplsSdpPrecedence, Boolean> okByPrecedence = new HashMap<>();
                 Set<OperationalStateInfoResponse.SdpOpInfo> sdpOpInfos = new HashSet<>();
                 for (NsoSdpId nsoSdpId : byTarget.get(target)) {
-                    if (result.getSdps() != null) {
-                        for (LiveStatusSdpResult sdpResult : result.getSdps()) {
-                            if (sdpResult.getSdpId().equals(nsoSdpId.getSdpId())) {
-                                OperationalStateInfoResponse.UpDown operState = sdpResult.getOperationalState() ?
-                                        UP : OperationalStateInfoResponse.UpDown.DOWN;
-                                OperationalStateInfoResponse.UpDown adminState = sdpResult.getAdminState() ?
-                                        UP : OperationalStateInfoResponse.UpDown.DOWN;
-                                String precedenceStr = nsoSdpId.getPrecedence();
-                                NsoVplsSdpPrecedence precedence = PRIMARY;
-                                if (precedenceStr.equals(SECONDARY.toString())) {
-                                    precedence = SECONDARY;
-                                }
-                                if (operState.equals(UP) && adminState.equals(UP)) {
-                                    okByPrecedence.put(precedence, true);
-                                } else {
-                                    okByPrecedence.put(precedence, false);
-                                }
-                                sdpOpInfos.add(OperationalStateInfoResponse.SdpOpInfo.builder()
-                                        .sdpId(sdpResult.getSdpId())
-                                        .vcId(sdpResult.getVcId())
-                                        .operState(operState)
-                                        .adminState(adminState)
-                                        .precedence(precedence)
-                                        .build());
-                                break;
+                    for (LiveStatusSdpResult sdpResult : allSdpsForAllDevices) {
+                        if (sdpResult.getDevice().equals(device) && sdpResult.getSdpId().equals(nsoSdpId.getSdpId())) {
+                            OperationalStateInfoResponse.UpDown operState = sdpResult.getOperationalState() ?
+                                    UP : OperationalStateInfoResponse.UpDown.DOWN;
+                            OperationalStateInfoResponse.UpDown adminState = sdpResult.getAdminState() ?
+                                    UP : OperationalStateInfoResponse.UpDown.DOWN;
+                            String precedenceStr = nsoSdpId.getPrecedence();
+                            NsoVplsSdpPrecedence precedence = PRIMARY;
+                            if (precedenceStr.equals(SECONDARY.toString())) {
+                                precedence = SECONDARY;
                             }
+                            if (operState.equals(UP) && adminState.equals(UP)) {
+                                okByPrecedence.put(precedence, true);
+                            } else {
+                                okByPrecedence.put(precedence, false);
+                            }
+
+                            sdpOpInfos.add(OperationalStateInfoResponse.SdpOpInfo.builder()
+                                    .sdpId(sdpResult.getSdpId())
+                                    .vcId(sdpResult.getVcId())
+                                    .operState(operState)
+                                    .adminState(adminState)
+                                    .precedence(precedence)
+                                    .build());
+                            break;
                         }
                     }
 
@@ -285,10 +283,10 @@ public class NsoLiveStatusController {
                     }
                 }
                 response.getTunnels().add(OperationalStateInfoResponse.TunnelOpInfo.builder()
-                                .state(tunnelState)
-                                .sdps(sdpOpInfos.stream().toList())
-                                .device(device)
-                                .remote(target)
+                        .state(tunnelState)
+                        .sdps(sdpOpInfos.stream().toList())
+                        .device(device)
+                        .remote(target)
                         .build());
 
             }
@@ -386,8 +384,8 @@ public class NsoLiveStatusController {
         }
 
         // extract subset
-        for(String device : devicesFromRest) {
-            if(devicesFromId.contains(device)) {
+        for (String device : devicesFromRest) {
+            if (devicesFromId.contains(device)) {
                 devices.add(device);
             }
         }
@@ -398,6 +396,7 @@ public class NsoLiveStatusController {
                 .conn(conn)
                 .build();
     }
+
     private void dumpDebug(String context, Object o) {
         String pretty = null;
 
@@ -410,7 +409,7 @@ public class NsoLiveStatusController {
             log.error(ex.getMessage());
         }
 
-        log.info(context+"\n"+pretty);
+        log.info(context + "\n" + pretty);
     }
 
 }
