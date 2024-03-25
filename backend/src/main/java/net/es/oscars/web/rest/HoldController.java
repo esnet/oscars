@@ -230,6 +230,7 @@ public class HoldController {
             // log.debug("prev conn: "+prev.getId()+"\n" + prettyPrv);
 
             updateConnection(in, prev);
+            log.info("new expiration: "+prev.getHeld().getExpiration());
 
             // String prettyUpd = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(prev);
             // log.debug("updated conn: "+prev.getId()+"\n" + prettyUpd);
@@ -251,6 +252,7 @@ public class HoldController {
             // log.debug("new conn:\n" + pretty);
             connRepo.save(c);
         }
+
         connLock.unlock();
 
         return in;

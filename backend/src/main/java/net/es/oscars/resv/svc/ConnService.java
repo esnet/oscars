@@ -474,6 +474,7 @@ public class ConnService {
         try {
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
+            archivedRepo.findByConnectionId(c.getConnectionId()).ifPresent(archivedRepo::delete);
 
             reservedFromHeld(c);
             archiveFromReserved(c);
