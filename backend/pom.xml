@@ -14,7 +14,7 @@
     <groupId>net.es.oscars</groupId>
     <artifactId>backend</artifactId>
     <name>backend</name>
-    <version>1.2.2</version>
+    <version>1.2.3</version>
 
     <description>OSCARS backend</description>
     <properties>
