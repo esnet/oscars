@@ -226,7 +226,7 @@ public class NsoLiveStatusController {
                 }
                 byTarget.get(nsoSdpId.getTarget()).add(nsoSdpId);
             }
-            dumpDebug("byRemote", byTarget);
+            dumpDebug("byTarget on "+device, byTarget);
 
             // for each far end, make a tunnel, then we have to figure out the health of the tunnel
             // each tunnel is composed of a primary SDP and maybe a secondary one as well.
@@ -234,8 +234,11 @@ public class NsoLiveStatusController {
                 Map<NsoVplsSdpPrecedence, Boolean> okByPrecedence = new HashMap<>();
                 Set<OperationalStateInfoResponse.SdpOpInfo> sdpOpInfos = new HashSet<>();
                 for (NsoSdpId nsoSdpId : byTarget.get(target)) {
+                    log.info("checking status for nsoSdpId "+nsoSdpId.getDevice()+" "+nsoSdpId.getSdpId());
                     for (LiveStatusSdpResult sdpResult : allSdpsForAllDevices) {
-                        if (sdpResult.getDevice().equals(device) && sdpResult.getSdpId().equals(nsoSdpId.getSdpId())) {
+                        log.info("examining sdpResult for "+sdpResult.getDevice()+" "+sdpResult.getSdpId());
+                        if (sdpResult.getDevice().equals(nsoSdpId.getDevice()) && sdpResult.getSdpId().equals(nsoSdpId.getSdpId())) {
+                            log.info("matched! ");
                             OperationalStateInfoResponse.UpDown operState = sdpResult.getOperationalState() ?
                                     UP : OperationalStateInfoResponse.UpDown.DOWN;
                             OperationalStateInfoResponse.UpDown adminState = sdpResult.getAdminState() ?
