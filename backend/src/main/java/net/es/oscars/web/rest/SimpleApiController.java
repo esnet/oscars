@@ -118,6 +118,7 @@ public class SimpleApiController {
         } else if (startup.isInShutdown()) {
             throw new StartupException("OSCARS shutting down");
         }
+        log.info("retrieving OSCARS connection list");
 
         boolean return_svc_ids = false;
         if (include_svc_id != null) {

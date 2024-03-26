@@ -41,4 +41,4 @@ COPY --from=builder /build/backend/snapshot-dependencies/ ./
 COPY --from=builder /build/backend/application/ ./
 
 # run the application
-ENTRYPOINT ["java", "org.springframework.boot.loader.JarLauncher", "--spring.config.location=/app/config/application.properties"]
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher", "--spring.config.location=/app/config/application.properties"]

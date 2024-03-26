@@ -1,6 +1,8 @@
 package net.es.oscars.resv.svc;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
@@ -24,9 +26,9 @@ import org.jgrapht.graph.Multigraph;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -41,7 +43,6 @@ import static net.es.oscars.sb.nso.NsoAdapter.NSO_TEMPLATE_VERSION;
 @Service
 @Slf4j
 @Data
-@Transactional
 public class ConnService {
 
     @Autowired
@@ -312,6 +313,7 @@ public class ConnService {
     }
 
 
+    @Transactional
     public void modifySchedule(Connection c, Instant beginning, Instant ending) throws ModifyException {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
@@ -328,6 +330,7 @@ public class ConnService {
 
     }
 
+    @Transactional
     public void modifyBandwidth(Connection c, Integer bandwidth) throws ModifyException {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
@@ -441,46 +444,63 @@ public class ConnService {
     }
 
 
+    @Transactional
     public ConnChangeResult commit(Connection c) throws NsoResvException, PCEException, ConnException {
         log.info("committing " + c.getConnectionId());
+        ReentrantLock connLock = dbAccess.getConnLock();
+        if (connLock.isLocked()) {
+            log.debug("connection lock already locked; will need to wait to complete commit");
+        }
+        connLock.lock();
+
         Held h = c.getHeld();
 
         if (!c.getPhase().equals(Phase.HELD)) {
+            connLock.unlock();
             throw new PCEException("Connection not in HELD phase " + c.getConnectionId());
 
         }
         if (h == null) {
+            connLock.unlock();
             throw new PCEException("Null held " + c.getConnectionId());
         }
 
 
         Validity v = this.validateCommit(c);
         if (!v.isValid()) {
+            connLock.unlock();
             throw new ConnException("Invalid connection for commit; errors follow: \n" + v.getMessage());
         }
 
-        ReentrantLock connLock = dbAccess.getConnLock();
-        if (connLock.isLocked()) {
-            log.debug("connection lock already locked; will need to wait to complete commit");
-        }
-        connLock.lock();
+
         try {
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
+            c.setArchived(null);
 
-            reservedFromHeld(c);
-            archiveFromReserved(c);
-            c.setHeld(null);
-            c.setDeploymentState(DeploymentState.UNDEPLOYED);
-            c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
+            Connection afterArchiveDeleted = connRepo.save(c);
 
-            connRepo.saveAndFlush(c);
-            nsoResourceService.reserve(c);
+            // try and delete any previous archived stuff that might exist
+            archivedRepo.findByConnectionId(afterArchiveDeleted.getConnectionId()).ifPresent(archivedRepo::delete);
 
-            connRepo.saveAndFlush(c);
+            reservedFromHeld(afterArchiveDeleted);
+            archiveFromReserved(afterArchiveDeleted);
 
+            afterArchiveDeleted.setHeld(null);
+
+            // try and delete any held components that might still be around
+            heldRepo.findByConnectionId(afterArchiveDeleted.getConnectionId()).ifPresent(heldRepo::delete);
+
+            afterArchiveDeleted.setDeploymentState(DeploymentState.UNDEPLOYED);
+            afterArchiveDeleted.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
             Instant instant = Instant.now();
-            c.setLast_modified((int) instant.getEpochSecond());
+            afterArchiveDeleted.setLast_modified((int) instant.getEpochSecond());
+
+            dumpDebug("afterArchiveDeleted", afterArchiveDeleted);
+
+            Connection beforeNsoReserve = connRepo.saveAndFlush(afterArchiveDeleted);
+            nsoResourceService.reserve(beforeNsoReserve);
+
 
         } finally {
             // log.debug("unlocked connections");
@@ -504,6 +524,7 @@ public class ConnService {
     }
 
 
+    @Transactional
     public ConnChangeResult release(Connection c) {
         // if it is HELD or DESIGN, just delete it
         if (c.getPhase().equals(Phase.HELD) || c.getPhase().equals(Phase.DESIGN)) {
@@ -1093,6 +1114,19 @@ public class ConnService {
 
         return c;
     }
+    private void dumpDebug(String context, Object o) {
+        String pretty = null;
 
+        try {
+            pretty = (new ObjectMapper())
+                    .registerModule(new JavaTimeModule())
+                    .writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(o);
+        } catch (JsonProcessingException ex) {
+            log.error(ex.getMessage());
+        }
+
+        log.info(context + "\n" + pretty);
+    }
 
 }

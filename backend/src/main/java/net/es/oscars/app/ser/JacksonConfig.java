@@ -13,7 +13,6 @@ public class JacksonConfig {
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer addLombokIntrospection() {
         return jacksonObjectMapperBuilder -> {
-            log.info("customizing jackson");
             jacksonObjectMapperBuilder.failOnUnknownProperties(true);
             jacksonObjectMapperBuilder.modules(new JavaTimeModule());
         };
