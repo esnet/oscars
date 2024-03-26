@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -51,7 +53,7 @@ public class NsoProxy {
     private RestTemplate patchTemplate;
 
     @Autowired
-    public NsoProxy(NsoProperties props, RestTemplateBuilder builder) {
+    public NsoProxy(NsoProperties props, RestTemplateBuilder builder, OpenTelemetry openTelemetry) {
 
         this.props = props;
         try {
@@ -60,9 +62,11 @@ public class NsoProxy {
             customObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
             converter.setObjectMapper(customObjectMapper);
+            SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
 
             this.restTemplate = builder.build();
             restTemplate.setErrorHandler(new NsoResponseErrorHandler());
+            restTemplate.getInterceptors().add(telemetry.newInterceptor());
             restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
             restTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
             restTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-data+json"));
@@ -70,6 +74,7 @@ public class NsoProxy {
 
             // different http client for yang patch
             this.patchTemplate = builder.build();
+            patchTemplate.getInterceptors().add(telemetry.newInterceptor());
             patchTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
             patchTemplate.setErrorHandler(new NsoResponseErrorHandler());
             patchTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));

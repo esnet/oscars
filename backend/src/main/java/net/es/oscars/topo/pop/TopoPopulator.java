@@ -1,6 +1,8 @@
 package net.es.oscars.topo.pop;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.TopoProperties;
 import net.es.oscars.dto.topo.DeviceModel;
@@ -12,14 +14,13 @@ import net.es.oscars.topo.svc.ConsistencyService;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.topo.common.model.oscars1.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Service;
 
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.File;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.*;
 
 
@@ -29,15 +30,22 @@ public class TopoPopulator {
     private final TopoProperties topoProperties;
     private final TopologyStore topologyStore;
     private final ConsistencyService consistencySvc;
-
+    private final RestTemplate restTemplate;
 
     @Autowired
     public TopoPopulator(TopologyStore topologyStore,
                          ConsistencyService consistencySvc,
-                         TopoProperties topoProperties) {
+                         TopoProperties topoProperties,
+                         RestTemplateBuilder restTemplateBuilder,
+                         OpenTelemetry openTelemetry) {
         this.topoProperties = topoProperties;
         this.consistencySvc = consistencySvc;
         this.topologyStore = topologyStore;
+
+        this.restTemplate = restTemplateBuilder.build();
+        SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
+        restTemplate.getInterceptors().add(telemetry.newInterceptor());
+
     }
 
 
@@ -60,7 +68,8 @@ public class TopoPopulator {
 
     public Topology loadFromDiscovery() throws TopoException, ResourceAccessException {
         log.info("loading topology from discovery");
-        RestTemplate restTemplate = new RestTemplate();
+
+
         OscarsOneTopo discTopo = restTemplate.getForObject(topoProperties.getUrl(), OscarsOneTopo.class);
         if (discTopo == null) {
             log.warn("null discovery topology");

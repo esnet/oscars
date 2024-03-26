@@ -1,5 +1,11 @@
 # OSCARS Release Notes
+### 1.2.4
+> Mar 2024
+- further opentelemetry integration
+- bug fixes for Hibernate commit errors
+
 ### 1.2.3
+> Mar 2024
 - OS-285: fix operational state bugs
 
 ### 1.2.2
