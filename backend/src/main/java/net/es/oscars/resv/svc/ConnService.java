@@ -478,30 +478,29 @@ public class ConnService {
             c.setPhase(Phase.RESERVED);
             c.setArchived(null);
 
-            connRepo.save(c);
+            Connection afterArchiveDeleted = connRepo.save(c);
 
             // try and delete any previous archived stuff that might exist
-            archivedRepo.findByConnectionId(c.getConnectionId()).ifPresent(archivedRepo::delete);
+            archivedRepo.findByConnectionId(afterArchiveDeleted.getConnectionId()).ifPresent(archivedRepo::delete);
 
-            reservedFromHeld(c);
-            archiveFromReserved(c);
+            reservedFromHeld(afterArchiveDeleted);
+            archiveFromReserved(afterArchiveDeleted);
 
-            c.setHeld(null);
-            connRepo.saveAndFlush(c);
+            afterArchiveDeleted.setHeld(null);
 
             // try and delete any held components that might still be around
-            heldRepo.findByConnectionId(c.getConnectionId()).ifPresent(heldRepo::delete);
+            heldRepo.findByConnectionId(afterArchiveDeleted.getConnectionId()).ifPresent(heldRepo::delete);
 
-            c.setDeploymentState(DeploymentState.UNDEPLOYED);
-            c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
-            dumpDebug("before crash", c);
-
-            connRepo.saveAndFlush(c);
-            nsoResourceService.reserve(c);
-
+            afterArchiveDeleted.setDeploymentState(DeploymentState.UNDEPLOYED);
+            afterArchiveDeleted.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
             Instant instant = Instant.now();
-            c.setLast_modified((int) instant.getEpochSecond());
-            connRepo.saveAndFlush(c);
+            afterArchiveDeleted.setLast_modified((int) instant.getEpochSecond());
+
+            dumpDebug("afterArchiveDeleted", afterArchiveDeleted);
+
+            Connection beforeNsoReserve = connRepo.saveAndFlush(afterArchiveDeleted);
+            nsoResourceService.reserve(beforeNsoReserve);
+
 
         } finally {
             // log.debug("unlocked connections");
