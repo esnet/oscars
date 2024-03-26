@@ -41,6 +41,9 @@
         <suffixPattern>%msg</suffixPattern>
     </appender>
 
+    <logger name="net.es.oscars.app" level="INFO">
+        <appender-ref ref="OpenTelemetry"/>
+    </logger>
 
     <root level="WARN">
         <appender-ref ref="FILE"/>
@@ -70,5 +73,9 @@
     <logger name="org.springframework" level="ERROR">
         <appender-ref ref="STDOUT" />
     </logger>
+    <appender name="OpenTelemetry"
+              class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+    </appender>
+
 
 </configuration>

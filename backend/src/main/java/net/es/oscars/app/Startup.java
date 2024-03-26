@@ -1,6 +1,9 @@
 package net.es.oscars.app;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.props.StartupProperties;
@@ -26,24 +29,15 @@ public class Startup {
 
     private final List<StartupComponent> components;
     private final StartupProperties startupProperties;
-    private final Syslogger syslogger;
-
     private final TopoPopulator topoPopulator;
-
     private final LegacyPopulator legacyPopulator;
 
+    @Setter
     @Getter
     private boolean inStartup = true;
+    @Setter
     @Getter
     private boolean inShutdown = false;
-
-    public void setInStartup(boolean inStartup) {
-        this.inStartup = inStartup;
-    }
-
-    public void setInShutdown(boolean inShutdown) {
-        this.inShutdown = inShutdown;
-    }
 
 
     @Bean
@@ -53,27 +47,30 @@ public class Startup {
 
     @Autowired
     public Startup(StartupProperties startupProperties,
-                   Syslogger syslogger,
                    TopoPopulator topoPopulator,
                    UIPopulator uiPopulator, LegacyPopulator legacyPopulator) {
         this.startupProperties = startupProperties;
         this.topoPopulator = topoPopulator;
-        this.syslogger = syslogger;
         this.legacyPopulator = legacyPopulator;
 
         components = new ArrayList<>();
         components.add(uiPopulator);
     }
 
+    @WithSpan(value="startup")
     public void onStart() throws IOException, ConsistencyException, TopoException {
         System.out.println(startupProperties.getBanner());
+        Span currentSpan = Span.current();
+
+        currentSpan.addEvent("starting up");
+        currentSpan.setAttribute("isTestAttribute", true);
+        log.info("OSCARS starting up");
 
         this.setInStartup(true);
         if (startupProperties.getExit()) {
-            log.info("In Shutdown");
+            log.info("OSCARS shutting down");
             this.setInStartup(false);
             this.setInShutdown(true);
-            syslogger.sendSyslog("OSCARS APPLICATION SHUTDOWN COMPLETED");
             System.out.println("Exiting (startup.exit is true)");
             System.exit(0);
         }
@@ -89,9 +86,6 @@ public class Startup {
             System.out.println("Exiting..");
             System.exit(1);
         }
-        log.info("OSCARS startup successful.");
-
-        syslogger.sendSyslog("OSCARS APPLICATION STARTUP COMPLETED");
 
         this.setInStartup(false);
 
