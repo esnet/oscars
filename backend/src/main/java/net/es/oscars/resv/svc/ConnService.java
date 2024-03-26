@@ -1,6 +1,8 @@
 package net.es.oscars.resv.svc;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
@@ -492,6 +494,8 @@ public class ConnService {
 
             c.setDeploymentState(DeploymentState.UNDEPLOYED);
             c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
+            dumpDebug("before crash", c);
+
             connRepo.saveAndFlush(c);
             nsoResourceService.reserve(c);
 
@@ -1111,6 +1115,19 @@ public class ConnService {
 
         return c;
     }
+    private void dumpDebug(String context, Object o) {
+        String pretty = null;
 
+        try {
+            pretty = (new ObjectMapper())
+                    .registerModule(new JavaTimeModule())
+                    .writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(o);
+        } catch (JsonProcessingException ex) {
+            log.error(ex.getMessage());
+        }
+
+        log.info(context + "\n" + pretty);
+    }
 
 }
