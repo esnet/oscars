@@ -45,6 +45,11 @@
         <appender-ref ref="OpenTelemetry"/>
     </logger>
 
+    <logger name="net.es.oscars.web.rest.SimpleApiController" level="INFO">
+        <appender-ref ref="OpenTelemetry"/>
+    </logger>
+
+
     <root level="WARN">
         <appender-ref ref="FILE"/>
         <appender-ref ref="SYSLOG-EAST" />
