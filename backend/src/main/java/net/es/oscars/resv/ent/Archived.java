@@ -32,7 +32,7 @@ public class Archived {
     private Long id;
 
     @NonNull
-    @Column(unique = true)
+    @Column
     private String connectionId;
 
     @NonNull

@@ -37,7 +37,7 @@ public class Held {
     private Long id;
 
     @NonNull
-    @Column(unique = true)
+    @Column
     private String connectionId;
 
     @NonNull
