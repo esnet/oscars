@@ -41,14 +41,9 @@
         <suffixPattern>%msg</suffixPattern>
     </appender>
 
-    <logger name="net.es.oscars.app" level="INFO">
+    <logger name="net.es.oscars" level="INFO">
         <appender-ref ref="OpenTelemetry"/>
     </logger>
-
-    <logger name="net.es.oscars.web.rest.SimpleApiController" level="INFO">
-        <appender-ref ref="OpenTelemetry"/>
-    </logger>
-
 
     <root level="WARN">
         <appender-ref ref="FILE"/>
