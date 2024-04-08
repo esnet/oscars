@@ -15,5 +15,7 @@ import org.springframework.context.annotation.Configuration;
 public class StartupProperties {
     @NonNull
     private Boolean exit = false;
+    @NonNull
+    private Boolean standalone = false;
     private String banner = "";
 }

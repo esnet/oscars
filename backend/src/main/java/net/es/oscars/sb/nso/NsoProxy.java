@@ -10,6 +10,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.exc.NsoDryrunException;
@@ -47,13 +48,16 @@ import java.util.UUID;
 public class NsoProxy {
 
     private final NsoProperties props;
+    private final StartupProperties startupProperties;
     private RestTemplate restTemplate;
     private RestTemplate patchTemplate;
 
+
     @Autowired
-    public NsoProxy(NsoProperties props, RestTemplateBuilder builder) {
+    public NsoProxy(NsoProperties props, StartupProperties startupProperties, RestTemplateBuilder builder) {
 
         this.props = props;
+        this.startupProperties = startupProperties;
         try {
             // make sure we don't send empty values
             ObjectMapper customObjectMapper = new ObjectMapper();
@@ -99,6 +103,10 @@ public class NsoProxy {
     }
 
     public void submitYangPatch(YangPatchWrapper wrapped, String rollbackLabel) throws NsoCommitException {
+        if (startupProperties.getStandalone()) {
+            log.info("standalone mode - skipping southbound");
+            return;
+        }
         DevelUtils.dumpDebug("yang patch", wrapped);
         String path = "restconf/data/";
         String restPath = props.getUri() + path + "?rollback-label=" + rollbackLabel;
@@ -132,6 +140,11 @@ public class NsoProxy {
 
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public void buildServices(NsoServicesWrapper wrapper, String connectionId) throws NsoCommitException {
+        if (startupProperties.getStandalone()) {
+            log.info("standalone mode - skipping southbound");
+            return;
+        }
+
         String rollbackLabel = connectionId+"-build";
         String path = "restconf/data/tailf-ncs:services";
         String restPath = props.getUri() + path + "?rollback-label="+rollbackLabel;
@@ -172,6 +185,11 @@ public class NsoProxy {
 
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public void syncFrom(String device) {
+        if (startupProperties.getStandalone()) {
+            log.info("standalone mode - skipping southbound");
+            return;
+        }
+
         String path = "restconf/data/tailf-ncs:devices/device=%s/sync-from".formatted(device);
         String restPath = props.getUri() + path;
         restTemplate.postForLocation(restPath, HttpEntity.EMPTY);
@@ -179,6 +197,11 @@ public class NsoProxy {
 
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public String buildDryRun(NsoServicesWrapper wrapper) throws NsoDryrunException {
+        if (startupProperties.getStandalone()) {
+            log.info("standalone mode - skipping southbound");
+            return "standalone dry run";
+        }
+
         String path = "restconf/data/tailf-ncs:services?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
         UUID errorUuid = UUID.randomUUID();
@@ -206,6 +229,11 @@ public class NsoProxy {
 
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public String dismantleDryRun(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoDryrunException {
+        if (startupProperties.getStandalone()) {
+            log.info("standalone mode - skipping southbound");
+            return "standalone dry run";
+        }
+
         YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
 
         String path = "restconf/data?dry-run=cli&commit-queue=async";
@@ -377,6 +405,11 @@ public class NsoProxy {
      * @return the result as returned by NSO as a string
      */
     public String getLiveStatusShow(String device, LiveStatusRequest liveStatusRequest) {
+        if (startupProperties.getStandalone()) {
+            log.info("standalone mode - skipping southbound");
+            return "standalone live statys";
+        }
+
         if (device == null || liveStatusRequest == null) {
             log.error("No device or live status args available");
             return null;

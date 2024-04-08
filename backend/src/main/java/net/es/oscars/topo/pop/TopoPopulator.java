@@ -1,6 +1,9 @@
 package net.es.oscars.topo.pop;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.props.TopoProperties;
 import net.es.oscars.dto.topo.DeviceModel;
 import net.es.oscars.topo.beans.*;
@@ -17,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -24,6 +28,8 @@ import java.util.*;
 @Slf4j
 @Service
 public class TopoPopulator {
+
+    private final StartupProperties startupProperties;
     private final TopoProperties topoProperties;
     private final TopologyStore topologyStore;
     private final ConsistencyService consistencySvc;
@@ -33,39 +39,50 @@ public class TopoPopulator {
     public TopoPopulator(TopologyStore topologyStore,
                          ConsistencyService consistencySvc,
                          TopoProperties topoProperties,
+                         StartupProperties startupProperties,
                          RestTemplateBuilder restTemplateBuilder) {
         this.topoProperties = topoProperties;
         this.consistencySvc = consistencySvc;
         this.topologyStore = topologyStore;
-
         this.restTemplate = restTemplateBuilder.build();
-
+        this.startupProperties = startupProperties;
     }
 
 
     public void refresh() throws ConsistencyException, TopoException, IOException {
+        if (startupProperties.getStandalone()) {
+            if (topologyStore.getTopology() != null) {
+                log.info("already loaded a standalone topology, not refreshing");
+                return;
+            }
+        }
+
         log.info("topology refresh");
         try {
-            Topology incoming = this.loadFromDiscovery();
-            topologyStore.replaceTopology(incoming);
+            topologyStore.replaceTopology(this.loadTopology());
             // check consistency
             consistencySvc.checkConsistency();
 
-        } catch (ResourceAccessException ex) {
+        } catch (ResourceAccessException | IOException | TopoException ex) {
             // typically an unknown host error
-            log.info(ex.getMessage());
-
-        } catch (TopoException ex) {
             log.error(ex.getMessage());
         }
     }
 
-    public Topology loadFromDiscovery() throws TopoException, ResourceAccessException {
+    public Topology loadTopology() throws TopoException, ResourceAccessException, IOException {
+        OscarsOneTopo oscarsOneTopo;
+        if (startupProperties.getStandalone()) {
+            log.info("loading standalone topology from config/devel/topology.json");
+            ObjectMapper mapper = new ObjectMapper();
+            var jsonFile = new File("config/devel/topology.json");
+            oscarsOneTopo = mapper.readValue(jsonFile, OscarsOneTopo.class);
+        } else {
+
+            oscarsOneTopo = restTemplate.getForObject(topoProperties.getUrl(), OscarsOneTopo.class);
+        }
+
         log.info("loading topology from discovery");
-
-
-        OscarsOneTopo discTopo = restTemplate.getForObject(topoProperties.getUrl(), OscarsOneTopo.class);
-        if (discTopo == null) {
+        if (oscarsOneTopo == null) {
             log.warn("null discovery topology");
             return Topology.builder()
                     .adjcies(new ArrayList<>())
@@ -73,13 +90,13 @@ public class TopoPopulator {
                     .devices(new HashMap<>())
                     .build();
 
-        } else if (discTopo.getAdjcies() == null) {
+        } else if (oscarsOneTopo.getAdjcies() == null) {
             throw new TopoException("null discovery topology adjacencies");
-        } else if (discTopo.getDevices() == null) {
+        } else if (oscarsOneTopo.getDevices() == null) {
             throw new TopoException("null discovery topology devices");
         }
         List<Adjcy> adjcies = new ArrayList<>();
-        for (OscarsOneAdjcy discAdjcy : discTopo.getAdjcies()) {
+        for (OscarsOneAdjcy discAdjcy : oscarsOneTopo.getAdjcies()) {
             Point a = Point.builder()
                     .port(discAdjcy.getA().getPort())
                     .device(discAdjcy.getA().getDevice())
@@ -105,7 +122,7 @@ public class TopoPopulator {
         Map<String, Device> devices = new HashMap<>();
         Map<String, Port> ports = new HashMap<>();
 
-        for (OscarsOneDevice discDevice : discTopo.getDevices()) {
+        for (OscarsOneDevice discDevice : oscarsOneTopo.getDevices()) {
             Set<Layer> deviceCaps = new HashSet<>();
             for (String capString : discDevice.getCapabilities()) {
                 deviceCaps.add(Layer.valueOf(capString));

@@ -26,10 +26,8 @@ public class RestTemplateConfig {
     public class CustomRestTemplateCustomizer implements RestTemplateCustomizer {
         @Override
         public void customize(RestTemplate restTemplate) {
-            log.info("adding otel to rest template");
             SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
             restTemplate.getInterceptors().add(telemetry.newInterceptor());
-
         }
     }
 
