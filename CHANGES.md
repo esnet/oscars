@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.2.5
+> Apr 2024
+- standalone setup for ESE development
+ 
 ### 1.2.4
 > Mar 2024
 - further opentelemetry integration

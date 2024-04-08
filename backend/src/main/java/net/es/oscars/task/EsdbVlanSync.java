@@ -3,6 +3,7 @@ package net.es.oscars.task;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.props.EsdbProperties;
+import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.esdb.ESDBProxy;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Components;
@@ -29,19 +30,23 @@ public class EsdbVlanSync {
     private final ConnectionRepository cr;
     private final ESDBProxy esdbProxy;
     private final EsdbProperties esdbProperties;
+    private final StartupProperties startupProperties;
     private final TopologyStore topologyStore;
 
-    public EsdbVlanSync(Startup startup, ConnectionRepository cr, ESDBProxy esdbProxy, EsdbProperties esdbProperties, TopologyStore topologyStore) {
+    public EsdbVlanSync(Startup startup, ConnectionRepository cr, ESDBProxy esdbProxy, EsdbProperties esdbProperties, StartupProperties startupProperties, TopologyStore topologyStore) {
         this.startup = startup;
         this.cr = cr;
         this.esdbProxy = esdbProxy;
         this.esdbProperties = esdbProperties;
+        this.startupProperties = startupProperties;
         this.topologyStore = topologyStore;
     }
 
     @Scheduled(initialDelay = 120000, fixedDelayString ="${esdb.vlan-sync-period}" )
     public void processingLoop() {
         if (!esdbProperties.isEnabled()) {
+            return;
+        } else if (startupProperties.getStandalone()) {
             return;
         } else if (startup.isInStartup() || startup.isInShutdown()) {
             return;
