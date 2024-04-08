@@ -72,9 +72,9 @@ public class TopoPopulator {
     public Topology loadTopology() throws TopoException, ResourceAccessException, IOException {
         OscarsOneTopo oscarsOneTopo;
         if (startupProperties.getStandalone()) {
-            log.info("loading standalone topology from config/devel/topology.json");
+            log.info("loading standalone topology from config/topology.json");
             ObjectMapper mapper = new ObjectMapper();
-            var jsonFile = new File("config/devel/topology.json");
+            var jsonFile = new File("config/topology.json");
             oscarsOneTopo = mapper.readValue(jsonFile, OscarsOneTopo.class);
         } else {
 
