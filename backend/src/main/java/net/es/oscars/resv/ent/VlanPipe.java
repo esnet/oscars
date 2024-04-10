@@ -67,11 +67,13 @@ public class VlanPipe {
     @OneToMany(cascade = CascadeType.ALL)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @ToString.Exclude
+    @OrderBy("id ASC")
     private List<EroHop> azERO;
 
     @OneToMany(cascade = CascadeType.ALL)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @ToString.Exclude
+    @OrderBy("id ASC")
     private List<EroHop> zaERO;
 
     // these will be populated by the system when designing
