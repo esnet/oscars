@@ -1,6 +1,7 @@
 # OSCARS Release Notes
 ### 1.2.5
 > Apr 2024
+- prepend "OSCARS" to VPLS service name
 - standalone setup for ESE development
 - bug fix for ERO ordering 
 

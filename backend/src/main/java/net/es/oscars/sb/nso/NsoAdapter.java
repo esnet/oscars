@@ -536,7 +536,7 @@ public class NsoAdapter {
 
         NsoVPLS vpls = NsoVPLS.builder()
                 .description(nsoDescription)
-                .name(conn.getConnectionId())
+                .name("OSCARS-"+conn.getConnectionId())
                 .qosMode(NsoVplsQosMode.GUARANTEED)
                 .routingDomain(nsoProperties.getRoutingDomain())
                 .vcId(vcid)
