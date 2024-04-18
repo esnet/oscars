@@ -1,5 +1,7 @@
 package net.es.oscars.sb.rancid;
 
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.PssProperties;
 import net.es.oscars.dto.pss.cmd.*;
@@ -17,15 +19,22 @@ import org.springframework.web.client.RestTemplate;
 public class RestRancidServer implements RancidProxy {
     private final PssProperties props;
     private RestTemplate restTemplate;
+
+    final OpenTelemetry openTelemetry;
+
     @Autowired
-    public RestRancidServer(PssProperties props, RestTemplateBuilder restTemplateBuilder, SslBundles sslBundles) {
+    public RestRancidServer(PssProperties props, RestTemplateBuilder restTemplateBuilder, SslBundles sslBundles, OpenTelemetry openTelemetry) {
 
         this.props = props;
+        this.openTelemetry = openTelemetry;
+        SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
+
         try {
             this.restTemplate = restTemplateBuilder
                     .setSslBundle(sslBundles.getBundle("pss"))
                     .basicAuthentication(props.getUsername(), props.getPassword())
                     .build();
+            this.restTemplate.getInterceptors().add(telemetry.newInterceptor());
 
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);

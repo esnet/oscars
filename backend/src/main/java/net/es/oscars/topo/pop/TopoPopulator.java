@@ -2,6 +2,8 @@ package net.es.oscars.topo.pop;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.props.TopoProperties;
@@ -34,17 +36,23 @@ public class TopoPopulator {
     private final TopologyStore topologyStore;
     private final ConsistencyService consistencySvc;
     private final RestTemplate restTemplate;
+    final OpenTelemetry openTelemetry;
 
     @Autowired
     public TopoPopulator(TopologyStore topologyStore,
                          ConsistencyService consistencySvc,
                          TopoProperties topoProperties,
                          StartupProperties startupProperties,
-                         RestTemplateBuilder restTemplateBuilder) {
+                         RestTemplateBuilder restTemplateBuilder, OpenTelemetry openTelemetry) {
         this.topoProperties = topoProperties;
         this.consistencySvc = consistencySvc;
         this.topologyStore = topologyStore;
+        this.openTelemetry = openTelemetry;
+        SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
+
         this.restTemplate = restTemplateBuilder.build();
+        this.restTemplate.getInterceptors().add(telemetry.newInterceptor());
+
         this.startupProperties = startupProperties;
     }
 

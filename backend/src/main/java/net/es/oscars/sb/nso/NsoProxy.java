@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,7 +25,6 @@ import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
@@ -51,26 +52,30 @@ public class NsoProxy {
     private final StartupProperties startupProperties;
     private RestTemplate restTemplate;
     private RestTemplate patchTemplate;
-
+    final OpenTelemetry openTelemetry;
 
     @Autowired
-    public NsoProxy(NsoProperties props, StartupProperties startupProperties, RestTemplateBuilder builder) {
+    public NsoProxy(NsoProperties props, StartupProperties startupProperties, RestTemplateBuilder builder, OpenTelemetry openTelemetry) {
 
         this.props = props;
         this.startupProperties = startupProperties;
+        this.openTelemetry = openTelemetry;
         try {
             // make sure we don't send empty values
             ObjectMapper customObjectMapper = new ObjectMapper();
             customObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
             converter.setObjectMapper(customObjectMapper);
+            SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
 
             this.restTemplate = builder.build();
             restTemplate.setErrorHandler(new NsoResponseErrorHandler());
             restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
             restTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
             restTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-data+json"));
+            restTemplate.getInterceptors().add(telemetry.newInterceptor());
             restTemplate.getMessageConverters().add(0, converter);
+
 
             // different http client for yang patch
             this.patchTemplate = builder.build();
@@ -79,6 +84,7 @@ public class NsoProxy {
             patchTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
             patchTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
             patchTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-patch+json"));
+            patchTemplate.getInterceptors().add(telemetry.newInterceptor());
 
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);

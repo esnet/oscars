@@ -1,6 +1,8 @@
 package net.es.oscars.esdb;
 
 
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.EsdbProperties;
@@ -19,12 +21,16 @@ public class ESDBProxy {
 
     private final RestTemplate restTemplate;
     private final EsdbProperties esdbProperties;
+    final OpenTelemetry openTelemetry;
 
     @Autowired
-    public ESDBProxy(EsdbProperties props) {
+    public ESDBProxy(EsdbProperties props, OpenTelemetry openTelemetry) {
         this.esdbProperties = props;
+        this.openTelemetry = openTelemetry;
+        SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
         this.restTemplate = new RestTemplate();
         restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Authorization", "Token "+props.getApiKey()));
+        restTemplate.getInterceptors().add(telemetry.newInterceptor());
     }
 
     public List<EsdbVlan> getAllEsdbVlans() {

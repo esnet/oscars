@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.2.6
+> Apr 2024
+- OTEL updates
+
 ### 1.2.5
 > Apr 2024
 - prepend "OSCARS" to VPLS service name
