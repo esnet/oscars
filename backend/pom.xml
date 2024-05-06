@@ -7,14 +7,14 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.4</version>
+        <version>3.2.5</version>
         <relativePath/>
     </parent>
 
     <groupId>net.es.oscars</groupId>
     <artifactId>backend</artifactId>
     <name>backend</name>
-    <version>1.2.6</version>
+    <version>1.2.7</version>
 
     <description>OSCARS backend</description>
     <properties>
@@ -172,20 +172,6 @@
             <artifactId>spring-boot-starter-jetty</artifactId>
         </dependency>
 
-        <!-- overrides to cover vulnerabilities -->
-        <!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-xml -->
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-xml</artifactId>
-            <version>12.0.7</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/org.yaml/snakeyaml -->
-        <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>2.2</version>
-        </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -223,10 +209,9 @@
             <version>4.5.14</version>
         </dependency>
         <dependency>
-            <!-- swagger -->
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-boot-starter</artifactId>
-            <version>3.0.0</version>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.5.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -346,14 +331,10 @@
             <artifactId>jakarta.servlet-api</artifactId>
             <version>6.0.0</version>
         </dependency>
-
     </dependencies>
 
-
     <build>
-
         <plugins>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>

@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.2.7
+> May 2024
+- Swagger update
+
 ### 1.2.6
 > Apr 2024
 - OTEL updates
