@@ -10,6 +10,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import net.es.oscars.app.Startup;
+import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
@@ -51,22 +53,25 @@ public class NsoLiveStatusController {
     private final ConnService connSvc;
     private final NsoSdpIdDAO nsoSdpIdDAO;
 
+    private final Startup startup;
 
     public NsoLiveStatusController(
             LiveStatusOperationalStateCacheManager operationalStateCacheManager,
             NsoVcIdDAO nsoVcIdDAO,
-            ConnService connSvc, NsoSdpIdDAO nsoSdpIdDAO) {
+            ConnService connSvc, NsoSdpIdDAO nsoSdpIdDAO, Startup startup) {
         this.operationalStateCacheManager = operationalStateCacheManager;
         this.nsoVcIdDAO = nsoVcIdDAO;
         this.connSvc = connSvc;
         this.nsoSdpIdDAO = nsoSdpIdDAO;
+        this.startup = startup;
     }
 
     @RequestMapping(value = "/api/mac/info", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public MacInfoResponse getMacInfo(@RequestBody NsoLiveStatusRequest request) {
+    public MacInfoResponse getMacInfo(@RequestBody NsoLiveStatusRequest request) throws StartupException {
         log.debug("MAC info request");
+        startup.startupCheck();
 
         // filter and extract request data
         RequestData requestData = getRequestData(request);
@@ -74,9 +79,6 @@ public class NsoLiveStatusController {
             log.info("Couldn't extract REST request data");
             throw new NoSuchElementException();
         }
-        List<String> devices = requestData.getDevices();
-        int serviceId = requestData.getServiceId();
-        Connection conn = requestData.getConn();
 
         MacInfoResponse response = new MacInfoResponse();
         // the question is if we move this into the list with the results
@@ -87,12 +89,12 @@ public class NsoLiveStatusController {
         List<MacInfoResult> results = new LinkedList<>();
 
         log.debug("Run live-status request on devices");
-        for (String device : devices) {
-            if (conn.getState().equals(State.ACTIVE) &&
-                    conn.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
-                log.debug("Fetch FDB from LiveStatusCacheManager for " + device + " service id " + serviceId);
+        for (String device : requestData.getDevices()) {
+            if (requestData.getConn().getState().equals(State.ACTIVE) &&
+                    requestData.getConn().getDeploymentState().equals(DeploymentState.DEPLOYED)) {
+                log.debug("Fetch FDB from LiveStatusCacheManager for " + device + " service id " + requestData.getServiceId());
                 results.add(operationalStateCacheManager
-                        .getMacs(device, serviceId, request.getRefreshIfOlderThan()).getMacInfoResult());
+                        .getMacs(device, requestData.getServiceId(), request.getRefreshIfOlderThan()).getMacInfoResult());
             } else {
                 results.add(MacInfoResult.builder()
                         .device(device)
@@ -110,8 +112,9 @@ public class NsoLiveStatusController {
     @RequestMapping(value = "/api/operational-state/info", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public OperationalStateInfoResponse getOperationalStateInfo(@RequestBody NsoLiveStatusRequest request) {
+    public OperationalStateInfoResponse getOperationalStateInfo(@RequestBody NsoLiveStatusRequest request) throws StartupException {
         log.info("Operational state (SDPs, SAPs, LSPs) info request");
+        startup.startupCheck();
 
         // filter and extract request data
         RequestData requestData = getRequestData(request);
@@ -385,6 +388,9 @@ public class NsoLiveStatusController {
         Connection conn = connSvc.findConnection(connectionId);
         if (conn == null) {
             log.info("Couldn't find OSCARS circuit for connection id " + connectionId);
+            throw new NoSuchElementException();
+        } else if (!conn.getPhase().equals(Phase.RESERVED)) {
+            log.info("Connection is not RESERVED " + connectionId);
             throw new NoSuchElementException();
         }
 

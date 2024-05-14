@@ -77,7 +77,7 @@ class ScheduleControls extends Component {
 
         if (!sch.cloned) {
             let endAt = new Date();
-            endAt.setDate(endAt.getDate() + 365);
+            endAt.setDate(endAt.getDate() + 3650);
             endAt.setTime(endAt.getTime());
             let params = {
                 schedule: {
@@ -85,7 +85,7 @@ class ScheduleControls extends Component {
                     locked: true,
                     end: {
                         at: endAt,
-                        choice: "in 1 year",
+                        choice: "in 10 year",
                         parsed: true,
                         readable: Moment(endAt).format(format),
                         validationState: "success",
@@ -371,7 +371,7 @@ class ScheduleControls extends Component {
                 </Button>
             );
         }
-        let endText = "in 1 year";
+        let endText = "in 10 years";
         if (sched.cloned) {
             endText = sched.end.readable;
         }

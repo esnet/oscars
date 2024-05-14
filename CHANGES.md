@@ -1,4 +1,10 @@
 # OSCARS Release Notes
+### 1.2.8
+> May 2024
+- Add edge port search
+- Default reservation time now 10 years
+- Minor bugfixes & enhancements
+
 ### 1.2.7
 > May 2024
 - Swagger update
