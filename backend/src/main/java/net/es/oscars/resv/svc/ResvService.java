@@ -183,15 +183,20 @@ public class ResvService {
         return reservedEgBws;
     }
 
-    public Map<String, Set<String>> portsUsedBy(Interval interval, String connectionId) {
+    public Map<String, Map<Integer, Set<String>>> vlanUsage(Interval interval, String connectionId) {
         Collection<Vlan> reservedVlans = this.reservedVlans(interval, connectionId);
-        Map<String, Set<String>> results = new HashMap<>();
+        Map<String, Map<Integer, Set<String>>> results = new HashMap<>();
+
         for (Vlan v : reservedVlans) {
             String portUrn = v.getUrn();
             if (!results.containsKey(portUrn)) {
-                results.put(portUrn, new HashSet<>());
+                results.put(portUrn, new HashMap<>());
             }
-            results.get(portUrn).add(v.getConnectionId());
+            if (!results.get(portUrn).containsKey(v.getVlanId())) {
+                results.get(portUrn).put(v.getVlanId(), new HashSet<>());
+            }
+            results.get(portUrn).get(v.getVlanId()).add(v.getConnectionId());
+
         }
         return results;
     }
