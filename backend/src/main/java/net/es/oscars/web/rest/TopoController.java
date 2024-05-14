@@ -58,7 +58,7 @@ public class TopoController {
     @Transactional
     public Map<String, List<Port>> ethernetPortsByDevice()
             throws ConsistencyException, StartupException {
-        this.startupCheck();
+        startup.startupCheck();
         Map<String, List<Port>> eppd = new HashMap<>();
 
 
@@ -85,7 +85,7 @@ public class TopoController {
     @ResponseBody
     public Set<SimpleAdjcy> adjacencies()
             throws StartupException {
-        this.startupCheck();
+        startup.startupCheck();
 
         List<TopoAdjcy> topoAdjcies = topologyStore.getTopoAdjcies();
 
@@ -111,7 +111,7 @@ public class TopoController {
     @RequestMapping(value = "/api/topo/baseline", method = RequestMethod.GET)
     @ResponseBody
     public Map<String, PortBwVlan> baseline() throws StartupException {
-        this.startupCheck();
+        startup.startupCheck();
         return topologyStore.getBaseline();
 
     }
@@ -120,7 +120,7 @@ public class TopoController {
     @RequestMapping(value = "/api/topo/available", method = RequestMethod.POST)
     @ResponseBody
     public Map<String, PortBwVlan> available(@RequestBody Interval interval) throws StartupException {
-        this.startupCheck();
+        startup.startupCheck();
         return resvService.available(interval, null);
 
     }
@@ -128,21 +128,21 @@ public class TopoController {
     @RequestMapping(value = "/api/topo/version", method = RequestMethod.GET)
     @ResponseBody
     public Version version() throws StartupException, ConsistencyException {
-        this.startupCheck();
+        startup.startupCheck();
         return topologyStore.getVersion();
     }
 
     @RequestMapping(value = "/api/topo/report", method = RequestMethod.GET)
     @ResponseBody
     public ConsistencyReport report() throws StartupException {
-        this.startupCheck();
+        startup.startupCheck();
         return consistencySvc.getLatestReport();
     }
 
     @RequestMapping(value = "/api/topo/locations", method = RequestMethod.GET)
     @ResponseBody
     public Map<String, Location> locations() throws ConsistencyException, StartupException {
-        this.startupCheck();
+        startup.startupCheck();
 
         Topology topology = topologyStore.getTopology();
         Map<String, Location> loc = new HashMap<>();
@@ -161,13 +161,5 @@ public class TopoController {
         return loc;
     }
 
-    private void startupCheck() throws StartupException {
-        if (startup.isInStartup()) {
-            throw new StartupException("OSCARS starting up");
-        } else if (startup.isInShutdown()) {
-            throw new StartupException("OSCARS shutting down");
-        }
-
-    }
 
 }

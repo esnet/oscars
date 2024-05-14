@@ -89,5 +89,11 @@ public class Startup {
         this.setInStartup(false);
 
     }
-
+    public void startupCheck() throws StartupException {
+        if (this.isInStartup()) {
+            throw new StartupException("OSCARS starting up");
+        } else if (this.isInShutdown()) {
+            throw new StartupException("OSCARS shutting down");
+        }
+    }
 }

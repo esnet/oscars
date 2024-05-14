@@ -183,6 +183,19 @@ public class ResvService {
         return reservedEgBws;
     }
 
+    public Map<String, Set<String>> portsUsedBy(Interval interval, String connectionId) {
+        Collection<Vlan> reservedVlans = this.reservedVlans(interval, connectionId);
+        Map<String, Set<String>> results = new HashMap<>();
+        for (Vlan v : reservedVlans) {
+            String portUrn = v.getUrn();
+            if (!results.containsKey(portUrn)) {
+                results.put(portUrn, new HashSet<>());
+            }
+            results.get(portUrn).add(v.getConnectionId());
+        }
+        return results;
+    }
+
     public Collection<Vlan> reservedVlans(Interval interval, String connectionId) {
         List<Schedule> scheds = scheduleRepo.findOverlapping(interval.getBeginning(), interval.getEnding());
         HashSet<Vlan> reservedVlans = new HashSet<>();
