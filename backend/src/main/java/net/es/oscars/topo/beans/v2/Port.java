@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.*;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -26,19 +27,16 @@ public class Port {
     @NonNull
     private Bandwidth bandwidth;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @JsonProperty("vlan-availability")
     private VlanAvailability vlanAvailability;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    @JsonProperty("vlan-usage")
+    private Map<Integer, Set<String>> vlanUsage;
+
     @JsonProperty("esdb-equipment-interface-id")
     private Integer esdbEquipmentInterfaceId;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private ArrayList<String> description;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    @JsonProperty("used-by")
-    private Set<String> usedBy;
 
 }

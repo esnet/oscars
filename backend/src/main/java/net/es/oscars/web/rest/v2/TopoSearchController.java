@@ -74,7 +74,7 @@ public class TopoSearchController {
         }
 
         Map<String, PortBwVlan> available = resvService.available(psr.getInterval(), psr.getConnectionId());
-        Map<String, Set<String>> portsUsedBy = resvService.portsUsedBy(psr.getInterval(), psr.getConnectionId());
+        Map<String, Map<Integer, Set<String>>> vlanUsage = resvService.vlanUsage(psr.getInterval(), psr.getConnectionId());
 
 
         String term = psr.getTerm().toUpperCase();
@@ -133,7 +133,7 @@ public class TopoSearchController {
                                 .vlanAvailability(vlanAvailability)
                                 .description(p.getTags())
                                 .esdbEquipmentInterfaceId(p.getEsdbEquipmentInterfaceId())
-                                .usedBy(portsUsedBy.get(p.getUrn()))
+                                .vlanUsage(vlanUsage.get(p.getUrn()))
                                 .build());
                     }
                 }
