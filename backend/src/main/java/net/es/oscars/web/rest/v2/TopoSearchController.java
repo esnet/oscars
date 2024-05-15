@@ -83,6 +83,11 @@ public class TopoSearchController {
         List<EdgePort> results = new ArrayList<>();
 
         for (Device d : topology.getDevices().values()) {
+            if (psr.getDevice() != null && !psr.getDevice().isEmpty() && !psr.getDevice().equals(d.getUrn())) {
+                // not the specified device, skip
+                continue;
+            }
+
             for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
                 boolean isEdge = true;
                 if (!p.getCapabilities().contains(Layer.ETHERNET)) {

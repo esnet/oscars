@@ -13,5 +13,6 @@ import net.es.oscars.web.beans.Interval;
 public class PortSearchRequest {
     private String term;
     private Interval interval;
+    private String device;
     private String connectionId;
 }
