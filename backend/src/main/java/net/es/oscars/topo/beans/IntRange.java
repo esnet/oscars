@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 @EqualsAndHashCode
 
 @Slf4j
-public class IntRange {
+public class IntRange implements Comparable<IntRange> {
     private Integer floor;
     private Integer ceiling;
 
@@ -29,7 +29,7 @@ public class IntRange {
     public Set<IntRange> subtract(Integer i) throws NoSuchElementException {
         HashSet<IntRange> result = new HashSet<>();
         if (!this.contains(i)) {
-            throw new NoSuchElementException("range " + this.toString() + " does not contain " + i);
+            throw new NoSuchElementException("range " + this + " does not contain " + i);
         }
         // remove last one: return an empty set
         if (this.getFloor().equals(this.getCeiling())) {
@@ -64,13 +64,12 @@ public class IntRange {
 
     public static Set<IntRange> fromSet(Set<Integer> ints) {
         Set<IntRange> result = new HashSet<>();
-        List<Integer> sortedInts = new ArrayList<>();
-        sortedInts.addAll(ints);
+        List<Integer> sortedInts = new ArrayList<>(ints);
         Collections.sort(sortedInts);
 
         IntRange range = IntRange.builder().floor(-1).ceiling(-1).build();
 
-        for (Integer idx = 0; idx < sortedInts.size(); idx++) {
+        for (int idx = 0; idx < sortedInts.size(); idx++) {
             Integer number = sortedInts.get(idx);
             if (range.getCeiling() == -1) {
                 range.setFloor(number);
@@ -153,24 +152,31 @@ public class IntRange {
     }
 
 
-    public static String asString(Collection<IntRange> ranges) {
+    public static String asString(Collection<IntRange> ranges, String separator) {
         ranges = mergeIntRanges(ranges);
-        List<IntRange> listOfRanges = new ArrayList<>();
-        listOfRanges.addAll(ranges);
-        listOfRanges.sort(Comparator.comparing(IntRange::getFloor));
+        List<IntRange> listOfRanges = new ArrayList<>(ranges);
 
         List<String> parts = new ArrayList<>();
-        listOfRanges.forEach(r -> {
+        listOfRanges.stream().sorted().forEach(r -> {
             if (r.getCeiling().equals(r.getFloor())) {
                 parts.add(r.getCeiling() + "");
             } else {
-                parts.add(r.getFloor() + ":" + r.getCeiling());
+                parts.add(r.getFloor() + separator + r.getCeiling());
 
             }
         });
         return StringUtils.join(parts, ',');
     }
+    public static String asIntervalNotation(Collection<IntRange> ranges) {
+        ranges = mergeIntRanges(ranges);
+        List<IntRange> listOfRanges = new ArrayList<>(ranges);
 
+        List<String> parts = new ArrayList<>();
+        listOfRanges.stream().sorted().forEach(r -> {
+            parts.add("["+r.getFloor() + " .. " + r.getCeiling()+"]");
+        });
+        return StringUtils.join(parts, ',');
+    }
 
     public static List<IntRange> mergeIntRanges(Collection<IntRange> input) {
 
@@ -273,4 +279,8 @@ public class IntRange {
 
     }
 
+    @Override
+    public int compareTo(@NonNull IntRange o) {
+        return this.getFloor().compareTo(o.getFloor());
+    }
 }

@@ -49,7 +49,7 @@ public class ResvLibrary {
 
                 if (topoUrn.getCapabilities().contains(Layer.ETHERNET)) {
                     intRanges = availableVlanMap.get(urn);
-                    vlanExpr = IntRange.asString(intRanges);
+                    vlanExpr = IntRange.asString(intRanges, ":");
                 }
 
                 PortBwVlan pbw = PortBwVlan.builder()
@@ -167,11 +167,11 @@ public class ResvLibrary {
         Map<String, Set<IntRange>> search = new HashMap<>();
         for (String r : requested.keySet()) {
             search.put(r+"-req", requested.get(r));
-            log.info("req: "+r+" : "+IntRange.asString(requested.get(r)));
+            log.info("req: "+r+" : "+IntRange.asString(requested.get(r), "-"));
         }
         for (String a : available.keySet()) {
             search.put(a+"-avail", available.get(a));
-            log.info("avail: "+a+" : "+IntRange.asString(available.get(a)));
+            log.info("avail: "+a+" : "+IntRange.asString(available.get(a), "-"));
         }
 
         Integer least = IntRange.leastInAll(search);

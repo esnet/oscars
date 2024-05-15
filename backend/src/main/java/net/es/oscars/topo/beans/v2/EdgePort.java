@@ -12,7 +12,7 @@ import java.util.Set;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Port {
+public class EdgePort {
     @JsonGetter("urn")
     public String getUrn() {
         return device+":"+name;

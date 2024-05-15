@@ -8,7 +8,7 @@ import net.es.oscars.topo.beans.Device;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.beans.v2.Bandwidth;
-import net.es.oscars.topo.beans.v2.Port;
+import net.es.oscars.topo.beans.v2.EdgePort;
 import net.es.oscars.topo.beans.v2.VlanAvailability;
 import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.pop.ConsistencyException;
@@ -26,6 +26,7 @@ public class TopoSearchController {
     private final TopologyStore topologyStore;
     private final Startup startup;
     private final ResvService resvService;
+
     public TopoSearchController(TopologyStore topologyStore, Startup startup, ResvService resvService) {
         this.topologyStore = topologyStore;
         this.startup = startup;
@@ -35,7 +36,7 @@ public class TopoSearchController {
     @ExceptionHandler(ConsistencyException.class)
     @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
     public void handleException(ConsistencyException ex) {
-        log.warn("consistency error "+ex.getMessage() );
+        log.warn("consistency error " + ex.getMessage());
     }
 
     @ExceptionHandler(StartupException.class)
@@ -55,10 +56,11 @@ public class TopoSearchController {
             super(msg);
         }
     }
+
     @RequestMapping(value = "/api/topo/edge-port-search", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public List<Port> edgePortSearch(@RequestBody PortSearchRequest psr)
+    public List<EdgePort> edgePortSearch(@RequestBody PortSearchRequest psr)
             throws ConsistencyException, StartupException, SearchException {
         startup.startupCheck();
 
@@ -72,75 +74,108 @@ public class TopoSearchController {
         if (topology.getVersion() == null) {
             throw new ConsistencyException("null current topology");
         }
-
         Map<String, PortBwVlan> available = resvService.available(psr.getInterval(), psr.getConnectionId());
-        Map<String, Map<Integer, Set<String>>> vlanUsage = resvService.vlanUsage(psr.getInterval(), psr.getConnectionId());
+        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(psr.getInterval(), psr.getConnectionId());
 
 
         String term = psr.getTerm().toUpperCase();
 
-        List<Port> results = new ArrayList<>();
+        List<EdgePort> results = new ArrayList<>();
 
         for (Device d : topology.getDevices().values()) {
-            for (net.es.oscars.topo.beans.Port p : d.getPorts() ) {
-                if (p.getCapabilities().contains(Layer.ETHERNET)) {
+            for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
 
-                    boolean isResult = false;
-                    if (p.getUrn().toUpperCase().contains(term)) {
-                        isResult = true;
-                    } else {
-                        for (String tag : p.getTags()) {
-                            if (tag.toUpperCase().contains(term)) {
-                                isResult = true;
-                                break;
-                            }
+                boolean isEdge = true;
+                if (!p.getCapabilities().contains(Layer.ETHERNET)) {
+                    isEdge = false;
+                } else if (p.getCapabilities().contains(Layer.EDGE)) {
+                    // this is really what we should be getting from topology service
+                    isEdge = true;
+                }
+
+                // TODO: take this out once Layer.EDGE is everywhere
+                if (isEdge) {
+                    for (String tag : p.getTags()) {
+                        if (tag.contains(":bbl-")) {
+                            isEdge = false;
+                            break;
                         }
                     }
-                    if (isResult) {
-                        String[] parts = p.getUrn().split(":");
-                        if (parts.length != 2) {
-                            throw new ConsistencyException("Invalid port URN format");
-                        }
-                        if (!available.containsKey(p.getUrn())) {
-                            throw new ConsistencyException("cannot get available bw and vlans for "+p.getUrn());
-                        }
-                        PortBwVlan pbw = available.get(p.getUrn());
+                }
 
-                        VlanAvailability vlanAvailability = VlanAvailability.builder()
-                                        .ranges(pbw.getVlanRanges())
-                                        .build();
+                if (!isEdge) {
+                    continue;
+                }
 
-                        // get the least of ingress / egress available
-                        int bwPhysical = p.getReservableIngressBw();
-                        if (p.getReservableEgressBw() < bwPhysical) {
-                            bwPhysical = p.getReservableEgressBw();
+                boolean isResult = false;
+
+                if (p.getUrn().toUpperCase().contains(term)) {
+                    isResult = true;
+                } else {
+                    for (String tag : p.getTags()) {
+                        if (tag.toUpperCase().contains(term)) {
+                            isResult = true;
+                            break;
                         }
-                        int bwAvailable = pbw.getIngressBandwidth();
-                        if (pbw.getEgressBandwidth() < bwAvailable) {
-                            bwAvailable = pbw.getEgressBandwidth();
-                        }
-
-                        Bandwidth bw = Bandwidth.builder()
-                                .unit(Bandwidth.Unit.MBPS)
-                                .available(bwAvailable)
-                                .physical(bwPhysical)
-                                .build();
-
-                        results.add(Port.builder()
-                                .device(parts[0])
-                                .name(parts[1])
-                                .bandwidth(bw)
-                                .vlanAvailability(vlanAvailability)
-                                .description(p.getTags())
-                                .esdbEquipmentInterfaceId(p.getEsdbEquipmentInterfaceId())
-                                .vlanUsage(vlanUsage.get(p.getUrn()))
-                                .build());
                     }
+                }
+                if (isResult) {
+                    results.add(fromOldPort(p, available, vlanUsageMap));
                 }
             }
         }
 
         return results;
+    }
+
+    private EdgePort fromOldPort(net.es.oscars.topo.beans.Port p,
+                                 Map<String, PortBwVlan> available,
+                                 Map<String, Map<Integer, Set<String>>> vlanUsageMap) throws ConsistencyException {
+
+        String[] parts = p.getUrn().split(":");
+        if (parts.length != 2) {
+            throw new ConsistencyException("Invalid port URN format");
+        }
+
+        if (!available.containsKey(p.getUrn())) {
+            throw new ConsistencyException("cannot get available bw and vlans for " + p.getUrn());
+        }
+        PortBwVlan pbw = available.get(p.getUrn());
+
+        VlanAvailability vlanAvailability = VlanAvailability.builder()
+                .ranges(pbw.getVlanRanges())
+                .build();
+
+        // get the least of ingress / egress available
+        int bwPhysical = p.getReservableIngressBw();
+        if (p.getReservableEgressBw() < bwPhysical) {
+            bwPhysical = p.getReservableEgressBw();
+        }
+        int bwAvailable = pbw.getIngressBandwidth();
+        if (pbw.getEgressBandwidth() < bwAvailable) {
+            bwAvailable = pbw.getEgressBandwidth();
+        }
+
+        Bandwidth bw = Bandwidth.builder()
+                .unit(Bandwidth.Unit.MBPS)
+                .available(bwAvailable)
+                .physical(bwPhysical)
+                .build();
+
+        Map<Integer, Set<String>> vlanUsage = new HashMap<>();
+        if (vlanUsageMap.containsKey(p.getUrn())) {
+            vlanUsage = vlanUsageMap.get(p.getUrn());
+        }
+
+        return EdgePort.builder()
+                .device(parts[0])
+                .name(parts[1])
+                .bandwidth(bw)
+                .vlanAvailability(vlanAvailability)
+                .description(p.getTags())
+                .esdbEquipmentInterfaceId(p.getEsdbEquipmentInterfaceId())
+                .vlanUsage(vlanUsage)
+                .build();
     }
 
 }
