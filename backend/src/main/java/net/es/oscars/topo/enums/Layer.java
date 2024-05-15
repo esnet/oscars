@@ -5,7 +5,8 @@ public enum Layer {
     ETHERNET,
     INTERNAL,
     MPLS,
-    LOGICAL;
+    LOGICAL,
+    EDGE;
 
 
 }

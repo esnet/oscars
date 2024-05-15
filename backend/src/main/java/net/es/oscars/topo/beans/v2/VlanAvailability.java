@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import net.es.oscars.topo.beans.IntRange;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -21,18 +22,24 @@ public class VlanAvailability {
 
     @JsonGetter("expression")
     private String asExpression() {
-        return IntRange.asString(ranges);
+        return IntRange.asString(ranges, "-");
     }
+//    @JsonGetter("intervals")
+//    private String asIntervals() {
+//        return IntRange.asIntervalNotation(ranges);
+//    }
 
     @JsonGetter("tuples")
     private List<List<Integer>> asTuples() {
         List<List<Integer>> result = new ArrayList<>();
-        for (IntRange range : ranges) {
-            List<Integer> tuple = new ArrayList<>();
-            tuple.add(range.getFloor());
-            tuple.add(range.getCeiling());
-            result.add(tuple);
-        }
+
+        ranges.stream()
+                .sorted()
+                .forEach(range -> result.add(new ArrayList<>() {{
+                    add(range.getFloor());
+                    add(range.getCeiling());
+                }}));
+
         return result;
     }
 }

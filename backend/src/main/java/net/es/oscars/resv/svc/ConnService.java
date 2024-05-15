@@ -932,7 +932,7 @@ public class ConnService {
                             fv.setValid(false);
                             valid = false;
                         }
-                        log.debug(f.getPort() + " vlan " + vlan + " contained in " + IntRange.asString(availVlanRanges) + " ? " + atLeastOneContains);
+                        log.debug(f.getPort() + " vlan " + vlan + " contained in " + IntRange.asString(availVlanRanges, "-") + " ? " + atLeastOneContains);
                     }
                 } else {
                     fv.setValid(false);
