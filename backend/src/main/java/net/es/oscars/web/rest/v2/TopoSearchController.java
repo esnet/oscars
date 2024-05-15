@@ -83,24 +83,17 @@ public class TopoSearchController {
         List<EdgePort> results = new ArrayList<>();
 
         for (Device d : topology.getDevices().values()) {
-            for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
+            if (psr.getDevice() != null && !psr.getDevice().isEmpty() && !psr.getDevice().equals(d.getUrn())) {
+                // not the specified device, skip
+                continue;
+            }
 
+            for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
                 boolean isEdge = true;
                 if (!p.getCapabilities().contains(Layer.ETHERNET)) {
                     isEdge = false;
-                } else if (p.getCapabilities().contains(Layer.EDGE)) {
-                    // this is really what we should be getting from topology service
-                    isEdge = true;
-                }
-
-                // TODO: take this out once Layer.EDGE is everywhere
-                if (isEdge) {
-                    for (String tag : p.getTags()) {
-                        if (tag.contains(":bbl-")) {
-                            isEdge = false;
-                            break;
-                        }
-                    }
+                } else if (!p.getCapabilities().contains(Layer.EDGE)) {
+                    isEdge = false;
                 }
 
                 if (!isEdge) {
@@ -108,7 +101,6 @@ public class TopoSearchController {
                 }
 
                 boolean isResult = false;
-
                 if (p.getUrn().toUpperCase().contains(term)) {
                     isResult = true;
                 } else {
