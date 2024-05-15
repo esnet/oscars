@@ -160,7 +160,7 @@ public class TopoPopulator {
             devices.put(d.getUrn(), d);
             for (OscarsOnePort discPort : discDevice.getPorts()) {
                 Set<Layer> portCaps = new HashSet<>();
-                for (String capString : discDevice.getCapabilities()) {
+                for (String capString : discPort.getCapabilities()) {
                     portCaps.add(Layer.valueOf(capString));
                 }
                 Set<IntRange> portResVlans = new HashSet<>();

@@ -64,53 +64,77 @@ public class TopoSearchController {
             throws ConsistencyException, StartupException, SearchException {
         startup.startupCheck();
 
-        if (psr.getTerm() == null || psr.getTerm().length() < 4) {
-            throw new SearchException("search term too short");
-        } else if (psr.getInterval() == null) {
+        boolean blankTerm = psr.getTerm() == null || psr.getTerm().isBlank();
+        boolean blankDevice = psr.getDevice() == null || psr.getDevice().isBlank();
+        if (!blankTerm) {
+            if (psr.getTerm().length() < 4) {
+                throw new SearchException("search term too short");
+            }
+        }
+        if (blankTerm && blankDevice) {
+            throw new SearchException("must include device or search term");
+        }
+
+        if (psr.getInterval() == null) {
             throw new SearchException("null interval");
+        } else if (psr.getInterval().getBeginning() == null) {
+            throw new SearchException("null interval beginning");
+        } else if (psr.getInterval().getEnding() == null) {
+            throw new SearchException("null interval ending");
         }
 
         Topology topology = topologyStore.getTopology();
         if (topology.getVersion() == null) {
             throw new ConsistencyException("null current topology");
         }
+
         Map<String, PortBwVlan> available = resvService.available(psr.getInterval(), psr.getConnectionId());
         Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(psr.getInterval(), psr.getConnectionId());
 
-
-        String term = psr.getTerm().toUpperCase();
+        String term = null;
+        if (!blankTerm) {
+            term = psr.getTerm().toUpperCase();
+        }
 
         List<EdgePort> results = new ArrayList<>();
 
         for (Device d : topology.getDevices().values()) {
-            if (psr.getDevice() != null && !psr.getDevice().isEmpty() && !psr.getDevice().equals(d.getUrn())) {
+            if (!blankDevice && !psr.getDevice().equals(d.getUrn())) {
                 // not the specified device, skip
                 continue;
             }
 
             for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
                 boolean isEdge = true;
+                for (Layer l : p.getCapabilities()) {
+                    log.info(p.getUrn()+ " " +l.toString());
+                }
                 if (!p.getCapabilities().contains(Layer.ETHERNET)) {
                     isEdge = false;
-                } else if (!p.getCapabilities().contains(Layer.EDGE)) {
+                }
+                if (!p.getCapabilities().contains(Layer.EDGE)) {
                     isEdge = false;
                 }
-
                 if (!isEdge) {
                     continue;
                 }
 
                 boolean isResult = false;
-                if (p.getUrn().toUpperCase().contains(term)) {
+                if (blankTerm) {
                     isResult = true;
                 } else {
-                    for (String tag : p.getTags()) {
-                        if (tag.toUpperCase().contains(term)) {
-                            isResult = true;
-                            break;
+                    if (p.getUrn().toUpperCase().contains(term)) {
+                        isResult = true;
+                    } else {
+                        for (String tag : p.getTags()) {
+                            if (tag.toUpperCase().contains(term)) {
+                                isResult = true;
+                                break;
+                            }
                         }
                     }
                 }
+
                 if (isResult) {
                     results.add(fromOldPort(p, available, vlanUsageMap));
                 }
