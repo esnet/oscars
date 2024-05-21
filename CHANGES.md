@@ -1,6 +1,10 @@
 # OSCARS Release Notes
 ### 1.2.8
 > May 2024
+- Add port utilization report API
+
+### 1.2.8
+> May 2024
 - Add edge port search
 - Default reservation time now 10 years
 - Minor bugfixes & enhancements
