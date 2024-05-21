@@ -27,16 +27,37 @@ public class EdgePort {
     @NonNull
     private Bandwidth bandwidth;
 
-    @JsonProperty("vlan-availability")
-    private VlanAvailability vlanAvailability;
+    @NonNull
+    private Availability availability;
 
-    @JsonProperty("vlan-usage")
-    private Map<Integer, Set<String>> vlanUsage;
+    @NonNull
+    private Usage usage;
 
     @JsonProperty("esdb-equipment-interface-id")
     private Integer esdbEquipmentInterfaceId;
 
     private ArrayList<String> description;
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Usage {
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Map<Integer, Set<String>> vlan;
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private Map<String, Integer> bandwidth;
+    }
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Availability {
+        @JsonProperty("vlan")
+        private VlanAvailability vlan;
+
+    }
 
 
 }

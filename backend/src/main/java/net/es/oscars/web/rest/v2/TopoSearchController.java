@@ -13,11 +13,14 @@ import net.es.oscars.topo.beans.v2.VlanAvailability;
 import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.TopologyStore;
+import net.es.oscars.web.beans.Interval;
 import net.es.oscars.web.beans.v2.PortSearchRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @RestController
@@ -144,6 +147,36 @@ public class TopoSearchController {
         return results;
     }
 
+
+    @RequestMapping(value = "/api/reports/utilization", method = RequestMethod.GET)
+    @ResponseBody
+    @Transactional
+    public List<EdgePort> utilizationReport()
+            throws ConsistencyException, StartupException {
+        startup.startupCheck();
+        List<EdgePort> results = new ArrayList<>();
+
+        Topology topology = topologyStore.getTopology();
+        if (topology.getVersion() == null) {
+            throw new ConsistencyException("null current topology");
+        }
+        Interval interval = Interval.builder()
+                        .beginning(Instant.now())
+                        .ending(Instant.now().plus(24, ChronoUnit.HOURS))
+                        .build();
+        Map<String, PortBwVlan> available = resvService.available(interval, null);
+        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(interval, null);
+
+
+        for (Device d : topology.getDevices().values()) {
+            for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
+                results.add(fromOldPort(p, available, vlanUsageMap));
+            }
+        }
+        return results;
+    }
+
+
     private EdgePort fromOldPort(net.es.oscars.topo.beans.Port p,
                                  Map<String, PortBwVlan> available,
                                  Map<String, Map<Integer, Set<String>>> vlanUsageMap) throws ConsistencyException {
@@ -187,10 +220,10 @@ public class TopoSearchController {
                 .device(parts[0])
                 .name(parts[1])
                 .bandwidth(bw)
-                .vlanAvailability(vlanAvailability)
+                .availability(EdgePort.Availability.builder().vlan(vlanAvailability).build())
                 .description(p.getTags())
                 .esdbEquipmentInterfaceId(p.getEsdbEquipmentInterfaceId())
-                .vlanUsage(vlanUsage)
+                .usage(EdgePort.Usage.builder().vlan(vlanUsage).build())
                 .build();
     }
 
