@@ -32,9 +32,11 @@ import net.es.oscars.sb.nso.LiveStatusOperationalStateCacheManager;
 import net.es.oscars.sb.nso.db.NsoVcIdDAO;
 import net.es.oscars.sb.nso.ent.NsoVcId;
 
+import net.es.oscars.web.rest.v2.TopoSearchController;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
 import org.checkerframework.checker.units.qual.A;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -65,19 +67,43 @@ public class NsoLiveStatusController {
         this.nsoSdpIdDAO = nsoSdpIdDAO;
         this.startup = startup;
     }
+    public static class OperationalStatusException extends Exception {
+        public OperationalStatusException(String msg) {
+            super(msg);
+        }
+    }
+    public static class OperationalStatusInternalException extends Exception {
+        public OperationalStatusInternalException(String msg) {
+            super(msg);
+        }
+    }
+
+    @ExceptionHandler(OperationalStatusInternalException.class)
+    @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
+    public String handleException(OperationalStatusInternalException ex) {
+        return ex.getMessage();
+    }
+
+    @ExceptionHandler(OperationalStatusException.class)
+    @ResponseStatus(value = HttpStatus.BAD_REQUEST)
+    public String handleException(OperationalStatusException ex) {
+        return ex.getMessage();
+    }
 
     @RequestMapping(value = "/api/mac/info", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public MacInfoResponse getMacInfo(@RequestBody NsoLiveStatusRequest request) throws StartupException {
+    public MacInfoResponse getMacInfo(@RequestBody NsoLiveStatusRequest request) throws StartupException, OperationalStatusException, OperationalStatusInternalException {
         log.debug("MAC info request");
         startup.startupCheck();
+        String  errStr = "";
 
         // filter and extract request data
         RequestData requestData = getRequestData(request);
         if (requestData == null) {
-            log.info("Couldn't extract REST request data");
-            throw new NoSuchElementException();
+            errStr = "Couldn't extract REST request data";
+            log.info(errStr);
+            throw new OperationalStatusInternalException(errStr);
         }
 
         MacInfoResponse response = new MacInfoResponse();
@@ -112,15 +138,16 @@ public class NsoLiveStatusController {
     @RequestMapping(value = "/api/operational-state/info", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public OperationalStateInfoResponse getOperationalStateInfo(@RequestBody NsoLiveStatusRequest request) throws StartupException {
+    public OperationalStateInfoResponse getOperationalStateInfo(@RequestBody NsoLiveStatusRequest request) throws StartupException, OperationalStatusException, OperationalStatusInternalException {
         log.info("Operational state (SDPs, SAPs, LSPs) info request");
         startup.startupCheck();
 
         // filter and extract request data
         RequestData requestData = getRequestData(request);
         if (requestData == null) {
-            log.info("Couldn't extract REST request data");
-            throw new NoSuchElementException();
+            String errStr = "Couldn't extract REST request data";
+            log.info(errStr);
+            throw new OperationalStatusInternalException(errStr);
         }
         List<String> devices = requestData.getDevices();
         int serviceId = requestData.getServiceId();
@@ -361,7 +388,7 @@ public class NsoLiveStatusController {
         private Connection conn;
     }
 
-    private RequestData getRequestData(NsoLiveStatusRequest request) {
+    private RequestData getRequestData(NsoLiveStatusRequest request) throws OperationalStatusException {
         log.info("Request:" + request.toString());
 
         String connectionId = request.getConnectionId();
@@ -374,24 +401,26 @@ public class NsoLiveStatusController {
         List<String> devicesFromRest = request.getDeviceIds();
         List<String> devices = new ArrayList<String>();
 
+        String errStr = "";
         // get circuit vc-id / service id
         Optional<NsoVcId> optVcid = nsoVcIdDAO.findNsoVcIdByConnectionId(connectionId);
         Integer vcid = 0;
         if (optVcid.isPresent()) {
             vcid = optVcid.get().getVcId();
         } else {
-            log.info("Couldn't find VC-ID for OSCARS circuit " + connectionId);
-            throw new NoSuchElementException();
+            errStr = "Couldn't find VC-ID for OSCARS circuit " + connectionId;
+            log.info(errStr);
+            throw new OperationalStatusException(errStr);
         }
 
         // find devices in circuit
         Connection conn = connSvc.findConnection(connectionId);
         if (conn == null) {
-            log.info("Couldn't find OSCARS circuit for connection id " + connectionId);
-            throw new NoSuchElementException();
+            errStr = "Couldn't find OSCARS circuit for connection id " + connectionId;
+            throw new OperationalStatusException(errStr);
         } else if (!conn.getPhase().equals(Phase.RESERVED)) {
-            log.info("Connection is not RESERVED " + connectionId);
-            throw new NoSuchElementException();
+            errStr = "Connection is not RESERVED " + connectionId;
+            throw new OperationalStatusException(errStr);
         }
 
         for (VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
