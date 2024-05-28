@@ -72,13 +72,15 @@ public class TopoSearchController {
 
         boolean blankTerm = psr.getTerm() == null || psr.getTerm().isBlank();
         boolean blankDevice = psr.getDevice() == null || psr.getDevice().isBlank();
+        boolean blankConnectionId = psr.getConnectionId() == null || psr.getConnectionId().isBlank();
+
         if (!blankTerm) {
             if (psr.getTerm().length() < 4) {
                 throw new SearchException("search term too short");
             }
         }
-        if (blankTerm && blankDevice) {
-            throw new SearchException("must include device or search term");
+        if (blankTerm && blankDevice && blankConnectionId) {
+            throw new SearchException("must include device, connectionId, or a text search term");
         }
 
         if (psr.getInterval() == null) {
