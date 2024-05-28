@@ -3,6 +3,7 @@ package net.es.oscars.web.rest.v2;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
+import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.Device;
 import net.es.oscars.topo.beans.PortBwVlan;
@@ -15,6 +16,7 @@ import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.Interval;
 import net.es.oscars.web.beans.v2.PortSearchRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -29,11 +31,12 @@ public class TopoSearchController {
     private final TopologyStore topologyStore;
     private final Startup startup;
     private final ResvService resvService;
-
-    public TopoSearchController(TopologyStore topologyStore, Startup startup, ResvService resvService) {
+    private final ConnectionRepository connRepo;
+    public TopoSearchController(TopologyStore topologyStore, Startup startup, ResvService resvService, ConnectionRepository connRepo) {
         this.topologyStore = topologyStore;
         this.startup = startup;
         this.resvService = resvService;
+        this.connRepo = connRepo;
     }
 
     @ExceptionHandler(ConsistencyException.class)
@@ -100,6 +103,18 @@ public class TopoSearchController {
         }
 
         List<EdgePort> results = new ArrayList<>();
+        Set<String> connectionEdgePorts = new HashSet<>();
+
+        if (psr.getConnectionId() != null) {
+            connRepo.findByConnectionId(psr.getConnectionId()).ifPresent(c -> {
+                if (c.getArchived() != null) {
+                    c.getArchived().getCmp().getFixtures().forEach(f -> {
+                        connectionEdgePorts.add(f.getPortUrn());
+                    });
+                }
+            });
+        }
+
 
         for (Device d : topology.getDevices().values()) {
             if (!blankDevice && !psr.getDevice().equals(d.getUrn())) {
@@ -123,20 +138,25 @@ public class TopoSearchController {
                 }
 
                 boolean isResult = false;
-                if (blankTerm) {
+                if (connectionEdgePorts.contains(p.getUrn())) {
                     isResult = true;
                 } else {
-                    if (p.getUrn().toUpperCase().contains(term)) {
+                    if (blankTerm) {
                         isResult = true;
                     } else {
-                        for (String tag : p.getTags()) {
-                            if (tag.toUpperCase().contains(term)) {
-                                isResult = true;
-                                break;
+                        if (p.getUrn().toUpperCase().contains(term)) {
+                            isResult = true;
+                        } else {
+                            for (String tag : p.getTags()) {
+                                if (tag.toUpperCase().contains(term)) {
+                                    isResult = true;
+                                    break;
+                                }
                             }
                         }
                     }
                 }
+
 
                 if (isResult) {
                     results.add(fromOldPort(p, available, vlanUsageMap));
