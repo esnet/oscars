@@ -66,7 +66,9 @@ public class Port {
         Port other = (Port) obj;
         return urn.equals(other.getUrn());
     }
-
+    public boolean isEdge() {
+        return (this.getCapabilities().contains(Layer.ETHERNET) && this.getCapabilities().contains(Layer.EDGE));
+    }
 
     public String toString() {
         return this.getClass().getSimpleName() + "-" + getUrn();
