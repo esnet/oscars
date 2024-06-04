@@ -3,6 +3,8 @@ package net.es.oscars.web.rest.v2;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
+import net.es.oscars.resv.db.ConnectionRepository;
+import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.Device;
 import net.es.oscars.topo.beans.PortBwVlan;
@@ -10,11 +12,11 @@ import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.beans.v2.Bandwidth;
 import net.es.oscars.topo.beans.v2.EdgePort;
 import net.es.oscars.topo.beans.v2.VlanAvailability;
-import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.Interval;
 import net.es.oscars.web.beans.v2.PortSearchRequest;
+import net.es.oscars.web.beans.v2.ConnectionEdgePortRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -29,11 +31,13 @@ public class TopoSearchController {
     private final TopologyStore topologyStore;
     private final Startup startup;
     private final ResvService resvService;
+    private final ConnectionRepository connRepo;
 
-    public TopoSearchController(TopologyStore topologyStore, Startup startup, ResvService resvService) {
+    public TopoSearchController(TopologyStore topologyStore, Startup startup, ResvService resvService, ConnectionRepository connRepo) {
         this.topologyStore = topologyStore;
         this.startup = startup;
         this.resvService = resvService;
+        this.connRepo = connRepo;
     }
 
     @ExceptionHandler(ConsistencyException.class)
@@ -69,13 +73,15 @@ public class TopoSearchController {
 
         boolean blankTerm = psr.getTerm() == null || psr.getTerm().isBlank();
         boolean blankDevice = psr.getDevice() == null || psr.getDevice().isBlank();
+
         if (!blankTerm) {
             if (psr.getTerm().length() < 4) {
                 throw new SearchException("search term too short");
             }
         }
+
         if (blankTerm && blankDevice) {
-            throw new SearchException("must include device or search term");
+            throw new SearchException("must include device id or a text search term");
         }
 
         if (psr.getInterval() == null) {
@@ -103,25 +109,14 @@ public class TopoSearchController {
 
         for (Device d : topology.getDevices().values()) {
             if (!blankDevice && !psr.getDevice().equals(d.getUrn())) {
-                // not the specified device, skip
+                // user specified a device and this is not the specified device, so skip
                 continue;
             }
 
             for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
-                boolean isEdge = true;
-                for (Layer l : p.getCapabilities()) {
-                    log.info(p.getUrn()+ " " +l.toString());
-                }
-                if (!p.getCapabilities().contains(Layer.ETHERNET)) {
-                    isEdge = false;
-                }
-                if (!p.getCapabilities().contains(Layer.EDGE)) {
-                    isEdge = false;
-                }
-                if (!isEdge) {
+                if (!p.isEdge()) {
                     continue;
                 }
-
                 boolean isResult = false;
                 if (blankTerm) {
                     isResult = true;
@@ -145,6 +140,57 @@ public class TopoSearchController {
         }
 
         return results;
+    }
+    @RequestMapping(value = "/api/topo/connection/edge-port", method = RequestMethod.POST)
+    @ResponseBody
+    @Transactional
+    public List<EdgePort> connectionEdgePorts(@RequestBody ConnectionEdgePortRequest cepr) throws SearchException, StartupException, ConsistencyException {
+        startup.startupCheck();
+        Topology topology = topologyStore.getTopology();
+        if (topology.getVersion() == null) {
+            throw new ConsistencyException("null current topology");
+        }
+        boolean blankConnectionId = cepr.getConnectionId() == null || cepr.getConnectionId().isBlank();
+        if (blankConnectionId) {
+            throw new SearchException("must include connection id");
+
+        }
+
+        Set<String> connectionEdgePorts = new HashSet<>();
+        Interval interval = cepr.getInterval();
+        Optional<Connection> maybeC = connRepo.findByConnectionId(cepr.getConnectionId());
+
+        if (maybeC.isPresent()) {
+            Connection c = maybeC.get();
+            if (c.getArchived() != null) {
+                c.getArchived().getCmp().getFixtures().forEach(f -> {
+                    connectionEdgePorts.add(f.getPortUrn());
+                });
+                if (interval == null) {
+                    interval = Interval.builder()
+                            .beginning(c.getArchived().getSchedule().getBeginning())
+                            .ending(c.getArchived().getSchedule().getEnding())
+                            .build();
+                }
+            }
+        }
+        if (interval == null) {
+            throw new SearchException("unable to determine interval from input or connection id");
+        }
+
+
+        Map<String, PortBwVlan> available = resvService.available(interval, cepr.getConnectionId());
+        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(interval, cepr.getConnectionId());
+        List<EdgePort> results = new ArrayList<>();
+        for (Device d : topology.getDevices().values()) {
+            for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
+                if (connectionEdgePorts.contains(p.getUrn())) {
+                    results.add(fromOldPort(p, available, vlanUsageMap));
+                }
+            }
+        }
+        return results;
+
     }
 
 
