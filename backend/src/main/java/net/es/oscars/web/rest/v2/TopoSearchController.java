@@ -225,57 +225,6 @@ public class TopoSearchController {
         return results;
 
     }
-    @RequestMapping(value = "/api/topo/connection/edge-port", method = RequestMethod.POST)
-    @ResponseBody
-    @Transactional
-    public List<EdgePort> connectionEdgePorts(@RequestBody ConnectionEdgePortRequest cepr) throws SearchException, StartupException, ConsistencyException {
-        startup.startupCheck();
-        Topology topology = topologyStore.getTopology();
-        if (topology.getVersion() == null) {
-            throw new ConsistencyException("null current topology");
-        }
-        boolean blankConnectionId = cepr.getConnectionId() == null || cepr.getConnectionId().isBlank();
-        if (blankConnectionId) {
-            throw new SearchException("must include connection id");
-
-        }
-
-        Set<String> connectionEdgePorts = new HashSet<>();
-        Interval interval = cepr.getInterval();
-        Optional<Connection> maybeC = connRepo.findByConnectionId(cepr.getConnectionId());
-
-        if (maybeC.isPresent()) {
-            Connection c = maybeC.get();
-            if (c.getArchived() != null) {
-                c.getArchived().getCmp().getFixtures().forEach(f -> {
-                    connectionEdgePorts.add(f.getPortUrn());
-                });
-                if (interval == null) {
-                    interval = Interval.builder()
-                            .beginning(c.getArchived().getSchedule().getBeginning())
-                            .ending(c.getArchived().getSchedule().getEnding())
-                            .build();
-                }
-            }
-        }
-        if (interval == null) {
-            throw new SearchException("unable to determine interval from input or connection id");
-        }
-
-
-        Map<String, PortBwVlan> available = resvService.available(interval, cepr.getConnectionId());
-        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(interval, cepr.getConnectionId());
-        List<EdgePort> results = new ArrayList<>();
-        for (Device d : topology.getDevices().values()) {
-            for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
-                if (connectionEdgePorts.contains(p.getUrn())) {
-                    results.add(fromOldPort(p, available, vlanUsageMap));
-                }
-            }
-        }
-        return results;
-
-    }
 
 
     @RequestMapping(value = "/api/reports/utilization", method = RequestMethod.GET)
