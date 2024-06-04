@@ -7,6 +7,7 @@ import net.es.oscars.resv.svc.ResvLibrary;
 import net.es.oscars.topo.beans.*;
 import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.enums.UrnType;
+import net.es.oscars.topo.pop.ConsistencyException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -40,6 +41,13 @@ public class TopologyStore {
         version = Version.builder().updated(Instant.now()).valid(true).build();
         log.debug("New version date is: " + version.getUpdated());
         return version;
+    }
+
+    public Topology getCurrentTopology() throws ConsistencyException {
+        if (topology == null || topology.getVersion() == null) {
+            throw new ConsistencyException("no current topology");
+        }
+        return topology;
     }
 
     public void replaceTopology(Topology incoming) throws TopoException {
