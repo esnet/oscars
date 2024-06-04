@@ -366,12 +366,15 @@ public class ConnService {
         }
     }
 
-    public Validity modifyNsi(Connection c, Integer bandwidth, Instant beginning, Instant ending) throws ModifyException {
+    public Validity modifyNsi(Connection c, Integer bandwidth, Instant beginning, Instant ending, String description) throws ModifyException {
         if (beginning != null) {
             c.getReserved().getSchedule().setBeginning(beginning);
         }
         if (ending != null) {
             c.getReserved().getSchedule().setEnding(ending);
+        }
+        if (description != null) {
+            c.setDescription(description);
         }
 
         if (bandwidth != null) {

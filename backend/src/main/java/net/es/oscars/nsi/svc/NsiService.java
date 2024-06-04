@@ -206,9 +206,10 @@ public class NsiService {
                     ending = xet.toGregorianCalendar().toInstant();
                 }
 
+
                 Connection c = connSvc.findConnection(mapping.getOscarsConnectionId());
 
-                Validity v = connSvc.modifyNsi(c, bandwidth, beginning, ending);
+                Validity v = connSvc.modifyNsi(c, bandwidth, beginning, ending, rt.getDescription());
                 if (v.isValid()) {
                     try {
                         this.reserveConfirmCallback(mapping, header);
