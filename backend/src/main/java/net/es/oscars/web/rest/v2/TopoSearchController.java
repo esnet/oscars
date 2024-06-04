@@ -9,6 +9,7 @@ import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.Device;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.beans.Topology;
+import net.es.oscars.topo.beans.v2.BackbonePort;
 import net.es.oscars.topo.beans.v2.Bandwidth;
 import net.es.oscars.topo.beans.v2.EdgePort;
 import net.es.oscars.topo.beans.v2.VlanAvailability;
@@ -70,6 +71,7 @@ public class TopoSearchController {
     public List<EdgePort> edgePortSearch(@RequestBody PortSearchRequest psr)
             throws ConsistencyException, StartupException, SearchException {
         startup.startupCheck();
+        Topology topology = topologyStore.getCurrentTopology();
 
         boolean blankTerm = psr.getTerm() == null || psr.getTerm().isBlank();
         boolean blankDevice = psr.getDevice() == null || psr.getDevice().isBlank();
@@ -92,10 +94,6 @@ public class TopoSearchController {
             throw new SearchException("null interval ending");
         }
 
-        Topology topology = topologyStore.getTopology();
-        if (topology.getVersion() == null) {
-            throw new ConsistencyException("null current topology");
-        }
 
         Map<String, PortBwVlan> available = resvService.available(psr.getInterval(), psr.getConnectionId());
         Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(psr.getInterval(), psr.getConnectionId());
@@ -134,12 +132,98 @@ public class TopoSearchController {
                 }
 
                 if (isResult) {
-                    results.add(fromOldPort(p, available, vlanUsageMap));
+                    results.add(mapEdgePort(p, available, vlanUsageMap));
                 }
             }
         }
 
         return results;
+    }
+
+
+    @RequestMapping(value = "/api/topo/device", method = RequestMethod.GET)
+    @ResponseBody
+    @Transactional
+    public Set<String> devices() throws ConsistencyException, StartupException {
+        startup.startupCheck();
+        Topology topology = topologyStore.getCurrentTopology();
+        return topology.getDevices().keySet();
+    }
+
+
+    @RequestMapping(value = "/api/topo/backbone-port/{device:.+}", method = RequestMethod.GET)
+    @ResponseBody
+    @Transactional
+    public List<BackbonePort> backbonePorts(@PathVariable String device)
+            throws ConsistencyException, StartupException, SearchException {
+        startup.startupCheck();
+        Topology topology = topologyStore.getCurrentTopology();
+
+        if (!topology.getDevices().containsKey(device)) {
+            throw new SearchException("device not found");
+        }
+
+        List<BackbonePort> results = new ArrayList<>();
+
+        for (net.es.oscars.topo.beans.Port p : topology.getDevices().get(device).getPorts()) {
+            if (p.isEdge()) {
+                continue;
+            }
+            log.info(p.getUrn());
+            results.add(mapBackbonePort(p));
+        }
+
+        return results;
+    }
+
+    @RequestMapping(value = "/api/topo/connection/edge-port", method = RequestMethod.POST)
+    @ResponseBody
+    @Transactional
+    public List<EdgePort> connectionEdgePorts(@RequestBody ConnectionEdgePortRequest cepr) throws SearchException, StartupException, ConsistencyException {
+        startup.startupCheck();
+        Topology topology = topologyStore.getCurrentTopology();
+
+        boolean blankConnectionId = cepr.getConnectionId() == null || cepr.getConnectionId().isBlank();
+        if (blankConnectionId) {
+            throw new SearchException("must include connection id");
+
+        }
+
+        Set<String> connectionEdgePorts = new HashSet<>();
+        Interval interval = cepr.getInterval();
+        Optional<Connection> maybeC = connRepo.findByConnectionId(cepr.getConnectionId());
+
+        if (maybeC.isPresent()) {
+            Connection c = maybeC.get();
+            if (c.getArchived() != null) {
+                c.getArchived().getCmp().getFixtures().forEach(f -> {
+                    connectionEdgePorts.add(f.getPortUrn());
+                });
+                if (interval == null) {
+                    interval = Interval.builder()
+                            .beginning(c.getArchived().getSchedule().getBeginning())
+                            .ending(c.getArchived().getSchedule().getEnding())
+                            .build();
+                }
+            }
+        }
+        if (interval == null) {
+            throw new SearchException("unable to determine interval from input or connection id");
+        }
+
+
+        Map<String, PortBwVlan> available = resvService.available(interval, cepr.getConnectionId());
+        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(interval, cepr.getConnectionId());
+        List<EdgePort> results = new ArrayList<>();
+        for (Device d : topology.getDevices().values()) {
+            for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
+                if (connectionEdgePorts.contains(p.getUrn())) {
+                    results.add(mapEdgePort(p, available, vlanUsageMap));
+                }
+            }
+        }
+        return results;
+
     }
     @RequestMapping(value = "/api/topo/connection/edge-port", method = RequestMethod.POST)
     @ResponseBody
@@ -216,14 +300,41 @@ public class TopoSearchController {
 
         for (Device d : topology.getDevices().values()) {
             for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
-                results.add(fromOldPort(p, available, vlanUsageMap));
+                results.add(mapEdgePort(p, available, vlanUsageMap));
             }
         }
         return results;
     }
 
 
-    private EdgePort fromOldPort(net.es.oscars.topo.beans.Port p,
+    private BackbonePort mapBackbonePort(net.es.oscars.topo.beans.Port p) throws ConsistencyException {
+
+        String[] parts = p.getUrn().split(":");
+        if (parts.length != 2) {
+            throw new ConsistencyException("Invalid port URN format");
+        }
+
+        // get the least of ingress / egress available
+        int bwPhysical = p.getReservableIngressBw();
+        if (p.getReservableEgressBw() < bwPhysical) {
+            bwPhysical = p.getReservableEgressBw();
+        }
+
+        Bandwidth bw = Bandwidth.builder()
+                .unit(Bandwidth.Unit.MBPS)
+                .physical(bwPhysical)
+                .build();
+
+        return BackbonePort.builder()
+                .device(parts[0])
+                .name(parts[1])
+                .bandwidth(bw)
+                .description(p.getTags())
+                .esdbEquipmentInterfaceId(p.getEsdbEquipmentInterfaceId())
+                .build();
+    }
+
+    private EdgePort mapEdgePort(net.es.oscars.topo.beans.Port p,
                                  Map<String, PortBwVlan> available,
                                  Map<String, Map<Integer, Set<String>>> vlanUsageMap) throws ConsistencyException {
 
