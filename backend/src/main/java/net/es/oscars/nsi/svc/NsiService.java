@@ -47,6 +47,7 @@ import net.es.oscars.topo.enums.UrnType;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
+import net.es.topo.common.devel.DevelUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -182,16 +183,12 @@ public class NsiService {
     public void modify(CommonHeaderType header, ReserveType rt, NsiMapping mapping) {
         Executors.newCachedThreadPool().submit(() -> {
             log.info("starting modify task");
+            DevelUtils.dumpDebug("modifyRT", rt);
             try {
-                Integer bandwidth = null;
                 Instant beginning = null;
                 Instant ending = null;
 
-                P2PServiceBaseType p2p = this.getP2PService(rt);
-                if (p2p != null) {
-                    long mbpsLong = p2p.getCapacity();
-                    bandwidth = (int) mbpsLong;
-                }
+                int bandwidth = this.getModifyCapacity(rt).intValue();
 
                 ReservationRequestCriteriaType crit = rt.getCriteria();
                 if (crit.getSchedule().getStartTime() != null) {
@@ -1445,6 +1442,20 @@ public class NsiService {
         st.setStartTime(of.createScheduleTypeStartTime(xgb));
         st.setEndTime(of.createScheduleTypeEndTime(xge));
         return st;
+
+    }
+    public Long getModifyCapacity(ReserveType rt) throws NsiException {
+        ReservationRequestCriteriaType crit = rt.getCriteria();
+        Long result = null;
+        for (Object o : crit.getAny()) {
+            if (o instanceof Long) {
+                result = ((Long) o);
+            }
+        }
+        if (result == null) {
+            throw new NsiException("unable to determine capacity", NsiErrors.MISSING_PARAM_ERROR);
+        }
+        return result;
 
     }
 
