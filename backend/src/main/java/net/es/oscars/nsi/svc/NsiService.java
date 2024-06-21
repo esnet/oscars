@@ -1109,7 +1109,6 @@ public class NsiService {
 
     }
 
-    @Transactional
     public void reserveConfirmCallback(NsiMapping mapping, CommonHeaderType inHeader)
             throws NsiException, ServiceException {
         String nsaId = mapping.getNsaId();
@@ -1135,22 +1134,26 @@ public class NsiService {
         rct.setGlobalReservationId(mapping.getNsiGri());
         rct.setDescription(c.getDescription());
 
-
         ReservationConfirmCriteriaType rcct = new ReservationConfirmCriteriaType();
-        ScheduleType st = this.oscarsToNsiSchedule(c.getHeld().getSchedule());
+        Schedule sch;
+        if (c.getPhase().equals(Phase.HELD)) {
+            sch = c.getHeld().getSchedule();
+        } else {
+            sch = c.getArchived().getSchedule();
+        }
+        ScheduleType st = this.oscarsToNsiSchedule(sch);
+
         rcct.setSchedule(st);
         rct.setCriteria(rcct);
         rcct.setServiceType(SERVICE_TYPE);
         rcct.setVersion(mapping.getDataplaneVersion());
 
         P2PServiceBaseType p2p = makeP2P(c.getHeld().getCmp(), mapping);
-        ObjectFactory p2pof
-                = new ObjectFactory();
-        rcct.getAny().add(p2pof.createP2Ps(p2p));
+        rcct.getAny().add(new ObjectFactory().createP2Ps(p2p));
 
         try {
             String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(rct);
-            log.debug("rct: \n" + pretty);
+            log.debug("rcct: \n" + pretty);
         } catch (JsonProcessingException ex) {
             log.error(ex.getMessage(), ex);
         }

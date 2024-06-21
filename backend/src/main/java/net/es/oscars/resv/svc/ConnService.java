@@ -363,7 +363,10 @@ public class ConnService {
         }
         if (c.getState().equals(State.ACTIVE) && c.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
             c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_REDEPLOYED);
+            connRepo.save(c);
         }
+
+        log.info("modify bandwidth completed");
     }
 
     public Validity modifyNsi(Connection c, Integer bandwidth, Instant beginning, Instant ending) throws ModifyException {
