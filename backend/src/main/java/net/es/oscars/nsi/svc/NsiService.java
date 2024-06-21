@@ -1136,10 +1136,13 @@ public class NsiService {
 
         ReservationConfirmCriteriaType rcct = new ReservationConfirmCriteriaType();
         Schedule sch;
+        Components cmp;
         if (c.getPhase().equals(Phase.HELD)) {
             sch = c.getHeld().getSchedule();
+            cmp = c.getHeld().getCmp();
         } else {
             sch = c.getArchived().getSchedule();
+            cmp = c.getArchived().getCmp();
         }
         ScheduleType st = this.oscarsToNsiSchedule(sch);
 
@@ -1148,7 +1151,8 @@ public class NsiService {
         rcct.setServiceType(SERVICE_TYPE);
         rcct.setVersion(mapping.getDataplaneVersion());
 
-        P2PServiceBaseType p2p = makeP2P(c.getHeld().getCmp(), mapping);
+
+        P2PServiceBaseType p2p = makeP2P(cmp, mapping);
         rcct.getAny().add(new ObjectFactory().createP2Ps(p2p));
 
         try {
