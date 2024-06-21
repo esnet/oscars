@@ -18,6 +18,7 @@ import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.P2PServiceBaseType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.DirectionalityType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.OrderedStpType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.StpListType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.TypeValueType;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.dto.pss.cmd.CommandType;
@@ -1447,11 +1448,19 @@ public class NsiService {
     public Long getModifyCapacity(ReserveType rt) throws NsiException {
         ReservationRequestCriteriaType crit = rt.getCriteria();
         Long result = null;
-        for (Object o : crit.getAny()) {
-            if (o instanceof Long) {
-                result = ((Long) o);
+        for (Object obj : crit.getAny()) {
+            if (result == null) {
+                if (obj instanceof @SuppressWarnings("rawtypes") JAXBElement jaxb) {
+                    if (jaxb.getDeclaredType() == Long.class) {
+                        result = ((Long) jaxb.getValue());
+                        if (jaxb.getName().toString().equals("{http://schemas.ogf.org/nsi/2013/12/services/point2point}capacity")) {
+                            log.debug("matched capacity qname ");
+                        }
+                    }
+                }
             }
         }
+
         if (result == null) {
             throw new NsiException("unable to determine capacity", NsiErrors.MISSING_PARAM_ERROR);
         }
