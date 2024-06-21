@@ -186,8 +186,11 @@ public class NsiService {
             log.info("starting modify task");
             DevelUtils.dumpDebug("modifyRT", rt);
             try {
-                Instant beginning = null;
-                Instant ending = null;
+                Connection c = connSvc.findConnection(mapping.getOscarsConnectionId());
+
+                Instant beginning = c.getReserved().getSchedule().getBeginning();
+
+                Instant ending = c.getReserved().getSchedule().getEnding();
 
                 int bandwidth = this.getModifyCapacity(rt).intValue();
 
@@ -203,8 +206,6 @@ public class NsiService {
                     XMLGregorianCalendar xet = crit.getSchedule().getEndTime().getValue();
                     ending = xet.toGregorianCalendar().toInstant();
                 }
-
-                Connection c = connSvc.findConnection(mapping.getOscarsConnectionId());
 
                 Validity v = connSvc.modifyNsi(c, bandwidth, beginning, ending);
                 if (v.isValid()) {
