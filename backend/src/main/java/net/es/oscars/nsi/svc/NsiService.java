@@ -1454,7 +1454,7 @@ public class NsiService {
                     if (jaxb.getDeclaredType() == Long.class) {
                         result = ((Long) jaxb.getValue());
                         if (jaxb.getName().toString().equals("{http://schemas.ogf.org/nsi/2013/12/services/point2point}capacity")) {
-                            log.debug("matched capacity qname ");
+                            log.debug("matched capacity qname");
                         }
                     }
                 }
