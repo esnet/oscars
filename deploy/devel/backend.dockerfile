@@ -26,8 +26,8 @@ RUN mv ${JAR_FILE} backend.jar
 RUN java -Djarmode=layertools -jar backend.jar extract
 
 # 2. run stage
-FROM bellsoft/liberica-openjdk-centos:20
-RUN yum install -y nc
+FROM bellsoft/liberica-openjdk-debian:20
+RUN apt-get update && apt -y install netcat
 RUN groupadd oscars && useradd -g oscars oscars
 RUN mkdir -p /app
 RUN mkdir -p /app/config
