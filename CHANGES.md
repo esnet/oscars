@@ -1,5 +1,9 @@
 # OSCARS Release Notes
-### 1.2.8
+### 1.2.12
+> Jul 2024
+- Add LSP waypoint search API
+ 
+### 1.2.10
 > May 2024
 - Add port utilization report API
 

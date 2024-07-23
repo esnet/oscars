@@ -16,6 +16,8 @@ import net.es.oscars.topo.beans.v2.VlanAvailability;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.Interval;
+import net.es.oscars.web.beans.v2.LspWaypoint;
+import net.es.oscars.web.beans.v2.LspWaypointSearchRequest;
 import net.es.oscars.web.beans.v2.PortSearchRequest;
 import net.es.oscars.web.beans.v2.ConnectionEdgePortRequest;
 import org.springframework.http.HttpStatus;
@@ -140,6 +142,76 @@ public class TopoSearchController {
         return results;
     }
 
+    @RequestMapping(value = "/api/topo/lsp-waypoint-search", method = RequestMethod.POST)
+    @ResponseBody
+    @Transactional
+    public List<LspWaypoint> lspWaypointSearch(@RequestBody LspWaypointSearchRequest lwsr)
+            throws ConsistencyException, StartupException, SearchException {
+        startup.startupCheck();
+        Topology topology = topologyStore.getCurrentTopology();
+
+        boolean invalidTerm = lwsr.getTerm() == null || lwsr.getTerm().length() < 4;
+
+        if (invalidTerm) {
+            throw new SearchException("text search term may not be null or less than 4 characters long");
+        }
+
+        Map<String, PortBwVlan> available = resvService.available(lwsr.getInterval(), lwsr.getConnectionId());
+
+        String term = lwsr.getTerm().toUpperCase();
+
+        List<LspWaypoint> results = new ArrayList<>();
+
+        for (Device d : topology.getDevices().values()) {
+            if (d.getUrn().toUpperCase().contains(term)) {
+                Device noPortsCopy = Device.builder()
+                        .capabilities(d.getCapabilities())
+                        .model(d.getModel())
+                        .esdbEquipmentId(d.getEsdbEquipmentId())
+                        .latitude(d.getLatitude())
+                        .longitude(d.getLongitude())
+                        .location(d.getLocation())
+                        .ipv4Address(d.getIpv4Address())
+                        .ipv6Address(d.getIpv6Address())
+                        .urn(d.getUrn())
+                        .type(d.getType())
+                        .build();
+                results.add(LspWaypoint.builder()
+                        .waypointType(LspWaypoint.WaypointType.DEVICE)
+                        .device(noPortsCopy)
+                        .port(null)
+                        .build());
+            }
+
+            for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
+                if (!p.lspCapable()) {
+                    continue;
+                }
+                boolean isResult = false;
+                if (p.getUrn().toUpperCase().contains(term)) {
+                    isResult = true;
+                } else {
+                    for (String tag : p.getTags()) {
+                        if (tag.toUpperCase().contains(term)) {
+                            isResult = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (isResult) {
+
+                    results.add(LspWaypoint.builder()
+                            .waypointType(LspWaypoint.WaypointType.PORT)
+                            .device(null)
+                            .port(mapBackbonePort(p, available))
+                            .build());
+                }
+            }
+        }
+
+        return results;
+    }
 
     @RequestMapping(value = "/api/topo/device", method = RequestMethod.GET)
     @ResponseBody
@@ -170,7 +242,7 @@ public class TopoSearchController {
                 continue;
             }
             log.info(p.getUrn());
-            results.add(mapBackbonePort(p));
+            results.add(mapBackbonePort(p, null));
         }
 
         return results;
@@ -256,7 +328,7 @@ public class TopoSearchController {
     }
 
 
-    private BackbonePort mapBackbonePort(net.es.oscars.topo.beans.Port p) throws ConsistencyException {
+    private BackbonePort mapBackbonePort(net.es.oscars.topo.beans.Port p, Map<String, PortBwVlan> available) throws ConsistencyException {
 
         String[] parts = p.getUrn().split(":");
         if (parts.length != 2) {
@@ -273,6 +345,19 @@ public class TopoSearchController {
                 .unit(Bandwidth.Unit.MBPS)
                 .physical(bwPhysical)
                 .build();
+
+        if (available != null) {
+            if (!available.containsKey(p.getUrn())) {
+                throw new ConsistencyException("cannot get available bw for " + p.getUrn());
+            }
+            PortBwVlan pbw = available.get(p.getUrn());
+
+            int bwAvailable = pbw.getIngressBandwidth();
+            if (pbw.getEgressBandwidth() < bwAvailable) {
+                bwAvailable = pbw.getEgressBandwidth();
+            }
+            bw.setAvailable(bwAvailable);
+        }
 
         return BackbonePort.builder()
                 .device(parts[0])
