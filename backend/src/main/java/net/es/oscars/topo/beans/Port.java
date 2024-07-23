@@ -69,6 +69,9 @@ public class Port {
     public boolean isEdge() {
         return (this.getCapabilities().contains(Layer.ETHERNET) && this.getCapabilities().contains(Layer.EDGE));
     }
+    public boolean lspCapable() {
+        return (this.getCapabilities().contains(Layer.MPLS));
+    }
 
     public String toString() {
         return this.getClass().getSimpleName() + "-" + getUrn();
