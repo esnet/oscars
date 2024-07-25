@@ -6,7 +6,9 @@ public enum Layer {
     INTERNAL,
     MPLS,
     LOGICAL,
-    EDGE;
+    EDGE,
+    TAGGED,
+    UNTAGGED;
 
 
 }

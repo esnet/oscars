@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.2.13
+> Jul 2024
+- Topology hotfix
+
 ### 1.2.12
 > Jul 2024
 - Add LSP waypoint search API
