@@ -1,6 +1,5 @@
 package net.es.oscars.topo.pop;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
@@ -132,11 +131,11 @@ public class TopoPopulator {
 
         for (OscarsOneDevice discDevice : oscarsOneTopo.getDevices()) {
             Set<Layer> deviceCaps = new HashSet<>();
-            for (String capString : discDevice.getCapabilities()) {
-                deviceCaps.add(Layer.valueOf(capString));
+            for (OscarsOneCapability os1Cap : discDevice.getCapabilities()) {
+                deviceCaps.add(Layer.valueOf(os1Cap.toString()));
             }
             Set<IntRange> devResVlans = new HashSet<>();
-            for (OscarsOneVlan vlan : discDevice.getReservableVlans()) {
+            for (net.es.topo.common.model.oscars1.IntRange vlan : discDevice.getReservableVlans()) {
                 devResVlans.add(IntRange.builder()
                                 .ceiling(vlan.getCeiling())
                                 .floor(vlan.getFloor())
@@ -160,11 +159,11 @@ public class TopoPopulator {
             devices.put(d.getUrn(), d);
             for (OscarsOnePort discPort : discDevice.getPorts()) {
                 Set<Layer> portCaps = new HashSet<>();
-                for (String capString : discPort.getCapabilities()) {
-                    portCaps.add(Layer.valueOf(capString));
+                for (OscarsOneCapability os1Cap : discPort.getCapabilities()) {
+                    portCaps.add(Layer.valueOf(os1Cap.toString()));
                 }
                 Set<IntRange> portResVlans = new HashSet<>();
-                for (OscarsOneVlan vlan : discPort.getReservableVlans()) {
+                for (net.es.topo.common.model.oscars1.IntRange vlan : discPort.getReservableVlans()) {
                     portResVlans.add(IntRange.builder()
                             .ceiling(vlan.getCeiling())
                             .floor(vlan.getFloor())
