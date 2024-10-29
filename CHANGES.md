@@ -1,4 +1,10 @@
 # OSCARS Release Notes
+### 1.2.15
+> Oct 2024
+- NSI modify hotfix
+- remove RANCID code
+
+
 ### 1.2.14
 > Oct 2024
 - NSI modify fix
