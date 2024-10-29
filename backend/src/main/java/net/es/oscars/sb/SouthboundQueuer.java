@@ -9,7 +9,6 @@ import net.es.oscars.resv.enums.DeploymentIntent;
 import net.es.oscars.sb.ent.RouterCommands;
 import net.es.oscars.sb.nso.NsoAdapter;
 import net.es.oscars.sb.beans.QueueName;
-import net.es.oscars.sb.rancid.RancidAdapter;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.DeploymentState;
@@ -29,8 +28,6 @@ public class SouthboundQueuer {
     @Autowired
     private NsoAdapter nsoAdapter;
 
-    @Autowired
-    private RancidAdapter rancidAdapter;
 
     @Autowired
     private ConnectionRepository cr;
@@ -78,16 +75,7 @@ public class SouthboundQueuer {
                 cr.save(conn);
 
                 log.info(wt.getConnectionId() + " " + wt.getCommandType() + " dst: " + conn.getDeploymentState());
-
-                if (isLegacy(conn)) {
-                    if (wt.getCommandType().equals(CommandType.DISMANTLE)) {
-                        this.completeTask(rancidAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
-                    } else {
-                        log.warn("not performing non-dismantle task for legacy connection " + conn.getConnectionId());
-                    }
-                } else {
-                    this.completeTask(nsoAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
-                }
+                this.completeTask(nsoAdapter.processTask(conn, wt.getCommandType(), wt.getIntent()));
             });
         }
         waiting.clear();
@@ -125,17 +113,6 @@ public class SouthboundQueuer {
             running.remove(completed);
             done.add(completed);
         }
-    }
-
-    // a connection is legacy if it has any old-style dismantle commands
-    public boolean isLegacy(Connection conn) {
-        for (VlanJunction j : conn.getArchived().getCmp().getJunctions()) {
-            RouterCommands existing = rancidAdapter.existing(conn.getConnectionId(), j.getDeviceUrn(), CommandType.DISMANTLE);
-            if (existing != null) {
-                return !existing.getTemplateVersion().equals("NSO 1.1");
-            }
-        }
-        return false;
     }
 
     public void clear(QueueName name) {

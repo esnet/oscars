@@ -95,8 +95,14 @@ public class NsiStateEngine {
 
 
     public void provision(NsiEvent event, NsiMapping mapping) throws NsiException {
+        // allowed transitions
+        // null state -> provisioning via PROV_START
+        // provisioned -> provisioning via PROV_START
+
+        // provisioning -> provisioned via PROV_CF
+
         if (event.equals(NsiEvent.PROV_START)) {
-            if (!mapping.getProvisionState().equals(ProvisionStateEnumType.RELEASED)) {
+            if (!mapping.getProvisionState().equals(ProvisionStateEnumType.RELEASED) && !mapping.getProvisionState().equals(ProvisionStateEnumType.PROVISIONED)) {
                 throw new NsiException("Invalid prov state " + mapping.getProvisionState(), NsiErrors.TRANS_ERROR);
             }
             mapping.setProvisionState(ProvisionStateEnumType.PROVISIONING);

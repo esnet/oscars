@@ -95,7 +95,8 @@ public class NsiProvider implements ConnectionProviderPort {
         if (stateEngine.findMapping(reserve.getConnectionId()).isPresent()) {
             mapping = stateEngine.findMapping(reserve.getConnectionId()).get();
             log.info("triggering a modify");
-            nsiService.modify(header.value, reserve, mapping);
+            // pass in the new version
+            nsiService.modify(header.value, reserve, mapping, reserve.getCriteria().getVersion());
         } else {
             mapping = stateEngine.newMapping(
                     reserve.getConnectionId(),
