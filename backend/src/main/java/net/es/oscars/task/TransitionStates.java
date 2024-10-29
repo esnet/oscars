@@ -4,7 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.util.DbAccess;
+import net.es.oscars.nsi.beans.NsiModify;
 import net.es.oscars.nsi.ent.NsiMapping;
+import net.es.oscars.nsi.svc.NsiRequestManager;
 import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
@@ -27,15 +29,18 @@ public class TransitionStates {
 
     private final ConnectionRepository connRepo;
     private final Startup startup;
-
     private final NsiService nsiService;
 
     private final DbAccess dbAccess;
-    public TransitionStates(ConnectionRepository connRepo, Startup startup, NsiService nsiService, DbAccess dbAccess) {
+    private final NsiRequestManager nsiRequestManager;
+
+    public TransitionStates(ConnectionRepository connRepo, Startup startup,
+                            NsiService nsiService, DbAccess dbAccess, NsiRequestManager nsiRequestManager) {
         this.connRepo = connRepo;
         this.startup = startup;
         this.nsiService = nsiService;
         this.dbAccess = dbAccess;
+        this.nsiRequestManager = nsiRequestManager;
     }
 
     @Scheduled(fixedDelay = 5000)
@@ -90,6 +95,18 @@ public class TransitionStates {
                     }
                 }
 
+                List<NsiModify> expiredModifies = nsiRequestManager.timedOut();
+                for (NsiModify mod : expiredModifies) {
+                    try {
+                        NsiMapping mapping = nsiService.getMapping(mod.getNsiConnectionId());
+                        nsiService.rollbackModify(mapping);
+                    } catch (NsiException ex) {
+                        log.error("unable to roll back expired modify for "+mod.getNsiConnectionId(), ex);
+                    } finally {
+                        nsiRequestManager.rollback(mod.getNsiConnectionId());
+                    }
+                }
+
                 for (NsiMapping mapping : pastEndTime) {
                     nsiService.pastEndTime(mapping);
                 }
@@ -110,6 +127,8 @@ public class TransitionStates {
                     c.setReserved(null);
                     connRepo.saveAndFlush(c);
                 });
+
+
             } finally {
                 // log.debug("unlocking connections");
                 connLock.unlock();

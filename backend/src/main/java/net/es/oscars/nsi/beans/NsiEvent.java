@@ -17,5 +17,6 @@ public enum NsiEvent {
     REL_CF,
     ABORT_START,
     ABORT_CF,
-    RESV_TIMEOUT
+    RESV_TIMEOUT,
+    RESV_CHECK
 }

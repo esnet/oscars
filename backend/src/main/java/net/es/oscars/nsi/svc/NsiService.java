@@ -25,6 +25,7 @@ import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.nsi.beans.NsiErrors;
 import net.es.oscars.nsi.beans.NsiEvent;
 import net.es.oscars.nsi.beans.NsiHoldResult;
+import net.es.oscars.nsi.beans.NsiModify;
 import net.es.oscars.nsi.db.NsiMappingRepository;
 import net.es.oscars.nsi.db.NsiRequesterNSARepository;
 import net.es.oscars.nsi.ent.NsiMapping;
@@ -94,6 +95,9 @@ public class NsiService {
     final public static String NSI_TYPES = "http://schemas.ogf.org/nsi/2013/12/framework/types";
 
     @Autowired
+    private NsiRequestManager nsiRequestManager;
+
+    @Autowired
     private NsiMappingRepository nsiRepo;
 
     @Autowired
@@ -134,7 +138,7 @@ public class NsiService {
         Executors.newCachedThreadPool().submit(() -> {
             log.info("starting reserve task");
             try {
-                log.info("transitioning state");
+                log.info("transitioning state with RESV_START");
                 nsiStateEngine.reserve(NsiEvent.RESV_START, mapping);
 
 
@@ -186,35 +190,106 @@ public class NsiService {
             log.info("starting modify task");
             DevelUtils.dumpDebug("modifyRT", rt);
             try {
+                log.info("transitioning NSI state with RESV_CHECK");
+                nsiStateEngine.reserve(NsiEvent.RESV_CHECK, mapping);
+                // now NSI state is RESERVE_CHECKING
                 Connection c = connSvc.findConnection(mapping.getOscarsConnectionId());
 
-                Instant beginning = c.getReserved().getSchedule().getBeginning();
+                Instant initialBeginning = c.getReserved().getSchedule().getBeginning();
+                Instant initialEnding = c.getReserved().getSchedule().getEnding();
 
-                Instant ending = c.getReserved().getSchedule().getEnding();
+                int initialBandwidth = 0;
+                for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
+                    if (f.getIngressBandwidth() > initialBandwidth) {
+                        initialBandwidth = f.getIngressBandwidth();
+                    }
+                    if (f.getEgressBandwidth() > initialBandwidth) {
+                        initialBandwidth = f.getIngressBandwidth();
+                    }
+                }
 
-                int bandwidth = this.getModifyCapacity(rt).intValue();
+                for (VlanPipe p : c.getReserved().getCmp().getPipes()) {
+                    if (p.getAzBandwidth() > initialBandwidth) {
+                        initialBandwidth = p.getAzBandwidth();
+                    }
+                    if (p.getZaBandwidth() > initialBandwidth) {
+                        initialBandwidth = p.getZaBandwidth();
+                    }
+                }
+
+
+                Instant newBeginning = initialBeginning;
+                Instant newEnding = initialEnding;
+                int newBandwidth = this.getModifyCapacity(rt).intValue();
 
                 ReservationRequestCriteriaType crit = rt.getCriteria();
                 if (crit.getSchedule().getStartTime() != null) {
                     log.info("got updated beginning");
                     XMLGregorianCalendar xst = crit.getSchedule().getStartTime().getValue();
-                    beginning = xst.toGregorianCalendar().toInstant();
+                    newBeginning = xst.toGregorianCalendar().toInstant();
                 }
 
                 if (crit.getSchedule().getEndTime() != null) {
                     log.info("got updated ending");
                     XMLGregorianCalendar xet = crit.getSchedule().getEndTime().getValue();
-                    ending = xet.toGregorianCalendar().toInstant();
+                    newEnding = xet.toGregorianCalendar().toInstant();
                 }
 
-                Validity v = connSvc.modifyNsi(c, bandwidth, beginning, ending);
+                // we increment the dataplane version
+                mapping.setDataplaneVersion(mapping.getDataplaneVersion() + 1);
+                nsiRepo.save(mapping);
+
+                Validity v = connSvc.modifyNsi(c, newBandwidth, newBeginning, newEnding);
                 if (v.isValid()) {
+                    // At this point we know that the modification is valid
+                    //
+                    // We have already committed the resources inside OSCARS;
+                    // - regular reserve does the "normal" INITIAL -> HELD -> RESERVED OSCARS state diagram
+                    // - modify goes from RESERVED -> RESERVED.. this needs a major cleanup in the future.
+
+                    // first we set our own state to RESERVE_HELD
+                    nsiStateEngine.reserve(NsiEvent.RESV_CF, mapping);
+
+                    // We call back to confirm the modify message; this is the same behavior as reserve()
+
+                    // It is possible now for
+                    // - the callback to fail - we will just log items and keep trucking along
+
+                    // - the customer to..
+                    //    - commit the modification (good path), or
+                    //    - abort the modify / fail to commit in time (bad path)
+
+                    // The NsiRequestManager will keep track of in-flight modify requests.
+
+                    Instant timeout = Instant.now().plus(nsiResvTimeout, ChronoUnit.SECONDS);
+
+                    NsiModify modify = NsiModify.builder()
+                            .initial(NsiModify.Spec.builder()
+                                    .bandwidth(initialBandwidth)
+                                    .beginning(initialBeginning)
+                                    .ending(initialEnding)
+                                    .build())
+                            .modified(NsiModify.Spec.builder()
+                                    .bandwidth(newBandwidth)
+                                    .beginning(newBeginning)
+                                    .ending(newEnding)
+                                    .build())
+                            .revertTime(timeout)
+                            .nsiConnectionId(mapping.getNsiConnectionId())
+                            .build();
+
+                    this.nsiRequestManager.addInFlightModify(modify);
+
                     try {
                         this.reserveConfirmCallback(mapping, header);
                     } catch (WebServiceException | ServiceException cex) {
                         log.error("reserve succeeded: then callback failed", cex);
                     }
                 } else {
+                    // if this failed, set our own state to RESERVE_FAILED, we should get an ABORT to clean things
+                    // up, or it will eventually expire and be cleaned up
+                    nsiStateEngine.reserve(NsiEvent.RESV_FL, mapping);
+
                     try {
                         this.errCallback(NsiEvent.RESV_FL, mapping,
                                 v.getMessage(),
@@ -248,10 +323,20 @@ public class NsiService {
             try {
                 nsiStateEngine.commit(NsiEvent.COMMIT_START, mapping);
                 Connection c = nsiConnectionAccess.getOscarsConnection(mapping);
-                if (!c.getPhase().equals(Phase.HELD)) {
-                    throw new NsiException("Invalid connection phase", NsiErrors.TRANS_ERROR);
+
+                // The commit could be either a commit for the initial commit flow or it can
+                // be for an in-flight modify.
+                if (nsiRequestManager.getInFlightModify(mapping.getNsiConnectionId()) == null) {
+                    if (!c.getPhase().equals(Phase.HELD)) {
+                        throw new NsiException("Invalid connection phase", NsiErrors.TRANS_ERROR);
+                    }
+                    connSvc.commit(c);
+
+                } else {
+                    // tell the request manager that this committed OK
+                    nsiRequestManager.commit(mapping.getNsiConnectionId());
                 }
-                connSvc.commit(c);
+
                 nsiStateEngine.commit(NsiEvent.COMMIT_CF, mapping);
 
                 log.info("completed commit");
@@ -422,6 +507,10 @@ public class NsiService {
 
     }
 
+    public void rollbackModify(NsiMapping mapping) {
+        log.info("modify timed out for " + mapping.getNsiConnectionId() + " " + mapping.getOscarsConnectionId());
+        this.resvTimedOut(mapping);
+    }
 
     // currently unused
     // TODO: trigger this when REST API terminates connection
