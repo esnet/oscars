@@ -30,7 +30,7 @@ public class NsiRequestManager {
     public List<NsiModify> timedOut() {
         List<NsiModify> result = new ArrayList<>();
         for (NsiModify modify : inFlightModifies.values()) {
-            if (modify.getRevertTime().isAfter(Instant.now())) {
+            if (modify.getTimeout().isBefore(Instant.now())) {
                 result.add(modify);
             }
         }

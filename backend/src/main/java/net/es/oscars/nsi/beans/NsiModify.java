@@ -9,7 +9,7 @@ import java.time.Instant;
 @Builder
 public class NsiModify {
     public String nsiConnectionId;
-    public Instant revertTime;
+    public Instant timeout;
     public Spec initial;
     private Spec modified;
 
@@ -19,5 +19,6 @@ public class NsiModify {
         Instant beginning;
         Instant ending;
         int bandwidth;
+        int dataplaneVersion;
     }
 }

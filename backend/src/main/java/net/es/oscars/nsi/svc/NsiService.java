@@ -185,7 +185,8 @@ public class NsiService {
             log.info("ending reserve");
         });
     }
-    public void modify(CommonHeaderType header, ReserveType rt, NsiMapping mapping) {
+
+    public void modify(CommonHeaderType header, ReserveType rt, NsiMapping mapping, int newVersion) {
         Executors.newCachedThreadPool().submit(() -> {
             log.info("starting modify task");
             DevelUtils.dumpDebug("modifyRT", rt);
@@ -197,6 +198,7 @@ public class NsiService {
 
                 Instant initialBeginning = c.getReserved().getSchedule().getBeginning();
                 Instant initialEnding = c.getReserved().getSchedule().getEnding();
+                int initialDataplaneVersion = mapping.getDataplaneVersion();
 
                 int initialBandwidth = 0;
                 for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
@@ -235,8 +237,8 @@ public class NsiService {
                     newEnding = xet.toGregorianCalendar().toInstant();
                 }
 
-                // we increment the dataplane version
-                mapping.setDataplaneVersion(mapping.getDataplaneVersion() + 1);
+                // we update the dataplane version
+                mapping.setDataplaneVersion(newVersion);
                 nsiRepo.save(mapping);
 
                 Validity v = connSvc.modifyNsi(c, newBandwidth, newBeginning, newEnding);
@@ -268,13 +270,15 @@ public class NsiService {
                                     .bandwidth(initialBandwidth)
                                     .beginning(initialBeginning)
                                     .ending(initialEnding)
+                                    .dataplaneVersion(initialDataplaneVersion)
                                     .build())
                             .modified(NsiModify.Spec.builder()
                                     .bandwidth(newBandwidth)
                                     .beginning(newBeginning)
                                     .ending(newEnding)
+                                    .dataplaneVersion(newVersion)
                                     .build())
-                            .revertTime(timeout)
+                            .timeout(timeout)
                             .nsiConnectionId(mapping.getNsiConnectionId())
                             .build();
 
@@ -319,14 +323,17 @@ public class NsiService {
     public void commit(CommonHeaderType header, NsiMapping mapping) {
 
         Executors.newCachedThreadPool().submit(() -> {
-            log.info("starting commit task");
+            log.info("starting commit for "+mapping.getNsiConnectionId());
             try {
                 nsiStateEngine.commit(NsiEvent.COMMIT_START, mapping);
                 Connection c = nsiConnectionAccess.getOscarsConnection(mapping);
 
                 // The commit could be either a commit for the initial commit flow or it can
                 // be for an in-flight modify.
+
+                //
                 if (nsiRequestManager.getInFlightModify(mapping.getNsiConnectionId()) == null) {
+                    log.info("commit for initial reserve");
                     if (!c.getPhase().equals(Phase.HELD)) {
                         throw new NsiException("Invalid connection phase", NsiErrors.TRANS_ERROR);
                     }
@@ -334,6 +341,13 @@ public class NsiService {
 
                 } else {
                     // tell the request manager that this committed OK
+                    log.info("committing modify " + mapping.getNsiConnectionId());
+
+                    NsiModify modify = nsiRequestManager.getInFlightModify(mapping.getNsiConnectionId());
+                    mapping.setDataplaneVersion(modify.getModified().getDataplaneVersion());
+                    nsiRepo.save(mapping);
+                    log.info("new dataplane version " + mapping.getDataplaneVersion());
+
                     nsiRequestManager.commit(mapping.getNsiConnectionId());
                 }
 
@@ -346,7 +360,7 @@ public class NsiService {
                 } catch (WebServiceException | ServiceException ex) {
                     log.error("commit confirmed callback failed", ex);
                 }
-            } catch ( PCEException | NsiException ex) {
+            } catch (PCEException | NsiException ex) {
                 log.error("failed commit");
                 log.error(ex.getMessage(), ex);
                 try {
@@ -509,7 +523,22 @@ public class NsiService {
 
     public void rollbackModify(NsiMapping mapping) {
         log.info("modify timed out for " + mapping.getNsiConnectionId() + " " + mapping.getOscarsConnectionId());
-        this.resvTimedOut(mapping);
+        NsiModify modify = nsiRequestManager.getInFlightModify(mapping.getNsiConnectionId());
+
+        Connection c = connSvc.findConnection(mapping.getOscarsConnectionId());
+
+
+        try {
+            log.info("rolling back modify " + mapping.getNsiConnectionId() + " " + mapping.getOscarsConnectionId());
+            connSvc.modifyNsi(c, modify.getInitial().getBandwidth(), modify.getInitial().getBeginning(), modify.getInitial().getEnding());
+        } catch (ModifyException ex) {
+            log.error("Internal error: " + ex.getMessage(), ex);
+        } finally {
+            mapping.setDataplaneVersion(modify.getInitial().getDataplaneVersion());
+            nsiRepo.save(mapping);
+            this.resvTimedOut(mapping);
+        }
+
     }
 
     // currently unused
@@ -947,7 +976,7 @@ public class NsiService {
             include.add(0, junctions.get(0).getDevice());
         }
         // last element of ero should be the last device.
-        if (!include.get(include.size()-1).equals(junctions.get(1).getDevice())) {
+        if (!include.get(include.size() - 1).equals(junctions.get(1).getDevice())) {
             include.add(junctions.get(1).getDevice());
         }
 
@@ -1542,12 +1571,13 @@ public class NsiService {
         return st;
 
     }
+
     public Long getModifyCapacity(ReserveType rt) throws NsiException {
         ReservationRequestCriteriaType crit = rt.getCriteria();
         Long result = null;
         for (Object obj : crit.getAny()) {
             if (result == null) {
-                if (obj instanceof @SuppressWarnings("rawtypes") JAXBElement jaxb) {
+                if (obj instanceof @SuppressWarnings("rawtypes")JAXBElement jaxb) {
                     if (jaxb.getDeclaredType() == Long.class) {
                         result = ((Long) jaxb.getValue());
                         if (jaxb.getName().toString().equals("{http://schemas.ogf.org/nsi/2013/12/services/point2point}capacity")) {
@@ -1593,7 +1623,6 @@ public class NsiService {
 
 
     /* db funcs */
-
 
 
     public NsiMapping getMapping(String nsiConnectionId) throws NsiException {
