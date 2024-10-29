@@ -68,6 +68,13 @@ public class NsiStateEngine {
             }
             mapping.setReservationState(ReservationStateEnumType.RESERVE_CHECKING);
 
+        } else if (event.equals(NsiEvent.RESV_CHECK)) {
+            if (!mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_START)) {
+                throw new NsiException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
+            }
+
+            mapping.setReservationState(ReservationStateEnumType.RESERVE_CHECKING);
+
         } else if (event.equals(NsiEvent.RESV_FL)) {
             if (!mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_CHECKING)) {
                 throw new NsiException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);

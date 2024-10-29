@@ -1,4 +1,9 @@
 # OSCARS Release Notes
+### 1.2.14
+> Oct 2024
+- NSI modify fix
+- NSI list memory leak fix
+
 ### 1.2.13
 > Jul 2024
 - Topology hotfix

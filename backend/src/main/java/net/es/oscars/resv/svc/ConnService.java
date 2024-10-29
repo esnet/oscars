@@ -398,6 +398,8 @@ public class ConnService {
     }
 
 
+
+
     public int findAvailableMaxBandwidth(Connection c) {
         Interval interval = Interval.builder()
                 .beginning(c.getReserved().getSchedule().getBeginning())
