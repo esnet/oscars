@@ -9,6 +9,8 @@ import net.es.oscars.pce.PceService;
 
 import net.es.oscars.web.beans.PceRequest;
 import net.es.oscars.web.beans.PceResponse;
+import net.es.oscars.web.beans.v2.AllPathsPceRequest;
+import net.es.oscars.web.beans.v2.AllPathsPceResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +40,11 @@ public class PCEController {
     }
 
 
+    @ExceptionHandler(PCEException.class)
+    @ResponseStatus(value = HttpStatus.BAD_REQUEST)
+    public void handlePceError(PCEException ex) {
+        log.info(ex.getMessage());
+    }
 
     @RequestMapping(value = "/api/pce/paths", method = RequestMethod.POST)
     @ResponseBody
@@ -54,6 +61,19 @@ public class PCEController {
     }
 
 
+    @RequestMapping(value = "/api/pce/all-paths", method = RequestMethod.POST)
+    @ResponseBody
+    @Transactional
+    public AllPathsPceResponse allPaths(@RequestBody AllPathsPceRequest request) throws PCEException, StartupException {
+        if (startup.isInStartup()) {
+            throw new StartupException("OSCARS starting up");
+        } else if (startup.isInShutdown()) {
+            throw new StartupException("OSCARS shutting down");
+        }
+
+        return pceService.calculateAllPaths(request);
+
+    }
 
 
 
