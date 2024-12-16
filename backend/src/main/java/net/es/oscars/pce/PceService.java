@@ -96,6 +96,11 @@ public class PceService {
             List<PipeSpecification.LspHop> primaryPath = new ArrayList<>();
 
             PcePath path = pceResponse.getShortest();
+
+            if (path == null) {
+                throw new PCEException("unable to find path for pipe "+pipe.getId());
+            }
+
             for (EroHop hop : path.getAzEro()) {
                 // add the hop to our pipe path,
                 UrnType ut = baseline.get(hop.getUrn()).getUrnType();
