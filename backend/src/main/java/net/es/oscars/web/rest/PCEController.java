@@ -40,6 +40,11 @@ public class PCEController {
     }
 
 
+    @ExceptionHandler(PCEException.class)
+    @ResponseStatus(value = HttpStatus.BAD_REQUEST)
+    public void handlePceError(PCEException ex) {
+        log.info(ex.getMessage());
+    }
 
     @RequestMapping(value = "/api/pce/paths", method = RequestMethod.POST)
     @ResponseBody
