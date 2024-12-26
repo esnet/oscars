@@ -8,7 +8,7 @@ import net.es.oscars.resv.svc.ResvService;
 
 import net.es.oscars.topo.pop.ConsistencyException;
 ;
-import net.es.oscars.web.beans.v2.L2VPN;
+import net.es.oscars.model.L2VPN;
 import net.es.oscars.web.beans.v2.ValidationResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,7 +41,7 @@ public class EseApiController {
     }
 
 
-    @RequestMapping(value = "/api/ese/l2vpn/validate", method = RequestMethod.POST)
+    @RequestMapping(value = "/api/l2vpn/validate", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
     public ValidationResponse validate(@RequestBody L2VPN l2VPNRequest)
@@ -50,7 +50,7 @@ public class EseApiController {
         return null;
     }
 
-    @RequestMapping(value = "/api/ese/l2vpn/new", method = RequestMethod.POST)
+    @RequestMapping(value = "/api/l2vpn/new", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
     public L2VPN newL2VPN(@RequestBody L2VPN l2VPNRequest)
@@ -60,7 +60,7 @@ public class EseApiController {
         return null;
     }
 
-    @RequestMapping(value = "/api/ese/l2vpn/modify", method = RequestMethod.PATCH)
+    @RequestMapping(value = "/api/l2vpn/modify", method = RequestMethod.PATCH)
     @ResponseBody
     @Transactional
     public L2VPN updateL2VPN(@RequestBody L2VPN l2VPNRequest)
@@ -69,5 +69,6 @@ public class EseApiController {
 
         return null;
     }
+
 
 }

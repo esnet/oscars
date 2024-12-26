@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import net.es.oscars.model.Interval;
 import net.es.oscars.resv.enums.State;
 
 import java.util.List;

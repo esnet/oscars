@@ -9,7 +9,7 @@ import net.es.oscars.resv.enums.BwDirection;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.topo.beans.*;
 import net.es.oscars.topo.svc.TopologyStore;
-import net.es.oscars.web.beans.Interval;
+import net.es.oscars.model.Interval;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.stereotype.Service;

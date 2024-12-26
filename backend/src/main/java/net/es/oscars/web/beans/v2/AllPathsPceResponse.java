@@ -5,8 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import net.es.oscars.pce.beans.PipeSpecification;
-import net.es.oscars.web.beans.Interval;
+import net.es.oscars.model.Bundle;
+import net.es.oscars.model.Interval;
 
 import java.util.List;
 
@@ -18,7 +18,7 @@ public class AllPathsPceResponse {
     protected String connectionId;
     protected Interval interval;
     protected int bandwidth;
-    protected List<PipeSpecification> pipes;
+    protected List<Bundle> bundles;
 
 
 }

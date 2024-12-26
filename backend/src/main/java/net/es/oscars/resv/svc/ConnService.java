@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.util.DbAccess;
+import net.es.oscars.model.Interval;
 import net.es.oscars.sb.db.RouterCommandsRepository;
 import net.es.oscars.sb.ent.RouterCommands;
 import net.es.oscars.sb.nso.resv.NsoResourceService;

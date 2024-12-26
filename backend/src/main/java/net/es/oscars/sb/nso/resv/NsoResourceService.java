@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.resv.db.ScheduleRepository;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.Schedule;
-import net.es.oscars.web.beans.Interval;
+import net.es.oscars.model.Interval;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

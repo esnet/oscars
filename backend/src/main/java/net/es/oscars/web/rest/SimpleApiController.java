@@ -7,7 +7,7 @@ import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.svc.ConnUtils;
 import net.es.oscars.web.beans.ConnectionFilter;
-import net.es.oscars.web.beans.Interval;
+import net.es.oscars.model.Interval;
 import net.es.oscars.web.simple.*;
 import net.es.oscars.web.beans.PceRequest;
 import org.springframework.beans.factory.annotation.Autowired;

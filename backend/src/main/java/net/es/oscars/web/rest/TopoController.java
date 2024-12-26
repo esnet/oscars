@@ -14,7 +14,7 @@ import net.es.oscars.topo.enums.UrnType;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.ConsistencyService;
 import net.es.oscars.topo.svc.TopologyStore;
-import net.es.oscars.web.beans.Interval;
+import net.es.oscars.model.Interval;
 import net.es.oscars.web.beans.SimpleAdjcy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
