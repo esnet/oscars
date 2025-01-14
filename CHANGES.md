@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.2.18
+> Jan 2025
+- NSI response size hotfix
+
 ### 1.2.15
 > Oct 2024
 - NSI modify hotfix
