@@ -752,6 +752,13 @@ public class NsiService {
             return null;
         }
         Connection c = mc.get();
+        if (c.getPhase().equals(Phase.ARCHIVED)) {
+            // if this is archived and the end date was 24 hours ago or more, don't return it
+            if (c.getArchived().getSchedule()
+                    .getEnding().isBefore(Instant.now().minus(24L, ChronoUnit.HOURS))) {
+                return null;
+            }
+        }
 
         QuerySummaryResultType qsrt = new QuerySummaryResultType();
         qsrt.setConnectionId(mapping.getNsiConnectionId());
