@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import net.es.oscars.topo.beans.Device;
 import net.es.oscars.topo.beans.v2.BackbonePort;
-import net.es.oscars.web.beans.Interval;
 
 @Builder
 @Data

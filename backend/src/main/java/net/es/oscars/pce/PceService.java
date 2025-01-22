@@ -2,8 +2,10 @@ package net.es.oscars.pce;
 
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
+import net.es.oscars.model.Bundle;
+import net.es.oscars.model.LSP;
+import net.es.oscars.model.enums.Role;
 import net.es.oscars.pce.beans.PathConstraint;
-import net.es.oscars.pce.beans.PipeSpecification;
 import net.es.oscars.resv.beans.PeriodBandwidth;
 import net.es.oscars.resv.ent.EroHop;
 import net.es.oscars.resv.ent.VlanJunction;
@@ -52,29 +54,30 @@ public class PceService {
                 .interval(request.getInterval())
                 .connectionId(request.getConnectionId())
                 .bandwidth(request.getBandwidth())
-                .pipes(new ArrayList<>())
+                .bundles(new ArrayList<>())
                 .build();
 
-        for (PipeSpecification pipe : request.getPipes()) {
+        for (Bundle bundle : request.getBundles()) {
 
-            log.info("calculating paths for pipe: " + pipe.getId());
-            if (pipe.getA().equals(pipe.getZ())) {
-                throw new PCEException("invalid path request: A is the same as Z "+pipe.getA());
+
+            log.info("calculating paths for bundle: {}", bundle.getName());
+            if (bundle.getA().equals(bundle.getZ())) {
+                throw new PCEException("invalid path request: A is the same as Z "+ bundle.getA());
             }
-            if (pipe.getConstraints().getInclude() == null) {
-                pipe.getConstraints().setInclude(new ArrayList<>());
+            if (bundle.getConstraints().getInclude() == null) {
+                bundle.getConstraints().setInclude(new ArrayList<>());
             }
-            if (pipe.getConstraints().getExclude() == null) {
-                pipe.getConstraints().setExclude(new HashSet<>());
+            if (bundle.getConstraints().getExclude() == null) {
+                bundle.getConstraints().setExclude(new HashSet<>());
             }
 
             VlanJunction aj = VlanJunction.builder()
-                    .refId(pipe.getA())
-                    .deviceUrn(pipe.getA())
+                    .refId(bundle.getA())
+                    .deviceUrn(bundle.getA())
                     .build();
             VlanJunction zj = VlanJunction.builder()
-                    .refId(pipe.getZ())
-                    .deviceUrn(pipe.getZ())
+                    .refId(bundle.getZ())
+                    .deviceUrn(bundle.getZ())
                     .build();
 
             VlanPipe bwPipe = VlanPipe.builder()
@@ -84,37 +87,34 @@ public class PceService {
                     .azBandwidth(request.getBandwidth())
                     .zaBandwidth(request.getBandwidth()).build();
             PathConstraint constraint = PathConstraint.builder()
-                    .ero(pipe.getConstraints().getInclude())
-                    .exclude(pipe.getConstraints().getExclude())
+                    .ero(bundle.getConstraints().getInclude())
+                    .exclude(bundle.getConstraints().getExclude())
                     .build();
             validateConstraints(constraint, bwPipe);
 
             // calculate path for this pipe...
             PceResponse pceResponse = pceEngine.calculatePaths(bwPipe, availIngressBw, availEgressBw, constraint);
-            pipe.setLsps(new ArrayList<>());
 
-            List<PipeSpecification.LspHop> primaryPath = new ArrayList<>();
+            List<String> primaryPath = new ArrayList<>();
 
             PcePath path = pceResponse.getShortest();
 
             if (path == null) {
-                throw new PCEException("unable to find path for pipe "+pipe.getId());
+                throw new PCEException("unable to find path for pipe "+ bundle.getName());
             }
 
-            for (EroHop hop : path.getAzEro()) {
-                // add the hop to our pipe path,
-                UrnType ut = baseline.get(hop.getUrn()).getUrnType();
-                String type = "ROUTER";
-                switch (ut) {
-                    case PORT -> { type = "PORT"; }
-                    case DEVICE -> { type = "ROUTER"; }
-                }
-                primaryPath.add(PipeSpecification.LspHop.builder()
-                                .urn(hop.getUrn())
-                                .type(type)
-                                .build());
+            Bundle responseBundle = Bundle.builder()
+                    .name(bundle.getName())
+                    .lsps(new ArrayList<>())
+                    .a(bundle.getA())
+                    .z(bundle.getZ())
+                    .constraints(bundle.getConstraints())
+                    .build();
 
-                // remove the bandwidth from the topology before we evaluate the next pipe
+            for (EroHop hop : path.getAzEro()) {
+                primaryPath.add(hop.getUrn());
+
+                // remove the bandwidth from the topology before we do pathfinding for the next bundle
                 if (availIngressBw.containsKey(hop.getUrn())) {
                     availIngressBw.put(hop.getUrn(), availIngressBw.get(hop.getUrn()) - request.getBandwidth());
                 }
@@ -122,24 +122,25 @@ public class PceService {
                     availEgressBw.put(hop.getUrn(), availEgressBw.get(hop.getUrn()) - request.getBandwidth());
                 }
             }
-            PipeSpecification.PipeLSP primary = PipeSpecification.PipeLSP.builder()
+
+            LSP primary = LSP.builder()
                     .path(primaryPath)
-                    .role(PipeSpecification.Role.WORKING)
-                    .priority(PipeSpecification.Priority.PRIMARY)
+                    .role(Role.PRIMARY)
                     .build();
-            pipe.getLsps().add(primary);
-            List<PipeSpecification.LspHop> protectPath = new ArrayList<>();
-            protectPath.add(PipeSpecification.LspHop.builder().type("DEVICE").urn(pipe.getA()).build());
-            protectPath.add(PipeSpecification.LspHop.builder().type("DEVICE").urn(pipe.getZ()).build());
+            responseBundle.getLsps().add(primary);
 
-            PipeSpecification.PipeLSP protect = PipeSpecification.PipeLSP.builder()
+            // make a protect LSP
+            List<String> protectPath = new ArrayList<>();
+            protectPath.add(bundle.getA());
+            protectPath.add(bundle.getZ());
+
+            LSP protect = LSP.builder()
                     .path(protectPath)
-                    .role(PipeSpecification.Role.PROTECT)
-                    .priority(PipeSpecification.Priority.SECONDARY)
+                    .role(Role.PROTECT)
                     .build();
-            pipe.getLsps().add(protect);
+            responseBundle.getLsps().add(protect);
 
-            response.getPipes().add(pipe);
+            response.getBundles().add(responseBundle);
         }
 
 

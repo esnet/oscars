@@ -96,9 +96,9 @@ class EditPipeModal extends Component {
         let conn = this.props.controlsStore.connection;
         let ep = this.props.controlsStore.editPipe;
 
-        let pipe = this.props.designStore.findPipe(ep.pipeId);
+        let bundle = this.props.designStore.findPipe(ep.pipeId);
 
-        if (pipe === null || pipe.locked || !conn.schedule.locked) {
+        if (bundle === null || bundle.locked || !conn.schedule.locked) {
             return;
         }
 
@@ -249,15 +249,15 @@ class EditPipeModal extends Component {
         let zIngress = 0;
         let zEgress = 0;
 
-        let pipe = this.props.designStore.findPipe(ep.pipeId);
-        if (pipe != null) {
+        let bundle = this.props.designStore.findPipe(ep.pipeId);
+        if (bundle != null) {
             let design = this.props.designStore.design;
             design.fixtures.map(f => {
-                if (f.device === pipe.a) {
+                if (f.device === bundle.a) {
                     aIngress = aIngress + f.ingress;
                     aEgress = aEgress + f.egress;
                 }
-                if (f.device === pipe.z) {
+                if (f.device === bundle.z) {
                     zIngress = zIngress + f.ingress;
                     zEgress = zEgress + f.egress;
                 }
@@ -448,10 +448,10 @@ class EditPipeModal extends Component {
     render() {
         let ep = this.props.controlsStore.editPipe;
         let conn = this.props.controlsStore.connection;
-        let pipe = this.props.designStore.findPipe(ep.pipeId);
+        let bundle = this.props.designStore.findPipe(ep.pipeId);
         let design = this.props.designStore.design;
 
-        if (pipe === null) {
+        if (bundle === null) {
             return null;
         }
 
@@ -466,17 +466,17 @@ class EditPipeModal extends Component {
 
         let pipeTitle = (
             <span>
-                {pipe.a} - {pipe.z}
+                {bundle.a} - {bundle.z}
             </span>
         );
         let aFixtures = [];
         let zFixtures = [];
 
         design.fixtures.map(f => {
-            if (f.device === pipe.a) {
+            if (f.device === bundle.a) {
                 aFixtures.push(f);
             }
-            if (f.device === pipe.z) {
+            if (f.device === bundle.z) {
                 zFixtures.push(f);
             }
         });
@@ -562,7 +562,7 @@ class EditPipeModal extends Component {
                     <Col xs="3">
                         <DeviceFixtures
                             fixtures={aFixtures}
-                            junction={pipe.a}
+                            junction={bundle.a}
                             ingress={ep.A_TO_Z.fixturesIngress}
                             egress={ep.A_TO_Z.fixturesEgress}
                         />
@@ -584,7 +584,7 @@ class EditPipeModal extends Component {
                     <Col xs="3">
                         <DeviceFixtures
                             fixtures={zFixtures}
-                            junction={pipe.z}
+                            junction={bundle.z}
                             ingress={ep.Z_TO_A.fixturesIngress}
                             egress={ep.Z_TO_A.fixturesEgress}
                         />
@@ -683,7 +683,7 @@ class EditPipeModal extends Component {
         );
 
         if (!conn.schedule.locked) {
-            alert = <Alert color="info">Schedule must be locked to edit pipe parameters.</Alert>;
+            alert = <Alert color="info">Schedule must be locked to edit bundle parameters.</Alert>;
             bwControls = null;
             pathControls = null;
             eroControls = null;
@@ -709,8 +709,8 @@ class EditPipeModal extends Component {
 
                     <ButtonToolbar className="float-right">
                         <ConfirmModal
-                            body="Are you ready to delete this pipe?"
-                            header="Delete pipe"
+                            body="Are you ready to delete this bundle?"
+                            header="Delete bundle"
                             uiElement={<Button color="warning">{"Delete"}</Button>}
                             onConfirm={this.deletePipe}
                         />{" "}
@@ -755,7 +755,7 @@ class EditPipeModal extends Component {
         const helpBody = (
             <span>
                 <p>
-                    Here you can edit the pipe parameters. Every pipe in a design must have locked
+                    Here you can edit the bundle parameters. Every bundle in a design must have locked
                     in A-Z and Z-A bandwidth quantities, as well as an Explicit Route Object (ERO).
                 </p>
                 <p>
@@ -767,7 +767,7 @@ class EditPipeModal extends Component {
                     character will be replaced by '000'.
                 </p>
                 <p>
-                    Alternatively, you may click the "Delete" button to remove this pipe from the
+                    Alternatively, you may click the "Delete" button to remove this bundle from the
                     design.
                 </p>
             </span>

@@ -15,7 +15,7 @@ import net.es.oscars.topo.beans.v2.EdgePort;
 import net.es.oscars.topo.beans.v2.VlanAvailability;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.TopologyStore;
-import net.es.oscars.web.beans.Interval;
+import net.es.oscars.model.Interval;
 import net.es.oscars.web.beans.v2.LspWaypoint;
 import net.es.oscars.web.beans.v2.LspWaypointSearchRequest;
 import net.es.oscars.web.beans.v2.PortSearchRequest;

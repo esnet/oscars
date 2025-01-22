@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.dto.pss.cmd.CommandType;
+import net.es.oscars.model.Interval;
 import net.es.oscars.sb.db.RouterCommandsRepository;
 import net.es.oscars.sb.ent.RouterCommandHistory;
 import net.es.oscars.resv.db.CommandHistoryRepository;
