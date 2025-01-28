@@ -29,6 +29,7 @@ public class PipeSpecification {
     public static class Constraints {
         protected List<String> include;
         protected Set<String> exclude;
+        @Builder.Default
         protected Protection protection = Protection.LOOSE;
     }
 
