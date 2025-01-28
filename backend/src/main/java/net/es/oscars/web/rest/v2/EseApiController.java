@@ -7,7 +7,7 @@ import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.svc.ResvService;
 
 import net.es.oscars.topo.pop.ConsistencyException;
-;
+
 import net.es.oscars.model.L2VPN;
 import net.es.oscars.web.beans.v2.ValidationResponse;
 import org.springframework.http.HttpStatus;
