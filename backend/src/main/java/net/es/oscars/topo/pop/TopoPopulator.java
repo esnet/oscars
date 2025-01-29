@@ -163,14 +163,20 @@ public class TopoPopulator {
                     .build();
             devices.put(d.getUrn(), d);
             for (OscarsOnePort discPort : discDevice.getPorts()) {
-                // If this is an 'untagged' port, and features.untagged_ports is disabled,
-                // just skip this port.
+                // If this is an 'untagged' port, and features.untagged-ports is disabled, skip.
+                // If this is a QINQ port, and features.qinq-ports is disabled, skip.
                 if (
-                    featuresProperties.getUntaggedPorts() == false
-                    && discPort.getEthernetEncapsulation() == EthernetEncapsulation.NULL
+
+                    ( featuresProperties.getUntaggedPorts() == false
+                      && discPort.getEthernetEncapsulation() == EthernetEncapsulation.NULL )
+
+                    || ( featuresProperties.getQinqPorts() == false
+                      && discPort.getEthernetEncapsulation() == EthernetEncapsulation.QINQ )
                 ) {
                     continue;
                 }
+
+
                 Set<Layer> portCaps = new HashSet<>();
                 for (OscarsOneCapability os1Cap : discPort.getCapabilities()) {
                     portCaps.add(Layer.valueOf(os1Cap.toString()));

@@ -15,4 +15,6 @@ import org.springframework.context.annotation.Configuration;
 public class FeaturesProperties {
     @NonNull
     private Boolean untaggedPorts = false;
+    @NonNull
+    private Boolean qinqPorts = false;
 }

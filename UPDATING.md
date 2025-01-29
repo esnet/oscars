@@ -10,10 +10,16 @@ Assert this exists in `application.properties`:
 # See https://esnet.atlassian.net/browse/OCD-613
 # Enabled = true. Disabled = false.
 # Default: false.
-#
-# Enabled: Ingest Port objects and INCLUDE the ethernetEncapsulation property (enumeration).
-# Disabled: Ingest Port objects and IGNORE the ethernetEncapsulation property (enumeration).
+
+# Process untagged 'NULL' ethernet encapsulation ports from topology discovery:
+# Enabled: Ingest Port objects and INCLUDE the ethernetEncapsulation.NULL enum type.
+# Disabled: Ingest Port objects and IGNORE the ethernetEncapsulation.NULL enum type.
 features.untagged-ports=false
+
+# Process QINQ ethernet encapsulation ports from topology discovery:
+# Enabled: Ingest Port objects and INCLUDE the ethernetEncapsulation.QINQ enum type.
+# Disabled: Ingest Port objects and IGNORE the ethernetEncapsulation.QINQ enum type.
+features.qinq-ports=false
 ```
 
 ## v1.1.3 to 1.1.4
