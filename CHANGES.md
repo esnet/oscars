@@ -1,4 +1,9 @@
 # OSCARS Release Notes
+
+### 1.2.19
+> Jan 2025
+- Support for 'untagged' (`EthernetEncapsulation.NULL`) ports, `features.untagged-ports` flag added.
+
 ### 1.2.18
 > Jan 2025
 - NSI response size hotfix
