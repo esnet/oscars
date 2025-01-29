@@ -6,6 +6,7 @@ import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.props.TopoProperties;
+import net.es.oscars.app.props.FeaturesProperties;
 import net.es.oscars.dto.topo.DeviceModel;
 import net.es.oscars.topo.beans.*;
 import net.es.oscars.topo.beans.IntRange;
@@ -32,6 +33,7 @@ public class TopoPopulator {
 
     private final StartupProperties startupProperties;
     private final TopoProperties topoProperties;
+    private final FeaturesProperties featuresProperties;
     private final TopologyStore topologyStore;
     private final ConsistencyService consistencySvc;
     private final RestTemplate restTemplate;
@@ -42,7 +44,9 @@ public class TopoPopulator {
                          ConsistencyService consistencySvc,
                          TopoProperties topoProperties,
                          StartupProperties startupProperties,
-                         RestTemplateBuilder restTemplateBuilder, OpenTelemetry openTelemetry) {
+                         RestTemplateBuilder restTemplateBuilder,
+                         OpenTelemetry openTelemetry,
+                         FeaturesProperties featuresProperties) {
         this.topoProperties = topoProperties;
         this.consistencySvc = consistencySvc;
         this.topologyStore = topologyStore;
@@ -53,6 +57,7 @@ public class TopoPopulator {
         this.restTemplate.getInterceptors().add(telemetry.newInterceptor());
 
         this.startupProperties = startupProperties;
+        this.featuresProperties = featuresProperties;
     }
 
 
@@ -158,6 +163,14 @@ public class TopoPopulator {
                     .build();
             devices.put(d.getUrn(), d);
             for (OscarsOnePort discPort : discDevice.getPorts()) {
+                // If this is an 'untagged' port, and features.untagged_ports is disabled,
+                // just skip this port.
+                if (
+                    featuresProperties.getUntaggedPorts() == false
+                    && discPort.getEthernetEncapsulation() == EthernetEncapsulation.NULL
+                ) {
+                    continue;
+                }
                 Set<Layer> portCaps = new HashSet<>();
                 for (OscarsOneCapability os1Cap : discPort.getCapabilities()) {
                     portCaps.add(Layer.valueOf(os1Cap.toString()));
