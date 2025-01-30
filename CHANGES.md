@@ -1,4 +1,9 @@
 # OSCARS Release Notes
+
+### 1.2.19
+> Jan 2025
+- Support for 'untagged' (`EthernetEncapsulation.NULL`) and QINQ (`EthernetEncapsulation.QINQ`) ethernet encapsulation labeling. Application properties `features.untagged-ports` and `features.qinq-ports` flags added.
+
 ### 1.2.18
 > Jan 2025
 - NSI response size hotfix

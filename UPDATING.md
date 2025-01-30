@@ -3,6 +3,25 @@ This file contains instructions for updating an existing installation of OSCARS 
 
 Instructions include config file changes, database schema changes, etc.
 
+## v1.2.18 to 1.2.19
+Assert this exists in `application.properties`:
+```
+# Support for untagged ports in topo-common version 0.0.31 or higher.
+# See https://esnet.atlassian.net/browse/OCD-613
+# Enabled = true. Disabled = false.
+# Default: false.
+
+# Process untagged 'NULL' ethernet encapsulation ports from topology discovery:
+# Enabled: Ingest Port objects and INCLUDE the ethernetEncapsulation.NULL enum type.
+# Disabled: Ingest Port objects and IGNORE the ethernetEncapsulation.NULL enum type.
+features.untagged-ports=false
+
+# Process QINQ ethernet encapsulation ports from topology discovery:
+# Enabled: Ingest Port objects and INCLUDE the ethernetEncapsulation.QINQ enum type.
+# Disabled: Ingest Port objects and IGNORE the ethernetEncapsulation.QINQ enum type.
+features.qinq-ports=false
+```
+
 ## v1.1.3 to 1.1.4
 ### backend
 Add these to `application.properties`:
