@@ -5,10 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import net.es.oscars.topo.beans.IntRange;
-
+import net.es.topo.common.model.oscars1.IntRange;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -22,7 +20,7 @@ public class VlanAvailability {
 
     @JsonGetter("expression")
     private String asExpression() {
-        return IntRange.asString(ranges, "-");
+        return IntRange.asString(ranges);
     }
 //    @JsonGetter("intervals")
 //    private String asIntervals() {

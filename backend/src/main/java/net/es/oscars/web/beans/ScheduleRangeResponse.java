@@ -2,8 +2,6 @@ package net.es.oscars.web.beans;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
-import net.es.oscars.topo.beans.IntRange;
-
 import java.time.Instant;
 
 @Builder

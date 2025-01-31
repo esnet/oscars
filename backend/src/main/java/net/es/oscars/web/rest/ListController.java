@@ -15,7 +15,7 @@ import net.es.oscars.resv.enums.EventType;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.sb.ent.RouterCommands;
-import net.es.oscars.topo.beans.IntRange;
+import net.es.topo.common.model.oscars1.IntRange;
 import net.es.oscars.topo.enums.CommandParamType;
 import net.es.oscars.web.beans.*;
 import org.springframework.beans.factory.annotation.Autowired;

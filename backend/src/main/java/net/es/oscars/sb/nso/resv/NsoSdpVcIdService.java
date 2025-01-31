@@ -11,7 +11,7 @@ import net.es.oscars.sb.nso.db.NsoSdpIdDAO;
 import net.es.oscars.sb.nso.db.NsoSdpVcIdDAO;
 import net.es.oscars.sb.nso.ent.NsoSdpId;
 import net.es.oscars.sb.nso.ent.NsoSdpVcId;
-import net.es.oscars.topo.beans.IntRange;
+import net.es.topo.common.model.oscars1.IntRange;
 import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -48,7 +48,7 @@ public class NsoSdpVcIdService {
 
         Map<String, Set<Integer>> usedSdpVcIdsByDevice = this.collectUsedSdpVcIdsKnowingSchedule(schedules);
 
-        Set<Integer> allowedSdpVcIds = IntRange.singleSetFromExpr(nsoProperties.getVcIdRange());
+        Set<Integer> allowedSdpVcIds = NsoVcIdService.singleSetFromExpr(nsoProperties.getVcIdRange());
 
         Set<String> devices = new HashSet<>();
         for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
