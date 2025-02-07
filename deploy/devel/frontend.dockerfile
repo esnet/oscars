@@ -13,6 +13,8 @@ COPY public ./public
 RUN npm install
 ENV NODE_OPTIONS=--openssl-legacy-provider
 EXPOSE 3000
+# Debugger port, requires --inspect=0.0.0.0 argument when running this node app
+EXPOSE 9191
 
 # we count on our volumes at
-CMD ["npm", "run", "start"]
+CMD ["npm", "run", "start", "--", "--inspect=0.0.0.0"]
