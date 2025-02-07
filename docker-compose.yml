@@ -11,6 +11,9 @@ services:
       - topo-net
     build:
       context: ./
+      args:
+        JAVA_OPTS: "-XX:UseSVE=0"
+        MAVEN_OPTS: "-XX:UseSVE=0"
       dockerfile: ./deploy/devel/backend.dockerfile
     depends_on:
       oscars-db:
@@ -18,6 +21,8 @@ services:
     ports:
       - "${OSCARS_BACKEND_WEB_PORT:-8201}:${OSCARS_BACKEND_WEB_PORT:-8201}"
     environment:
+      JAVA_OPTS: "-XX:UseSVE=0"
+      MAVEN_OPTS: "-XX:UseSVE=0"
       OSCARS_BACKEND_WEB_PORT: ${OSCARS_BACKEND_WEB_PORT:-8201}
       SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/${POSTGRES_DB:-oscars}
       POSTGRES_USER: ${POSTGRES_USER:-oscars}
