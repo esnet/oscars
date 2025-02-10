@@ -15,7 +15,7 @@ import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.resv.db.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
-import net.es.oscars.topo.beans.IntRange;
+import net.es.topo.common.model.oscars1.IntRange;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
@@ -938,7 +938,7 @@ public class ConnService {
                             fv.setValid(false);
                             valid = false;
                         }
-                        log.debug(f.getPort() + " vlan " + vlan + " contained in " + IntRange.asString(availVlanRanges, "-") + " ? " + atLeastOneContains);
+                        log.debug(f.getPort() + " vlan " + vlan + " contained in " + IntRange.asString(availVlanRanges) + " ? " + atLeastOneContains);
                     }
                 } else {
                     fv.setValid(false);

@@ -6,7 +6,7 @@ import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.topo.beans.ConsistencyReport;
-import net.es.oscars.topo.beans.IntRange;
+import net.es.topo.common.model.oscars1.IntRange;
 import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.beans.Device;
 import net.es.oscars.topo.beans.Port;

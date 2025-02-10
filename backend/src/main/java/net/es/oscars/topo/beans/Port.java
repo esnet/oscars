@@ -3,6 +3,7 @@ package net.es.oscars.topo.beans;
 import com.fasterxml.jackson.annotation.*;
 import lombok.*;
 import net.es.oscars.topo.enums.Layer;
+import net.es.topo.common.model.oscars1.IntRange;
 
 import java.util.ArrayList;
 import java.util.HashSet;

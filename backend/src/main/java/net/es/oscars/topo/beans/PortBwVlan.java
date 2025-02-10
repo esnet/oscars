@@ -1,6 +1,7 @@
 package net.es.oscars.topo.beans;
 
 import lombok.*;
+import net.es.topo.common.model.oscars1.IntRange;
 
 import java.util.Set;
 
