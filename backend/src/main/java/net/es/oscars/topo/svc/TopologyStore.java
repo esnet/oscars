@@ -61,8 +61,17 @@ public class TopologyStore {
 
     public Integer minimalReservableBandwidth(Adjcy adjcy) {
         Set<Integer> reservableBandwidths = new HashSet<>();
+
+        if (!topoUrnMap.containsKey(adjcy.getA().getPortUrn())) {
+            log.error("can't find adjcy urn: " + adjcy.getA().getPortUrn());
+            return 0;
+        } else if (!topoUrnMap.containsKey(adjcy.getZ().getPortUrn())) {
+            log.error("can't find adjcy urn: " + adjcy.getZ().getPortUrn());
+            return 0;
+        }
+
         TopoUrn aPortUrn = topoUrnMap.get(adjcy.getA().getPortUrn());
-        TopoUrn zPortUrn = topoUrnMap.get(adjcy.getA().getPortUrn());
+        TopoUrn zPortUrn = topoUrnMap.get(adjcy.getZ().getPortUrn());
         Port aPort = aPortUrn.getPort();
         Port zPort = zPortUrn.getPort();
 
