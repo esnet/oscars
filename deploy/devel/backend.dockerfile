@@ -1,5 +1,11 @@
 FROM maven:3.9.5  AS builder
 
+ARG JAVA_OPTS=""
+ARG MAVEN_OPTS=""
+
+ENV JAVA_OPTS=${JAVA_OPTS}
+ENV MAVEN_OPTS=${MAVEN_OPTS}
+
 WORKDIR /build/backend
 COPY backend/.remoteRepositoryFilters .remoteRepositoryFilters
 COPY backend/pom.xml pom.xml
@@ -23,7 +29,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn package -DskipTests --offline
 # copy / extract jar file
 ARG JAR_FILE=target/*.jar
 RUN mv ${JAR_FILE} backend.jar
-RUN java -Djarmode=layertools -jar backend.jar extract
+RUN java $JAVA_OPTS -Djarmode=layertools -jar backend.jar extract
 
 # 2. run stage
 FROM bellsoft/liberica-openjdk-debian:23
@@ -44,4 +50,4 @@ COPY --from=builder /build/backend/snapshot-dependencies/ ./
 COPY --from=builder /build/backend/application/ ./
 
 # run the application
-ENTRYPOINT ["java","org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT bash -c "java $JAVA_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201 org.springframework.boot.loader.launch.JarLauncher"
