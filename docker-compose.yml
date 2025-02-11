@@ -20,6 +20,7 @@ services:
         condition: service_healthy
     ports:
       - "${OSCARS_BACKEND_WEB_PORT:-8201}:${OSCARS_BACKEND_WEB_PORT:-8201}"
+      - "9201:9201"
     environment:
       JAVA_OPTS: "-XX:UseSVE=0"
       MAVEN_OPTS: "-XX:UseSVE=0"
@@ -70,6 +71,7 @@ services:
       OSCARS_BACKEND_URL: ${OSCARS_BACKEND_URL:-http://oscars-backend:8201}
     ports:
       - "${OSCARS_FRONTEND_WEB_PORT:-8181}:3000"
+      - "9191:9191" # Debugger port
     networks:
       - topo-net
     depends_on:

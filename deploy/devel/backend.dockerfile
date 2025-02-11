@@ -49,5 +49,8 @@ COPY --from=builder /build/backend/spring-boot-loader ./
 COPY --from=builder /build/backend/snapshot-dependencies/ ./
 COPY --from=builder /build/backend/application/ ./
 
+# Debugger port
+EXPOSE 9201
+
 # run the application
 ENTRYPOINT bash -c "java $JAVA_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201 org.springframework.boot.loader.launch.JarLauncher"
