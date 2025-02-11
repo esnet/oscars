@@ -75,6 +75,9 @@ public class MiscHelper {
             if (adjcy.getA().getPortUrn().equals(aPort)
                     && adjcy.getZ().getPortUrn().equals(zPort)) {
                 return adjcy.getZ().getAddr();
+            } else if (adjcy.getA().getPortUrn().equals(zPort)
+                    && adjcy.getZ().getPortUrn().equals(aPort)) {
+                return adjcy.getA().getAddr();
             }
         }
         throw new PSSException("Could not find an adjacency for "+aPort+" -- "+zPort);
