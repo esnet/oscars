@@ -7,6 +7,7 @@ import lombok.*;
 import net.es.oscars.dto.topo.DeviceModel;
 import net.es.oscars.topo.enums.DeviceType;
 import net.es.oscars.topo.enums.Layer;
+import net.es.topo.common.model.oscars1.IntRange;
 
 import java.util.HashSet;
 import java.util.Set;

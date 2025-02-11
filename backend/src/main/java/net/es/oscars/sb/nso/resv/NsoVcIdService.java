@@ -7,6 +7,7 @@ import net.es.oscars.sb.nso.db.NsoVcIdDAO;
 import net.es.oscars.sb.nso.ent.NsoVcId;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.Schedule;
+import net.es.topo.common.model.oscars1.IntRange;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -53,7 +54,12 @@ public class NsoVcIdService {
 
     }
 
-
+    public static Set<Integer> singleSetFromExpr(String rangeExpr){
+        Set<IntRange> ranges = IntRange.fromExpression(rangeExpr);
+        Set<Integer> result = new HashSet<>();
+        ranges.forEach(r -> result.addAll(r.asSet()));
+        return result;
+    }
 
     @Transactional
     public void release(Connection conn) throws NsoResvException {

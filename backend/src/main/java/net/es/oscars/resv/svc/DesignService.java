@@ -3,7 +3,7 @@ package net.es.oscars.resv.svc;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.resv.beans.DesignResponse;
 import net.es.oscars.resv.ent.*;
-import net.es.oscars.topo.beans.IntRange;
+import net.es.topo.common.model.oscars1.IntRange;
 import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.enums.UrnType;
 import net.es.oscars.topo.svc.TopologyStore;

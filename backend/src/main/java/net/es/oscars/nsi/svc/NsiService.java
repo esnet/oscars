@@ -42,7 +42,7 @@ import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ResvLibrary;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.soap.ClientUtil;
-import net.es.oscars.topo.beans.IntRange;
+import net.es.topo.common.model.oscars1.IntRange;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.enums.UrnType;
