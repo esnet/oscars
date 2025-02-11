@@ -1,7 +1,6 @@
 package net.es.oscars.sb.nso.resv;
 
-import net.es.oscars.topo.beans.IntRange;
-
+import net.es.topo.common.model.oscars1.IntRange;
 import java.util.HashSet;
 import java.util.Set;
 

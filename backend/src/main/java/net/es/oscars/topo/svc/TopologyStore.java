@@ -8,6 +8,7 @@ import net.es.oscars.topo.beans.*;
 import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.enums.UrnType;
 import net.es.oscars.topo.pop.ConsistencyException;
+import net.es.topo.common.model.oscars1.IntRange;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;

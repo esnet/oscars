@@ -7,7 +7,7 @@ import net.es.oscars.sb.MiscHelper;
 import net.es.oscars.sb.nso.db.NsoSdpIdDAO;
 import net.es.oscars.sb.nso.ent.NsoSdpId;
 import net.es.oscars.resv.ent.*;
-import net.es.oscars.topo.beans.IntRange;
+import net.es.topo.common.model.oscars1.IntRange;
 import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -34,7 +34,7 @@ public class NsoSdpIdService {
         // 2.2. we inspect the two set of available SDP ids for the VlanPipe's A and Z and locate a shared SDP id
         // 2.3 we keep that around; when we get to the next VlanPipe these shall be considered in-use
         // 3. if we get through all the VlanPipes without any problems, we can save all the NsoSdpIds
-        Set<Integer> allowedSdpIds = IntRange.singleSetFromExpr(nsoProperties.getSdpIdRange());
+        Set<Integer> allowedSdpIds = NsoVcIdService.singleSetFromExpr(nsoProperties.getSdpIdRange());
 
 
         Map<String, Set<Integer>> usedSdpIdsByDevice;

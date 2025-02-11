@@ -1,21 +1,15 @@
 package net.es.oscars.web.rest;
 
-import lombok.Builder;
-import lombok.Data;
+
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.resv.db.ConnectionRepository;
-import net.es.oscars.resv.db.FixtureRepository;
-import net.es.oscars.resv.db.PipeRepository;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.ConnectionSouthbound;
-import net.es.oscars.resv.enums.DeploymentIntent;
-import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.LogService;
-import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.Validity;
 import net.es.topo.common.devel.DevelUtils;

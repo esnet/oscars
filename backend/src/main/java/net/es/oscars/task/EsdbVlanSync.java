@@ -122,7 +122,11 @@ public class EsdbVlanSync {
         }
         // now add all EsdbVlanPayloads that need to be added
         for (EsdbVlanPayload evp: add) {
-            DevelUtils.dumpDebug("creating an ESDB vlan", evp);
+            // ESDB doesn't let us create VLANS with id -
+            if (evp.getVlanId() == 0) {
+                log.info("skipping a vlan on an untagged port, equipIfceId: "+evp.getEquipmentInterface());
+                continue;
+            }
 
             esdbProxy.createVlan(evp);
         }

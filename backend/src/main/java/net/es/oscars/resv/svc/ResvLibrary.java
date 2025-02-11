@@ -4,11 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.resv.beans.PeriodBandwidth;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.BwDirection;
-import net.es.oscars.topo.beans.IntRange;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.enums.UrnType;
+import net.es.topo.common.model.oscars1.IntRange;
 
 import java.time.Instant;
 import java.util.*;
@@ -49,7 +49,7 @@ public class ResvLibrary {
 
                 if (topoUrn.getCapabilities().contains(Layer.ETHERNET)) {
                     intRanges = availableVlanMap.get(urn);
-                    vlanExpr = IntRange.asString(intRanges, ":");
+                    vlanExpr = IntRange.asString(intRanges);
                 }
 
                 PortBwVlan pbw = PortBwVlan.builder()
@@ -89,7 +89,6 @@ public class ResvLibrary {
     }
 
     public static Map<String, Set<IntRange>> availableVlanMap(Map<String, TopoUrn> baseline, Collection<Vlan> reservedVlans) {
-
         Map<String, Set<Integer>> reservedVlanMap = new HashMap<>();
         reservedVlans.forEach(v -> {
             if (!reservedVlanMap.containsKey(v.getUrn())) {
@@ -167,11 +166,11 @@ public class ResvLibrary {
         Map<String, Set<IntRange>> search = new HashMap<>();
         for (String r : requested.keySet()) {
             search.put(r+"-req", requested.get(r));
-            log.info("req: "+r+" : "+IntRange.asString(requested.get(r), "-"));
+            log.info("req: "+r+" : "+IntRange.asString(requested.get(r)));
         }
         for (String a : available.keySet()) {
             search.put(a+"-avail", available.get(a));
-            log.info("avail: "+a+" : "+IntRange.asString(available.get(a), "-"));
+            log.info("avail: "+a+" : "+IntRange.asString(available.get(a)));
         }
 
         Integer least = IntRange.leastInAll(search);
