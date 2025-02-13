@@ -49,6 +49,15 @@ backend:scan:
     include:
       - project: "security/container-scanning"
         file: ".ESnet-container-scan.yml"
+        
+backend:test:
+  stage: test
+  needs: ["backend:build_image"]
+  variables:
+    DOCKERFILE_PATH: ./deploy/prod/backend.dockerfile
+    CONTEXT_PATH: ./
+  script:
+    - DOCKER_BUILDKIT=1 docker built -t ${BACKEND_IMAGE_TAG} --progress=plain --target=test --no-cache -f $DOCKERFILE_PATH $CONTEXT_PATH
 
 .backend:push:
   stage: push
