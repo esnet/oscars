@@ -31,6 +31,10 @@ ARG JAR_FILE=target/*.jar
 RUN mv ${JAR_FILE} backend.jar
 RUN java $JAVA_OPTS -Djarmode=layertools -jar backend.jar extract
 
+FROM builder AS test
+WORKDIR /build/backend
+RUN --mount=type=cache,target=/root/.m2 mvn test
+
 # 2. run stage
 FROM bellsoft/liberica-openjdk-debian:23
 RUN apt-get update && apt -y install netcat-traditional
