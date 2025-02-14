@@ -54,7 +54,7 @@ backend:test:
   stage: test
   needs: ["backend:build_image"]
   variables:
-    DOCKERFILE_PATH: ./deploy/prod/backend.dockerfile
+    DOCKERFILE_PATH: ./deploy/devel/backend.dockerfile
     CONTEXT_PATH: ./
   script:
     - DOCKER_BUILDKIT=1 docker build --progress=plain --target=test --no-cache -f $DOCKERFILE_PATH $CONTEXT_PATH
