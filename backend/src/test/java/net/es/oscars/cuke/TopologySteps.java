@@ -30,15 +30,21 @@ public class TopologySteps extends CucumberSteps {
 
     @Given("^I load topology from \"([^\"]*)\"$")
     public void i_load_topology_from_and(String arg1) throws Throwable {
-        this.t = topoPopulator.loadTopology(arg1);
+        log.info("loading topology from " + arg1);
+        t = topoPopulator.loadTopology(arg1);
+        if (t == null) throw new Exception(arg1 + " is not a topology");
+        topoService.replaceTopology(t);
+    }
+
+    @Given("^the current topology is not empty$")
+    public void the_current_topology_is_not_empty() throws Throwable {
+        assert !(topoService.isTopologyEmpty());
+        assert topoService.getCurrentTopology() != null;
     }
 
     @Given("^I update the topology URN map after import$")
     public void update_topology_map() throws Throwable {
-
-//        topoService.updateInMemoryTopo();
         world.topoBaseline = topoService.getTopoUrnMap();
-        // log.info(world.topoBaseline.toString());
     }
 
 
@@ -52,14 +58,7 @@ public class TopologySteps extends CucumberSteps {
     @Then("^the current topology is empty$")
     public void the_current_topology_is_empty() throws Throwable {
 
-        assert !topoService.isTopologyEmpty();
+        assert topoService.isTopologyEmpty();
     }
-
-
-//    @When("^I merge the new topology$")
-//    public void i_merge_the_new_topology() throws Throwable {
-//        topoService.bumpVersion();
-//        topoPopulator.replaceDbTopology(this.t);
-//    }
 
 }

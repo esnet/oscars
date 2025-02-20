@@ -9,8 +9,8 @@ Feature: availability calculations
     Given I clear the topology
     Then the current topology is empty
     Given I load topology from "topo/esnet.json"
-#    When I merge the new topology
-    Given I update the topology URN map after import
+    Then the current topology is not empty
+#    Given I update the topology URN map after import
 #    Given I set these "INGRESS" bandwidth reservations
 ##     | urn | bw | beg | end |
 #      | A:1 | 10 | 100 | 250 |

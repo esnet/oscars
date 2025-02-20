@@ -45,14 +45,14 @@ public class TopologyStore {
     }
 
     public Topology getCurrentTopology() throws ConsistencyException {
-        if (!(isTopologyEmpty())) {
+        if (isTopologyEmpty()) {
             throw new ConsistencyException("no current topology");
         }
         return topology;
     }
 
     public boolean isTopologyEmpty() {
-        return topology != null && topology.getVersion() != null;
+        return topology == null || topology.getVersion() == null;
     }
 
     public void replaceTopology(Topology incoming) throws TopoException {
