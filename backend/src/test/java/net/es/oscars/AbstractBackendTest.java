@@ -10,7 +10,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = BackendTestConfiguration.class)
-@TestPropertySource(locations = "file:config/test/testing.properties")
+@TestPropertySource(locations = "classpath:testing.properties")
 @ActiveProfiles(profiles = "test")
 
 public abstract class AbstractBackendTest {
