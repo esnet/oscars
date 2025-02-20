@@ -8,6 +8,8 @@ import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.resv.db.*;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -107,5 +109,7 @@ public class SharedSteps {
         assertThat(this.world.getExceptions().isEmpty(), is(false));
     }
 
-
+    public static Resource loadResource(String filename) {
+        return new ClassPathResource(filename);
+    }
 }

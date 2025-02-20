@@ -5,7 +5,7 @@ Feature: design deserialization
 
   Scenario: Basic loading
     Given I have initialized the world
-    Given I load a design from "config/test/designs/simple.json"
+    Given I load a design from "designs/simple.json"
     When I clear the "design" repository
     Then I can persist the design
     When I load the design from the repository

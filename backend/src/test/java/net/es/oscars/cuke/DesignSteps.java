@@ -36,8 +36,8 @@ public class DesignSteps extends CucumberSteps {
     @Given("^I load a design from \"([^\"]*)\"$")
     public void my_JSON_formatted_design_is_at(String path) {
         ObjectMapper mapper = builder.build();
-        File f = new File(path);
         try {
+            File f = SharedSteps.loadResource(path).getFile();
             world.design = mapper.readValue(f, Design.class);
             // log.info(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(design));
         } catch (Exception ex) {

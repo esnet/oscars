@@ -33,9 +33,9 @@ public class MapPositionSteps extends CucumberSteps {
     @Given("^I load my positionMap from \"([^\"]*)\"$")
     public void my_position_map(String path) {
         ObjectMapper mapper = new ObjectMapper();
-        File jsonFile = new File(path);
 
         try {
+            File jsonFile = SharedSteps.loadResource(path).getFile();
             positionMap = mapper.readValue(jsonFile, DevicePositions.class).getPositions();
         } catch (Exception ex) {
             world.add(ex);
@@ -44,9 +44,9 @@ public class MapPositionSteps extends CucumberSteps {
 
     @Given("^I load devices from \"([^\"]*)\"$")
     public void my_devices(String path) {
-        File jsonFile = new File(path);
         ObjectMapper mapper = new ObjectMapper();
         try {
+            File jsonFile = SharedSteps.loadResource(path).getFile();
             devices = Arrays.asList(mapper.readValue(jsonFile, Device[].class));
         } catch (IOException e) {
             e.printStackTrace();
