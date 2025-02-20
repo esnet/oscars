@@ -7,7 +7,7 @@ Feature: availability calculations
   Scenario: availability over two routers
     Given I have initialized the world
     Given I clear the topology
-#    Then the current topology is empty
+    Then the current topology is empty
     Given I load topology from "topo/esnet.json"
 #    When I merge the new topology
     Given I update the topology URN map after import

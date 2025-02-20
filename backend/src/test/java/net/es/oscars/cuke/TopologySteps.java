@@ -5,6 +5,7 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
+import net.es.oscars.topo.beans.TopoUrn;
 import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.pop.TopoPopulator;
 import net.es.oscars.topo.svc.TopologyStore;
@@ -50,11 +51,8 @@ public class TopologySteps extends CucumberSteps {
 
     @Then("^the current topology is empty$")
     public void the_current_topology_is_empty() throws Throwable {
-        topoService.setTopology(this.t);
-        Topology c = topoService.getCurrentTopology();
-        assert c.getDevices().values().size() == 0;
-        assert c.getPorts().values().size() == 0;
-        assert c.getAdjcies().size() == 0;
+
+        assert !topoService.isTopologyEmpty();
     }
 
 
