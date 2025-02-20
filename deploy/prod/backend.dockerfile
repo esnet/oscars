@@ -1,4 +1,4 @@
-FROM maven:3.9.5  AS builder
+FROM maven:3.9.9-amazoncorretto-23-debian  AS builder
 
 WORKDIR /build/backend
 COPY backend/.remoteRepositoryFilters .remoteRepositoryFilters

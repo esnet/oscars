@@ -1,0 +1,125 @@
+[
+  {
+    "ipv4Address": "10.0.0.1",
+    "urn": "bois-cr1",
+    "capabilities": [
+      "ETHERNET",
+      "MPLS"
+    ],
+    "reservableVlans": [],
+    "model": "JUNIPER_MX",
+    "type": "ROUTER",
+    "ports": [
+      {
+        "reservableEgressBw": 100,
+        "urn": "bois-cr1:1",
+        "reservableIngressBw": 100,
+        "reservableVlans": [
+          {
+            "floor": 100,
+            "ceiling": 200
+          }
+        ],
+        "capabilities": [
+          "ETHERNET"
+        ]
+      },
+      {
+        "reservableEgressBw": 100,
+        "urn": "bois-cr1:2",
+        "reservableIngressBw": 100,
+        "reservableVlans": [
+          {
+            "floor": 100,
+            "ceiling": 200
+          }
+        ],
+        "capabilities": [
+          "ETHERNET"
+        ]
+      }
+    ]
+  },
+  {
+    "ipv4Address": "10.0.0.2",
+    "urn": "pnwg-cr5",
+    "capabilities": [
+      "ETHERNET",
+      "MPLS"
+    ],
+    "reservableVlans": [],
+    "model": "JUNIPER_MX",
+    "type": "ROUTER",
+    "ports": [
+      {
+        "reservableEgressBw": 100,
+        "urn": "pnwg-cr5:1",
+        "reservableIngressBw": 100,
+        "reservableVlans": [
+          {
+            "floor": 100,
+            "ceiling": 200
+          }
+        ],
+        "capabilities": [
+          "ETHERNET"
+        ]
+      },
+      {
+        "reservableEgressBw": 100,
+        "urn": "pnwg-cr5:2",
+        "reservableIngressBw": 100,
+        "reservableVlans": [
+          {
+            "floor": 100,
+            "ceiling": 200
+          }
+        ],
+        "capabilities": [
+          "ETHERNET"
+        ]
+      }
+    ]
+  },
+  {
+    "ipv4Address": "10.0.0.3",
+    "urn": "pnwg-cr4",
+    "capabilities": [
+      "ETHERNET",
+      "MPLS"
+    ],
+    "reservableVlans": [],
+    "model": "JUNIPER_MX",
+    "type": "ROUTER",
+    "ports": [
+      {
+        "reservableEgressBw": 100,
+        "urn": "pnwg-cr4:1",
+        "reservableIngressBw": 100,
+        "reservableVlans": [
+          {
+            "floor": 100,
+            "ceiling": 200
+          }
+        ],
+        "capabilities": [
+          "ETHERNET"
+        ]
+      },
+      {
+        "reservableEgressBw": 100,
+        "urn": "pnwg-cr4:2",
+        "reservableIngressBw": 100,
+        "reservableVlans": [
+          {
+            "floor": 100,
+            "ceiling": 200
+          }
+        ],
+        "capabilities": [
+          "ETHERNET"
+        ]
+      }
+    ]
+  }
+]

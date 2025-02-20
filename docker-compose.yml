@@ -15,6 +15,7 @@ services:
         JAVA_OPTS: "-XX:UseSVE=0"
         MAVEN_OPTS: "-XX:UseSVE=0"
       dockerfile: ./deploy/devel/backend.dockerfile
+    image: oscars-backend-image:latest
     depends_on:
       oscars-db:
         condition: service_healthy
@@ -22,8 +23,8 @@ services:
       - "${OSCARS_BACKEND_WEB_PORT:-8201}:${OSCARS_BACKEND_WEB_PORT:-8201}"
       - "9201:9201"
     environment:
-      JAVA_OPTS: "-XX:UseSVE=0"
-      MAVEN_OPTS: "-XX:UseSVE=0"
+      JAVA_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
+      MAVEN_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
       OSCARS_BACKEND_WEB_PORT: ${OSCARS_BACKEND_WEB_PORT:-8201}
       SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/${POSTGRES_DB:-oscars}
       POSTGRES_USER: ${POSTGRES_USER:-oscars}
@@ -40,7 +41,30 @@ services:
       interval: 5s
       timeout: 10s
       retries: 10
-
+  oscars-backend-test:
+    image: "oscars-backend-image"
+    build:
+      context: ./
+      args:
+        JAVA_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
+        MAVEN_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
+      dockerfile: ./deploy/devel/backend.dockerfile
+      target: test
+    environment:
+      JAVA_OPTS: "-XX:UseSVE=0"
+      MAVEN_OPTS: "-XX:UseSVE=0"
+      OSCARS_BACKEND_WEB_PORT: ${OSCARS_BACKEND_WEB_PORT:-8201}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/${POSTGRES_DB:-oscars}
+      POSTGRES_USER: ${POSTGRES_USER:-oscars}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-secret}
+      ESDB_API_KEY: ${ESDB_API_KEY}
+      ESDB_URI: ${ESDB_URI}
+      TOPO_OSCARS_URL: ${TOPO_OSCARS_URL:-http://topo-oscars:8004/oscars-one/topology}
+      NSO_USERNAME: ${NSO_USERNAME}
+      NSO_PASSWORD: ${NSO_PASSWORD}
+      NSO_URI: ${NSO_URI}
+    depends_on:
+      - oscars-backend
   oscars-db:
     image: "postgres:14.1-alpine"
     container_name:   oscars-nostack-db
