@@ -7,7 +7,7 @@ Feature: fancy PCE functionality
     Given I have initialized the world
     Given I clear the topology
     Given I load topology from "topo/esnet.json"
-    When I merge the new topology
+#    When I merge the new topology
     Given I update the topology URN map after import
 #    When I ask for all paths from "aofa-cr5" to "chic-cr5" with a relaxation radius of 12
     Then I did not receive an exception

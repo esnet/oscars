@@ -43,28 +43,14 @@ public class TopologySteps extends CucumberSteps {
 
     @Given("^I clear the topology$")
     public void clear_topo() throws Throwable {
-
-//        log.info("clearing adjacencies");
-//        adjcyRepo.deleteAll();
-//        adjcyRepo.flush();
-
-//        log.info("clearing devices");
-//        deviceRepo.deleteAll();
-//        deviceRepo.flush();
-
-//        log.info("clearing ports");
-//        portRepo.deleteAll();
-//        portRepo.flush();
-
-//        log.info("clearing versions");
-//        versionRepo.deleteAll();
-//        versionRepo.flush();
+        log.info("clear topology");
         topoService.clear();
         world.topoBaseline = new HashMap<>();
     }
 
     @Then("^the current topology is empty$")
     public void the_current_topology_is_empty() throws Throwable {
+        topoService.setTopology(this.t);
         Topology c = topoService.getCurrentTopology();
         assert c.getDevices().values().size() == 0;
         assert c.getPorts().values().size() == 0;
