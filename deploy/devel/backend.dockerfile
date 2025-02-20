@@ -1,4 +1,4 @@
-FROM maven:3.9.5  AS builder
+FROM maven:3.9.9-amazoncorretto-23-debian  AS builder
 
 ARG JAVA_OPTS=""
 ARG MAVEN_OPTS=""
@@ -23,6 +23,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn  \
 
 # build and package spring app
 COPY backend/src ./src
+COPY backend/config ./config
 RUN --mount=type=cache,target=/root/.m2 mvn compile --offline
 RUN --mount=type=cache,target=/root/.m2 mvn package -DskipTests --offline
 
