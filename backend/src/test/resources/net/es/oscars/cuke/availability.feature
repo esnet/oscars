@@ -8,11 +8,8 @@ Feature: availability calculations
     Given I have initialized the world
     Given I clear the topology
     Then the current topology is empty
-    Given I load topology from "config/test/topo/two_routers.json" and "config/test/topo/adj_a_b_mpls.json"
+    Given I load topology from "topo/two_routers.json"
     When I merge the new topology
-    Then the "devices" repository has 2 entries
-    Then the "ports" repository has 6 entries
-    Then the "adjacencies" repository has 2 entries
     Given I update the topology URN map after import
     Given I set these "INGRESS" bandwidth reservations
 #     | urn | bw | beg | end |

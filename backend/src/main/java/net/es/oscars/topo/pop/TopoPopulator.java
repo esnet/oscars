@@ -17,6 +17,7 @@ import net.es.oscars.topo.svc.TopologyStore;
 import net.es.topo.common.model.oscars1.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import org.springframework.web.client.ResourceAccessException;
@@ -71,7 +72,7 @@ public class TopoPopulator {
 
         log.info("topology refresh");
         try {
-            topologyStore.replaceTopology(this.loadTopology());
+            topologyStore.replaceTopology(this.loadTopology(null));
             // check consistency
             consistencySvc.checkConsistency();
 
@@ -81,15 +82,21 @@ public class TopoPopulator {
         }
     }
 
-    public Topology loadTopology() throws TopoException, ResourceAccessException, IOException {
+    public Topology loadTopology(String filePath) throws TopoException, ResourceAccessException, IOException {
+
+
         OscarsOneTopo oscarsOneTopo;
-        if (startupProperties.getStandalone()) {
+        ObjectMapper mapper = new ObjectMapper();
+
+        if (filePath != null) {
+            var jsonFile = new ClassPathResource(filePath).getFile();
+            oscarsOneTopo = mapper.readValue(jsonFile, OscarsOneTopo.class);
+
+        } else if (startupProperties.getStandalone()) {
             log.info("loading standalone topology from config/topology.json");
-            ObjectMapper mapper = new ObjectMapper();
-            var jsonFile = new File("config/topology.json");
+            var jsonFile = new ClassPathResource("config/topology.json").getFile();
             oscarsOneTopo = mapper.readValue(jsonFile, OscarsOneTopo.class);
         } else {
-
             oscarsOneTopo = restTemplate.getForObject(topoProperties.getUrl(), OscarsOneTopo.class);
         }
 

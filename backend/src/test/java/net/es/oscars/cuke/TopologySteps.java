@@ -27,10 +27,9 @@ public class TopologySteps extends CucumberSteps {
 
     private Topology t;
 
-    @Given("^I load topology from \"([^\"]*)\" and \"([^\"]*)\"$")
-    public void i_load_topology_from_and(String arg1, String arg2) throws Throwable {
-//        this.t = topoPopulator.loadTopology(arg1, arg2);
-        this.t = topoPopulator.loadTopology();
+    @Given("^I load topology from \"([^\"]*)\"$")
+    public void i_load_topology_from_and(String arg1) throws Throwable {
+        this.t = topoPopulator.loadTopology(arg1);
     }
 
     @Given("^I update the topology URN map after import$")

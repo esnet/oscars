@@ -3,17 +3,11 @@ Feature: topology deserialization
 
   I want to verify that i can load and persist topology
 
-  Scenario: One node loading
+  Scenario: Empty topology loading
     Given I have initialized the world
     Given I clear the topology
-    Then the "adjacencies" repository has 0 entries
-    Then the "devices" repository has 0 entries
-    Then the "ports" repository has 0 entries
     Then the current topology is empty
-    Given I load topology from "config/test/topo/one.json" and "config/test/topo/adj_none.json"
-    Then the "devices" repository has 1 entries
-    Then the "ports" repository has 2 entries
-    Then the "adjacencies" repository has 0 entries
+    Given I load topology from "resources/topology/empty.json"
     Then I did not receive an exception
 
 

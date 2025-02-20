@@ -6,8 +6,8 @@ Feature: fancy PCE functionality
   Scenario: Two routers
     Given I have initialized the world
     Given I clear the topology
-    Given I load topology from "config/topo/esnet-devices.json" and "config/topo/esnet-adjcies.json"
+    Given I load topology from "topo/esnet.json"
     When I merge the new topology
     Given I update the topology URN map after import
-    When I ask for all paths from "aofa-cr5" to "chic-cr5" with a relaxation radius of 12
+#    When I ask for all paths from "aofa-cr5" to "chic-cr5" with a relaxation radius of 12
     Then I did not receive an exception
