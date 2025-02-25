@@ -66,7 +66,7 @@ public class ESDBProxy {
         String restPath = esdbProperties.getUri()+"vlan/";
         log.info("create rest path: "+restPath);
         EsdbVlan result = restTemplate.postForObject(restPath, payload, EsdbVlan.class);
-        if (result == null) {
+        if (result != null) {
             log.info("create ESDB VLAN:\n" + result.getUrl());
         }
     }
