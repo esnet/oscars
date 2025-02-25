@@ -2,6 +2,8 @@ package net.es.oscars.esdb;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.Data;
@@ -14,6 +16,7 @@ import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -34,12 +37,19 @@ public class ESDBProxy {
         this.openTelemetry = openTelemetry;
         SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
 
+
+        ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setObjectMapper(mapper);
+
         this.restTemplate = builder.build();
 
         restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Authorization", "Token "+props.getApiKey()));
         restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Accept", MediaType.APPLICATION_JSON_VALUE));
         restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Content-Type", MediaType.APPLICATION_JSON_VALUE));
         restTemplate.getInterceptors().add(telemetry.newInterceptor());
+        restTemplate.getMessageConverters().add(converter);
+
     }
 
     public List<EsdbVlan> getAllEsdbVlans() {
