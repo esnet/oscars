@@ -10,7 +10,6 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.EsdbProperties;
 import net.es.oscars.app.util.HeaderRequestInterceptor;
-import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,10 +65,10 @@ public class ESDBProxy {
     public void createVlan(EsdbVlanPayload payload) {
         String restPath = esdbProperties.getUri()+"vlan/";
         log.info("create rest path: "+restPath);
-        DevelUtils.dumpDebug("payload", payload);
-
-        String result = restTemplate.postForObject(restPath, payload, String.class);
-        log.info("create VLAN result:\n" + result);
+        EsdbVlan result = restTemplate.postForObject(restPath, payload, EsdbVlan.class);
+        if (result == null) {
+            log.info("create ESDB VLAN:\n" + result.getUrl());
+        }
     }
     public void deleteVlan(Integer vlanPkId) {
         String restPath = esdbProperties.getUri()+"vlan/"+vlanPkId+"/";
