@@ -71,8 +71,11 @@ let anonymous = false;
 const auth_init = () => {
     if (authConfig.clientId === '') {
         const xhr = new XMLHttpRequest();
-        xhr.open("GET", "/api/frontend/oauth", false); // `false` makes the request synchronous
+        xhr.setRequestHeader('Accept', 'application/json');
         xhr.overrideMimeType("application/json");
+        xhr.responseType = 'json';
+
+        xhr.open("GET", "/api/frontend/oauth", false); // `false` makes the request synchronous
         xhr.send(null);
 
         if (xhr.status === 200) {
