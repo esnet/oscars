@@ -9,6 +9,7 @@ import net.es.oscars.app.props.EsdbProperties;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -30,6 +31,7 @@ public class ESDBProxy {
         SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
         this.restTemplate = new RestTemplate();
         restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Authorization", "Token "+props.getApiKey()));
+        restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Accept", MediaType.APPLICATION_JSON_VALUE));
         restTemplate.getInterceptors().add(telemetry.newInterceptor());
     }
 
@@ -46,6 +48,7 @@ public class ESDBProxy {
     public void createVlan(EsdbVlanPayload payload) {
         String restPath = esdbProperties.getUri()+"vlan/";
         log.info("create rest path: "+restPath);
+
         String result = restTemplate.postForObject(restPath, payload, String.class);
         log.info("create VLAN result:\n" + result);
     }
