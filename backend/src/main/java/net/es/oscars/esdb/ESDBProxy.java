@@ -37,18 +37,19 @@ public class ESDBProxy {
         this.openTelemetry = openTelemetry;
         SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
 
-
         ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
         converter.setObjectMapper(mapper);
 
-        this.restTemplate = builder.build();
-
-        restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Authorization", "Token "+props.getApiKey()));
-        restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Accept", MediaType.APPLICATION_JSON_VALUE));
-        restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Content-Type", MediaType.APPLICATION_JSON_VALUE));
-        restTemplate.getInterceptors().add(telemetry.newInterceptor());
-        restTemplate.getMessageConverters().add(converter);
+        this.restTemplate = builder
+                .additionalInterceptors(
+                        new HeaderRequestInterceptor("Authorization", "Token "+props.getApiKey()),
+                        new HeaderRequestInterceptor("Accept", MediaType.APPLICATION_JSON_VALUE),
+                        new HeaderRequestInterceptor("Content-Type", MediaType.APPLICATION_JSON_VALUE),
+                        telemetry.newInterceptor()
+                )
+                .messageConverters(converter)
+                .build();
 
     }
 
