@@ -1,6 +1,7 @@
 package net.es.oscars.esdb;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.Data;
@@ -41,8 +42,6 @@ public class ESDBProxy {
         restTemplate.getInterceptors().add(telemetry.newInterceptor());
     }
 
-
-
     public List<EsdbVlan> getAllEsdbVlans() {
         String vlanUrl = esdbProperties.getUri()+"vlan/?limit=0";
 
@@ -68,7 +67,9 @@ public class ESDBProxy {
     }
 
     @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
     static class WrappedEsdbVlans {
+        int count;
         private List<EsdbVlan> results;
     }
 }
