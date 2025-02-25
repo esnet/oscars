@@ -1,5 +1,10 @@
 # OSCARS Release Notes
 
+### 1.2.21
+> Feb 2025
+- OS-417: misc hotfixes
+- re-added test infrastructure
+
 ### 1.2.20
 > Feb 2025
 
