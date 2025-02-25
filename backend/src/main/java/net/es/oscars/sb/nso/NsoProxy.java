@@ -13,11 +13,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.StartupProperties;
+import net.es.oscars.app.util.HeaderRequestInterceptor;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.exc.NsoDryrunException;
 import net.es.oscars.sb.nso.rest.NsoDryRun;
-import net.es.oscars.sb.nso.rest.NsoHeaderRequestInterceptor;
 import net.es.oscars.sb.nso.rest.NsoResponseErrorHandler;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
@@ -71,8 +71,8 @@ public class NsoProxy {
             this.restTemplate = builder.build();
             restTemplate.setErrorHandler(new NsoResponseErrorHandler());
             restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
-            restTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
-            restTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-data+json"));
+            restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
+            restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-data+json"));
             restTemplate.getInterceptors().add(telemetry.newInterceptor());
             restTemplate.getMessageConverters().add(0, converter);
 
@@ -82,8 +82,8 @@ public class NsoProxy {
             patchTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
             patchTemplate.setErrorHandler(new NsoResponseErrorHandler());
             patchTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
-            patchTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
-            patchTemplate.getInterceptors().add(new NsoHeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-patch+json"));
+            patchTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
+            patchTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-patch+json"));
             patchTemplate.getInterceptors().add(telemetry.newInterceptor());
 
         } catch (Exception ex) {

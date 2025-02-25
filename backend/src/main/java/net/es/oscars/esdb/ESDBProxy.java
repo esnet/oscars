@@ -6,9 +6,12 @@ import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.EsdbProperties;
+import net.es.oscars.app.util.HeaderRequestInterceptor;
+import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -25,17 +28,20 @@ public class ESDBProxy {
     final OpenTelemetry openTelemetry;
 
     @Autowired
-    public ESDBProxy(EsdbProperties props, OpenTelemetry openTelemetry) {
+    public ESDBProxy(EsdbProperties props, OpenTelemetry openTelemetry, RestTemplateBuilder builder) {
         this.esdbProperties = props;
         this.openTelemetry = openTelemetry;
         SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
 
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = builder.build();
+
         restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Authorization", "Token "+props.getApiKey()));
         restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Accept", MediaType.APPLICATION_JSON_VALUE));
         restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Content-Type", MediaType.APPLICATION_JSON_VALUE));
         restTemplate.getInterceptors().add(telemetry.newInterceptor());
     }
+
+
 
     public List<EsdbVlan> getAllEsdbVlans() {
         String vlanUrl = esdbProperties.getUri()+"vlan/?limit=0";
@@ -50,6 +56,7 @@ public class ESDBProxy {
     public void createVlan(EsdbVlanPayload payload) {
         String restPath = esdbProperties.getUri()+"vlan/";
         log.info("create rest path: "+restPath);
+        DevelUtils.dumpDebug("payload", payload);
 
         String result = restTemplate.postForObject(restPath, payload, String.class);
         log.info("create VLAN result:\n" + result);
