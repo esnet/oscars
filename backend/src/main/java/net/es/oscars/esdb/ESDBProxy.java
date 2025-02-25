@@ -29,9 +29,11 @@ public class ESDBProxy {
         this.esdbProperties = props;
         this.openTelemetry = openTelemetry;
         SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
+
         this.restTemplate = new RestTemplate();
         restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Authorization", "Token "+props.getApiKey()));
         restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Accept", MediaType.APPLICATION_JSON_VALUE));
+        restTemplate.getInterceptors().add(new HeaderRequestInterceptor("Content-Type", MediaType.APPLICATION_JSON_VALUE));
         restTemplate.getInterceptors().add(telemetry.newInterceptor());
     }
 
