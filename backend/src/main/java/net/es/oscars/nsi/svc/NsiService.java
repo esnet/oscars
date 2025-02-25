@@ -1508,6 +1508,9 @@ public class NsiService {
         cst.setLifecycleState(mapping.getLifecycleState());
         cst.setProvisionState(mapping.getProvisionState());
         cst.setReservationState(mapping.getReservationState());
+        if (cst.getLifecycleState().equals(LifecycleStateEnumType.TERMINATED)) {
+            dst.setActive(false);
+        }
         return cst;
     }
 
