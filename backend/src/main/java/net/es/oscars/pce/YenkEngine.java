@@ -190,7 +190,7 @@ public class YenkEngine implements Engine {
 
 
         Instant ee = Instant.now();
-        log.info("YenK paths found in time " + Duration.between(es, ee));
+        log.info("YenK paths found (failed: " + failed + ") in time " + Duration.between(es, ee));
 
         return PceResponse.builder()
                 .evaluated(invoked)
