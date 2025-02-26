@@ -192,7 +192,7 @@ public class NsiStateEngine {
         if (!allowedStates.contains(mapping.getLifecycleState())) {
             throw new NsiException("Invalid lifecycle state " + mapping.getLifecycleState(), NsiErrors.TRANS_ERROR);
         }
-        mapping.setLifecycleState(LifecycleStateEnumType.FAILED);
+        mapping.setLifecycleState(LifecycleStateEnumType.TERMINATED);
         nsiRepo.save(mapping);
 
     }

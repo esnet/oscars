@@ -30,7 +30,7 @@ public class Connection {
                       @JsonProperty("deployment-intent") @NonNull DeploymentIntent deploymentIntent,
                       @JsonProperty("username") @NonNull String username,
                       @JsonProperty("description") @NonNull String description,
-                      @JsonProperty("service-id") String serviceId,
+                      @JsonProperty("serviceId") String serviceId,
                       @JsonProperty("reserved") Reserved reserved,
                       @JsonProperty("tags") List<Tag> tags,
                       @JsonProperty("held") Held held,
