@@ -175,6 +175,7 @@ public class YenkEngineSteps extends CucumberSteps {
     public void i_did_get_valid_entries_in_azero_lists() {
         assert pceResponse.getShortest().getAzEro().getFirst() == pceResponse.getShortest().getZaEro().getLast();
         assert pceResponse.getShortest().getCost() > 0;
+        assert pceResponse.getShortest().getCost() == 30.0;
     }
 
 }
