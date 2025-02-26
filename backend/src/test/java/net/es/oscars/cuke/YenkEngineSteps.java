@@ -59,36 +59,67 @@ public class YenkEngineSteps extends CucumberSteps {
      *    and returns a validated PceResponse object.
      * @throws Throwable Can throw an exception.
      */
-    @When("^The paths are calculated from \"([^\"]*)\" to \"([^\"]*)\"$")
-    public void the_paths_are_calculated(String arg1, String arg2) throws Throwable {
+    @When("^The paths are calculated from path \"([^\"]*)\" with device urn \"([^\"]*)\" with port \"([^\"]*)\" to path \"([^\"]*)\" with device urn \"([^\"]*)\" with port \"([^\"]*)\"$")
+    public void the_paths_are_calculated(String arg1, String arg2, String arg3, String arg4, String arg5, String arg6) throws Throwable {
         // For testing, manually load from JSON file source
+
+        String pathA = arg1;
+        String deviceA = arg2;
+        String portA = arg3;
+        String pathB = arg4;
+        String deviceB = arg5;
+        String portB = arg6;
+
         PceRequest request = new PceRequest();
         Interval interval = new Interval();
         Instant start = Instant.now();
-        Instant end = start.plusMillis(500);
+        Instant end = start.plusMillis(1000);
         interval.setBeginning(start);
         interval.setEnding(end);
+        ArrayList<String> include = new ArrayList<>();
 
-        if (arg1.isEmpty()) {
-            throw new Exception(arg1 + " is not a path");
+
+        if (pathA.isEmpty()) {
+            throw new Exception(pathA + " is not a path");
         }
 
-        if (arg2.isEmpty()) {
-            throw new Exception(arg2 + " is not a path");
+        if (deviceA.isEmpty()) {
+            throw new Exception(deviceA + " is not a urn");
+        }
+
+        if (portA.isEmpty()) {
+            throw new Exception(portA + " is not a port");
+        }
+
+        if (pathB.isEmpty()) {
+            throw new Exception(pathB + " is not a path");
+        }
+
+        if (deviceB.isEmpty()) {
+            throw new Exception(deviceB + " is not a urn");
+        }
+
+        if (portB.isEmpty()) {
+            throw new Exception(portB + " is not a port");
         }
 
         // Set up the test request
-        request.setA(arg1);
-        request.setZ(arg2); // MUST be different from A
+        request.setA(pathA);
+        request.setZ(pathB); // MUST be different from A
 
-        request.setAzBw(100);
-        request.setZaBw(100);
+        include.add(deviceA);
+        include.add(portA);
+        include.add(portB);
+        include.add(deviceB);
+
+        request.setAzBw(1000);
+        request.setZaBw(1000);
         request.setInterval(interval);
-        request.setInclude(new ArrayList<>());
+        request.setInclude(include);
         request.setExclude(new HashSet<>());
 
         if (request.getA().equals(request.getZ())) {
-            throw new PCEException("invalid path request: A is the same as Z "+request.getA());
+            throw new PCEException("invalid path request: " + request.getA() + " is the same as Z " + request.getZ());
         }
 
 
@@ -122,5 +153,35 @@ public class YenkEngineSteps extends CucumberSteps {
     @Then("I did receive a PceResponse")
     public void i_did_receive_a_pce_response() {
         assert pceResponse != null;
+        assert pceResponse.getShortest() != null;
+        assert pceResponse.getFits() != null;
     }
+
+    @Then("I did get a populated AZ and ZA ero list")
+    public void i_did_get_a_populated_azero_list() {
+
+        assert !pceResponse.getShortest().getAzEro().isEmpty();
+        assert !pceResponse.getShortest().getAzEro().getFirst().getUrn().isEmpty();
+        assert !pceResponse.getShortest().getAzEro().getLast().getUrn().isEmpty();
+
+        assert !pceResponse.getShortest().getZaEro().isEmpty();
+        assert !pceResponse.getShortest().getZaEro().getFirst().getUrn().isEmpty();
+        assert !pceResponse.getShortest().getZaEro().getLast().getUrn().isEmpty();
+    }
+
+    @Then("I did get valid entries in AZ and ZA ero lists")
+    public void i_did_get_valid_entries_in_azero_lists() {
+        assert pceResponse.getShortest().getAzEro().getFirst() == pceResponse.getShortest().getZaEro().getLast();
+        assert pceResponse.getShortest().getCost() > 0;
+        assert pceResponse.getShortest().getCost() == 30.0;
+    }
+    @Then("I did receive a shortest path")
+    public void i_did_receive_a_shortest_path() {
+        assert pceResponse.getShortest() != null;
+    }
+    @Then("I did not receive a shortest path")
+    public void i_did_not_receive_a_az_path_urn() {
+        assert pceResponse.getShortest() == null;
+    }
+
 }
