@@ -146,7 +146,7 @@ public class YenkEngineSteps extends CucumberSteps {
 
         PathConstraint constraint = PathConstraint.builder()
                 .ero(request.getInclude())
-//                .exclude(request.getExclude())
+                .exclude(request.getExclude())
                 .build();
 
         pceResponse = yenkEngine.calculatePaths(bwPipe, availIngressBw, availEgressBw, constraint);
@@ -157,11 +157,24 @@ public class YenkEngineSteps extends CucumberSteps {
         assert pceResponse != null;
         assert pceResponse.getShortest() != null;
         assert pceResponse.getFits() != null;
+    }
+
+    @Then("I did get a populated AZ and ZA ero list")
+    public void i_did_get_a_populated_azero_list() {
 
         assert !pceResponse.getShortest().getAzEro().isEmpty();
-        assert !pceResponse.getShortest().getZaEro().isEmpty();
         assert !pceResponse.getShortest().getAzEro().getFirst().getUrn().isEmpty();
+        assert !pceResponse.getShortest().getAzEro().getLast().getUrn().isEmpty();
+
+        assert !pceResponse.getShortest().getZaEro().isEmpty();
         assert !pceResponse.getShortest().getZaEro().getFirst().getUrn().isEmpty();
-        assert pceResponse.getShortest().getAzEro().getFirst() == pceResponse.getShortest().getZaEro().getLast();
+        assert !pceResponse.getShortest().getZaEro().getLast().getUrn().isEmpty();
     }
+
+    @Then("I did get valid entries in AZ and ZA ero lists")
+    public void i_did_get_valid_entries_in_azero_lists() {
+        assert pceResponse.getShortest().getAzEro().getFirst() == pceResponse.getShortest().getZaEro().getLast();
+        assert pceResponse.getShortest().getCost() > 0;
+    }
+
 }
