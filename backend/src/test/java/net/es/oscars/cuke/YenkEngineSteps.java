@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.model.Interval;
-import net.es.oscars.pce.PceService;
 import net.es.oscars.pce.YenkEngine;
 import net.es.oscars.pce.beans.PathConstraint;
 import net.es.oscars.resv.ent.VlanJunction;
@@ -23,7 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -176,6 +174,14 @@ public class YenkEngineSteps extends CucumberSteps {
         assert pceResponse.getShortest().getAzEro().getFirst() == pceResponse.getShortest().getZaEro().getLast();
         assert pceResponse.getShortest().getCost() > 0;
         assert pceResponse.getShortest().getCost() == 30.0;
+    }
+    @Then("I did receive a shortest path")
+    public void i_did_receive_a_shortest_path() {
+        assert pceResponse.getShortest() != null;
+    }
+    @Then("I did not receive a shortest path")
+    public void i_did_not_receive_a_az_path_urn() {
+        assert pceResponse.getShortest() == null;
     }
 
 }
