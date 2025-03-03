@@ -400,28 +400,25 @@ public class NsoProxy {
         }
         LiveStatusRequest request = new LiveStatusRequest();
         request.setArgs(args);
-        return getLiveStatusShow(device, request);
+        request.setDevice(device);
+        return getLiveStatusShow( request);
     }
 
     /**
      * Executes a live status query via the NSO REST API
      *
-     * @param device            device for the query
      * @param liveStatusRequest the request parameters
      * @return the result as returned by NSO as a string
      */
-    public String getLiveStatusShow(String device, LiveStatusRequest liveStatusRequest) {
+    public String getLiveStatusShow(LiveStatusRequest liveStatusRequest) {
         if (startupProperties.getStandalone()) {
             log.info("standalone mode - skipping southbound");
-            return "standalone live statys";
+            return "standalone live status";
         }
 
-        if (device == null || liveStatusRequest == null) {
-            log.error("No device or live status args available");
-            return null;
-        }
+        //restconf/data/esnet-status:esnet-status/nokia-show
 
-        String path = "restconf/data/tailf-ncs:devices/device=" + device + "/live-status/tailf-ned-alu-sr-stats:exec/show";
+        String path = "restconf/data/esnet-status:esnet-status/nokia-show";
         String restPath = props.getUri() + path;
 
         try {
@@ -436,6 +433,5 @@ public class NsoProxy {
         }
         return null;
     }
-
 
 }
