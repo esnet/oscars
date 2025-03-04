@@ -19,7 +19,15 @@ stages:
 
 workflow:
   rules:
+    # Don't run pipelines for draft MRs
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE =~ /^(\[Draft\]|\(Draft\)|Draft:)/
+      when: never
+    # Do run pipelines for other MRs
     - if: $CI_PIPELINE_SOURCE != "merge_request_event"
+    # Run pipelines for tags
+    - if: $CI_COMMIT_TAG
+    # Run pipelines for commits to protected branches
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
 
 .wharf_logout: &wharf_logout |-
   docker logout "$WHARF_SITE"
