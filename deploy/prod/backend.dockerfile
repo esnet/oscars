@@ -26,7 +26,7 @@ RUN mv ${JAR_FILE} backend.jar
 RUN java -Djarmode=layertools -jar backend.jar extract
 
 # 2. run stage
-FROM wharf.es.net/dockerhub-proxy/library/bellsoft/liberica-openjdk-debian:23
+FROM wharf.es.net/dockerhub-proxy/bellsoft/liberica-openjdk-debian:23
 RUN apt-get update && apt -y install netcat-traditional
 RUN groupadd oscars && useradd -g oscars oscars
 RUN mkdir -p /app
