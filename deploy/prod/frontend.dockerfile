@@ -1,4 +1,4 @@
-FROM node:19-alpine as builder
+FROM wharf.es.net/dockerhub-proxy/library/node:19-alpine as builder
 
 WORKDIR /app
 ENV PATH /app/node_modules/.bin:$PATH
@@ -12,7 +12,7 @@ COPY src ./src
 COPY public ./public
 RUN npm run build
 
-FROM nginx:alpine
+FROM wharf.es.net/dockerhub-proxy/library/nginx:alpine
 COPY --from=builder /app/build /usr/share/nginx/html
 
 EXPOSE 80 443
