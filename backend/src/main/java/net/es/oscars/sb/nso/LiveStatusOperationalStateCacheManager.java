@@ -398,7 +398,7 @@ public class LiveStatusOperationalStateCacheManager {
     public ArrayList<String> getDataLines(String input) {
         if (input == null) return null;
         ArrayList<String> data = new ArrayList<>();
-        String[] lines = input.split("\r\n");
+        String[] lines = input.split("\n");
 
         // starts with a number, i.e. for something like
         // 1/1/c13/1:2012                  7072       7001  none    7001  none   Up   Up
@@ -427,7 +427,7 @@ public class LiveStatusOperationalStateCacheManager {
     public ArrayList<String> getLspDataLines(String input) {
         if (input == null) return null;
         ArrayList<String> data = new ArrayList<>();
-        String[] lines = input.split("\r\n");
+        String[] lines = input.split("\n");
         for (int i = 0; i < lines.length - 1; i++) {
             String line = lines[i];
             if (line.contains("Up") || line.contains("Down")) {

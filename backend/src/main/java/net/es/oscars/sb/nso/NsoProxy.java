@@ -7,10 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.util.HeaderRequestInterceptor;
@@ -50,9 +47,12 @@ public class NsoProxy {
 
     private final NsoProperties props;
     private final StartupProperties startupProperties;
+
+    @Setter
     private RestTemplate restTemplate;
     private RestTemplate patchTemplate;
     final OpenTelemetry openTelemetry;
+
 
     @Autowired
     public NsoProxy(NsoProperties props, StartupProperties startupProperties, RestTemplateBuilder builder, OpenTelemetry openTelemetry) {
@@ -349,6 +349,7 @@ public class NsoProxy {
 
     public String getLiveStatusServiceMacs(String device, int serviceId) {
         String args = "service id " + serviceId + " fdb detail";
+        log.info("getLiveStatusServiceMacs " + args);
         if (props.isMockLiveShowCommands()) {
             return "This is mock data for 'show " + args + "'";
         }
@@ -424,7 +425,7 @@ public class NsoProxy {
         try {
             LiveStatusOutput response = restTemplate.postForObject(restPath, liveStatusRequest, LiveStatusOutput.class);
             if (response != null && response.getOutput() != null) {
-                log.info(response.getOutput());
+                log.info("\"show {}\"\n{}", liveStatusRequest.getArgs(), response.getOutput());
                 return response.getOutput();
             }
         } catch (RestClientException ex) {
