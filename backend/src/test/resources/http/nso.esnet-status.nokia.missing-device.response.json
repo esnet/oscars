@@ -1,0 +1,13 @@
+{
+  "ietf-restconf:errors": {
+    "error": [
+      {
+        "error-type": "application",
+        "error-tag": "invalid-value",
+        "error-app-tag": "undefined:instance-required",
+        "error-path": "/esnet-status:esnet-status/nokia-show/device",
+        "error-message": "illegal reference "
+      }
+    ]
+  }
+}
