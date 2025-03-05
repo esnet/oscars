@@ -1,4 +1,4 @@
-FROM maven:3.9.9-amazoncorretto-23-debian  AS builder
+FROM wharf.es.net/dockerhub-proxy/library/maven:3.9.9-amazoncorretto-23-debian  AS builder
 
 WORKDIR /build/backend
 COPY backend/.remoteRepositoryFilters .remoteRepositoryFilters
@@ -26,7 +26,7 @@ RUN mv ${JAR_FILE} backend.jar
 RUN java -Djarmode=layertools -jar backend.jar extract
 
 # 2. run stage
-FROM bellsoft/liberica-openjdk-debian:23
+FROM wharf.es.net/dockerhub-proxy/library/bellsoft/liberica-openjdk-debian:23
 RUN apt-get update && apt -y install netcat-traditional
 RUN groupadd oscars && useradd -g oscars oscars
 RUN mkdir -p /app
