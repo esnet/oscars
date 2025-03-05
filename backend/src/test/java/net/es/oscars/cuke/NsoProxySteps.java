@@ -11,9 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.ctg.UnitTests;
+import net.es.oscars.sb.nso.LiveStatusOperationalStateCacheManager;
 import net.es.oscars.sb.nso.NsoProxy;
-import net.es.oscars.sb.nso.rest.LiveStatusOutput;
-import net.es.oscars.sb.nso.rest.LiveStatusRequest;
+import net.es.oscars.sb.nso.rest.*;
 import org.junit.experimental.categories.Category;
 
 import org.mockito.Mock;
@@ -23,9 +23,14 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.http.HttpClient;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -40,12 +45,25 @@ public class NsoProxySteps extends CucumberSteps {
     private NsoProxy proxy;
     @Autowired
     RestTemplateBuilder restTemplateBuilder;
+
+    @Autowired
+    LiveStatusOperationalStateCacheManager liveStatusOperationalStateCacheManager;
+
     @Mock
     RestTemplate restTemplate;
 
     private NsoProperties nsoProps;
 
     String liveStatus = "";
+
+    MacInfoServiceResult macInfoServiceResult;
+
+    ArrayList<LiveStatusSapResult> sapResults;
+    ArrayList<LiveStatusSdpResult> sdpResults;
+    ArrayList<LiveStatusLspResult> lspResults;
+
+
+
     @Before("@NsoProxySteps")
     public void before() throws Exception{
         log.info("---------- NsoProxySteps.java before");
@@ -58,26 +76,42 @@ public class NsoProxySteps extends CucumberSteps {
         restTemplateBuilder = mock(RestTemplateBuilder.class);
         restTemplate = mock(RestTemplate.class);
 
-        String filePath = "http/nso.esnet-status.nokia-show.post.response.json";
-        log.info("loading " + filePath);
         ObjectMapper mapper = new ObjectMapper();
-        var jsonFile = new ClassPathResource(filePath).getFile();
 
-        LiveStatusOutput mockOutput = mapper.readValue(jsonFile, LiveStatusOutput.class);
-        LiveStatusRequest liveStatusRequest = new LiveStatusRequest("loc1-cr6", "service fdb-info");
+        Map<String, LiveStatusRequest> requestMap = new HashMap<>();
+        Map<String, LiveStatusOutput> responseMap = new HashMap<>();
+
+        Map<String, String> argToResponseFilePath = Map.of(
+                "router mpls lsp", "http/nso.esnet-status.nokia-show.router-mpls-lsp.response.json",
+                "service id 7115 fdb detail", "http/nso.esnet-status.nokia-show.service-fdb-detail.response.json",
+                "service id 7115 sdp", "http/nso.esnet-status.nokia-show.service-sdp.response.json",
+                "service id 7115 sap", "http/nso.esnet-status.nokia-show.service-sap.response.json",
+                "service fdb-info", "http/nso.esnet-status.nokia-show.service-fdb-info.response.json"
+        );
+        argToResponseFilePath.forEach((command, filePath) -> {
+            LiveStatusRequest request = new LiveStatusRequest("loc1-cr6", command);
+
+            try {
+                log.info("loading {}", filePath);
+                File jsonFile = new ClassPathResource(filePath).getFile();
+                LiveStatusOutput response = mapper.readValue(jsonFile, LiveStatusOutput.class);
+
+                when(
+                        restTemplate.postForObject(
+                                "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
+                                request,
+                                LiveStatusOutput.class
+                        )
+                ).thenReturn(response);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
 
         when(restTemplateBuilder.build()).thenReturn(restTemplate);
-
-        when(
-                restTemplate.postForObject(
-                        "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
-                        liveStatusRequest,
-                        LiveStatusOutput.class
-                )
-        ).thenReturn(mockOutput);
-
-
     }
+
     @After("@NsoProxySteps")
     public void after() {
     }
@@ -103,9 +137,36 @@ public class NsoProxySteps extends CucumberSteps {
         liveStatus = proxy.getLiveStatusShow(liveStatusRequest);
     }
 
-    @Then("the resulting ESNet status report matches the ALU NED format")
+    @Then("The resulting esnet-status response is not empty")
     public void theResultingESNetStatusReportMatchesTheALUNEDFormat() {
         assert !liveStatus.isEmpty();
     }
+
+
+    @When("I request to get macs for device {string} and service id {int}")
+    public void getMacs(String arg0, Integer arg1) {
+        macInfoServiceResult = liveStatusOperationalStateCacheManager.getMacs(arg0, arg1, Instant.now());
+    }
+
+    @Then("The resulting MAC report status is true")
+    public void theResultingMacReportStatusTrue() {
+        assert macInfoServiceResult.getStatus().equals(true);
+    }
+
+    @When("I request to get SDPs for device {string} and service id {int}")
+    public void getSDPs(String arg0, Integer arg1) {
+        sdpResults = liveStatusOperationalStateCacheManager.getSdp(arg0, arg1, Instant.now());
+    }
+
+    @When("I request to get SAPs for device {string} and service id {int}")
+    public void getSAPs(String arg0, Integer arg1) {
+        sapResults = liveStatusOperationalStateCacheManager.getSap(arg0, arg1, Instant.now());
+    }
+
+    @When("I request to get LSPs for device {string}")
+    public void getLSPs(String arg0) {
+        lspResults = liveStatusOperationalStateCacheManager.getLsp(arg0, Instant.now());
+    }
+
 
 }
