@@ -18,6 +18,7 @@ import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.P2PServiceBaseType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.DirectionalityType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.OrderedStpType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.StpListType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.TypeValueType;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.dto.pss.cmd.CommandType;
@@ -1359,6 +1360,11 @@ public class NsiService {
     public P2PServiceBaseType makeP2P(Components cmp, NsiMapping mapping) {
 
         P2PServiceBaseType p2p = new P2PServiceBaseType();
+
+        TypeValueType tvt = new TypeValueType();
+        tvt.setType("oscarsId");
+        tvt.setType(mapping.getOscarsConnectionId());
+        p2p.getParameter().add(tvt);
 
         VlanFixture a = cmp.getFixtures().get(0);
         String srcStp = this.nsiUrnFromInternal(a.getPortUrn()) + "?vlan=" + a.getVlan().getVlanId();
