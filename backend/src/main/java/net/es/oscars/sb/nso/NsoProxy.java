@@ -20,6 +20,7 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
+import net.es.oscars.web.beans.LiveStatusResponse;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -423,6 +424,7 @@ public class NsoProxy {
         String restPath = props.getUri() + path;
 
         try {
+            // @TODO This HTTP POST method should NOT force a type cast! We may get LiveStatusOutput or IetfRestconfErrorResponse type response!
             LiveStatusOutput response = restTemplate.postForObject(restPath, liveStatusRequest, LiveStatusOutput.class);
             if (response != null && response.getOutput() != null) {
                 log.info("\"show {}\"\n{}", liveStatusRequest.getArgs(), response.getOutput());
