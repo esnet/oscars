@@ -22,18 +22,21 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.*;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Optional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -82,23 +85,20 @@ public class NsoProxySteps extends CucumberSteps {
         );
         argToResponseFilePath.forEach((command, filePath) -> {
             LiveStatusRequest request = new LiveStatusRequest("loc1-cr6", command);
+            log.info("loading {}", filePath);
+            String body = asString(new ClassPathResource(filePath));
+            ResponseEntity<String> responseEntity = new ResponseEntity<>(body, HttpStatus.OK);
 
-            try {
-                log.info("loading {}", filePath);
-                File jsonFile = new ClassPathResource(filePath).getFile();
-                LiveStatusOutput response = mapper.readValue(jsonFile, LiveStatusOutput.class);
+            final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(request);
 
-                when(
-                        restTemplate.postForObject(
-                                "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
-                                request,
-                                LiveStatusOutput.class
-                        )
-                ).thenReturn(response);
+            when(
+                    restTemplate.exchange(
+                            "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
+                            HttpMethod.POST,
+                            requestEntity,
+                            String.class)
+            ).thenReturn(responseEntity);
 
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         });
         // we inject our rest template to the NSO proxy component
 
@@ -118,41 +118,22 @@ public class NsoProxySteps extends CucumberSteps {
                 "service fdb-info", "http/nso.esnet-status.nokia.missing-device.response.json"
         );
         argToResponseFilePath.forEach((command, filePath) -> {
+            log.info("loading {}", filePath);
             LiveStatusRequest request = new LiveStatusRequest("does-not-exist-cr123", command);
 
-            try {
-                log.info("loading {}", filePath);
-                File jsonFile = new ClassPathResource(filePath).getFile();
-                IetfRestconfErrorResponse response = mapper.readValue(jsonFile, IetfRestconfErrorResponse.class);
+            String body = asString(new ClassPathResource(filePath));
+            ResponseEntity<String> responseEntity = new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+            final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(request);
 
-                // May need to mock when rest template .exchange() is called to answer with headers (HTTP 400)
-                String url = "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show";
-                String expectedResponse = Files.readString(jsonFile.toPath());
+            when(
+                    restTemplate.exchange(
+                            "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
+                            HttpMethod.POST,
+                            requestEntity,
+                            String.class)
+            ).thenReturn(responseEntity);
 
-                when(restTemplate.exchange(
-                        eq(url),
-                        eq(HttpMethod.POST),
-                        Mockito.any(HttpEntity.class),
-                        Mockito.eq(String.class)
-                )).thenAnswer(invocation -> {
-                    HttpEntity<?> actualRequest = invocation.getArgument(2);
-                    HttpHeaders actualHeaders = actualRequest.getHeaders();
 
-                    // @TODO assert headers
-                    assertEquals("application/yang-data+json", actualHeaders.getFirst("Content-Type"));
-                    return new ResponseEntity<>(expectedResponse, HttpStatus.BAD_REQUEST);
-                });
-                when(
-                        restTemplate.postForObject(
-                                url,
-                                request,
-                                IetfRestconfErrorResponse.class
-                        )
-                ).thenThrow(new RestClientException("expected exception"));
-
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         });
         // we inject our rest template to the NSO proxy component
 
@@ -165,18 +146,10 @@ public class NsoProxySteps extends CucumberSteps {
     public void theGetLiveStatusShowMethodIsCalledWithDeviceAndArguments(String arg0, String arg1) {
         LiveStatusRequest liveStatusRequest = new LiveStatusRequest(arg0, arg1);
         liveStatus = proxy.getLiveStatusShow(liveStatusRequest);
+        log.info(liveStatus);
     }
 
-    @When("^The getLiveStatusShow method is called with non-existent device \"([^\"]*)\" and arguments \"([^\"]*)\"$")
-    public void theGetLiveStatusShowMethodIsCalledWithNonExistentDeviceAndArguments(String arg0, String arg1) {
-        LiveStatusRequest liveStatusRequest = new LiveStatusRequest(arg0, arg1);
-        try {
-            liveStatus = proxy.getLiveStatusShow(liveStatusRequest);
-        } catch (RestClientException ex) {
-            liveStatus = "";
-            restClientException = ex;
-        }
-    }
+
 
     @Then("The resulting esnet-status response is not empty")
     public void theResultingESNetStatusReportMatchesTheALUNEDFormat() {
@@ -226,10 +199,27 @@ public class NsoProxySteps extends CucumberSteps {
     public void theResultingSapReportContains(int arg0) {
         assert sapResults.size() == arg0;
     }
+    @Then("The resulting esnet-status response contains {string}")
+    public void theResultingEsnetStatusResponseContains(String arg) {
+        assert liveStatus.contains(arg);
+    }
 
+    @Then("The resulting esnet-status response is not an error message")
+    public void theResultingEsnetStatusResponseContains() {
+        assert !liveStatus.contains("esnet-status error");
+    }
 
     @Then("The resulting esnet-status response is empty")
     public void theResultingEsnetStatusResponseIsEmpty() {
         assert liveStatus.isEmpty();
     }
+
+    public static String asString(Resource resource) {
+        try (Reader reader = new InputStreamReader(resource.getInputStream(), UTF_8)) {
+            return FileCopyUtils.copyToString(reader);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
 }

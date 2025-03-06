@@ -23,6 +23,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <cucumber.options>--tags @unit --strict</cucumber.options>
+        <mockito.version>5.15.2</mockito.version>
     </properties>
 
     <!-- ESnet gitlab topo-common & nsi-soap repos -->
@@ -67,7 +68,7 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>5.15.2</version>
+                <version>${mockito.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -438,6 +439,10 @@
                     <systemPropertyVariables>
                         <nso.uri>http://localhost:8080</nso.uri>
                     </systemPropertyVariables>
+                    <argLine>
+                        -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+                        -Xshare:off
+                    </argLine>
                 </configuration>
                 <dependencies>
                     <dependency>

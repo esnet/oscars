@@ -418,23 +418,42 @@ public class NsoProxy {
             return "standalone live status";
         }
 
-        //restconf/data/esnet-status:esnet-status/nokia-show
-
         String path = "restconf/data/esnet-status:esnet-status/nokia-show";
         String restPath = props.getUri() + path;
 
-        try {
-            // @TODO This HTTP POST method should NOT force a type cast! We may get LiveStatusOutput or IetfRestconfErrorResponse type response!
-            LiveStatusOutput response = restTemplate.postForObject(restPath, liveStatusRequest, LiveStatusOutput.class);
-            if (response != null && response.getOutput() != null) {
-                log.info("\"show {}\"\n{}", liveStatusRequest.getArgs(), response.getOutput());
-                return response.getOutput();
+        StringBuilder errorStr = new StringBuilder();
+        errorStr.append("esnet-status error\n");
+        final HttpEntity<LiveStatusRequest> entity = new HttpEntity<>(liveStatusRequest);
+
+        ResponseEntity<String> response = restTemplate.exchange(restPath, HttpMethod.POST, entity, String.class);
+        if (response == null) {
+            errorStr.append("null response for ").append(liveStatusRequest.getArgs());
+        } else {
+            if (response.getStatusCode().isError()) {
+                try {
+                    IetfRestconfErrorResponse errorResponse = new ObjectMapper().readValue(response.getBody(), IetfRestconfErrorResponse.class);
+                    for (IetfRestconfErrorResponse.IetfError error : errorResponse.getErrors().getErrorList()) {
+                        errorStr.append(error.getErrorMessage()).append("\n");
+                    }
+                } catch (JsonProcessingException ex) {
+                    errorStr.append("unable to parse response\n");
+                    errorStr.append(response.getBody());
+                }
+                return errorStr.toString();
+            } else {
+                try {
+                    LiveStatusOutput output = new ObjectMapper().readValue(response.getBody(), LiveStatusOutput.class);
+                    return output.getOutput();
+                } catch (JsonProcessingException ex) {
+                    log.error("unable to parse response: \n"+response.getBody());
+                    errorStr.append("unable to parse response\n");
+                    errorStr.append(response.getBody());
+                }
             }
-        } catch (RestClientException ex) {
-            log.error("REST error %s".formatted(ex.getMessage()));
-            throw ex;
         }
-        return null;
+        return errorStr.toString();
+
+
     }
 
 }
