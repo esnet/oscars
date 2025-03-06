@@ -11,6 +11,8 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.util.HeaderRequestInterceptor;
+import net.es.oscars.sb.nso.dto.NsoLspResponse;
+import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.exc.NsoDryrunException;
@@ -23,6 +25,7 @@ import net.es.oscars.sb.nso.rest.LiveStatusOutput;
 import net.es.oscars.web.beans.LiveStatusResponse;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
+import net.es.topo.common.dto.nso.enums.NsoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
@@ -452,8 +455,48 @@ public class NsoProxy {
             }
         }
         return errorStr.toString();
+    }
 
 
+
+    public NsoVplsResponse getVpls() throws JsonProcessingException {
+        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS);
+        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
+    }
+
+
+    public NsoLspResponse getLsps() throws JsonProcessingException {
+        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP);
+        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
+    }
+
+
+    public FromNsoServiceConfig getNsoServiceConfig(NsoService service) {
+        log.info("get service config START %s ".formatted(service));
+
+        String path = switch (service) {
+            case VPLS -> "/esnet-vpls:vpls";
+            case LSP -> "/esnet-lsp:lsp";
+            default -> null;
+        };
+
+        FromNsoServiceConfig result = FromNsoServiceConfig.builder()
+                .service(service)
+                .successful(false)
+                .build();
+        String req = "data/tailf-ncs:services%s".formatted(path);
+        String restPath = props.getUri() + req;
+        String response = restTemplate.getForObject(restPath, String.class);
+        // DevelUtils.dumpDebug("get-nso-service", response);
+
+        if (response != null) {
+            result.setConfig(response);
+            result.setSuccessful(true);
+            log.debug("%s: get service COMPLETE ".formatted(service.toString()));
+        } else {
+            log.warn("%s: get config FAILED ".formatted(service.toString()));
+        }
+        return result;
     }
 
 }
