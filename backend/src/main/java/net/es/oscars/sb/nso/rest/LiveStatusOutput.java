@@ -13,7 +13,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LiveStatusOutput {
 
-    @JsonProperty("tailf-ned-alu-sr-stats:output")
+//    @JsonProperty("tailf-ned-alu-sr-stats:output")
+    @JsonProperty("esnet-status:output")
     WrappedOutput output;
 
     @Data

@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LiveStatusRequest {
+    @JsonProperty("device")
+    String device;
 
     @JsonProperty("args")
     String args;

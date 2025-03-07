@@ -14,7 +14,7 @@
     <groupId>net.es.oscars</groupId>
     <artifactId>backend</artifactId>
     <name>backend</name>
-    <version>1.2.21</version>
+    <version>1.2.22</version>
 
     <description>OSCARS backend</description>
     <properties>
@@ -23,6 +23,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <cucumber.options>--tags @unit --strict</cucumber.options>
+        <mockito.version>5.15.2</mockito.version>
     </properties>
 
     <!-- ESnet gitlab topo-common & nsi-soap repos -->
@@ -65,6 +66,12 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-bom</artifactId>
                 <version>1.47.0</version>
@@ -85,7 +92,7 @@
         <dependency>
             <groupId>net.es.topo.common</groupId>
             <artifactId>topo-common</artifactId>
-            <version>0.0.34</version>
+            <version>0.0.35</version>
         </dependency>
         <dependency>
             <groupId>net.es.nsi</groupId>
@@ -419,11 +426,19 @@
                     </layers>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.2</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <nso.uri>http://localhost:8080</nso.uri>
+                    </systemPropertyVariables>
+                    <argLine>
+                        -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+                        -Xshare:off
+                    </argLine>
+                </configuration>
                 <dependencies>
                     <dependency>
                         <groupId>org.apache.maven.surefire</groupId>

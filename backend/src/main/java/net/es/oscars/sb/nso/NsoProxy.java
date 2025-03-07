@@ -7,10 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.util.HeaderRequestInterceptor;
@@ -23,6 +20,7 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
+import net.es.oscars.web.beans.LiveStatusResponse;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,9 +48,12 @@ public class NsoProxy {
 
     private final NsoProperties props;
     private final StartupProperties startupProperties;
+
+    @Setter
     private RestTemplate restTemplate;
     private RestTemplate patchTemplate;
     final OpenTelemetry openTelemetry;
+
 
     @Autowired
     public NsoProxy(NsoProperties props, StartupProperties startupProperties, RestTemplateBuilder builder, OpenTelemetry openTelemetry) {
@@ -349,6 +350,7 @@ public class NsoProxy {
 
     public String getLiveStatusServiceMacs(String device, int serviceId) {
         String args = "service id " + serviceId + " fdb detail";
+        log.info("getLiveStatusServiceMacs " + args);
         if (props.isMockLiveShowCommands()) {
             return "This is mock data for 'show " + args + "'";
         }
@@ -400,42 +402,58 @@ public class NsoProxy {
         }
         LiveStatusRequest request = new LiveStatusRequest();
         request.setArgs(args);
-        return getLiveStatusShow(device, request);
+        request.setDevice(device);
+        return getLiveStatusShow( request);
     }
 
     /**
      * Executes a live status query via the NSO REST API
      *
-     * @param device            device for the query
      * @param liveStatusRequest the request parameters
      * @return the result as returned by NSO as a string
      */
-    public String getLiveStatusShow(String device, LiveStatusRequest liveStatusRequest) {
+    public String getLiveStatusShow(LiveStatusRequest liveStatusRequest) {
         if (startupProperties.getStandalone()) {
             log.info("standalone mode - skipping southbound");
-            return "standalone live statys";
+            return "standalone live status";
         }
 
-        if (device == null || liveStatusRequest == null) {
-            log.error("No device or live status args available");
-            return null;
-        }
-
-        String path = "restconf/data/tailf-ncs:devices/device=" + device + "/live-status/tailf-ned-alu-sr-stats:exec/show";
+        String path = "restconf/data/esnet-status:esnet-status/nokia-show";
         String restPath = props.getUri() + path;
 
-        try {
-            LiveStatusOutput response = restTemplate.postForObject(restPath, liveStatusRequest, LiveStatusOutput.class);
-            if (response != null && response.getOutput() != null) {
-                log.info(response.getOutput());
-                return response.getOutput();
-            }
-        } catch (RestClientException ex) {
-            log.error("REST error %s".formatted(ex.getMessage()));
-            throw ex;
-        }
-        return null;
-    }
+        StringBuilder errorStr = new StringBuilder();
+        errorStr.append("esnet-status error\n");
+        final HttpEntity<LiveStatusRequest> entity = new HttpEntity<>(liveStatusRequest);
 
+        ResponseEntity<String> response = restTemplate.exchange(restPath, HttpMethod.POST, entity, String.class);
+        if (response == null) {
+            errorStr.append("null response for ").append(liveStatusRequest.getArgs());
+        } else {
+            if (response.getStatusCode().isError()) {
+                try {
+                    IetfRestconfErrorResponse errorResponse = new ObjectMapper().readValue(response.getBody(), IetfRestconfErrorResponse.class);
+                    for (IetfRestconfErrorResponse.IetfError error : errorResponse.getErrors().getErrorList()) {
+                        errorStr.append(error.getErrorMessage()).append("\n");
+                    }
+                } catch (JsonProcessingException ex) {
+                    errorStr.append("unable to parse response\n");
+                    errorStr.append(response.getBody());
+                }
+                return errorStr.toString();
+            } else {
+                try {
+                    LiveStatusOutput output = new ObjectMapper().readValue(response.getBody(), LiveStatusOutput.class);
+                    return output.getOutput();
+                } catch (JsonProcessingException ex) {
+                    log.error("unable to parse response: \n"+response.getBody());
+                    errorStr.append("unable to parse response\n");
+                    errorStr.append(response.getBody());
+                }
+            }
+        }
+        return errorStr.toString();
+
+
+    }
 
 }
