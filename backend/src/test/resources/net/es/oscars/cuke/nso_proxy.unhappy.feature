@@ -14,3 +14,4 @@ Feature: Make OSCARS OP Commands netconf ned ready
     # valid device ID, non-existent service ID 1111
     When I get SDPs for device "loc1-cr6" and service id 1111
     Then The resulting esnet-status response is empty
+    

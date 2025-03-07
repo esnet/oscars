@@ -87,7 +87,9 @@ public class NsoProxySteps extends CucumberSteps {
                 "loc1-cr6:service fdb-info:200", "http/nso.esnet-status.nokia-show.service-fdb-info.response.json",
                 "loc1-cr6:service id 7093 fdb detail:200", "http/nso.esnet-status.nokia-show.service-fdb-detail.response.json",
                 "does-not-exist-cr123:service fdb-info:400", "http/nso.esnet-status.nokia.missing-device.response.json",
-                "loc1-cr6:service id 1111 sdp:200", "http/nso.esnet-status.nokia.empty.response.json"
+                "loc1-cr6:service id 1111 sdp:200", "http/nso.esnet-status.nokia.empty.response.json",
+                // @TODO This SHOULD expect an HTTP Status 400 response, but currently responds with HTTP 200 instead. Waiting on NED API Endpoint changes
+                "loc1-cr6:service id:200", "http/nso.esnet-status.nokia.missing-param.response.json"
         );
         argToResponseFilePath.forEach((command, filePath) -> {
             String[] argParts = command.split(":");
