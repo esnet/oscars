@@ -10,8 +10,8 @@ Feature: Make OSCARS OP Commands netconf ned ready
     Then The resulting esnet-status response contains "error"
     Then The resulting esnet-status response contains "illegal reference"
 
-    Given I have initialized the world
+  Scenario: Read the NSO Proxy live-status endpoint (unhappy path, valid device ID, invalid service ID)
     # valid device ID, non-existent service ID 1111
     When I get SDPs for device "loc1-cr6" and service id 1111
     Then The resulting esnet-status response is empty
-    
+    Then The resulting SDP report contains 0 sdps
