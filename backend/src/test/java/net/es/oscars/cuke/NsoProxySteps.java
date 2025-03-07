@@ -15,6 +15,7 @@ import net.es.oscars.sb.nso.LiveStatusOperationalStateCacheManager;
 import net.es.oscars.sb.nso.NsoProxy;
 import net.es.oscars.sb.nso.rest.*;
 import net.es.topo.common.dto.nso.IetfRestconfErrorResponse;
+import org.apache.logging.log4j.util.Strings;
 import org.junit.experimental.categories.Category;
 
 import org.mockito.Mock;
@@ -74,20 +75,36 @@ public class NsoProxySteps extends CucumberSteps {
 
         restTemplate = mock(RestTemplate.class);
 
-        ObjectMapper mapper = new ObjectMapper();
+        // For testing only: the map key be composed of
+        // the device ID, the NSO command, and the expected HTTP Status code.
+        // This is a simple testing jig, and is done this way to simplify
+        // test setup here.
 
         Map<String, String> argToResponseFilePath = Map.of(
-                "router mpls lsp", "http/nso.esnet-status.nokia-show.router-mpls-lsp.response.json",
-                "service id 7115 sdp", "http/nso.esnet-status.nokia-show.service-sdp.response.json",
-                "service id 7115 sap", "http/nso.esnet-status.nokia-show.service-sap.response.json",
-                "service fdb-info", "http/nso.esnet-status.nokia-show.service-fdb-info.response.json",
-                "service id 7093 fdb detail", "http/nso.esnet-status.nokia-show.service-fdb-detail.response.json"
+                "loc1-cr6:router mpls lsp:200", "http/nso.esnet-status.nokia-show.router-mpls-lsp.response.json",
+                "loc1-cr6:service id 7115 sdp:200", "http/nso.esnet-status.nokia-show.service-sdp.response.json",
+                "loc1-cr6:service id 7115 sap:200", "http/nso.esnet-status.nokia-show.service-sap.response.json",
+                "loc1-cr6:service fdb-info:200", "http/nso.esnet-status.nokia-show.service-fdb-info.response.json",
+                "loc1-cr6:service id 7093 fdb detail:200", "http/nso.esnet-status.nokia-show.service-fdb-detail.response.json",
+                "does-not-exist-cr123:service fdb-info:400", "http/nso.esnet-status.nokia.missing-device.response.json",
+                "loc1-cr6:service id 1111 sdp:200", "http/nso.esnet-status.nokia.empty.response.json"
         );
         argToResponseFilePath.forEach((command, filePath) -> {
-            LiveStatusRequest request = new LiveStatusRequest("loc1-cr6", command);
+            String[] argParts = command.split(":");
+            String deviceId = argParts[0];
+            String cmd = argParts[1];
+            String expectedHttpCode = argParts[2];
+
+            LiveStatusRequest request = new LiveStatusRequest(deviceId, cmd);
+
+            log.info("for device {}", deviceId);
+            log.info("for command {}", cmd);
+            log.info("expect HTTP Code {}", expectedHttpCode);
             log.info("loading {}", filePath);
+
             String body = asString(new ClassPathResource(filePath));
-            ResponseEntity<String> responseEntity = new ResponseEntity<>(body, HttpStatus.OK);
+            HttpStatusCode httpStatusCode = HttpStatus.valueOf(Integer.parseInt(expectedHttpCode));
+            ResponseEntity<String> responseEntity = new ResponseEntity<>(body, httpStatusCode);
 
             final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(request);
 
@@ -105,42 +122,6 @@ public class NsoProxySteps extends CucumberSteps {
         proxy.setRestTemplate(restTemplate);
 
     }
-
-    @Before("@NsoProxyUnhappySteps")
-    public void beforeUnhappy() throws Exception{
-        log.info("---------- NsoProxySteps.java before (unhappy path)");
-
-        restTemplate = mock(RestTemplate.class);
-
-        ObjectMapper mapper = new ObjectMapper();
-
-        Map<String, String> argToResponseFilePath = Map.of(
-                "service fdb-info", "http/nso.esnet-status.nokia.missing-device.response.json"
-        );
-        argToResponseFilePath.forEach((command, filePath) -> {
-            log.info("loading {}", filePath);
-            LiveStatusRequest request = new LiveStatusRequest("does-not-exist-cr123", command);
-
-            String body = asString(new ClassPathResource(filePath));
-            ResponseEntity<String> responseEntity = new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
-            final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(request);
-
-            when(
-                    restTemplate.exchange(
-                            "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
-                            HttpMethod.POST,
-                            requestEntity,
-                            String.class)
-            ).thenReturn(responseEntity);
-
-
-        });
-        // we inject our rest template to the NSO proxy component
-
-        proxy.setRestTemplate(restTemplate);
-
-    }
-
 
     @When("^The getLiveStatusShow method is called with device \"([^\"]*)\" and arguments \"([^\"]*)\"$")
     public void theGetLiveStatusShowMethodIsCalledWithDeviceAndArguments(String arg0, String arg1) {
