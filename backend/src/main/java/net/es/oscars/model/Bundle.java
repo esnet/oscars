@@ -28,6 +28,7 @@ public class Bundle {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "l2vpn_id")
+    @JsonIgnore
     private L2VPN l2vpn;
 
     protected String name;
