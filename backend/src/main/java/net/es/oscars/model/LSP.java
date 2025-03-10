@@ -26,6 +26,7 @@ public class LSP {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bundle_id")
+    @JsonIgnore
     private Bundle bundle;
 
 

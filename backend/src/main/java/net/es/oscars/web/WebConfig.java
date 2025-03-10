@@ -19,7 +19,10 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(@NonNull CorsRegistry registry) {
         if (startupProperties.getStandalone()) {
-            registry.addMapping("/**");
+            registry.addMapping("/**")
+                    .allowedOrigins("*")
+                    .allowedMethods("*")
+                    .allowedHeaders("*");
         }
     }
 }
