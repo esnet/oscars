@@ -17,12 +17,6 @@ stages:
   - test
   - push
 
-workflow:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_PIPELINE_SOURCE == "push"
-    - if: $CI_COMMIT_TAG
-
 .wharf_logout: &wharf_logout |-
   docker logout "$WHARF_SITE"
 
@@ -63,7 +57,7 @@ backend:test:
 
 .backend:push:
   stage: push
-  needs: ["backend:build_image"]
+  needs: ["backend:scan"]
   before_script:
     - *docker_login
     - *wharf_login
@@ -102,7 +96,7 @@ frontend:scan:
 
 .frontend:push:
   stage: push
-  needs: ["frontend:build_image"]
+  needs: ["frontend:scan"]
   before_script:
     - *docker_login
     - *wharf_login
