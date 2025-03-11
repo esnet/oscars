@@ -29,11 +29,11 @@ RUN java -Djarmode=layertools -jar backend.jar extract
 FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:23-alpine
 RUN addgroup -S oscars && adduser -S oscars -G oscars
 RUN mkdir -p /app
-RUN mkdir -p /app/log
 RUN chown oscars -R /app
 
 USER oscars
 WORKDIR /app
+RUN mkdir -p /app/log
 COPY --from=builder /build/backend/dependencies/ ./
 COPY --from=builder /build/backend/spring-boot-loader ./
 COPY --from=builder /build/backend/snapshot-dependencies/ ./

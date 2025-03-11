@@ -40,13 +40,12 @@ RUN --mount=type=cache,target=/root/.m2 mvn test
 FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:23-alpine
 RUN addgroup -S oscars && adduser -S oscars -G oscars
 RUN mkdir -p /app
-RUN mkdir -p /app/config
-RUN mkdir -p /app/log
 RUN chown oscars -R /app
 USER oscars
 
 # for development we copy config
 WORKDIR /app
+RUN mkdir -p /app/log
 COPY ./backend/config ./config
 COPY --from=builder /build/backend/dependencies/ ./
 COPY --from=builder /build/backend/spring-boot-loader ./
@@ -55,6 +54,5 @@ COPY --from=builder /build/backend/application/ ./
 
 # Debugger port
 EXPOSE 9201
-
 # run the application
-ENTRYPOINT sh -c "java $JAVA_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201 org.springframework.boot.loader.launch.JarLauncher"
+ENTRYPOINT sh -c 'java "$JAVA_OPTS" -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201 org.springframework.boot.loader.launch.JarLauncher'
