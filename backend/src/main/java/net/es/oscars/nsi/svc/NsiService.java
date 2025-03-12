@@ -163,6 +163,8 @@ public class NsiService {
                                 result.getErrorCode().toString(),
                                 result.getTvps(),
                                 header.getCorrelationId());
+                        nsiRepo.delete(mapping);
+
                     } catch (WebServiceException | ServiceException cex) {
                         log.error("reserve failed: then callback failed", cex);
                     }
@@ -176,6 +178,8 @@ public class NsiService {
                             NsiErrors.NRM_ERROR.toString(),
                             new ArrayList<>(),
                             header.getCorrelationId());
+                    nsiRepo.delete(mapping);
+
                 } catch (Exception cex) {
                     log.error("reserve failed: then callback failed", cex);
                 }
