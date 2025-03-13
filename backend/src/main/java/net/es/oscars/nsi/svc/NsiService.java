@@ -1358,7 +1358,7 @@ public class NsiService {
 
         TypeValueType tvt = new TypeValueType();
         tvt.setType("oscarsId");
-        tvt.setType(mapping.getOscarsConnectionId());
+        tvt.setValue(mapping.getOscarsConnectionId());
         p2p.getParameter().add(tvt);
 
         VlanFixture a = cmp.getFixtures().get(0);
