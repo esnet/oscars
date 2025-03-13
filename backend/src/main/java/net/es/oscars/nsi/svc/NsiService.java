@@ -1351,16 +1351,24 @@ public class NsiService {
 
     }
 
-
+    /**
+     * Convert an OSCARS connection into an NSI P2PServiceBaseType structure.
+     *
+     * @param cmp This object contains the OSCARS connection components used populate the P2PService structure.
+     * @param mapping This object contains information for mapping between OSCARS and NSI reservations.
+     * @return A populated jaxb P2PServiceBaseType object mapping the internal OSCARS reservation to NSI.
+     */
     public P2PServiceBaseType makeP2P(Components cmp, NsiMapping mapping) {
+        // We need a new objectFactory to generate NSI specific types.  Using factories instead of
+        // new'ing generated types directly is the JAXB pattern.
+        ObjectFactory p2pFactory = new ObjectFactory();
+        net.es.nsi.lib.soap.gen.nsi_2_0.services.types.ObjectFactory typesFactory =
+            new net.es.nsi.lib.soap.gen.nsi_2_0.services.types.ObjectFactory();
 
-        P2PServiceBaseType p2p = new P2PServiceBaseType();
+        // Create the P2P structure we will populate and return.
+        P2PServiceBaseType p2p = p2pFactory.createP2PServiceBaseType();
 
-        TypeValueType tvt = new TypeValueType();
-        tvt.setType("oscarsId");
-        tvt.setType(mapping.getOscarsConnectionId());
-        p2p.getParameter().add(tvt);
-
+        // Map the internal source port to an externally visible NSI STP.
         VlanFixture a = cmp.getFixtures().get(0);
         String srcStp = this.nsiUrnFromInternal(a.getPortUrn()) + "?vlan=" + a.getVlan().getVlanId();
         if (mapping.getSrc() != null) {
@@ -1368,6 +1376,7 @@ public class NsiService {
             srcStp = stpParts[0] + "?vlan=" + a.getVlan().getVlanId();
         }
 
+        // Map the internal destination port to an externally visible NSI STP.
         VlanFixture z = cmp.getFixtures().get(1);
         String dstStp = this.nsiUrnFromInternal(z.getPortUrn()) + "?vlan=" + z.getVlan().getVlanId();
         if (mapping.getDst() != null) {
@@ -1375,6 +1384,7 @@ public class NsiService {
             dstStp = stpParts[0] + "?vlan=" + z.getVlan().getVlanId();
         }
 
+        // Record internal router hops to populate the P2P Explicit Route Object.
         List<String> strEro = new ArrayList<>();
         if (cmp.getPipes() == null || cmp.getPipes().isEmpty()) {
             strEro.add(srcStp);
@@ -1391,22 +1401,32 @@ public class NsiService {
             strEro.add(dstStp);
         }
 
-        StpListType ero = new StpListType();
+        // Create the STP list that will be used to populate the P2P Explicit Route Object.
+        StpListType ero = typesFactory.createStpListType();
         for (int i = 0; i < strEro.size(); i++) {
+            // The STP list is ordered to maintain the ERO path.
             OrderedStpType ostp = new OrderedStpType();
             ostp.setStp(strEro.get(i));
             ostp.setOrder(i);
-
             ero.getOrderedSTP().add(ostp);
-
         }
 
+        // Finish populating the P2P structure with data we have converted.
         p2p.setSourceSTP(srcStp);
         p2p.setDestSTP(dstStp);
         p2p.setCapacity(a.getIngressBandwidth());
         p2p.setEro(ero);
         p2p.setDirectionality(DirectionalityType.BIDIRECTIONAL);
         p2p.setSymmetricPath(true);
+
+        // Lastly we populate the parameters structure with our OSCARS connectionId to
+        // allow of easier debugging and for use in lookups to other systems like
+        // Stardust that do not understand NSI connectionIds.
+        TypeValueType tvt = typesFactory.createTypeValueType();
+        tvt.setType("oscarsId");
+        tvt.setValue(mapping.getOscarsConnectionId());
+        p2p.getParameter().add(tvt);
+
         return p2p;
     }
 
@@ -1439,7 +1459,6 @@ public class NsiService {
             gft.setConnectionStates(this.makeConnectionStates(mapping, null));
 
         }
-
 
         if (event.equals(NsiEvent.RESV_FL)) {
             port.reserveFailed(gft, outHeader);
