@@ -423,37 +423,28 @@ public class NsoProxy {
 
         StringBuilder errorStr = new StringBuilder();
         errorStr.append("esnet-status error\n");
-        final HttpEntity<LiveStatusRequest> entity = new HttpEntity<>(liveStatusRequest);
-
-        ResponseEntity<String> response = restTemplate.exchange(restPath, HttpMethod.POST, entity, String.class);
-        if (response == null) {
-            errorStr.append("null response for ").append(liveStatusRequest.getArgs());
-        } else {
-            if (response.getStatusCode().isError()) {
-                try {
-                    IetfRestconfErrorResponse errorResponse = new ObjectMapper().readValue(response.getBody(), IetfRestconfErrorResponse.class);
-                    for (IetfRestconfErrorResponse.IetfError error : errorResponse.getErrors().getErrorList()) {
-                        errorStr.append(error.getErrorMessage()).append("\n");
-                    }
-                } catch (JsonProcessingException ex) {
-                    errorStr.append("unable to parse response\n");
-                    errorStr.append(response.getBody());
+        final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(liveStatusRequest);
+        // first, try to get a LiveStatusOutput
+        ResponseEntity<LiveStatusOutput> responseEntity = restTemplate.postForEntity(restPath, requestEntity, LiveStatusOutput.class);
+        // if we get an error, try again...
+        if (responseEntity.getStatusCode().isError()) {
+            // but this time, try to deserialize into a IetfRestconfErrorResponse so we can grab the error messages
+            ResponseEntity<IetfRestconfErrorResponse> errorResponse = restTemplate.postForEntity(restPath, requestEntity, IetfRestconfErrorResponse.class);
+            if (errorResponse.getBody() != null) {
+                for (IetfRestconfErrorResponse.IetfError error : errorResponse.getBody().getErrors().getErrorList()) {
+                    errorStr.append(error.getErrorMessage()).append("\n");
                 }
-                return errorStr.toString();
             } else {
-                try {
-                    LiveStatusOutput output = new ObjectMapper().readValue(response.getBody(), LiveStatusOutput.class);
-                    return output.getOutput();
-                } catch (JsonProcessingException ex) {
-                    log.error("unable to parse response: \n"+response.getBody());
-                    errorStr.append("unable to parse response\n");
-                    errorStr.append(response.getBody());
-                }
+                errorStr.append("null error body\n");
+            }
+        } else {
+            if (responseEntity.getBody() != null) {
+                return responseEntity.getBody().getOutput();
+            } else {
+                errorStr.append("null response body\n");
             }
         }
         return errorStr.toString();
-
-
     }
 
 }

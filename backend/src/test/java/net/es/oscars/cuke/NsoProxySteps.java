@@ -14,6 +14,7 @@ import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.sb.nso.LiveStatusOperationalStateCacheManager;
 import net.es.oscars.sb.nso.NsoProxy;
 import net.es.oscars.sb.nso.rest.*;
+import net.es.oscars.web.beans.LiveStatusResponse;
 import net.es.topo.common.dto.nso.IetfRestconfErrorResponse;
 import org.apache.logging.log4j.util.Strings;
 import org.junit.experimental.categories.Category;
@@ -104,21 +105,57 @@ public class NsoProxySteps extends CucumberSteps {
             log.info("expect HTTP Code {}", expectedHttpCode);
             log.info("loading {}", filePath);
 
-            String body = asString(new ClassPathResource(filePath));
             HttpStatusCode httpStatusCode = HttpStatus.valueOf(Integer.parseInt(expectedHttpCode));
             HttpHeaders responseHeaders = new HttpHeaders();
             responseHeaders.add(HttpHeaders.CONTENT_TYPE, "application/yang-data+json");
-            ResponseEntity<String> responseEntity = new ResponseEntity<>(body, responseHeaders, httpStatusCode);
-
             final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(request);
 
-            when(
-                    restTemplate.exchange(
-                            "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
-                            HttpMethod.POST,
-                            requestEntity,
-                            String.class)
-            ).thenReturn(responseEntity);
+            if (httpStatusCode.equals(HttpStatus.OK)) {
+                try {
+                    LiveStatusOutput body = new ObjectMapper().readValue(new ClassPathResource(filePath).getFile(), LiveStatusOutput.class);
+                    ResponseEntity<LiveStatusOutput> responseEntity = new ResponseEntity<>(body, responseHeaders, httpStatusCode);
+                    when(
+                            restTemplate.postForEntity(
+                                    "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
+                                    requestEntity,
+                                    LiveStatusOutput.class)
+                    ).thenReturn(responseEntity);
+
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } else if (httpStatusCode.equals(HttpStatus.BAD_REQUEST)) {
+                try {
+                    // return an empty response with error headers when we mock this...
+                    ResponseEntity<LiveStatusOutput> responseEntity = new ResponseEntity<>(new LiveStatusOutput(), responseHeaders, httpStatusCode);
+                    when(
+                            restTemplate.postForEntity(
+                                    "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
+                                    requestEntity,
+                                    LiveStatusOutput.class)
+                    ).thenReturn(responseEntity);
+
+                    // return the IetfRestconfErrorResponse with error headers when we mock this...
+
+                    IetfRestconfErrorResponse body = new ObjectMapper().readValue(new ClassPathResource(filePath).getFile(), IetfRestconfErrorResponse.class);
+                    ResponseEntity<IetfRestconfErrorResponse> errorResponseEntity = new ResponseEntity<>(body, responseHeaders, httpStatusCode);
+                    when(
+                            restTemplate.postForEntity(
+                                    "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
+                                    requestEntity,
+                                    IetfRestconfErrorResponse.class)
+                    ).thenReturn(errorResponseEntity);
+
+
+
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+
+
+
 
         });
         // we inject our rest template to the NSO proxy component
