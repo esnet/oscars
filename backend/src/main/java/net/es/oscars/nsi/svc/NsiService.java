@@ -1367,7 +1367,7 @@ public class NsiService {
 
         // Create the P2P structure we will populate and return.
         P2PServiceBaseType p2p = p2pFactory.createP2PServiceBaseType();
-
+      
         // Map the internal source port to an externally visible NSI STP.
         VlanFixture a = cmp.getFixtures().get(0);
         String srcStp = this.nsiUrnFromInternal(a.getPortUrn()) + "?vlan=" + a.getVlan().getVlanId();
