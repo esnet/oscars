@@ -155,8 +155,6 @@ public class NsiService {
                     }
 
                 } else {
-                    // delete the mapping as this failed
-                    nsiRepo.delete(mapping);
                     log.error("error reserving");
                     nsiStateEngine.reserve(NsiEvent.RESV_FL, mapping);
                     try {
@@ -165,6 +163,8 @@ public class NsiService {
                                 result.getErrorCode().toString(),
                                 result.getTvps(),
                                 header.getCorrelationId());
+                        nsiRepo.delete(mapping);
+
                     } catch (WebServiceException | ServiceException cex) {
                         log.error("reserve failed: then callback failed", cex);
                     }
@@ -172,13 +172,14 @@ public class NsiService {
             } catch (Exception ex) {
                 log.error("Internal error: " + ex.getMessage(), ex);
                 try {
-                    nsiRepo.delete(mapping);
                     nsiStateEngine.reserve(NsiEvent.RESV_FL, mapping);
                     this.errCallback(NsiEvent.RESV_FL, mapping,
                             "Internal error",
                             NsiErrors.NRM_ERROR.toString(),
                             new ArrayList<>(),
                             header.getCorrelationId());
+                    nsiRepo.delete(mapping);
+
                 } catch (Exception cex) {
                     log.error("reserve failed: then callback failed", cex);
                 }
@@ -648,9 +649,6 @@ public class NsiService {
                 qrrt.setResultId(resultId);
                 qrct.getReservation().add(qrrt);
                 resultId++;
-            } else {
-//                log.info("will delete an invalid nsi mapping for " + mapping.getNsiConnectionId() + " - " + mapping.getOscarsConnectionId());
-//                invalidMappings.add(mapping);
             }
 
         }
@@ -696,9 +694,6 @@ public class NsiService {
                 qsrt.setResultId(resultId);
                 qsct.getReservation().add(qsrt);
                 resultId++;
-//            } else {
-//                log.info("will delete an invalid nsi mapping for " + mapping.getNsiConnectionId() + " - " + mapping.getOscarsConnectionId());
-//                invalidMappings.add(mapping);
             }
         }
         nsiRepo.deleteAll(invalidMappings);

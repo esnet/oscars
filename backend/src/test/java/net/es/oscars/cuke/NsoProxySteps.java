@@ -26,6 +26,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.util.FileCopyUtils;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -34,6 +35,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -104,7 +106,9 @@ public class NsoProxySteps extends CucumberSteps {
 
             String body = asString(new ClassPathResource(filePath));
             HttpStatusCode httpStatusCode = HttpStatus.valueOf(Integer.parseInt(expectedHttpCode));
-            ResponseEntity<String> responseEntity = new ResponseEntity<>(body, httpStatusCode);
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.add(HttpHeaders.CONTENT_TYPE, "application/yang-data+json");
+            ResponseEntity<String> responseEntity = new ResponseEntity<>(body, responseHeaders, httpStatusCode);
 
             final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(request);
 
