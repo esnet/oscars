@@ -166,8 +166,11 @@ public class LiveStatusOperationalStateCacheManager {
         if (tmp == null) {
             // nothing cached - get refreshed SDPs
             tmp = getRefreshedSdp(device, serviceId);
-            if (tmp == null) return null;
-            else return tmp;
+            if (tmp == null) {
+                return null;
+            } else {
+                return tmp;
+            }
         }
 
         // check all timestamps and update if one is older than olderThanTimestamp

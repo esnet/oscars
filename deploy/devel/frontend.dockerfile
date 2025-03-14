@@ -1,4 +1,4 @@
-FROM node:19-alpine as builder
+FROM wharf.es.net/dockerhub-proxy/library/node:19-alpine as builder
 
 WORKDIR /app
 ENV REACT_APP_VERSION 10

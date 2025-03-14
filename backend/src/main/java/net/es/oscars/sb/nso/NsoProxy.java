@@ -22,7 +22,6 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
-import net.es.oscars.web.beans.LiveStatusResponse;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 import net.es.topo.common.dto.nso.enums.NsoService;
@@ -426,77 +425,73 @@ public class NsoProxy {
 
         StringBuilder errorStr = new StringBuilder();
         errorStr.append("esnet-status error\n");
-        final HttpEntity<LiveStatusRequest> entity = new HttpEntity<>(liveStatusRequest);
-
-        ResponseEntity<String> response = restTemplate.exchange(restPath, HttpMethod.POST, entity, String.class);
-        if (response == null) {
-            errorStr.append("null response for ").append(liveStatusRequest.getArgs());
-        } else {
-            if (response.getStatusCode().isError()) {
-                try {
-                    IetfRestconfErrorResponse errorResponse = new ObjectMapper().readValue(response.getBody(), IetfRestconfErrorResponse.class);
-                    for (IetfRestconfErrorResponse.IetfError error : errorResponse.getErrors().getErrorList()) {
-                        errorStr.append(error.getErrorMessage()).append("\n");
-                    }
-                } catch (JsonProcessingException ex) {
-                    errorStr.append("unable to parse response\n");
-                    errorStr.append(response.getBody());
-                }
-                return errorStr.toString();
+        final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(liveStatusRequest);
+        // first, try to get a LiveStatusOutput
+        try {
+            ResponseEntity<LiveStatusOutput> responseEntity = restTemplate.postForEntity(restPath, requestEntity, LiveStatusOutput.class);
+            if (responseEntity.getBody() != null) {
+                return responseEntity.getBody().getOutput();
             } else {
-                try {
-                    LiveStatusOutput output = new ObjectMapper().readValue(response.getBody(), LiveStatusOutput.class);
-                    return output.getOutput();
-                } catch (JsonProcessingException ex) {
-                    log.error("unable to parse response: \n"+response.getBody());
-                    errorStr.append("unable to parse response\n");
-                    errorStr.append(response.getBody());
+                errorStr.append("null response body\n");
+            }
+        } catch (RestClientException ex) {
+            // if we get an exception, the underlying exception could be a HttpMessageNotReadableException
+            // because the actual response is an IetfRestconfErrorResponse
+
+            // we try again, but this time, try to deserialize into that class so we can grab the error messages
+            ResponseEntity<IetfRestconfErrorResponse> errorResponse = restTemplate.postForEntity(restPath, requestEntity, IetfRestconfErrorResponse.class);
+            if (errorResponse.getBody() != null) {
+                for (IetfRestconfErrorResponse.IetfError error : errorResponse.getBody().getErrors().getErrorList()) {
+                    errorStr.append(error.getErrorMessage()).append("\n");
                 }
+            } else {
+                errorStr.append("null error body\n");
             }
         }
+
         return errorStr.toString();
     }
 
 
-
-    public NsoVplsResponse getVpls() throws JsonProcessingException {
-        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS);
-        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
-    }
-
-
-    public NsoLspResponse getLsps() throws JsonProcessingException {
-        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP);
-        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
-    }
-
-
-    public FromNsoServiceConfig getNsoServiceConfig(NsoService service) {
-        log.info("get service config START %s ".formatted(service));
-
-        String path = switch (service) {
-            case VPLS -> "/esnet-vpls:vpls";
-            case LSP -> "/esnet-lsp:lsp";
-            default -> null;
-        };
-
-        FromNsoServiceConfig result = FromNsoServiceConfig.builder()
-                .service(service)
-                .successful(false)
-                .build();
-        String req = "data/tailf-ncs:services%s".formatted(path);
-        String restPath = props.getUri() + req;
-        String response = restTemplate.getForObject(restPath, String.class);
-        // DevelUtils.dumpDebug("get-nso-service", response);
-
-        if (response != null) {
-            result.setConfig(response);
-            result.setSuccessful(true);
-            log.debug("%s: get service COMPLETE ".formatted(service.toString()));
-        } else {
-            log.warn("%s: get config FAILED ".formatted(service.toString()));
-        }
-        return result;
-    }
+//
+//    public NsoVplsResponse getVpls() throws JsonProcessingException {
+//        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS);
+//        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
+//    }
+//
+//
+//    public NsoLspResponse getLsps() throws JsonProcessingException {
+//        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP);
+//        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
+//    }
+//
+//
+//    public FromNsoServiceConfig getNsoServiceConfig(NsoService service) {
+//        log.info("get service config START %s ".formatted(service));
+//
+//        String path = switch (service) {
+//            case VPLS -> "/esnet-vpls:vpls";
+//            case LSP -> "/esnet-lsp:lsp";
+//            default -> null;
+//        };
+//
+//        FromNsoServiceConfig result = FromNsoServiceConfig.builder()
+//                .service(service)
+//                .successful(false)
+//                .build();
+//        String req = "data/tailf-ncs:services%s".formatted(path);
+//        String restPath = props.getUri() + req;
+//        String response = restTemplate.getForObject(restPath, String.class);
+//        // DevelUtils.dumpDebug("get-nso-service", response);
+//
+//        if (response != null) {
+//            result.setConfig(response);
+//            result.setSuccessful(true);
+//            log.debug("%s: get service COMPLETE ".formatted(service.toString()));
+//        } else {
+//            log.warn("%s: get config FAILED ".formatted(service.toString()));
+//        }
+//        return result;
+//    }
 
 }

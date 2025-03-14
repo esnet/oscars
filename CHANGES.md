@@ -1,5 +1,10 @@
 # OSCARS Release Notes
 
+### 1.2.22
+> Mar 2025
+- OS-391: NsoProxy.getLiveStatusShow() refactored to call NSO service endpoint at `restconf/data/esnet-status:esnet-status/nokia-show` with JSON payload string. Bug fix to handle HTTP POST response that may be LiveStatusOutput or IetfRestconfErrorResponse. 
+- OS-391: Added happy and unhappy path tests for NsoProxy.getLiveStatusShow().
+- 
 ### 1.2.21
 > Feb 2025
 - OS-417: misc hotfixes

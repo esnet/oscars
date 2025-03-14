@@ -1,4 +1,4 @@
-image: docker:24.0.6
+image: wharf.es.net/dockerhub-proxy/library/docker:24.0.6
 
 variables:
   DOCKER_DRIVER: overlay2
@@ -16,10 +16,6 @@ stages:
   - build
   - test
   - push
-
-workflow:
-  rules:
-    - if: $CI_PIPELINE_SOURCE != "merge_request_event"
 
 .wharf_logout: &wharf_logout |-
   docker logout "$WHARF_SITE"
@@ -61,7 +57,7 @@ backend:test:
 
 .backend:push:
   stage: push
-  needs: ["backend:build_image"]
+  needs: ["backend:scan", "backend:test"]
   before_script:
     - *docker_login
     - *wharf_login
@@ -100,7 +96,7 @@ frontend:scan:
 
 .frontend:push:
   stage: push
-  needs: ["frontend:build_image"]
+  needs: ["frontend:scan"]
   before_script:
     - *docker_login
     - *wharf_login
