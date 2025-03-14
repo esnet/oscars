@@ -424,10 +424,15 @@ public class NsoProxy {
         StringBuilder errorStr = new StringBuilder();
         errorStr.append("esnet-status error\n");
         final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(liveStatusRequest);
-        // first, try to get a LiveStatusOutput
-        ResponseEntity<LiveStatusOutput> responseEntity = restTemplate.postForEntity(restPath, requestEntity, LiveStatusOutput.class);
-        // if we get an error, try again...
-        if (responseEntity.getStatusCode().isError()) {
+        // first, try to get a
+        try {
+            ResponseEntity<LiveStatusOutput> responseEntity = restTemplate.postForEntity(restPath, requestEntity, LiveStatusOutput.class);
+            if (responseEntity.getBody() != null) {
+                return responseEntity.getBody().getOutput();
+            } else {
+                errorStr.append("null response body\n");
+            }
+        } catch (RestClientException ex) {
             // but this time, try to deserialize into a IetfRestconfErrorResponse so we can grab the error messages
             ResponseEntity<IetfRestconfErrorResponse> errorResponse = restTemplate.postForEntity(restPath, requestEntity, IetfRestconfErrorResponse.class);
             if (errorResponse.getBody() != null) {
@@ -437,13 +442,8 @@ public class NsoProxy {
             } else {
                 errorStr.append("null error body\n");
             }
-        } else {
-            if (responseEntity.getBody() != null) {
-                return responseEntity.getBody().getOutput();
-            } else {
-                errorStr.append("null response body\n");
-            }
         }
+
         return errorStr.toString();
     }
 

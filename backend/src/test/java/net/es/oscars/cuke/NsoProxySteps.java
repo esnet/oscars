@@ -56,11 +56,6 @@ public class NsoProxySteps extends CucumberSteps {
     @Autowired
     LiveStatusOperationalStateCacheManager liveStatusOperationalStateCacheManager;
 
-    @Mock
-    RestTemplate restTemplate;
-
-    private NsoProperties nsoProps;
-
     String liveStatus = "";
     RestClientException restClientException;
 
@@ -70,108 +65,12 @@ public class NsoProxySteps extends CucumberSteps {
     ArrayList<LiveStatusSdpResult> sdpResults;
     ArrayList<LiveStatusLspResult> lspResults;
 
-
-
-    @Before("@NsoProxySteps")
-    public void before() throws Exception{
-        log.info("---------- NsoProxySteps.java before");
-
-        restTemplate = mock(RestTemplate.class);
-
-        // For testing only: the map key be composed of
-        // the device ID, the NSO command, and the expected HTTP Status code.
-        // This is a simple testing jig, and is done this way to simplify
-        // test setup here.
-
-        Map<String, String> argToResponseFilePath = Map.of(
-                "loc1-cr6:router mpls lsp:200", "http/nso.esnet-status.nokia-show.router-mpls-lsp.response.json",
-                "loc1-cr6:service id 7115 sdp:200", "http/nso.esnet-status.nokia-show.service-sdp.response.json",
-                "loc1-cr6:service id 7115 sap:200", "http/nso.esnet-status.nokia-show.service-sap.response.json",
-                "loc1-cr6:service fdb-info:200", "http/nso.esnet-status.nokia-show.service-fdb-info.response.json",
-                "loc1-cr6:service id 7093 fdb detail:200", "http/nso.esnet-status.nokia-show.service-fdb-detail.response.json",
-                "does-not-exist-cr123:service fdb-info:400", "http/nso.esnet-status.nokia.missing-device.response.json",
-                "loc1-cr6:service id 1111 sdp:200", "http/nso.esnet-status.nokia.empty.response.json"
-        );
-        argToResponseFilePath.forEach((command, filePath) -> {
-            String[] argParts = command.split(":");
-            String deviceId = argParts[0];
-            String cmd = argParts[1];
-            String expectedHttpCode = argParts[2];
-
-            LiveStatusRequest request = new LiveStatusRequest(deviceId, cmd);
-
-            log.info("for device {}", deviceId);
-            log.info("for command {}", cmd);
-            log.info("expect HTTP Code {}", expectedHttpCode);
-            log.info("loading {}", filePath);
-
-            HttpStatusCode httpStatusCode = HttpStatus.valueOf(Integer.parseInt(expectedHttpCode));
-            HttpHeaders responseHeaders = new HttpHeaders();
-            responseHeaders.add(HttpHeaders.CONTENT_TYPE, "application/yang-data+json");
-            final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(request);
-
-            if (httpStatusCode.equals(HttpStatus.OK)) {
-                try {
-                    LiveStatusOutput body = new ObjectMapper().readValue(new ClassPathResource(filePath).getFile(), LiveStatusOutput.class);
-                    ResponseEntity<LiveStatusOutput> responseEntity = new ResponseEntity<>(body, responseHeaders, httpStatusCode);
-                    when(
-                            restTemplate.postForEntity(
-                                    "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
-                                    requestEntity,
-                                    LiveStatusOutput.class)
-                    ).thenReturn(responseEntity);
-
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            } else if (httpStatusCode.equals(HttpStatus.BAD_REQUEST)) {
-                try {
-                    // return an empty response with error headers when we mock this...
-                    ResponseEntity<LiveStatusOutput> responseEntity = new ResponseEntity<>(new LiveStatusOutput(), responseHeaders, httpStatusCode);
-                    when(
-                            restTemplate.postForEntity(
-                                    "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
-                                    requestEntity,
-                                    LiveStatusOutput.class)
-                    ).thenReturn(responseEntity);
-
-                    // return the IetfRestconfErrorResponse with error headers when we mock this...
-
-                    IetfRestconfErrorResponse body = new ObjectMapper().readValue(new ClassPathResource(filePath).getFile(), IetfRestconfErrorResponse.class);
-                    ResponseEntity<IetfRestconfErrorResponse> errorResponseEntity = new ResponseEntity<>(body, responseHeaders, httpStatusCode);
-                    when(
-                            restTemplate.postForEntity(
-                                    "http://localhost:8080/restconf/data/esnet-status:esnet-status/nokia-show",
-                                    requestEntity,
-                                    IetfRestconfErrorResponse.class)
-                    ).thenReturn(errorResponseEntity);
-
-
-
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-
-            }
-
-
-
-
-        });
-        // we inject our rest template to the NSO proxy component
-
-        proxy.setRestTemplate(restTemplate);
-
-    }
-
     @When("^The getLiveStatusShow method is called with device \"([^\"]*)\" and arguments \"([^\"]*)\"$")
     public void theGetLiveStatusShowMethodIsCalledWithDeviceAndArguments(String arg0, String arg1) {
         LiveStatusRequest liveStatusRequest = new LiveStatusRequest(arg0, arg1);
         liveStatus = proxy.getLiveStatusShow(liveStatusRequest);
         log.info(liveStatus);
     }
-
-
 
     @Then("The resulting esnet-status response is not empty")
     public void theResultingESNetStatusReportMatchesTheALUNEDFormat() {
