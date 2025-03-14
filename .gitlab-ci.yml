@@ -57,7 +57,7 @@ backend:test:
 
 .backend:push:
   stage: push
-  needs: ["backend:scan"]
+  needs: ["backend:scan", "backend:test"]
   before_script:
     - *docker_login
     - *wharf_login
