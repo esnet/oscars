@@ -20,7 +20,6 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
-import net.es.oscars.web.beans.LiveStatusResponse;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -424,7 +423,7 @@ public class NsoProxy {
         StringBuilder errorStr = new StringBuilder();
         errorStr.append("esnet-status error\n");
         final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(liveStatusRequest);
-        // first, try to get a
+        // first, try to get a LiveStatusOutput
         try {
             ResponseEntity<LiveStatusOutput> responseEntity = restTemplate.postForEntity(restPath, requestEntity, LiveStatusOutput.class);
             if (responseEntity.getBody() != null) {
@@ -433,7 +432,10 @@ public class NsoProxy {
                 errorStr.append("null response body\n");
             }
         } catch (RestClientException ex) {
-            // but this time, try to deserialize into a IetfRestconfErrorResponse so we can grab the error messages
+            // if we get an exception, the underlying exception could be a HttpMessageNotReadableException
+            // because the actual response is an IetfRestconfErrorResponse
+
+            // we try again, but this time, try to deserialize into that class so we can grab the error messages
             ResponseEntity<IetfRestconfErrorResponse> errorResponse = restTemplate.postForEntity(restPath, requestEntity, IetfRestconfErrorResponse.class);
             if (errorResponse.getBody() != null) {
                 for (IetfRestconfErrorResponse.IetfError error : errorResponse.getBody().getErrors().getErrorList()) {
