@@ -12,7 +12,7 @@ import org.junit.experimental.categories.Category;
 public class NsoStateSyncerSteps extends CucumberSteps {
 
     @Given("The NSO VPLS service state is loaded")
-    public void TheNSOVPLSServiceStateIsLoaded() throws Throwable {
+    public void theNSOVPLSServiceStateIsLoaded() throws Throwable {
         // STUB
     }
 
@@ -22,7 +22,7 @@ public class NsoStateSyncerSteps extends CucumberSteps {
     }
 
     @Given("The list of active OSCARS connections are loaded from {string}")
-    public void TheListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) {
+    public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) {
         // STUB
     }
 
@@ -52,6 +52,11 @@ public class NsoStateSyncerSteps extends CucumberSteps {
         // STUB
     }
 
+    @When("I apply VPLS service patch from {string}")
+    public void iApplyVPLSServicePatchFrom(String arg0) {
+        // STUB
+    }
+
     @Then("VPLS {string} is marked as {string}")
     public void vplsIsMarkedAs(String arg0, String arg1) {
         // STUB
@@ -75,6 +80,11 @@ public class NsoStateSyncerSteps extends CucumberSteps {
 
     @Then("The VPLS instance {string} matches {string}")
     public void theVPLSInstanceMatches(String arg0, String arg1) {
-        //
+        // STUB
+    }
+
+    @Then("The list of VPLS service instances equals {string}")
+    public void theListOfVPLSServiceInstancesEquals(String arg0) {
+        // STUB
     }
 }
