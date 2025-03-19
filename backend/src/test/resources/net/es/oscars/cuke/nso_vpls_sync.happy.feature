@@ -14,7 +14,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Given The NSO VPLS service state has 139 instances
 
 
-    # All the various evaluation functions live in NsoStateSyncer
+    # All the various evaluation functions live in NsoVplsStateSyncer
 
     # AAAA should NOT exist, mark as add
     Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
@@ -46,7 +46,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     # Evaluate AAAA and AAA2, sync should add both.
     When I evaluate VPLS "AAAA"
     When I evaluate VPLS "AAA2"
-    Then The list of VPLS service instances marked "add" equals "http/nso.esnet-vpls.add-these-2.json"
+    Then The list of VPLS service instances marked "add" equals "http/nso.esnet-vpls.add-these.json"
 
     # Evaluate BBBB and BBB2, sync should delete both
     When I evaluate VPLS "BBBB"
