@@ -5,10 +5,10 @@ Feature: synchronize NSO service state to OSCARS state (Unhappy Path)
   # Unhappy path
   Scenario: Read NSO VPLS service state, make decisions about add / delete / redeploy (Unhappy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-unhappy.json"
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.unhappy.json"
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 139 instances
-    
+
     # AAAA does not exist! Attempt to add, but CANNOT. Exception thrown.
     Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
     When I evaluate VPLS "AAAA"
@@ -32,7 +32,7 @@ Feature: synchronize NSO service state to OSCARS state (Unhappy Path)
   # Unhappy path
   Scenario: Read NSO VPLS service state, make decisions about multiple add / delete / redeploys (Unhappy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-unhappy.json"
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.unhappy.json"
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 139 instances
 
@@ -87,7 +87,7 @@ Feature: synchronize NSO service state to OSCARS state (Unhappy Path)
   # Unhappy path
   Scenario: Modify NSO VPLS service state with single adds (Unhappy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-with-add-unhappy.json"
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-with-add.unhappy.json"
     Given The NSO VPLS service state is loaded
 
     # Add the VPLS "AAA2" to service state without it, but it CANNOT. Exception thrown.
@@ -103,7 +103,7 @@ Feature: synchronize NSO service state to OSCARS state (Unhappy Path)
   # Unhappy path
   Scenario: Modify NSO VPLS service state with single deletes (Unhappy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-with-delete-unhappy.json"
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-with-delete.unhappy.json"
     Given The NSO VPLS service state is loaded
 
     # Delete the VPLS "BBBB", but CANNOT. Exception thrown.
@@ -114,7 +114,7 @@ Feature: synchronize NSO service state to OSCARS state (Unhappy Path)
   # Unhappy path
   Scenario: Modify NSO VPLS service state with mismatch for single redeploys (Unhappy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-with-mismatch-unhappy.json"
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-with-mismatch.unhappy.json"
     Given The NSO VPLS service state is loaded
 
     # Redeploy the VPLS "CCCC", but CANNOT. Exception thrown.
@@ -125,7 +125,7 @@ Feature: synchronize NSO service state to OSCARS state (Unhappy Path)
   # Unhappy path
   Scenario: Modify NSO VPLS service state without mismatch for single no-op (Unhappy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-unhappy.json"
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.unhappy.json"
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 139 instances
 
@@ -137,10 +137,10 @@ Feature: synchronize NSO service state to OSCARS state (Unhappy Path)
   # Unhappy path
   Scenario: Batch modify NSO VPLS service state with a big patch that applies one add, one delete, one redeploy all together (Unhappy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.unhappy.json"
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 139 instances
 
     # Apply batch operations as a patch, but CANNOT. Exception thrown.
-    When I apply VPLS service patch from "http/nso.esnet-vpls.vpls-patch-unhappy.json"
+    When I apply VPLS service patch from "http/nso.esnet-vpls.vpls-patch.unhappy.json"
     Then I did receive an exception
