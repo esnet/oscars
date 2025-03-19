@@ -1,19 +1,34 @@
 package net.es.oscars.sb.nso;
 
-
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+
+@Getter
+@Setter
 @Slf4j
 @Component
-public abstract class NsoStateSyncer {
+public abstract class NsoStateSyncer<T> {
     public enum State {
         NOOP,
         ADD,
         DELETE,
         REDEPLOY
     }
+
+    private boolean isLoaded = false;
+    private boolean isDirty = false;
+    private boolean isSynchronized = false;
+
+    private List<T> localState;
+    private List<T> remoteState;
+
     /**
      * Loads the NSO service state data from the specified path.
      * @param path The URI path to the API endpoint to load.
@@ -34,10 +49,10 @@ public abstract class NsoStateSyncer {
      * Evaluate the current state of the specified ID against the loaded NSO state data.
      * Should automatically mark the ID as one of "add", "delete", "redeploy", or "no-op".
      * @param id The ID to evaluate against the loaded NSO service state.
-     * @return State Return the NsoStateSyncer.State enum result.
+     * @return NsoStateSyncer.State Return the NsoStateSyncer.State enum result.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
-    public abstract State evaluate(String id) throws NsoStateSyncerException;
+    public abstract NsoStateSyncer.State evaluate(String id) throws NsoStateSyncerException;
 
     /**
      * Mark the specified ID as "add".

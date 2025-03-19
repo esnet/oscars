@@ -5,15 +5,26 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
+import net.es.oscars.sb.nso.NsoStateSyncer;
+import net.es.oscars.sb.nso.NsoVplsStateSyncer;
 import org.junit.experimental.categories.Category;
 
 @Slf4j
 @Category({UnitTests.class})
-public class NsoStateSyncerSteps extends CucumberSteps {
+public class NsoVplsStateSyncerSteps extends CucumberSteps {
+    NsoVplsStateSyncer syncer;
+
+    @Given("The list of active OSCARS connections are loaded from {string}")
+    public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) {
+        // STUB
+        syncer = new NsoVplsStateSyncer();
+        syncer.load(arg0);
+    }
 
     @Given("The NSO VPLS service state is loaded")
     public void theNSOVPLSServiceStateIsLoaded() throws Throwable {
         // STUB
+
     }
 
     @Given("The NSO VPLS service state has {int} instances")
@@ -21,10 +32,7 @@ public class NsoStateSyncerSteps extends CucumberSteps {
         // STUB
     }
 
-    @Given("The list of active OSCARS connections are loaded from {string}")
-    public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) {
-        // STUB
-    }
+
 
     @Given("The VPLS instance {string} is present in the NSO VPLS service state")
     public void theVPLSInstanceIsPresentInTheNSOVPLSServiceState(String arg0) {
@@ -114,5 +122,6 @@ public class NsoStateSyncerSteps extends CucumberSteps {
     @Then("The list of VPLS service instances equals {string}")
     public void theListOfVPLSServiceInstancesEquals(String arg0) {
         // STUB
+
     }
 }
