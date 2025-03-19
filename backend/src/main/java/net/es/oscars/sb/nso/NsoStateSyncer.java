@@ -7,6 +7,7 @@ import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import org.springframework.stereotype.Component;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +36,7 @@ public abstract class NsoStateSyncer<T> {
      * @return True if successful, False otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
-    public abstract boolean load(String path) throws NsoStateSyncerException;
+    public abstract boolean load(URI path) throws NsoStateSyncerException;
 
     /**
      * Synchronize current service state to the specified API endpoint.
@@ -43,7 +44,7 @@ public abstract class NsoStateSyncer<T> {
      * @return True if successful, False otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
-    public abstract boolean sync(String path) throws NsoStateSyncerException;
+    public abstract boolean sync(URI path) throws NsoStateSyncerException;
 
     /**
      * Evaluate the current state of the specified ID against the loaded NSO state data.

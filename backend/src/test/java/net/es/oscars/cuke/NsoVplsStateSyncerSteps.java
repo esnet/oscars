@@ -9,16 +9,20 @@ import net.es.oscars.sb.nso.NsoStateSyncer;
 import net.es.oscars.sb.nso.NsoVplsStateSyncer;
 import org.junit.experimental.categories.Category;
 
+import java.net.URI;
+import java.net.URL;
+
 @Slf4j
 @Category({UnitTests.class})
 public class NsoVplsStateSyncerSteps extends CucumberSteps {
     NsoVplsStateSyncer syncer;
 
     @Given("The list of active OSCARS connections are loaded from {string}")
-    public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) {
+    public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) throws Throwable {
         // STUB
         syncer = new NsoVplsStateSyncer();
-        syncer.load(arg0);
+        URL url = ClassLoader.getSystemResource(arg0);
+        syncer.load(url.toURI());
     }
 
     @Given("The NSO VPLS service state is loaded")
@@ -28,19 +32,19 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     }
 
     @Given("The NSO VPLS service state has {int} instances")
-    public void theNSOVPLSServiceStateHasInstances(int arg0) {
+    public void theNSOVPLSServiceStateHasInstances(int arg0) throws Throwable {
         // STUB
     }
 
 
 
     @Given("The VPLS instance {string} is present in the NSO VPLS service state")
-    public void theVPLSInstanceIsPresentInTheNSOVPLSServiceState(String arg0) {
+    public void theVPLSInstanceIsPresentInTheNSOVPLSServiceState(String arg0) throws Throwable {
         // STUB
     }
 
     @Given("The VPLS instance {string} is not present in the NSO VPLS service state")
-    public void theVPLSInstanceIsNotPresentInTheNSOVPLSServiceState(String arg0) {
+    public void theVPLSInstanceIsNotPresentInTheNSOVPLSServiceState(String arg0) throws Throwable {
         // STUB
     }
 
