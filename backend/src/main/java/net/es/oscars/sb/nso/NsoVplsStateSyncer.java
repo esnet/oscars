@@ -7,6 +7,15 @@ import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.List;
 
+/**
+ * NSO VPLS State Synchronizer.
+ * We create a List of Dictionary objects where
+ *  - The dictionary key is the NsoVPLS object
+ *  - The value is the NsoStateSyncer.State enum value.
+ *
+ * @author aalbino
+ * @since 1.2.23
+ */
 public class NsoVplsStateSyncer extends NsoStateSyncer<Dictionary<NsoVPLS, NsoStateSyncer.State>> {
 
     public NsoVplsStateSyncer() {
