@@ -1,7 +1,10 @@
 @NsoVplsSyncSteps
-Feature: synchronize NSO service state to OSCARS state (Happy Path)
+Feature: Synchronize NSO service state to OSCARS state (Happy Path)
 
-  I want to verify that NSO service state is synchronized to the OSCARS state (Happy Path)
+  I want to verify that NSO service state is synchronized to the OSCARS state (Happy Path).
+  Evaluation mechanism should automatically mark VPLS as one of "add", "delete", "redeploy", or "no-op".
+
+  Evaluate -> Mark -> Synchronize.
 
   # Happy path
   Scenario: Read NSO VPLS service state, make decisions about add / delete / redeploy (Happy Path)
@@ -13,7 +16,7 @@ Feature: synchronize NSO service state to OSCARS state (Happy Path)
 
     # All the various evaluation functions live in NsoStateSyncer
 
-    # AAAA should not exist, mark as add
+    # AAAA should NOT exist, mark as add
     Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
     When I evaluate VPLS "AAAA"
     Then VPLS "AAAA" is marked as "add"
@@ -23,11 +26,12 @@ Feature: synchronize NSO service state to OSCARS state (Happy Path)
     When I evaluate VPLS "BBBB"
     Then VPLS "BBBB" is marked as "delete"
 
-    # CCCC should exist, but is mismatched with our copy of CCCC, mark for redeploy
+    # CCCC should exist and IS in sync with NSO state, mark for redeploy
+    Given The VPLS instance "CCCC" is present in the NSO VPLS service state
     When I evaluate VPLS "CCCC"
     Then VPLS "CCCC" is marked as "redeploy"
 
-    # DDDD should exist, mark for no-op
+    # DDDD should exist and IS NOT in sync with NSO state, mark for no-op
     Given The VPLS instance "DDDD" is present in the NSO VPLS service state
     When I evaluate VPLS "DDDD"
     Then VPLS "DDDD" is marked as "no-op"
@@ -66,17 +70,15 @@ Feature: synchronize NSO service state to OSCARS state (Happy Path)
     Given The NSO VPLS service state is loaded
 
     # Add the VPLS "AAAA" to service state without it, should be an "add" operation
-    Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
-    When I add VPLS instance "AAAA"
-    When I evaluate VPLS "AAAA"
-    Then VPLS "AAAA" is marked as "add"
+    Given The VPLS instance "AAA2" is not present in the NSO VPLS service state
+    When I add VPLS instance "AAA2"
+    Then VPLS "AAA2" is marked as "add"
     Then The NSO VPLS service is synchronized
     Then The NSO VPLS service state now has 140 instances
 
     # VPLS "AAAA" already exists, adding it again should be a "no-op"
     Given The VPLS instance "AAAA" is present in the NSO VPLS service state
     When I add VPLS instance "AAAA"
-    When I evaluate VPLS "AAAA"
     Then VPLS "AAAA" is marked as "no-op"
     Then The NSO VPLS service is synchronized
     Then The NSO VPLS service state now has 140 instances
@@ -91,7 +93,6 @@ Feature: synchronize NSO service state to OSCARS state (Happy Path)
     # Delete the VPLS "BBBB"
     Given The VPLS instance "BBBB" is present in the NSO VPLS service state
     When I delete VPLS instance "BBBB"
-    When I evaluate VPLS "BBBB"
     Then VPLS "BBBB" is marked as "delete"
     Then The NSO VPLS service is synchronized
     Then The NSO VPLS service state now has 139 instances
@@ -101,26 +102,27 @@ Feature: synchronize NSO service state to OSCARS state (Happy Path)
     Given I have initialized the world
     Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-with-mismatch.json"
     Given The NSO VPLS service state is loaded
+
+    # Redeploy the VPLS "CCCC"
     Given The VPLS instance "CCCC" is present in the NSO VPLS service state
-
-    When I evaluate VPLS "CCCC"
-
+    When I redeploy VPLS instance "CCCC"
     Then VPLS "CCCC" is marked as "redeploy"
-
     Then The NSO VPLS service is synchronized
     Then The VPLS instance "CCCC" matches "http/nso.esnet-vpls.connections-with-syncd-CCCC.json"
 
   # Happy path
-  Scenario: Modify NSO VPLS service state without mismatch for single redeploys (Happy Path)
+  Scenario: Modify NSO VPLS service state without mismatch for single no-op (Happy Path)
     Given I have initialized the world
     Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 139 instances
-    Given The VPLS instance "CCCC" is present in the NSO VPLS service state
-    When I evaluate VPLS "CCCC"
-    Then VPLS "CCCC" is marked as "no-op"
+
+    # No-op the VPLS "DDDD"
+    Given The VPLS instance "DDDD" is present in the NSO VPLS service state
+    When I no-op VPLS "DDDD"
+    Then VPLS "DDDD" is marked as "no-op"
     Then The NSO VPLS service is synchronized
-    Then The VPLS instance "CCCC" matches "http/nso.esnet-vpls.connections-with-syncd-CCCC.json"
+    Then The VPLS instance "DDDD" matches "http/nso.esnet-vpls.connections-with-syncd-DDD.json"
 
 
   # Happy path
@@ -130,6 +132,7 @@ Feature: synchronize NSO service state to OSCARS state (Happy Path)
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 139 instances
 
+    # Apply batch operations as a patch.
     When I apply VPLS service patch from "http/nso.esnet-vpls.vpls-patch.json"
 
     Then VPLS "AAAA" is marked as "add"

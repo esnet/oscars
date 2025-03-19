@@ -37,19 +37,47 @@ public class NsoStateSyncerSteps extends CucumberSteps {
     }
 
 
+    /**
+     * Evaluate one or more VPLS IDs
+     * @param arg0 One or more comma-delimited VPLS IDs
+     */
     @When("I evaluate VPLS {string}")
     public void iEvaluateVPLS(String arg0) {
         // STUB
     }
 
+    /**
+     * Mark one or more VPLS IDs for add
+     * @param arg0 One or more comma-delimited VPLS IDs
+     */
     @When("I add VPLS instance {string}")
     public void iAddVPLSInstance(String arg0) {
         // STUB
     }
-
+    /**
+     * Mark one or more VPLS IDs for delete
+     * @param arg0 One or more comma-delimited VPLS IDs
+     */
     @When("I delete VPLS instance {string}")
     public void iDeleteVPLSInstance(String arg0) {
         // STUB
+    }
+
+    /**
+     * Mark one or more VPLS IDs for re-deploy
+     * @param arg0 One or more comma-delimited VPLS IDs
+     */
+    @When("I redeploy VPLS instance {string}")
+    public void iRedeployVPLSInstance(String arg0) {
+        // STUB
+    }
+
+    /**
+     * Mark one or more VPLS IDs as no-op
+     * @param arg0 One or more comma-delimited VPLS IDs
+     */
+    @When("I no-op VPLS {string}")
+    public void iNoOpVPLS(String arg0) {
     }
 
     @When("I apply VPLS service patch from {string}")
