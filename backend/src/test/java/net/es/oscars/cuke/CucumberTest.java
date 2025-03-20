@@ -7,7 +7,6 @@ import net.es.oscars.AbstractBackendTest;
 import org.junit.runner.RunWith;
 
 @RunWith(Cucumber.class)
-@CucumberOptions()
 @CucumberContextConfiguration
 public class CucumberTest extends AbstractBackendTest {
 
