@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Dictionary;
 import java.util.List;
 
 @Getter
@@ -27,8 +28,8 @@ public abstract class NsoStateSyncer<T> {
     private boolean isDirty = false;
     private boolean isSynchronized = false;
 
-    private List<T> localState;
-    private List<T> remoteState;
+    private Dictionary<String, T> localState;
+    private Dictionary<String, T> remoteState;
 
     /**
      * Loads the NSO service state data from the specified path.
@@ -87,5 +88,15 @@ public abstract class NsoStateSyncer<T> {
      */
     public abstract boolean noop(String id) throws NsoStateSyncerException;
 
+    /**
+     * Return the count of instances in the local state
+     * @return The count of instances in the local state as an integer.
+     */
+    public abstract int getLocalInstanceCount();
 
+    /**
+     * Return the count of instances in the remote state
+     * @return The count of instances in the remote state as an integer.
+     */
+    public abstract int getRemoteInstanceCount();
 }

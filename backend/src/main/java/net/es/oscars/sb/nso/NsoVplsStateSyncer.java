@@ -5,9 +5,7 @@ import net.es.topo.common.dto.nso.NsoVPLS;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.List;
+import java.util.*;
 
 /**
  * NSO VPLS State Synchronizer.
@@ -18,16 +16,19 @@ import java.util.List;
  * @author aalbino
  * @since 1.2.23
  */
-public class NsoVplsStateSyncer extends NsoStateSyncer<Dictionary<NsoVPLS, NsoStateSyncer.State>> {
+public class NsoVplsStateSyncer extends NsoStateSyncer<NsoVPLS> {
 
-    public NsoVplsStateSyncer() {
+    private NsoProxy nsoProxy;
+
+    public NsoVplsStateSyncer(NsoProxy proxy) {
         super();
+        nsoProxy = proxy;
         // Local state, composed of the NSO VPLS object, and the state we are marking it as.
         // Default mark for each state should be NsoStateSyncer.State.NOOP
-        List<Dictionary<NsoVPLS, NsoStateSyncer.State>> localState = new ArrayList<>();
+        Dictionary<String, NsoVPLS> localState = new Hashtable<>();
         setLocalState(localState);
 
-        List<Dictionary<NsoVPLS, NsoStateSyncer.State>> remoteState = new ArrayList<>();
+        Dictionary<String, NsoVPLS> remoteState = new Hashtable<>();
         setRemoteState(remoteState);
     }
     /**
@@ -45,7 +46,6 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<Dictionary<NsoVPLS, NsoSt
             if (!this.isDirty()) {
 
                 // @TODO Load NSO service state from path, with each NsoVPLS object is assigned a NOOP state as default.
-
 
                 // Mark local state as loaded = true
                 // Mark local state as dirty = false
@@ -182,5 +182,25 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<Dictionary<NsoVPLS, NsoSt
             throw (NsoStateSyncerException) e;
         }
         return nooped;
+    }
+
+    /**
+     * Return the count of instances in the local state
+     *
+     * @return The count of instances in the local state as an integer.
+     */
+    @Override
+    public int getLocalInstanceCount() {
+        return getLocalState().size();
+    }
+
+    /**
+     * Return the count of instances in the remote state
+     *
+     * @return The count of instances in the remote state as an integer.
+     */
+    @Override
+    public int getRemoteInstanceCount() {
+        return getRemoteState().size();
     }
 }

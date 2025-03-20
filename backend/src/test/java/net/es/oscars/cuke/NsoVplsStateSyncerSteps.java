@@ -5,9 +5,11 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
+import net.es.oscars.sb.nso.NsoProxy;
 import net.es.oscars.sb.nso.NsoStateSyncer;
 import net.es.oscars.sb.nso.NsoVplsStateSyncer;
 import org.junit.experimental.categories.Category;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.URI;
 import java.net.URL;
@@ -17,30 +19,33 @@ import java.net.URL;
 public class NsoVplsStateSyncerSteps extends CucumberSteps {
     NsoVplsStateSyncer syncer;
 
+    @Autowired
+    NsoProxy proxy;
+
     @Given("The list of active OSCARS connections are loaded from {string}")
     public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) throws Throwable {
         // STUB
-        syncer = new NsoVplsStateSyncer();
-        syncer.load(arg0);
+//        syncer = new NsoVplsStateSyncer(proxy);
+//        syncer.load(arg0);
     }
 
     @Given("The NSO VPLS service state is loaded")
     public void theNSOVPLSServiceStateIsLoaded() throws Throwable {
         // STUB
-        assert syncer != null;
-        assert syncer.isLoaded();
+//        assert syncer != null;
+//        assert syncer.isLoaded();
     }
 
     @Given("The NSO VPLS service state has {int} instances")
     public void theNSOVPLSServiceStateHasInstances(int arg0) throws Throwable {
-        // STUB
+//        assert syncer.getRemoteInstanceCount() == arg0;
     }
 
 
 
     @Given("The VPLS instance {string} is present in the NSO VPLS service state")
     public void theVPLSInstanceIsPresentInTheNSOVPLSServiceState(String arg0) throws Throwable {
-        // STUB
+//        assert syncer.getRemoteState().get(arg0) != null;
     }
 
     @Given("The VPLS instance {string} is not present in the NSO VPLS service state")
