@@ -2,6 +2,7 @@ package net.es.oscars.sb.nso;
 
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.topo.common.dto.nso.NsoVPLS;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -37,22 +38,14 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<Dictionary<NsoVPLS, NsoSt
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
-    public boolean load(URI path) throws NsoStateSyncerException {
+    public boolean load(String path) throws NsoStateSyncerException {
         try {
+
             // Only load if local state is not dirty.
             if (!this.isDirty()) {
 
                 // @TODO Load NSO service state from path, with each NsoVPLS object is assigned a NOOP state as default.
-                switch(path.getScheme().toString())
-                {
-                    case "file":
-                        break;
-                    case "http":
-                    case "https":
-                        break;
-                    default:
-                        throw new NsoStateSyncerException("Invalid path scheme. Must be either 'file', 'http', or 'https'");
-                }
+
 
                 // Mark local state as loaded = true
                 // Mark local state as dirty = false
@@ -75,7 +68,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<Dictionary<NsoVPLS, NsoSt
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
-    public boolean sync(URI path) throws NsoStateSyncerException {
+    public boolean sync(String path) throws NsoStateSyncerException {
         try {
             // Only synchronize if NSO service state was loaded, and the local service state is dirty = true.
             if (this.isLoaded() && this.isDirty()) {

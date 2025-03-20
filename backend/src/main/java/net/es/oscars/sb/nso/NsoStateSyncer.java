@@ -32,19 +32,19 @@ public abstract class NsoStateSyncer<T> {
 
     /**
      * Loads the NSO service state data from the specified path.
-     * @param path The URI path to the API endpoint to load.
+     * @param path The URI path string to the API endpoint to load.
      * @return True if successful, False otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
-    public abstract boolean load(URI path) throws NsoStateSyncerException;
+    public abstract boolean load(String path) throws NsoStateSyncerException;
 
     /**
      * Synchronize current service state to the specified API endpoint.
-     * @param path The URI path to the API endpoint.
+     * @param path The URI path string to the API endpoint.
      * @return True if successful, False otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
-    public abstract boolean sync(URI path) throws NsoStateSyncerException;
+    public abstract boolean sync(String path) throws NsoStateSyncerException;
 
     /**
      * Evaluate the current state of the specified ID against the loaded NSO state data.

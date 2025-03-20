@@ -21,14 +21,14 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) throws Throwable {
         // STUB
         syncer = new NsoVplsStateSyncer();
-        URL url = ClassLoader.getSystemResource(arg0);
-        syncer.load(url.toURI());
+        syncer.load(arg0);
     }
 
     @Given("The NSO VPLS service state is loaded")
     public void theNSOVPLSServiceStateIsLoaded() throws Throwable {
         // STUB
-
+        assert syncer != null;
+        assert syncer.isLoaded();
     }
 
     @Given("The NSO VPLS service state has {int} instances")
