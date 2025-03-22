@@ -302,6 +302,8 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     }
 
     /**
+     * Mark the specified ID as "no-op".
+     *
      * @param id The ID to mark as "redeploy".
      * @param description Optional description for this operation.
      * @return True if successful, false otherwise.
