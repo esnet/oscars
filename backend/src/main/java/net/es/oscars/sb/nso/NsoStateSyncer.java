@@ -28,7 +28,7 @@ public abstract class NsoStateSyncer<T> {
     private boolean isDirty = false;
     private boolean isSynchronized = false;
 
-    private Dictionary<String, T> localState;
+    public Dictionary<String, T> localState;
     private Dictionary<String, T> remoteState;
 
     /**
@@ -63,30 +63,63 @@ public abstract class NsoStateSyncer<T> {
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     public abstract boolean add(String id) throws NsoStateSyncerException;
+    /**
+     * Mark the specified ID as "add".
+     * @param id The ID to mark as "add".
+     * @param description Optional. The description for this action.
+     * @return True if successful, False if add was effectively a no-op.
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
+    public abstract boolean add(String id, String description) throws NsoStateSyncerException;
 
     /**
      * Mark the specified ID as "delete".
      * @param id The ID to mark as "delete".
-     * @return True if successful, False if delete was effectively a no-op.
+     * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     public abstract boolean delete(String id) throws NsoStateSyncerException;
+    /**
+     * Mark the specified ID as "delete".
+     * @param id The ID to mark as "delete".
+     * @param description Optional. The description for this action.
+     * @return True if successful, false otherwise.
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
+    public abstract boolean delete(String id, String description) throws NsoStateSyncerException;
 
     /**
      * Mark the specified ID as "redeploy".
      * @param id The ID to mark as "redeploy".
-     * @return True if successful, False if redeploy was effectively a no-op.
+     * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     public abstract boolean redeploy(String id) throws NsoStateSyncerException;
 
     /**
+     * Mark the specified ID as "redeploy".
+     * @param id The ID to mark as "redeploy".
+     * @param description Optional. The description for this action.
+     * @return True if successful, false otherwise
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
+    public abstract boolean redeploy(String id, String description) throws NsoStateSyncerException;
+
+    /**
      * Mark the specified ID as "no-op".
      * @param id The ID to mark as "no-op"
-     * @return True if successful, False otherwise.
+     * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     public abstract boolean noop(String id) throws NsoStateSyncerException;
+    /**
+     * Mark the specified ID as "no-op".
+     * @param id The ID to mark as "no-op"
+     * @param description Optional. The description for this action.
+     * @return True if successful, false otherwise.
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
+    public abstract boolean noop(String id, String description) throws NsoStateSyncerException;
 
     /**
      * Return the count of instances in the local state

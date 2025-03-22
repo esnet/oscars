@@ -1,7 +1,6 @@
 package net.es.oscars.cuke;
 
 import io.cucumber.junit.Cucumber;
-import io.cucumber.junit.CucumberOptions;
 import io.cucumber.spring.CucumberContextConfiguration;
 import net.es.oscars.AbstractBackendTest;
 import org.junit.runner.RunWith;

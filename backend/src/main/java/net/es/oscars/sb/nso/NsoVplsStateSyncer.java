@@ -1,34 +1,42 @@
 package net.es.oscars.sb.nso;
 
+import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.sb.nso.dto.NsoStateWrapper;
+import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
+import net.es.topo.common.dto.nso.FromNsoServiceConfig;
 import net.es.topo.common.dto.nso.NsoVPLS;
+import net.es.topo.common.dto.nso.enums.NsoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-import java.net.URI;
 import java.util.*;
 
 /**
  * NSO VPLS State Synchronizer.
  * We create a List of Dictionary objects where
- *  - The dictionary key is the NsoVPLS object
- *  - The value is the NsoStateSyncer.State enum value.
+ *  - The dictionary key is the NsoVPLS name
+ *  - The value is an NsoVPLS object wrapped in NsoStateWrapper that lets us know what State enum operation is expected
+ *    with the NsoVPLS object.
  *
  * @author aalbino
  * @since 1.2.23
  */
-public class NsoVplsStateSyncer extends NsoStateSyncer<NsoVPLS> {
+@Slf4j
+@Component
+public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>> {
 
-    private NsoProxy nsoProxy;
+    private final NsoProxy nsoProxy;
 
     public NsoVplsStateSyncer(NsoProxy proxy) {
         super();
         nsoProxy = proxy;
         // Local state, composed of the NSO VPLS object, and the state we are marking it as.
         // Default mark for each state should be NsoStateSyncer.State.NOOP
-        Dictionary<String, NsoVPLS> localState = new Hashtable<>();
+        Dictionary<String, NsoStateWrapper<NsoVPLS>> localState = new Hashtable<>();
         setLocalState(localState);
 
-        Dictionary<String, NsoVPLS> remoteState = new Hashtable<>();
+        Dictionary<String, NsoStateWrapper<NsoVPLS>> remoteState = new Hashtable<>();
         setRemoteState(remoteState);
     }
     /**
@@ -45,12 +53,25 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoVPLS> {
             // Only load if local state is not dirty.
             if (!this.isDirty()) {
 
-                // @TODO Load NSO service state from path, with each NsoVPLS object is assigned a NOOP state as default.
+                // Load NSO service state from path, with each NsoVPLS object is assigned a NOOP state as default.
 
-                // Mark local state as loaded = true
-                // Mark local state as dirty = false
-                this.setLoaded(true);
-                this.setDirty(false);
+                FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.VPLS);
+                if (serviceConfig.getSuccessful()) {
+
+                    // Get the VPLS, wrap each VPLS in NsoStateWrapper, and populate our
+                    // copy of local and remote state.
+                    NsoVplsResponse response = nsoProxy.getVpls();
+                    for (NsoVPLS vpls : response.getNsoVpls()) {
+                        // As the local VPLS matches the Remote VPLS state, state should be NOOP
+                        getLocalState().put(vpls.getName(), new NsoStateWrapper<>(State.NOOP, vpls));
+                        getRemoteState().put(vpls.getName(), new NsoStateWrapper<>(State.NOOP, vpls));
+                    }
+
+                    // Mark local state as loaded = true
+                    // Mark local state as dirty = false
+                    this.setLoaded(true);
+                    this.setDirty(false);
+                }
             } else {
                 this.setLoaded(false);
             }
@@ -87,6 +108,12 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoVPLS> {
      * Evaluate the current state of the specified ID against the loaded NSO state data.
      * Should automatically mark the ID as one of "add", "delete", "redeploy", or "no-op".
      *
+     * How do we handle interim changes from remote?
+     *  - VPLS in remote state added between now and last sync? Mark as "delete", local state takes precedence.
+     *  - VPLS in remote state removed between now and last sync? Mark as "add", local state takes precedence.
+     *  - VPLS in remote state redeployed (changed) between now and last sync? Mark as "redeploy", local state takes precedence.
+     *
+     *
      * @param id The ID to evaluate against the loaded NSO service state.
      * @return NsoStateSyncer.State Return the NsoStateSyncer.State enum result.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
@@ -100,6 +127,40 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoVPLS> {
             if (this.isLoaded()) {
                 // @TODO Evaluate the local state for entry with the requested ID against the loaded NSO service state
                 // @TODO set state = [the new state enum]
+
+                if (getLocalState().get(id) != null && getRemoteState().get(id) != null) {
+
+                    // Exists in local and remote. Default state is NOOP unless changed
+                    // Is it changed?
+                    if (!getLocalState().get(id).equals(getRemoteState().get(id))) {
+                        // Mark for REDEPLOY
+                        String description = "Local and remote state differ for VPLS " + id + ", mark for redeploy.";
+                        redeploy(id, description);
+                    }
+
+                } else {
+                    // Doesn't exist in local
+                    // Does it exist in remote? (Remote state may have changed between now and last load time)
+                    if (getRemoteState().get(id) != null) {
+                        String description = "No state found locally for VPLS " + id + ", mark for delete.";
+                        // Exists in remote, but not locally. Mark as "delete".
+                        delete(id, description);
+                        log.info(description);
+
+                    } else if (getLocalState().get(id) != null) {
+
+                        // Exists locally, but not in remote. Mark local as "add".
+                        String description = "No state found remotely for VPLS " + id + ", mark for add.";
+                        add(id, description);
+                        log.info(description);
+
+                    } else {
+                        // Doesn't exist in local OR remote. Throw exception
+                        throw new NsoStateSyncerException("No state found for VPLS " + id + " in local or remote.");
+                    }
+                }
+            } else {
+                throw new NsoStateSyncerException("No state loaded yet.");
             }
         } catch (Exception e) {
             throw (NsoStateSyncerException) e;
@@ -117,14 +178,11 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoVPLS> {
      */
     @Override
     public boolean add(String id) throws NsoStateSyncerException {
-        boolean added = false;
-        try {
-            // @TODO Mark the requested ID within the local state data as NsoSyncerState.State.ADD
-            added = true;
-        } catch (Exception e) {
-            throw (NsoStateSyncerException) e;
-        }
-        return added;
+        return marked(id, State.ADD);
+    }
+    @Override
+    public boolean add(String id, String description) throws NsoStateSyncerException {
+        return marked(id, State.ADD, description);
     }
 
     /**
@@ -136,14 +194,11 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoVPLS> {
      */
     @Override
     public boolean delete(String id) throws NsoStateSyncerException {
-        boolean deleted = false;
-        try {
-            // @TODO Mark the requested ID within the local state data as NsoSyncerState.State.DELETE
-            deleted = true;
-        } catch (Exception e) {
-            throw (NsoStateSyncerException) e;
-        }
-        return deleted;
+        return marked(id, State.DELETE);
+    }
+    @Override
+    public boolean delete(String id, String description) throws NsoStateSyncerException {
+        return marked(id, State.DELETE, description);
     }
 
     /**
@@ -155,14 +210,11 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoVPLS> {
      */
     @Override
     public boolean redeploy(String id) throws NsoStateSyncerException {
-        boolean redeployed = false;
-        try {
-            // @TODO Mark the requested ID within the local state data as NsoSyncerState.State.REDEPLOY
-            redeployed = true;
-        } catch (Exception e) {
-            throw (NsoStateSyncerException) e;
-        }
-        return redeployed;
+        return marked(id, State.REDEPLOY);
+    }
+    @Override
+    public boolean redeploy(String id, String description) throws NsoStateSyncerException {
+        return marked(id, State.REDEPLOY, description);
     }
 
     /**
@@ -174,15 +226,20 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoVPLS> {
      */
     @Override
     public boolean noop(String id) throws NsoStateSyncerException {
-        boolean nooped = false;
-        try {
-            // @TODO mark the requested ID within the local state data as NsoSyncerState.State.NOOP
-            nooped = true;
-        } catch (Exception e) {
-            throw (NsoStateSyncerException) e;
-        }
-        return nooped;
+        return marked(id, State.NOOP);
     }
+
+    /**
+     * @param id
+     * @param description Optional description for this operation.
+     * @return True if successful, false otherwise.
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
+    @Override
+    public boolean noop(String id, String description) throws NsoStateSyncerException {
+        return marked(id, State.NOOP, description);
+    }
+
 
     /**
      * Return the count of instances in the local state
@@ -202,5 +259,46 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoVPLS> {
     @Override
     public int getRemoteInstanceCount() {
         return getRemoteState().size();
+    }
+
+    /**
+     * Mark a VPLS with state.
+     * @param id The VPLS ID to mark.
+     * @param state From NsoStateSyncer states: State.ADD, State.DELETE, State.REDEPLOY, State.NOOP
+     * @return True if successful, false otherwise.
+     * @throws NsoStateSyncerException May throw an exception.
+     */
+    private boolean marked(String id, State state) throws NsoStateSyncerException {
+        return marked(id, state, "");
+    }
+    /**
+     * Mark a VPLS with state.
+     * @param id The VPLS ID to mark.
+     * @param state From NsoStateSyncer states: State.ADD, State.DELETE, State.REDEPLOY, State.NOOP
+     * @param description Optional. Description for this action.
+     * @return True if successful, false otherwise.
+     * @throws NsoStateSyncerException May throw an exception.
+     */
+    private boolean marked(String id, State state, String description) throws NsoStateSyncerException {
+        boolean marked = false;
+        try {
+            NsoStateWrapper<NsoVPLS> vplsWrapped = getLocalState().get(id);
+            if (vplsWrapped == null) {
+                throw new NsoStateSyncerException("NsoVplsStateSyncer.java::marked() - No entry found for VPLS " + id + " in local state when marking as " + state.toString() + ".");
+            }
+
+            vplsWrapped.setState(state);
+            vplsWrapped.setDescription(description);
+            getLocalState().remove(id);
+            getLocalState().put(id, vplsWrapped);
+
+            log.info(description);
+
+            marked = true;
+        } catch (Exception e) {
+            throw (NsoStateSyncerException) e;
+        }
+
+        return marked;
     }
 }
