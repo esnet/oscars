@@ -1,14 +1,13 @@
 package net.es.oscars.sb.nso;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.topo.common.dto.nso.FromNsoServiceConfig;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.NsoService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.*;
 
@@ -75,8 +74,12 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             } else {
                 this.setLoaded(false);
             }
+        } catch (NsoStateSyncerException nse) {
+            log.error(nse.getMessage(), nse);
+            throw nse;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error(e.getMessage(), e);
+            throw new NsoStateSyncerException(e.getMessage());
         }
         return this.isLoaded();
     }
@@ -91,15 +94,20 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     @Override
     public boolean sync(String path) throws NsoStateSyncerException {
         try {
+            if (!this.isLoaded()) {
+                throw new NsoStateSyncerException("No state loaded yet.");
+            }
             // Only synchronize if NSO service state was loaded, and the local service state is dirty = true.
-            if (this.isLoaded() && this.isDirty()) {
-
+            if (this.isDirty()) {
                 // @TODO Sync local state with NSO service state at path
-
                 this.setSynchronized(true);
             }
+        } catch (NsoStateSyncerException nse) {
+            log.error(nse.getMessage(), nse);
+            throw nse;
         } catch (Exception e) {
-            throw (NsoStateSyncerException) e;
+            log.error(e.getMessage(), e);
+            throw new NsoStateSyncerException(e.getMessage());
         }
         return this.isSynchronized();
     }
@@ -122,48 +130,42 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     public NsoStateSyncer.State evaluate(String id) throws NsoStateSyncerException {
         NsoStateSyncer.State state = State.NOOP;
 
-        try {
-            // Only evaluate if we actually have an NSO service state to compare against.
-            if (this.isLoaded()) {
-                // @TODO Evaluate the local state for entry with the requested ID against the loaded NSO service state
-                // @TODO set state = [the new state enum]
+        // Only evaluate if we actually have an NSO service state to compare against.
+        if (!this.isLoaded()) {
+            throw new NsoStateSyncerException("No state loaded yet.");
+        }
 
-                if (getLocalState().get(id) != null && getRemoteState().get(id) != null) {
+        // Evaluate the local state for entry with the requested ID against the loaded NSO service state
+        if (getLocalState().get(id) != null && getRemoteState().get(id) != null) {
 
-                    // Exists in local and remote. Default state is NOOP unless changed
-                    // Is it changed?
-                    if (!getLocalState().get(id).equals(getRemoteState().get(id))) {
-                        // Mark for REDEPLOY
-                        String description = "Local and remote state differ for VPLS " + id + ", mark for redeploy.";
-                        redeploy(id, description);
-                    }
-
-                } else {
-                    // Doesn't exist in local
-                    // Does it exist in remote? (Remote state may have changed between now and last load time)
-                    if (getRemoteState().get(id) != null) {
-                        String description = "No state found locally for VPLS " + id + ", mark for delete.";
-                        // Exists in remote, but not locally. Mark as "delete".
-                        delete(id, description);
-                        log.info(description);
-
-                    } else if (getLocalState().get(id) != null) {
-
-                        // Exists locally, but not in remote. Mark local as "add".
-                        String description = "No state found remotely for VPLS " + id + ", mark for add.";
-                        add(id, description);
-                        log.info(description);
-
-                    } else {
-                        // Doesn't exist in local OR remote. Throw exception
-                        throw new NsoStateSyncerException("No state found for VPLS " + id + " in local or remote.");
-                    }
-                }
-            } else {
-                throw new NsoStateSyncerException("No state loaded yet.");
+            // Exists in local and remote. Default state is NOOP unless changed
+            // Is it changed?
+            if (!getLocalState().get(id).equals(getRemoteState().get(id))) {
+                // Mark for REDEPLOY
+                String description = "Local and remote state differ for VPLS " + id + ", mark for redeploy.";
+                redeploy(id, description);
             }
-        } catch (Exception e) {
-            throw (NsoStateSyncerException) e;
+
+        } else {
+            // Doesn't exist in local
+            // Does it exist in remote? (Remote state may have changed between now and last load time)
+            if (getRemoteState().get(id) != null) {
+                String description = "No state found locally for VPLS " + id + ", mark for delete.";
+                // Exists in remote, but not locally. Mark as "delete".
+                delete(id, description);
+                log.info(description);
+
+            } else if (getLocalState().get(id) != null) {
+
+                // Exists locally, but not in remote. Mark local as "add".
+                String description = "No state found remotely for VPLS " + id + ", mark for add.";
+                add(id, description);
+                log.info(description);
+
+            } else {
+                // Doesn't exist in local OR remote. Throw exception
+                throw new NsoStateSyncerException("No state found for VPLS " + id + " in local or remote.");
+            }
         }
 
         return state;
@@ -180,6 +182,14 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     public boolean add(String id) throws NsoStateSyncerException {
         return marked(id, State.ADD);
     }
+    /**
+     * Mark the specified ID as "add".
+     *
+     * @param id The ID to mark as "add".
+     * @param description Optional. The description for this action.
+     * @return True if successful, False if add was effectively a no-op.
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
     @Override
     public boolean add(String id, String description) throws NsoStateSyncerException {
         return marked(id, State.ADD, description);
@@ -196,6 +206,14 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     public boolean delete(String id) throws NsoStateSyncerException {
         return marked(id, State.DELETE);
     }
+    /**
+     * Mark the specified ID as "delete".
+     *
+     * @param id The ID to mark as "delete".
+     * @param description Optional. The description for this action.
+     * @return True if successful, False if delete was effectively a no-op.
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
     @Override
     public boolean delete(String id, String description) throws NsoStateSyncerException {
         return marked(id, State.DELETE, description);
@@ -212,6 +230,14 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     public boolean redeploy(String id) throws NsoStateSyncerException {
         return marked(id, State.REDEPLOY);
     }
+    /**
+     * Mark the specified ID as "redeploy".
+     *
+     * @param id The ID to mark as "redeploy".
+     * @param description Optional. The description for this action.
+     * @return True if successful, false otherwise.
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
     @Override
     public boolean redeploy(String id, String description) throws NsoStateSyncerException {
         return marked(id, State.REDEPLOY, description);
@@ -221,7 +247,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * Mark the specified ID as "no-op".
      *
      * @param id The ID to mark as "no-op"
-     * @return True if successful, False otherwise.
+     * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
@@ -230,7 +256,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     }
 
     /**
-     * @param id
+     * @param id The ID to mark as "redeploy".
      * @param description Optional description for this operation.
      * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
@@ -282,6 +308,9 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     private boolean marked(String id, State state, String description) throws NsoStateSyncerException {
         boolean marked = false;
         try {
+            if (!this.isLoaded()) {
+                throw new NsoStateSyncerException("No state loaded yet.");
+            }
             NsoStateWrapper<NsoVPLS> vplsWrapped = getLocalState().get(id);
             if (vplsWrapped == null) {
                 throw new NsoStateSyncerException("NsoVplsStateSyncer.java::marked() - No entry found for VPLS " + id + " in local state when marking as " + state.toString() + ".");
@@ -295,8 +324,16 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             log.info(description);
 
             marked = true;
+
+            if (!isDirty()) {
+                setDirty(true);
+            }
+        } catch (NsoStateSyncerException nse) {
+            log.error(nse.getMessage(), nse);
+            throw nse;
         } catch (Exception e) {
-            throw (NsoStateSyncerException) e;
+            log.error(e.getMessage(), e);
+            throw new NsoStateSyncerException(e.getMessage());
         }
 
         return marked;
