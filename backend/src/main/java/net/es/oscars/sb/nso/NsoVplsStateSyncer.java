@@ -143,7 +143,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                     evaluate(wrappedNsoVPLS.getInstance().getVcId());
                 }
 
-                // @TODO Then, generate the RestTemplate / YangPatches
+                // @TODO Generate the RestTemplate / YangPatches and send using NsoProxy
 
 
                 this.setSynchronized(true);
