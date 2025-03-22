@@ -139,6 +139,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = getLocalState().elements();
                 while (enumeration.hasMoreElements()) {
                     NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+                    // This should automatically mark this VPLS as "noop", "add", "delete", or "redeploy"
                     evaluate(wrappedNsoVPLS.getInstance().getVcId());
                 }
 
