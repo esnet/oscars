@@ -371,14 +371,13 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
             log.info(description);
 
-            marked = true;
 
             if (!isDirty()) {
                 setDirty(true);
             }
         } catch (NsoStateSyncerException nse) {
             log.error(nse.getMessage(), nse);
-            throw nse;
+            // Continue execution, return false.
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new NsoStateSyncerException(e.getMessage());
