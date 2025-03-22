@@ -18,6 +18,40 @@ import java.util.*;
  *  - The value is an NsoVPLS object wrapped in NsoStateWrapper that lets us know what State enum operation is expected
  *    with the NsoVPLS object.
  *
+ * Usage examples:
+ *
+ * <pre>
+ * NsoVplsStateSyncer vplsStateSyncer = new NsoVplsStateSyncer();
+ *
+ * // Assume we already have an NsoVPLS object...
+ * // that has vc-id, qos-mode, name, routing-domain, etc...
+ * // NsoVPLS vpls = new NsoVPLS(...);
+ *
+ *
+ * // Add a new NsoVPLS
+ * vplsStateSyncer.getLocalState().put(
+ *   vpls.getName(), // The name string
+ *   vpls // The NsoVPLS object
+ * )
+ *
+ * // Remove an existing NsoVPLS
+ * vplsStateSyncer.getLocalState().remove(
+ *   vpls.getName()
+ * );
+ *
+ * // Redeploy an existing NsoVPLS
+ * // Assume we have an oldNsoVPLS object and a newNsoVPLS object.
+ * // ... remove the old one first
+ * vplsStateSyncer.getLocalState().remove(
+ *   oldNsoVPLS.getName()
+ * )
+ * // ... Add the new one
+ * vplsStateSyncer.getLocalState().put(
+ *   newNsoVPLS.getName(), // The name string
+ *   newNsoVPLS // The NsoVPLS object
+ * )
+ *
+ * </pre>
  * @author aalbino
  * @since 1.2.23
  */
