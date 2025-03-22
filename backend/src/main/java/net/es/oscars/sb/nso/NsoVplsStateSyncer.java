@@ -14,7 +14,7 @@ import java.util.*;
 /**
  * NSO VPLS State Synchronizer.
  * We create a List of Dictionary objects where
- *  - The dictionary key is the NsoVPLS name
+ *  - The dictionary key is the NsoVPLS vc-id value
  *  - The value is an NsoVPLS object wrapped in NsoStateWrapper that lets us know what State enum operation is expected
  *    with the NsoVPLS object.
  *
@@ -30,24 +30,24 @@ import java.util.*;
  *
  * // Add a new NsoVPLS
  * vplsStateSyncer.getLocalState().put(
- *   vpls.getName(), // The name string
+ *   vpls.getVcId(), // The vc-id value
  *   vpls // The NsoVPLS object
  * )
  *
  * // Remove an existing NsoVPLS
  * vplsStateSyncer.getLocalState().remove(
- *   vpls.getName()
+ *   vpls.getVcId()
  * );
  *
  * // Redeploy an existing NsoVPLS
  * // Assume we have an oldNsoVPLS object and a newNsoVPLS object.
  * // ... remove the old one first
  * vplsStateSyncer.getLocalState().remove(
- *   oldNsoVPLS.getName()
+ *   oldNsoVPLS.getVcId()
  * )
  * // ... Add the new one
  * vplsStateSyncer.getLocalState().put(
- *   newNsoVPLS.getName(), // The name string
+ *   newNsoVPLS.getVcId(), // The vc-id value
  *   newNsoVPLS // The NsoVPLS object
  * )
  *
@@ -66,10 +66,10 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
         nsoProxy = proxy;
         // Local state, composed of the NSO VPLS object, and the state we are marking it as.
         // Default mark for each state should be NsoStateSyncer.State.NOOP
-        Dictionary<String, NsoStateWrapper<NsoVPLS>> localState = new Hashtable<>();
+        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> localState = new Hashtable<>();
         setLocalState(localState);
 
-        Dictionary<String, NsoStateWrapper<NsoVPLS>> remoteState = new Hashtable<>();
+        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> remoteState = new Hashtable<>();
         setRemoteState(remoteState);
     }
     /**
@@ -96,8 +96,8 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                     NsoVplsResponse response = nsoProxy.getVpls();
                     for (NsoVPLS vpls : response.getNsoVpls()) {
                         // As the local VPLS matches the Remote VPLS state, state should be NOOP
-                        getLocalState().put(vpls.getName(), new NsoStateWrapper<>(State.NOOP, vpls));
-                        getRemoteState().put(vpls.getName(), new NsoStateWrapper<>(State.NOOP, vpls));
+                        getLocalState().put(vpls.getVcId(), new NsoStateWrapper<>(State.NOOP, vpls));
+                        getRemoteState().put(vpls.getVcId(), new NsoStateWrapper<>(State.NOOP, vpls));
                     }
 
                     // Mark local state as loaded = true
@@ -133,7 +133,18 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             }
             // Only synchronize if NSO service state was loaded, and the local service state is dirty = true.
             if (this.isDirty()) {
-                // @TODO Sync local state with NSO service state at path
+                // Sync local state with NSO service state at path
+
+                // First, evaluate all local VPLS states
+                Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = getLocalState().elements();
+                while (enumeration.hasMoreElements()) {
+                    NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+                    evaluate(wrappedNsoVPLS.getInstance().getVcId());
+                }
+
+                // @TODO Then, generate the RestTemplate / YangPatches
+
+
                 this.setSynchronized(true);
             }
         } catch (NsoStateSyncerException nse) {
@@ -161,7 +172,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
-    public NsoStateSyncer.State evaluate(String id) throws NsoStateSyncerException {
+    public NsoStateSyncer.State evaluate(Integer id) throws NsoStateSyncerException {
         NsoStateSyncer.State state = State.NOOP;
 
         // Only evaluate if we actually have an NSO service state to compare against.
@@ -213,7 +224,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
-    public boolean add(String id) throws NsoStateSyncerException {
+    public boolean add(Integer id) throws NsoStateSyncerException {
         return marked(id, State.ADD);
     }
     /**
@@ -225,7 +236,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
-    public boolean add(String id, String description) throws NsoStateSyncerException {
+    public boolean add(Integer id, String description) throws NsoStateSyncerException {
         return marked(id, State.ADD, description);
     }
 
@@ -237,7 +248,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
-    public boolean delete(String id) throws NsoStateSyncerException {
+    public boolean delete(Integer id) throws NsoStateSyncerException {
         return marked(id, State.DELETE);
     }
     /**
@@ -249,7 +260,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
-    public boolean delete(String id, String description) throws NsoStateSyncerException {
+    public boolean delete(Integer id, String description) throws NsoStateSyncerException {
         return marked(id, State.DELETE, description);
     }
 
@@ -261,7 +272,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
-    public boolean redeploy(String id) throws NsoStateSyncerException {
+    public boolean redeploy(Integer id) throws NsoStateSyncerException {
         return marked(id, State.REDEPLOY);
     }
     /**
@@ -273,7 +284,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
-    public boolean redeploy(String id, String description) throws NsoStateSyncerException {
+    public boolean redeploy(Integer id, String description) throws NsoStateSyncerException {
         return marked(id, State.REDEPLOY, description);
     }
 
@@ -285,7 +296,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
-    public boolean noop(String id) throws NsoStateSyncerException {
+    public boolean noop(Integer id) throws NsoStateSyncerException {
         return marked(id, State.NOOP);
     }
 
@@ -296,7 +307,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
     @Override
-    public boolean noop(String id, String description) throws NsoStateSyncerException {
+    public boolean noop(Integer id, String description) throws NsoStateSyncerException {
         return marked(id, State.NOOP, description);
     }
 
@@ -328,7 +339,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException May throw an exception.
      */
-    private boolean marked(String id, State state) throws NsoStateSyncerException {
+    private boolean marked(Integer id, State state) throws NsoStateSyncerException {
         return marked(id, state, "");
     }
     /**
@@ -339,7 +350,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException May throw an exception.
      */
-    private boolean marked(String id, State state, String description) throws NsoStateSyncerException {
+    private boolean marked(Integer id, State state, String description) throws NsoStateSyncerException {
         boolean marked = false;
         try {
             if (!this.isLoaded()) {
