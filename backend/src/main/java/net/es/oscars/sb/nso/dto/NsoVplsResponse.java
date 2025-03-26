@@ -10,7 +10,7 @@ import java.util.List;
 @Getter
 @Setter
 public class NsoVplsResponse {
-    @JsonProperty("esnet-vpls:bbl")
+    @JsonProperty("esnet-vpls:vpls")
     List<NsoVPLS> nsoVpls = new ArrayList<>();
 
 }

@@ -88,13 +88,12 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
                 // Load NSO service state from path, with each NsoVPLS object is assigned a NOOP state as default.
 
-                FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.VPLS);
-                if (serviceConfig.getSuccessful()) {
+                NsoVplsResponse vplsResponse = nsoProxy.getVpls();
+                if (vplsResponse != null) {
 
                     // Get the VPLS, wrap each VPLS in NsoStateWrapper, and populate our
                     // copy of local and remote state.
-                    NsoVplsResponse response = nsoProxy.getVpls();
-                    for (NsoVPLS vpls : response.getNsoVpls()) {
+                    for (NsoVPLS vpls : vplsResponse.getNsoVpls()) {
                         // As the local VPLS matches the Remote VPLS state, state should be NOOP
                         getLocalState().put(vpls.getVcId(), new NsoStateWrapper<>(State.NOOP, vpls));
                         getRemoteState().put(vpls.getVcId(), new NsoStateWrapper<>(State.NOOP, vpls));
@@ -227,6 +226,14 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     @Override
     public boolean add(Integer id) throws NsoStateSyncerException {
         return marked(id, State.ADD);
+    }
+
+    public boolean add(String name) throws NsoStateSyncerException {
+
+        Integer id = getLocalVcIdByName(name);
+        if (id == 0) return false;
+
+        return add(id);
     }
     /**
      * Mark the specified ID as "add".
@@ -385,4 +392,37 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
         return marked;
     }
+
+    /**
+     * Return the local VPLS ID according to its name.
+     * @param name The VPLS name string.
+     * @return Returns 0 if not found.
+     */
+    public Integer getLocalVcIdByName(String name) {
+        return _getVcIdByName(name, getLocalState());
+    }
+
+    /**
+     * Return the remote VPLS ID according to its name.
+     * @param name The VPLS name string.
+     * @return Returns 0 if not found.
+     */
+    public Integer getRemoteVcIdByName(String name) {
+        return _getVcIdByName(name, getRemoteState());
+    }
+
+    private Integer _getVcIdByName(String name, Dictionary<Integer, NsoStateWrapper<NsoVPLS>> state) {
+        Integer id = 0;
+
+        Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = state.elements();
+        while (enumeration.hasMoreElements()) {
+            NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+            if (wrappedNsoVPLS.getInstance().getName().equals(name)) {
+                id = wrappedNsoVPLS.getInstance().getVcId();
+            }
+        }
+
+        return id;
+    }
+
 }

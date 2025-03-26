@@ -472,27 +472,35 @@ public class NsoProxy {
     public FromNsoServiceConfig getNsoServiceConfig(NsoService service) {
         log.info("get service config START %s ".formatted(service));
 
-        String path = switch (service) {
-            case VPLS -> "/esnet-vpls:vpls";
-            case LSP -> "/esnet-lsp:lsp";
-            default -> null;
-        };
+        FromNsoServiceConfig result = null;
+        try {
+            String path = switch (service) {
+                case VPLS -> "/esnet-vpls:vpls";
+                case LSP -> "/esnet-lsp:lsp";
+                default -> null;
+            };
 
-        FromNsoServiceConfig result = FromNsoServiceConfig.builder()
-                .service(service)
-                .successful(false)
-                .build();
-        String req = "data/tailf-ncs:services%s".formatted(path);
-        String restPath = props.getUri() + req;
-        String response = restTemplate.getForObject(restPath, String.class);
-        // DevelUtils.dumpDebug("get-nso-service", response);
+            result = FromNsoServiceConfig.builder()
+                    .service(service)
+                    .successful(false)
+                    .build();
+            String req = "data/tailf-ncs:services%s".formatted(path);
+            String restPath = props.getUri() + req;
+            String response;
+            response = restTemplate.getForObject(restPath, String.class);
+//            DevelUtils.dumpDebug("get-nso-service", response);
 
-        if (response != null) {
-            result.setConfig(response);
-            result.setSuccessful(true);
-            log.debug("%s: get service COMPLETE ".formatted(service.toString()));
-        } else {
-            log.warn("%s: get config FAILED ".formatted(service.toString()));
+            if (response != null) {
+                result.setConfig(response);
+                result.setSuccessful(true);
+
+                log.info("%s: get service COMPLETE ".formatted(service.toString()));
+            } else {
+                log.warn("%s: get config FAILED (response is null) ".formatted(service.toString()));
+            }
+        } catch (Exception e) {
+//            log.error("%s: get service FAILED (exception thrown) ", e);
+            throw e;
         }
         return result;
     }

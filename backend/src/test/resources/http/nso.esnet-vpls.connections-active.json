@@ -2493,7 +2493,7 @@
       "last-run": "2024-10-03T14:32:52.802322+00:00",
       "description": "LANL NTS to LLNL",
       "qos-mode": "guaranteed",
-      "name": "OSCARS-ZRNX",
+      "name": "BBBB",
       "routing-domain": "esnet-293",
       "device": [
         {
@@ -2980,7 +2980,7 @@
       "last-run": "2024-10-03T14:32:56.817687+00:00",
       "description": "NREL_5G_ExpressRoute_AzureComm_Primary ",
       "qos-mode": "guaranteed",
-      "name": "OSCARS-ZFK7",
+      "name": "CCCC",
       "routing-domain": "esnet-293",
       "device": [
         {
@@ -3244,7 +3244,7 @@
       "last-run": "2024-10-03T14:32:59.180339+00:00",
       "description": "SNLA Primary ExpressRoute Microsoft Peering",
       "qos-mode": "guaranteed",
-      "name": "OSCARS-EFCG",
+      "name": "DDDD",
       "routing-domain": "esnet-293",
       "device": [
         {

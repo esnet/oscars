@@ -3,14 +3,10 @@ package net.es.oscars.sb.nso;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.util.ArrayList;
 import java.util.Dictionary;
-import java.util.List;
 
 @Getter
 @Setter

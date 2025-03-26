@@ -7,7 +7,9 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
+import net.es.topo.common.dto.nso.FromNsoServiceConfig;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +35,12 @@ public class NsoHttpServer {
 
     @Bean
     public ServletRegistrationBean<Servlet> servletRegistrationBean(){
-        return new ServletRegistrationBean<>(new NsoServlet(),"/restconf/data/esnet-status:esnet-status/nokia-show");
+        return new ServletRegistrationBean<>(
+                new NsoServlet(),
+                "/restconf/data/esnet-status:esnet-status/nokia-show",
+                "/data/tailf-ncs:services/esnet-vpls:vpls",
+                "/data/tail-ncs:services/esnet-lsp:lsp"
+        );
     }
 
     @Bean
@@ -66,6 +73,48 @@ public class NsoHttpServer {
 
     public static class NsoServlet extends HttpServlet {
 
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            // Is this for an nso.esnet-vpls mock request?
+            String uri = req.getRequestURI();
+            try {
+                if (uri.startsWith("/data/tailf-ncs:services/esnet-vpls:vpls")) {
+                    loadEsnetVplsMockData(req, resp);
+                }
+            } catch (Exception ex) {
+                log.error("Failed to load esnet vpls mock data", ex);
+            }
+        }
+
+        private void loadEsnetVplsMockData(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            // No request payload required.
+            // Set the expected response content type
+            // NOTE: We MUST also be careful that the mock data provided is actually formatted as the set Content Type!
+            // Otherwise, we will write the data string, but RestTemplate.getForObject() will throw an exception anyway.
+
+            NsoEsnetVplsResponseSpec[] vplsResponseSpecs = new ObjectMapper()
+                .readValue(
+                        new ClassPathResource("http/nso.esnet-vpls.response-specs.json").getFile(),
+                        NsoEsnetVplsResponseSpec[].class
+                );
+
+            for (NsoEsnetVplsResponseSpec responseSpec : vplsResponseSpecs) {
+                // Just load all of them
+                InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
+                // Read the mock data from the file found in the responseSpec.body path
+                String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
+                // Write the mock data to our response
+                resp.getWriter().write(body);
+
+                // Set the mock HTTP status
+                resp.setStatus(responseSpec.status);
+                resp.setContentType("application/yang-data+json");
+                resp.getWriter().flush();
+
+                // We found our entry, break the loop
+                break;
+            }
+        }
         @Override
         protected void doPost(HttpServletRequest request, HttpServletResponse response)
                 throws ServletException, IOException {
@@ -105,4 +154,5 @@ public class NsoHttpServer {
     }
 
     public record ResponseSpec(String device, String args, String body, Integer status) {}
+    public record NsoEsnetVplsResponseSpec(String data, Integer status) {}
 }

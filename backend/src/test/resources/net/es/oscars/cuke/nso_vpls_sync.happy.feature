@@ -77,8 +77,9 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Then The NSO VPLS service state now has 140 instances
 
     # VPLS "AAAA" already exists, adding it again should be a "no-op"
-    Given The VPLS instance "AAAA" is present in the NSO VPLS service state
+    Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
     When I add VPLS instance "AAAA"
+    Then The VPLS instance "AAAA" is present in the NSO VPLS service state
     Then VPLS "AAAA" is marked as "no-op"
     Then The NSO VPLS service is synchronized
     Then The NSO VPLS service state now has 140 instances

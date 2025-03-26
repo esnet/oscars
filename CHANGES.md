@@ -1,5 +1,9 @@
 # OSCARS Release Notes
 
+### 1.2.23
+> Mar 2025
+- OS-421: Implement NsoVplsStateSyncer class to manage NSO VPLS state synchronization between OSCARS and NSO.
+
 ### 1.2.22
 > Mar 2025
 - OS-391: NsoProxy.getLiveStatusShow() refactored to call NSO service endpoint at `restconf/data/esnet-status:esnet-status/nokia-show` with JSON payload string. Bug fix to handle HTTP POST response that may be LiveStatusOutput or IetfRestconfErrorResponse. 

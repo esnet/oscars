@@ -24,33 +24,36 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
 
     @Given("The list of active OSCARS connections are loaded from {string}")
     public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) throws Throwable {
-        // STUB
-//        syncer = new NsoVplsStateSyncer(proxy);
-//        syncer.load(arg0);
+        // Load the (mock) NSO response payload
+        syncer = new NsoVplsStateSyncer(proxy);
+        syncer.load(arg0);
     }
 
     @Given("The NSO VPLS service state is loaded")
     public void theNSOVPLSServiceStateIsLoaded() throws Throwable {
-        // STUB
-//        assert syncer != null;
-//        assert syncer.isLoaded();
+        // The NSO response payload should be marked as loaded.
+        assert syncer != null;
+        assert syncer.isLoaded();
     }
 
     @Given("The NSO VPLS service state has {int} instances")
     public void theNSOVPLSServiceStateHasInstances(int arg0) throws Throwable {
-//        assert syncer.getRemoteInstanceCount() == arg0;
+        assert syncer.getRemoteInstanceCount() == arg0;
     }
 
 
 
     @Given("The VPLS instance {string} is present in the NSO VPLS service state")
     public void theVPLSInstanceIsPresentInTheNSOVPLSServiceState(String arg0) throws Throwable {
-//        assert syncer.getRemoteState().get(arg0) != null;
+        Integer id = syncer.getLocalVcIdByName(arg0);
+        assert id != 0;
     }
 
     @Given("The VPLS instance {string} is not present in the NSO VPLS service state")
     public void theVPLSInstanceIsNotPresentInTheNSOVPLSServiceState(String arg0) throws Throwable {
         // STUB
+        Integer id = syncer.getLocalVcIdByName(arg0);
+        assert id == 0;
     }
 
 
