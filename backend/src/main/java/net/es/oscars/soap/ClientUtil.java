@@ -32,8 +32,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import javax.xml.ws.handler.MessageContext;
 
 @Slf4j
 @Component
@@ -99,6 +99,12 @@ public class ClientUtil {
         // withGzipCompression argument is true.
         if (clientUtilProps.enableGzipCompression || withGzipCompression) {
             log.debug("ClientUtil.createRequesterClient() - Gzip compression enabled");
+            Map<String, Object> requestHeaders = new HashMap<>();
+            requestHeaders.put("Accept-Encoding", new ArrayList<>(List.of("gzip")));
+
+            // Ensure we sent the "Accept-Encoding: gzip" header to negotiate HTTP Compression
+            client.getRequestContext().put(MessageContext.HTTP_REQUEST_HEADERS, requestHeaders);
+            
             client.getInInterceptors().add(new GZIPInInterceptor());
             client.getOutInterceptors().add(new GZIPOutInterceptor());
         }
