@@ -15,6 +15,7 @@ import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.transport.common.gzip.GZIPInInterceptor;
+import org.apache.cxf.transport.common.gzip.GZIPOutInterceptor;
 import org.apache.cxf.transport.http.HTTPConduit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -99,7 +100,7 @@ public class ClientUtil {
         if (clientUtilProps.enableGzipCompression || withGzipCompression) {
             log.debug("ClientUtil.createRequesterClient() - Gzip compression enabled");
             client.getInInterceptors().add(new GZIPInInterceptor());
-            client.getOutInterceptors().add(new GZIPInInterceptor());
+            client.getOutInterceptors().add(new GZIPOutInterceptor());
         }
 
         this.configureConduit(client, requesterNSA);
