@@ -99,14 +99,20 @@ public class ClientUtil {
         // withGzipCompression argument is true.
         if (clientUtilProps.enableGzipCompression || withGzipCompression) {
             log.debug("ClientUtil.createRequesterClient() - Gzip compression enabled");
-            Map<String, Object> requestHeaders = new HashMap<>();
-            requestHeaders.put("Accept-Encoding", new ArrayList<>(List.of("gzip")));
+//            Map<String, Object> requestHeaders = new HashMap<>();
+//            requestHeaders.put("Accept-Encoding", new ArrayList<>(List.of("gzip")));
 
             // Ensure we sent the "Accept-Encoding: gzip" header to negotiate HTTP Compression
-            client.getRequestContext().put(MessageContext.HTTP_REQUEST_HEADERS, requestHeaders);
+//            client.getRequestContext().put(MessageContext.HTTP_REQUEST_HEADERS, requestHeaders);
+            GZIPOutInterceptor gzipOutInterceptor = new GZIPOutInterceptor();
+
+            GZIPInInterceptor gzipInInterceptor = new GZIPInInterceptor();
             
-            client.getInInterceptors().add(new GZIPInInterceptor());
-            client.getOutInterceptors().add(new GZIPOutInterceptor());
+            gzipOutInterceptor.setForce(true);
+            gzipOutInterceptor.setThreshold(7);
+
+            client.getInInterceptors().add(gzipInInterceptor);
+            client.getOutInterceptors().add(gzipOutInterceptor);
         }
 
         this.configureConduit(client, requesterNSA);
