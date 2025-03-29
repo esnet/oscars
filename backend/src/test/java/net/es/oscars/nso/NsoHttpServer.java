@@ -3,11 +3,13 @@ package net.es.oscars.nso;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.Servlet;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
+import org.eclipse.jetty.ee10.webapp.Configuration;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,12 +30,17 @@ import java.nio.charset.Charset;
 @Slf4j
 public class NsoHttpServer {
 
-    @Value("${nso.mockPort}")
+    @Value(value = "${nso.mockPort}")
     private int port;
 
     @Bean
     public ServletRegistrationBean<Servlet> servletRegistrationBean(){
-        return new ServletRegistrationBean<>(new NsoServlet(),"/restconf/data/esnet-status:esnet-status/nokia-show");
+        NsoServlet servlet = new NsoServlet();
+
+        return new ServletRegistrationBean<>(
+                servlet,
+                "/restconf/data/esnet-status:esnet-status/nokia-show"
+        );
     }
 
     @Bean
@@ -67,9 +74,10 @@ public class NsoHttpServer {
     public static class NsoServlet extends HttpServlet {
 
         @Override
-        protected void doPost(HttpServletRequest request, HttpServletResponse response)
-                throws ServletException, IOException {
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {}
 
+        @Override
+        protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             StringBuilder payload = new StringBuilder();
             try(BufferedReader reader = request.getReader()){
                 String line;
@@ -97,7 +105,7 @@ public class NsoHttpServer {
                     response.getWriter().write(body);
 
                     response.setStatus(responseSpec.status);
-                    return;
+                    break;
                 }
             }
 
