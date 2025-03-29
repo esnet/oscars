@@ -98,7 +98,7 @@ public class ClientUtil {
         // or
         // withGzipCompression argument is true.
         if (clientUtilProps.enableGzipCompression || withGzipCompression) {
-            log.debug("ClientUtil.createRequesterClient() - Gzip compression enabled");
+            log.info("ClientUtil.createRequesterClient() - Gzip compression enabled");
 //            Map<String, Object> requestHeaders = new HashMap<>();
 //            requestHeaders.put("Accept-Encoding", new ArrayList<>(List.of("gzip")));
 
@@ -110,9 +110,16 @@ public class ClientUtil {
             
             gzipOutInterceptor.setForce(true);
             gzipOutInterceptor.setThreshold(7);
+            Set<String> contentTypes = new HashSet<>();
+
+            contentTypes.add("application/xml");
+
+            gzipOutInterceptor.setSupportedPayloadContentTypes(contentTypes);
 
             client.getInInterceptors().add(gzipInInterceptor);
             client.getOutInterceptors().add(gzipOutInterceptor);
+        } else {
+            log.info("ClientUtil.createRequesterClient() - Gzip compression disabled");
         }
 
         this.configureConduit(client, requesterNSA);
