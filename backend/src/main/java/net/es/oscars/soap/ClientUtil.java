@@ -98,15 +98,26 @@ public class ClientUtil {
         // or
         // withGzipCompression argument is true.
         if (clientUtilProps.enableGzipCompression || withGzipCompression) {
-            log.debug("ClientUtil.createRequesterClient() - Gzip compression enabled");
-            Map<String, Object> requestHeaders = new HashMap<>();
-            requestHeaders.put("Accept-Encoding", new ArrayList<>(List.of("gzip")));
+            log.info("ClientUtil.createRequesterClient() - Gzip compression enabled");
+            GZIPOutInterceptor gzipOutInterceptor = new GZIPOutInterceptor();
+            GZIPInInterceptor gzipInInterceptor = new GZIPInInterceptor();
 
-            // Ensure we sent the "Accept-Encoding: gzip" header to negotiate HTTP Compression
-            client.getRequestContext().put(MessageContext.HTTP_REQUEST_HEADERS, requestHeaders);
-            
-            client.getInInterceptors().add(new GZIPInInterceptor());
-            client.getOutInterceptors().add(new GZIPOutInterceptor());
+            // force on all messages regardless of size?
+            log.info("ClientUtil.createRequesterClient() - force is " + clientUtilProps.forceGzip);
+            log.info("ClientUtil.createRequesterClient() - threshold is " + clientUtilProps.gzipThreshold);
+
+            gzipOutInterceptor.setForce(clientUtilProps.forceGzip);
+            gzipOutInterceptor.setThreshold(clientUtilProps.gzipThreshold);
+
+            List<String> types = clientUtilProps.getContentTypes();
+            Set<String> contentTypes = new HashSet<>(types);
+            log.info("ClientUtil.createRequesterClient() - Gzip compression will be enabled for " + contentTypes.toString());
+            gzipOutInterceptor.setSupportedPayloadContentTypes(contentTypes);
+
+            client.getInInterceptors().add(gzipInInterceptor);
+            client.getOutInterceptors().add(gzipOutInterceptor);
+        } else {
+            log.info("ClientUtil.createRequesterClient() - Gzip compression disabled");
         }
 
         this.configureConduit(client, requesterNSA);
