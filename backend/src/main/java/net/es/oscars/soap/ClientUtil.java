@@ -109,7 +109,7 @@ public class ClientUtil {
             GZIPInInterceptor gzipInInterceptor = new GZIPInInterceptor();
             
             gzipOutInterceptor.setForce(true);
-            gzipOutInterceptor.setThreshold(7);
+            gzipOutInterceptor.setThreshold(0); // force on all messages
             Set<String> contentTypes = new HashSet<>();
 
             contentTypes.add("application/xml");
