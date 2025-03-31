@@ -1,11 +1,13 @@
 package net.es.oscars.sb.nso.rest;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.client.ResponseErrorHandler;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.Charset;
 
 
@@ -17,14 +19,14 @@ public class NsoResponseErrorHandler implements ResponseErrorHandler {
 
         return (httpResponse.getStatusCode().is4xxClientError()  || httpResponse.getStatusCode().is5xxServerError());
     }
-
     @Override
-    public void handleError(ClientHttpResponse httpResponse) throws IOException {
+    public void handleError(URI url, HttpMethod method, ClientHttpResponse httpResponse) throws IOException {
         // just log stuff
+        log.error("NsoResponseErrorHandler: Error handling " + url + " " + method + " " + httpResponse.getStatusCode());
         if (httpResponse.getStatusCode().is5xxServerError()) {
-            log.error("server error status text: {}", httpResponse.getStatusText());
+            log.error("...server error status text: {}", httpResponse.getStatusText());
         } else if (httpResponse.getStatusCode().is4xxClientError()) {
-            log.error("client error status text: {}", httpResponse.getStatusText());
+            log.error("...client error status text: {}", httpResponse.getStatusText());
         }
         // if we actually read the error body out the InputStream closes, so don't do the next line
         // String body = StreamUtils.copyToString(httpResponse.getBody(), Charset.defaultCharset());
