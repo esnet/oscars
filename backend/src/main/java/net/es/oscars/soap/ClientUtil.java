@@ -99,21 +99,19 @@ public class ClientUtil {
         // withGzipCompression argument is true.
         if (clientUtilProps.enableGzipCompression || withGzipCompression) {
             log.info("ClientUtil.createRequesterClient() - Gzip compression enabled");
-//            Map<String, Object> requestHeaders = new HashMap<>();
-//            requestHeaders.put("Accept-Encoding", new ArrayList<>(List.of("gzip")));
-
-            // Ensure we sent the "Accept-Encoding: gzip" header to negotiate HTTP Compression
-//            client.getRequestContext().put(MessageContext.HTTP_REQUEST_HEADERS, requestHeaders);
             GZIPOutInterceptor gzipOutInterceptor = new GZIPOutInterceptor();
-
             GZIPInInterceptor gzipInInterceptor = new GZIPInInterceptor();
-            
-            gzipOutInterceptor.setForce(true);
-            gzipOutInterceptor.setThreshold(0); // force on all messages
-            Set<String> contentTypes = new HashSet<>();
 
-            contentTypes.add("application/xml");
+            // force on all messages regardless of size?
+            log.info("ClientUtil.createRequesterClient() - force is " + clientUtilProps.forceGzip);
+            log.info("ClientUtil.createRequesterClient() - threshold is " + clientUtilProps.gzipThreshold);
 
+            gzipOutInterceptor.setForce(clientUtilProps.forceGzip);
+            gzipOutInterceptor.setThreshold(clientUtilProps.gzipThreshold);
+
+            List<String> types = clientUtilProps.getContentTypes();
+            Set<String> contentTypes = new HashSet<>(types);
+            log.info("ClientUtil.createRequesterClient() - Gzip compression will be enabled for " + contentTypes.toString());
             gzipOutInterceptor.setSupportedPayloadContentTypes(contentTypes);
 
             client.getInInterceptors().add(gzipInInterceptor);
