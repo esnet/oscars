@@ -7,9 +7,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
-import net.es.topo.common.dto.nso.FromNsoServiceConfig;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,13 +28,16 @@ import java.nio.charset.Charset;
 @Slf4j
 public class NsoHttpServer {
 
-    @Value("${nso.mockPort}")
+    @Value(value = "${nso.mockPort}")
     private int port;
 
     @Bean
     public ServletRegistrationBean<Servlet> servletRegistrationBean(){
+
+        NsoServlet servlet = new NsoServlet();
+
         return new ServletRegistrationBean<>(
-                new NsoServlet(),
+                servlet,
                 "/restconf/data/esnet-status:esnet-status/nokia-show",
                 "/data/tailf-ncs:services/esnet-vpls:vpls",
                 "/data/tail-ncs:services/esnet-lsp:lsp"
@@ -146,7 +147,7 @@ public class NsoHttpServer {
                     response.getWriter().write(body);
 
                     response.setStatus(responseSpec.status);
-                    return;
+                    break;
                 }
             }
 
