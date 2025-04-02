@@ -499,49 +499,69 @@ public class NsoProxy {
 
 
 
-    public NsoVplsResponse getVpls() throws JsonProcessingException {
+    public NsoVplsResponse getVpls() throws Exception {
         FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS);
         return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
     }
 
+    public NsoVplsResponse getVpls(String path) throws Exception {
+        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS, path);
+        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
+    }
 
-    public NsoLspResponse getLsps() throws JsonProcessingException {
+
+    public NsoLspResponse getLsps() throws Exception {
         FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP);
         return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
     }
 
+    public NsoLspResponse getLsps(String path) throws Exception {
+        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP, path);
+        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
+    }
 
-    public FromNsoServiceConfig getNsoServiceConfig(NsoService service) {
+    public String getNsoServiceConfigRestPath(NsoService service) throws Exception {
+        String path = switch (service) {
+            case VPLS -> "/esnet-vpls:vpls";
+            case LSP -> "/esnet-lsp:lsp";
+            default -> null;
+        };
+        if (path == null) {
+            throw new Exception("Could not determine service path type. Please use VPLS or LSP.");
+        };
+        String req = "data/tailf-ncs:services%s".formatted(path);
+
+        return props.getUri() + req;
+    }
+
+    public FromNsoServiceConfig getNsoServiceConfig(NsoService service) throws Exception {
+        String restPath = getNsoServiceConfigRestPath(service);
+        return getNsoServiceConfig(service, restPath);
+    };
+    public FromNsoServiceConfig getNsoServiceConfig(NsoService service, String path) throws Exception {
         log.info("get service config START %s ".formatted(service));
 
         FromNsoServiceConfig result = null;
         try {
-            String path = switch (service) {
-                case VPLS -> "/esnet-vpls:vpls";
-                case LSP -> "/esnet-lsp:lsp";
-                default -> null;
-            };
-
-            result = FromNsoServiceConfig.builder()
-                    .service(service)
-                    .successful(false)
-                    .build();
-            String req = "data/tailf-ncs:services%s".formatted(path);
-            String restPath = props.getUri() + req;
             String response;
-            response = restTemplate.getForObject(restPath, String.class);
+
+            response = restTemplate.getForObject(path, String.class);
+
 //            DevelUtils.dumpDebug("get-nso-service", response);
 
             if (response != null) {
+                result = new FromNsoServiceConfig();
                 result.setConfig(response);
                 result.setSuccessful(true);
 
                 log.info("%s: get service COMPLETE ".formatted(service.toString()));
             } else {
-                log.warn("%s: get config FAILED (response is null) ".formatted(service.toString()));
+                log.error("%s: get config FAILED (response is null) ".formatted(service.toString()));
+                throw new Exception("%s: get config FAILED (response is null) ".formatted(service.toString()));
             }
+
         } catch (Exception e) {
-//            log.error("%s: get service FAILED (exception thrown) ", e);
+            log.error(e.getLocalizedMessage(), e);
             throw e;
         }
         return result;

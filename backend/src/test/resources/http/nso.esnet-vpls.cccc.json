@@ -1,0 +1,178 @@
+[
+  {
+    "vc-id": 7005,
+    "modified": {
+      "devices": ["eqxsv5-cr6", "nrelrsf-cr6"],
+      "services": ["/tailf-ncs:services/esnet-port:port[device='nrelrsf-cr6'][ifce='2/1/c7/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='nrelrsf-cr6'][service-id='7005']", "/tailf-ncs:services/esnet-port:port[device='eqxsv5-cr6'][ifce='1/1/c6/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='eqxsv5-cr6'][service-id='7005']"]
+    },
+    "directly-modified": {
+      "devices": ["eqxsv5-cr6", "nrelrsf-cr6"],
+      "services": ["/tailf-ncs:services/esnet-shared:nokia-service-registry[device='eqxsv5-cr6'][service-id='7005']", "/tailf-ncs:services/esnet-port:port[device='eqxsv5-cr6'][ifce='1/1/c6/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='nrelrsf-cr6'][service-id='7005']", "/tailf-ncs:services/esnet-port:port[device='nrelrsf-cr6'][ifce='2/1/c7/1']"]
+    },
+    "created": "2024-07-22T19:29:58.411737+00:00",
+    "last-modified": "2024-07-22T19:29:58.411775+00:00",
+    "last-run": "2024-10-03T14:32:56.817687+00:00",
+    "description": "NREL_5G_ExpressRoute_AzureComm_Primary ",
+    "qos-mode": "guaranteed",
+    "name": "CCCC",
+    "routing-domain": "esnet-293",
+    "device": [
+      {
+        "device": "eqxsv5-cr6",
+        "endpoint": [
+          {
+            "ifce": "1/1/c6/1",
+            "vlan-id": 1500,
+            "layer2-description": "ZFK7",
+            "qos": {
+              "ingress-mbps": 10000,
+              "egress-mbps": 10000,
+              "excess-action": "keep",
+              "qos-id": 7009
+            }
+          }
+        ]
+      },
+      {
+        "device": "nrelrsf-cr6",
+        "endpoint": [
+          {
+            "ifce": "2/1/c7/1",
+            "vlan-id": 1500,
+            "layer2-description": "ZFK7",
+            "qos": {
+              "ingress-mbps": 10000,
+              "egress-mbps": 10000,
+              "excess-action": "keep",
+              "qos-id": 7003
+            }
+          }
+        ]
+      }
+    ],
+    "sdp": [
+      {
+        "sdp-id": 7060,
+        "description": "ZFK7",
+        "a": {
+          "device": "eqxsv5-cr6",
+          "mode": "spoke",
+          "vc-id": 7018,
+          "lsp": "ZFK7-WRK-nrelrsf-cr6"
+        },
+        "z": {
+          "device": "nrelrsf-cr6",
+          "mode": "spoke",
+          "vc-id": 7018,
+          "lsp": "ZFK7-WRK-eqxsv5-cr6"
+        },
+        "precedence": "primary"
+      },
+      {
+        "sdp-id": 7061,
+        "description": "ZFK7",
+        "a": {
+          "device": "eqxsv5-cr6",
+          "mode": "spoke",
+          "vc-id": 7019,
+          "lsp": "ZFK7-PRT-nrelrsf-cr6"
+        },
+        "z": {
+          "device": "nrelrsf-cr6",
+          "mode": "spoke",
+          "vc-id": 7019,
+          "lsp": "ZFK7-PRT-eqxsv5-cr6"
+        },
+        "precedence": "secondary"
+      }
+    ]
+  },
+  {
+    "vc-id": 7006,
+    "modified": {
+      "devices": ["eqxsv5-cr6", "snlca902-cr6"],
+      "services": ["/tailf-ncs:services/esnet-port:port[device='snlca902-cr6'][ifce='1/1/c3/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='snlca902-cr6'][service-id='7006']", "/tailf-ncs:services/esnet-port:port[device='eqxsv5-cr6'][ifce='1/1/c6/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='eqxsv5-cr6'][service-id='7006']"]
+    },
+    "directly-modified": {
+      "devices": ["eqxsv5-cr6", "snlca902-cr6"],
+      "services": ["/tailf-ncs:services/esnet-shared:nokia-service-registry[device='eqxsv5-cr6'][service-id='7006']", "/tailf-ncs:services/esnet-port:port[device='eqxsv5-cr6'][ifce='1/1/c6/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='snlca902-cr6'][service-id='7006']", "/tailf-ncs:services/esnet-port:port[device='snlca902-cr6'][ifce='1/1/c3/1']"]
+    },
+    "created": "2024-05-09T23:51:30.704549+00:00",
+    "last-modified": "2024-05-09T23:51:30.704588+00:00",
+    "last-run": "2024-10-03T14:32:57.590332+00:00",
+    "description": "SNLL Primary ExpressRoute Microsoft Peering",
+    "qos-mode": "guaranteed",
+    "name": "CCC2",
+    "routing-domain": "esnet-293",
+    "device": [
+      {
+        "device": "eqxsv5-cr6",
+        "endpoint": [
+          {
+            "ifce": "1/1/c6/1",
+            "vlan-id": 1170,
+            "layer2-description": "P4YY",
+            "qos": {
+              "ingress-mbps": 50,
+              "egress-mbps": 50,
+              "excess-action": "keep",
+              "qos-id": 7005
+            }
+          }
+        ]
+      },
+      {
+        "device": "snlca902-cr6",
+        "endpoint": [
+          {
+            "ifce": "1/1/c3/1",
+            "vlan-id": 1170,
+            "layer2-description": "P4YY",
+            "qos": {
+              "ingress-mbps": 50,
+              "egress-mbps": 50,
+              "excess-action": "keep",
+              "qos-id": 7001
+            }
+          }
+        ]
+      }
+    ],
+    "sdp": [
+      {
+        "sdp-id": 7002,
+        "description": "P4YY",
+        "a": {
+          "device": "eqxsv5-cr6",
+          "mode": "spoke",
+          "vc-id": 7006,
+          "lsp": "P4YY-WRK-snlca902-cr6"
+        },
+        "z": {
+          "device": "snlca902-cr6",
+          "mode": "spoke",
+          "vc-id": 7006,
+          "lsp": "P4YY-WRK-eqxsv5-cr6"
+        },
+        "precedence": "primary"
+      },
+      {
+        "sdp-id": 7003,
+        "description": "P4YY",
+        "a": {
+          "device": "eqxsv5-cr6",
+          "mode": "spoke",
+          "vc-id": 7007,
+          "lsp": "P4YY-PRT-snlca902-cr6"
+        },
+        "z": {
+          "device": "snlca902-cr6",
+          "mode": "spoke",
+          "vc-id": 7007,
+          "lsp": "P4YY-PRT-eqxsv5-cr6"
+        },
+        "precedence": "secondary"
+      }
+    ]
+  }
+]

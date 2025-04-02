@@ -3,10 +3,15 @@ package net.es.oscars.sb.nso;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
+import net.es.topo.common.dto.nso.NsoVPLS;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Dictionary;
+import java.util.Enumeration;
+import java.util.List;
 
 @Getter
 @Setter
@@ -128,4 +133,67 @@ public abstract class NsoStateSyncer<T> {
      * @return The count of instances in the remote state as an integer.
      */
     public abstract int getRemoteInstanceCount();
+
+    /**
+     * Find a local state entry by name.
+     * @param name The entry name to look for.
+     * @return The entry found within the local NSO state list.
+     */
+    public abstract T findLocalEntryByName(String name);
+
+    /**
+     * Find a local state entry by ID.
+     * @param id The entry ID to look for.
+     * @return The entry found within the local NSO state list.
+     */
+    public abstract T findLocalEntryById(int id);
+
+    /**
+     * Find a remote state entry by name.
+     * @param name The entry name to look for.
+     * @return The entry found within the remote NSO state list.
+     */
+    public abstract T findRemoteEntryByName(String name);
+    /**
+     * Find a remote state entry by ID.
+     * @param id The entry ID to look for.
+     * @return The entry found within the remote NSO state list.
+     */
+    public abstract T findRemoteEntryById(int id);
+
+    /**
+     * Return the amount of VPLS entries with the requested State enumeration.
+     * @param state The NsoStateWrapper.State enumeration to look for
+     * @return Returns 0 if none found, or the count of entries with the requested State enumeration set.
+     */
+    public Integer countByLocalState(State state) {
+        Integer count = 0;
+        Enumeration<T> enumeration = localState.elements();
+        while (enumeration.hasMoreElements()) {
+            T wrappedNsoVPLS = enumeration.nextElement();
+            if (((NsoStateWrapper<?>) wrappedNsoVPLS).state.equals(state)) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * Return the VPLS entries with the requested State enumeration.
+     * @param state The NsoStateWrapper.State enumeration to look for
+     * @return Returns a list of the filtered local state entries.
+     */
+    public List<T> filterLocalState(State state) {
+        List<T> found = new ArrayList<>();
+        Enumeration<T> enumeration = localState.elements();
+        while (enumeration.hasMoreElements()) {
+            T wrappedNsoVPLS = enumeration.nextElement();
+            if (((NsoStateWrapper<?>) wrappedNsoVPLS).state.equals(state)) {
+                found.add(wrappedNsoVPLS);
+            }
+        }
+
+        return found;
+    }
 }

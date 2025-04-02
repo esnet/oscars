@@ -1,13 +1,15 @@
 package net.es.oscars.sb.nso;
 
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.sb.nso.ent.NsoService;
+import net.es.topo.common.dto.nso.YangPatch;
 import org.springframework.stereotype.Component;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.topo.common.dto.nso.FromNsoServiceConfig;
 import net.es.topo.common.dto.nso.NsoVPLS;
-import net.es.topo.common.dto.nso.enums.NsoService;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
@@ -60,7 +62,9 @@ import java.util.*;
 public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>> {
 
     private final NsoProxy nsoProxy;
-
+    public NsoProxy getNsoProxy() {
+        return nsoProxy;
+    }
     public NsoVplsStateSyncer(NsoProxy proxy) {
         super();
         nsoProxy = proxy;
@@ -143,9 +147,17 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 }
 
                 // @TODO Generate the RestTemplate / YangPatches and send using NsoProxy
+                List<NsoStateWrapper<NsoVPLS>> toDelete = filterLocalState(State.DELETE);
+                List<NsoStateWrapper<NsoVPLS>> toAdd = filterLocalState(State.ADD);
+                List<NsoStateWrapper<NsoVPLS>> toRedeploy = filterLocalState(State.REDEPLOY);
+
+//                FromNsoServiceConfig serviceConfig = new FromNsoServiceConfig();
+//                NsoAdapter.NsoOscarsDismantle dismantle = new NsoAdapter.NsoOscarsDismantle(dismantleConnectionId, dismantleVcId, listKeys);
+//                nsoProxy.deleteServices(dismantle);
 
 
                 this.setSynchronized(true);
+                this.setDirty(false);
             }
         } catch (NsoStateSyncerException nse) {
             log.error(nse.getMessage(), nse);
@@ -179,13 +191,15 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
         if (!this.isLoaded()) {
             throw new NsoStateSyncerException("No state loaded yet.");
         }
+        NsoStateWrapper<NsoVPLS> local = findLocalEntryById(id);
+        NsoStateWrapper<NsoVPLS> remote = findRemoteEntryById(id);
 
         // Evaluate the local state for entry with the requested ID against the loaded NSO service state
-        if (getLocalState().get(id) != null && getRemoteState().get(id) != null) {
+        if (local != null && remote != null) {
 
-            // Exists in local and remote. Default state is NOOP unless changed
-            // Is it changed?
-            if (!getLocalState().get(id).equals(getRemoteState().get(id))) {
+            // Exists in local and remote. Default state is NOOP unless local and remote entries differ.
+            // Is the local entry different from the remote entry?
+            if (!local.getInstance().equals(remote.getInstance())) {
                 // Mark for REDEPLOY
                 String description = "Local and remote state differ for VPLS " + id + ", mark for redeploy.";
                 redeploy(id, description);
@@ -194,13 +208,16 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
         } else {
             // Doesn't exist in local
             // Does it exist in remote? (Remote state may have changed between now and last load time)
-            if (getRemoteState().get(id) != null) {
+            if (remote != null) {
                 String description = "No state found locally for VPLS " + id + ", mark for delete.";
-                // Exists in remote, but not locally. Mark as "delete".
+                // Exists in remote, but not locally. Copy to local, then mark as "delete".
+                remote.setState(State.NOOP);
+                localState.put(id, remote);
+
                 delete(id, description);
                 log.info(description);
 
-            } else if (getLocalState().get(id) != null) {
+            } else if (local != null) {
 
                 // Exists locally, but not in remote. Mark local as "add".
                 String description = "No state found remotely for VPLS " + id + ", mark for add.";
@@ -343,6 +360,84 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     }
 
     /**
+     * Find a local state entry by name.
+     *
+     * @param name The entry name to look for.
+     * @return The entry found within the local NSO state list.
+     */
+    @Override
+    public NsoStateWrapper<NsoVPLS> findLocalEntryByName(String name) {
+        NsoStateWrapper<NsoVPLS> found = null;
+        Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = getLocalState().elements();
+        while (enumeration.hasMoreElements()) {
+            NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+            if (wrappedNsoVPLS.getInstance().getName().equals(name)) {
+                found = wrappedNsoVPLS;
+                break;
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Find a local state entry by ID.
+     * @param id The entry ID to look for.
+     * @return The entry found within the local NSO state list.
+     */
+    @Override
+    public NsoStateWrapper<NsoVPLS> findLocalEntryById(int id) {
+        NsoStateWrapper<NsoVPLS> found = null;
+        Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = getLocalState().elements();
+        while (enumeration.hasMoreElements()) {
+            NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+            if (wrappedNsoVPLS.getInstance().getVcId().equals(id)) {
+                found = wrappedNsoVPLS;
+                break;
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Find a remote state entry by name.
+     *
+     * @param name The entry name to look for.
+     * @return The entry found within the remote NSO state list.
+     */
+    @Override
+    public NsoStateWrapper<NsoVPLS> findRemoteEntryByName(String name) {
+        NsoStateWrapper<NsoVPLS> found = null;
+        Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = getRemoteState().elements();
+        while (enumeration.hasMoreElements()) {
+            NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+            if (wrappedNsoVPLS.getInstance().getName().equals(name)) {
+                found = wrappedNsoVPLS;
+                break;
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Find a remote state entry by ID.
+     * @param id The entry ID to look for.
+     * @return The entry found within the remote NSO state list.
+     */
+    @Override
+    public NsoStateWrapper<NsoVPLS> findRemoteEntryById(int id) {
+        NsoStateWrapper<NsoVPLS> found = null;
+        Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = getRemoteState().elements();
+        while (enumeration.hasMoreElements()) {
+            NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+            if (wrappedNsoVPLS.getInstance().getVcId().equals(id)) {
+                found = wrappedNsoVPLS;
+                break;
+            }
+        }
+        return found;
+    }
+
+    /**
      * Mark a VPLS with state.
      * @param id The VPLS ID to mark.
      * @param state From NsoStateSyncer states: State.ADD, State.DELETE, State.REDEPLOY, State.NOOP
@@ -379,7 +474,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             log.info(description);
 
 
-            if (!isDirty()) {
+            if (!isDirty() && !State.NOOP.equals(state)) {
                 setDirty(true);
             }
         } catch (NsoStateSyncerException nse) {
@@ -419,10 +514,10 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
             if (wrappedNsoVPLS.getInstance().getName().equals(name)) {
                 id = wrappedNsoVPLS.getInstance().getVcId();
+                break;
             }
         }
 
         return id;
     }
-
 }
