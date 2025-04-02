@@ -151,6 +151,20 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 List<NsoStateWrapper<NsoVPLS>> toAdd = filterLocalState(State.ADD);
                 List<NsoStateWrapper<NsoVPLS>> toRedeploy = filterLocalState(State.REDEPLOY);
 
+                for (NsoStateWrapper<NsoVPLS> wrapper : toDelete) {
+                    NsoVPLS delete = wrapper.getInstance();
+                    // Mark this VPLS vc-id to DELETE
+                }
+
+                for (NsoStateWrapper<NsoVPLS> wrapper : toAdd) {
+                    NsoVPLS add = wrapper.getInstance();
+                    // Mark this VPLS vc-id to ADD
+                }
+
+                for (NsoStateWrapper<NsoVPLS> wrapper : toRedeploy) {
+                    NsoVPLS redeploy = wrapper.getInstance();
+                    // Mark this VPLS vc-id to REDEPLOY
+                }
 //                FromNsoServiceConfig serviceConfig = new FromNsoServiceConfig();
 //                NsoAdapter.NsoOscarsDismantle dismantle = new NsoAdapter.NsoOscarsDismantle(dismantleConnectionId, dismantleVcId, listKeys);
 //                nsoProxy.deleteServices(dismantle);
