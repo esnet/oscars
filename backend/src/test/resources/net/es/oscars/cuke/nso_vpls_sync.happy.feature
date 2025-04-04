@@ -95,31 +95,23 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Then The list of VPLS service instances marked "add" has a count of 1
     When I perform a synchronization
     Then The NSO VPLS service is synchronized
-#    Then The NSO VPLS service state now has 138 instances
 
-#    # VPLS "AAAA" already exists, adding it again should be a "no-op"
-#    Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
-#    When I add VPLS instance "AAAA"
-#    Then The VPLS instance "AAAA" is present in the NSO VPLS service state
-#    Then VPLS "AAAA" is marked as "no-op"
-#    When I perform a synchronization
-#    Then The NSO VPLS service is synchronized
-#    Then The NSO VPLS service state now has 140 instances
-#
-#  # Happy path
-#  Scenario: Modify NSO VPLS service state with single deletes (Happy Path)
-#
-#    Given I have initialized the world
-#    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
-#    Given The NSO VPLS service state is loaded
-#
-#    # Delete the VPLS "BBBB"
-#    Given The VPLS instance "BBBB" is present in the NSO VPLS service state
-#    When I delete VPLS instance "BBBB"
-#    Then VPLS "BBBB" is marked as "delete"
-#    Then I perform a synchronization
-#    When The NSO VPLS service is synchronized
-#    Then The NSO VPLS service state now has 139 instances
+  # Happy path
+  Scenario: Modify NSO VPLS service state with single deletes (Happy Path)
+
+    Given I have initialized the world
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The NSO VPLS service state is loaded
+    Given The NSO VPLS service state has 137 instances
+
+    # Delete the VPLS "BBBB"
+    Given The VPLS instance "BBBB" is present in the NSO VPLS service state
+    When I delete VPLS instance "BBBB"
+    Then VPLS "BBBB" is marked as "delete"
+    Then The list of VPLS service instances marked "delete" has a count of 1
+    Then I perform a synchronization
+    When The NSO VPLS service is synchronized
+    Then The NSO VPLS service state now has 136 instances
 #
 #  # Happy path
 #  Scenario: Modify NSO VPLS service state with mismatch for single redeploys (Happy Path)

@@ -21,7 +21,6 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
-import net.es.oscars.web.beans.LiveStatusResponse;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 

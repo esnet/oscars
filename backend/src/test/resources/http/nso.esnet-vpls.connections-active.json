@@ -2504,8 +2504,8 @@
               "vlan-id": 1220,
               "layer2-description": "ZRNX",
               "qos": {
-                "ingress-mbps": 1,
-                "egress-mbps": 1,
+                "ingress-mbps": 100,
+                "egress-mbps": 100,
                 "excess-action": "keep",
                 "qos-id": 7000
               }
@@ -2520,8 +2520,8 @@
               "vlan-id": 1220,
               "layer2-description": "ZRNX",
               "qos": {
-                "ingress-mbps": 1,
-                "egress-mbps": 1,
+                "ingress-mbps": 100,
+                "egress-mbps": 100,
                 "excess-action": "keep",
                 "qos-id": 7000
               }

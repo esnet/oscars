@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
+import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
+import net.es.topo.common.dto.nso.NsoVPLS;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +42,8 @@ public class NsoHttpServer {
                 servlet,
                 "/restconf/data/esnet-status:esnet-status/nokia-show",
                 "/data/tailf-ncs:services/esnet-vpls:vpls",
-                "/data/tail-ncs:services/esnet-lsp:lsp"
+                "/data/tail-ncs:services/esnet-lsp:lsp",
+                "/restconf/data/tailf-ncs:services"
         );
     }
 
@@ -119,7 +122,60 @@ public class NsoHttpServer {
         @Override
         protected void doPost(HttpServletRequest request, HttpServletResponse response)
                 throws ServletException, IOException {
+            String uri = request.getRequestURI();
+            log.info("POST request received, mocking " + uri);
+            if (uri.startsWith("/restconf/data/esnet-status:esnet-status/nokia-show")) {
+                mockPostNokiaShow(request, response);
+            } else if (uri.startsWith("/restconf/data/tailf-ncs:services")) {
+                mockPostTailfNcs(request, response);
+            } else {
+                // Unknown.
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            }
+        }
 
+        protected void mockPostTailfNcs(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+            StringBuilder payload = new StringBuilder();
+
+            try(BufferedReader reader = request.getReader()){
+                String line;
+                while ((line = reader.readLine()) != null){
+                    payload.append(line);
+                }
+            }
+            // consume the incoming NsoServiceWrapper
+            NsoServicesWrapper nsoServicesWrapper = new ObjectMapper().readValue(payload.toString(), NsoServicesWrapper.class);
+
+            response.setContentType("application/yang-data+json");
+            NsoEsnetVplsYangPatchResponseSpec[] responseSpecs = new ObjectMapper()
+                .readValue(new ClassPathResource("http/nso.esnet-vpls.sync.response-specs.json").getFile(), NsoEsnetVplsYangPatchResponseSpec[].class);
+
+            for (NsoEsnetVplsYangPatchResponseSpec responseSpec : responseSpecs) {
+                // check by connectionId (VPLS name) and vc-id
+                int vcId = responseSpec.vcId;
+                String connectionId = responseSpec.connectionId;
+
+                for (NsoVPLS vpls : nsoServicesWrapper.getVplsInstances())
+                {
+                    // Currently only sending one VPLS per HTTP POST. :-/
+                    // We only need to find the one VPLS in the list of VPLS instances
+                    if (vpls.getVcId() == vcId && vpls.getName().equals(connectionId)) {
+                        // read in the body from the file found in the path in the responseSpec...
+                        InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
+                        String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
+                        // ... then write it out as our response
+                        response.getWriter().write(body);
+                        response.setStatus(responseSpec.status);
+                        return;
+                    }
+                }
+            }
+
+            // If we got this far, it means the requested mock payload was "404 Not found"... (we don't have it listed)
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        }
+
+        protected void mockPostNokiaShow(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             StringBuilder payload = new StringBuilder();
             try(BufferedReader reader = request.getReader()){
                 String line;
@@ -150,10 +206,10 @@ public class NsoHttpServer {
                     break;
                 }
             }
-
         }
     }
 
     public record ResponseSpec(String device, String args, String body, Integer status) {}
     public record NsoEsnetVplsResponseSpec(String data, Integer status) {}
+    public record NsoEsnetVplsYangPatchResponseSpec(String connectionId, Integer vcId, String data, Integer status) {}
 }

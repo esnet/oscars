@@ -1,8 +1,12 @@
 package net.es.oscars.sb.nso;
 
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.ent.NsoService;
+import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.topo.common.dto.nso.YangPatch;
+import net.es.topo.common.dto.nso.YangPatchWrapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.dto.NsoVplsResponse;
@@ -62,6 +66,7 @@ import java.util.*;
 public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>> {
 
     private final NsoProxy nsoProxy;
+
     public NsoProxy getNsoProxy() {
         return nsoProxy;
     }
@@ -130,6 +135,18 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
      */
     @Override
     public boolean sync(String path) throws NsoStateSyncerException {
+        return this.sync(path, false);
+    }
+    /**
+     * Synchronize current service state to the specified API endpoint.
+     *
+     * @param path The URI path to the API endpoint.
+     * @param dryRun If true, this will perform a dry run. If false, this will attempt an actual synchronization.
+     * @return True if successful, False otherwise.
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
+    @Override
+    public boolean sync(String path, boolean dryRun) throws NsoStateSyncerException {
         try {
             if (!this.isLoaded()) {
                 throw new NsoStateSyncerException("No state loaded yet.");
@@ -146,31 +163,51 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                     evaluate(wrappedNsoVPLS.getInstance().getVcId());
                 }
 
-                // @TODO Generate the RestTemplate / YangPatches and send using NsoProxy
-                List<NsoStateWrapper<NsoVPLS>> toDelete = filterLocalState(State.DELETE);
-                List<NsoStateWrapper<NsoVPLS>> toAdd = filterLocalState(State.ADD);
-                List<NsoStateWrapper<NsoVPLS>> toRedeploy = filterLocalState(State.REDEPLOY);
+                // Then, generate the RestTemplate / YangPatches and send using NsoProxy
+                List<NsoStateWrapper<NsoVPLS>> toDelete = filterLocalState(State.DELETE); // One Yang Patch (1 HTTP call)
+                List<NsoStateWrapper<NsoVPLS>> toAdd = filterLocalState(State.ADD); // One Yang Patch (1 HTTP call)
+                List<NsoStateWrapper<NsoVPLS>> toRedeploy = filterLocalState(State.REDEPLOY); // One Yang Patch (1 HTTP call)
 
-                for (NsoStateWrapper<NsoVPLS> wrapper : toDelete) {
-                    NsoVPLS delete = wrapper.getInstance();
-                    // Mark this VPLS vc-id to DELETE
-                }
 
+                // ...Add BEGIN
                 for (NsoStateWrapper<NsoVPLS> wrapper : toAdd) {
-                    NsoVPLS add = wrapper.getInstance();
-                    // Mark this VPLS vc-id to ADD
-                }
 
+                    NsoServicesWrapper.NsoServicesWrapperBuilder addBuilder = NsoServicesWrapper.builder();
+                    String connectionId = wrapper.getInstance().getName();
+
+                    List<NsoVPLS> addList = new ArrayList<>();
+                    addList.add(wrapper.getInstance());
+
+                    NsoServicesWrapper addThese = addBuilder
+                        .lspInstances(new ArrayList<>())
+                        .vplsInstances(addList)
+                        .build();
+
+                    nsoProxy.buildServices(addThese, connectionId);
+
+                }
+                // ...Add END
+
+                // ...Redeploy BEGIN
                 for (NsoStateWrapper<NsoVPLS> wrapper : toRedeploy) {
                     NsoVPLS redeploy = wrapper.getInstance();
-                    // Mark this VPLS vc-id to REDEPLOY
+                    String connectionId = redeploy.getName();
+
+                    nsoProxy.redeployServices(redeploy, connectionId);
                 }
-//                FromNsoServiceConfig serviceConfig = new FromNsoServiceConfig();
-//                NsoAdapter.NsoOscarsDismantle dismantle = new NsoAdapter.NsoOscarsDismantle(dismantleConnectionId, dismantleVcId, listKeys);
-//                nsoProxy.deleteServices(dismantle);
+                // ...Redeploy END
 
+                // ...Delete BEGIN
+                for (NsoStateWrapper<NsoVPLS> wrapper : toDelete) {
+                    NsoAdapter.NsoOscarsDismantle dismantle = getNsoOscarsDismantle(wrapper);
 
+                    nsoProxy.deleteServices(dismantle);
+                }
+                // ...Delete END
+
+                // Mark as synchronized.
                 this.setSynchronized(true);
+                // Set state to "clean" state.
                 this.setDirty(false);
             }
         } catch (NsoStateSyncerException nse) {
@@ -181,6 +218,22 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             throw new NsoStateSyncerException(e.getMessage());
         }
         return this.isSynchronized();
+    }
+
+    private static NsoAdapter.NsoOscarsDismantle getNsoOscarsDismantle(NsoStateWrapper<NsoVPLS> wrapper) {
+        NsoVPLS delete = wrapper.getInstance();
+
+        // Mark this VPLS vc-id to DELETE
+        String connectionId = delete.getName();
+        int vcId = delete.getVcId();
+
+        // LSPs may be shared by multiple VPLS! Leave them be for now.
+        List<String> lspNsoKeys = new ArrayList<>();
+
+        return new NsoAdapter.NsoOscarsDismantle(
+                connectionId,
+                vcId,
+                lspNsoKeys);
     }
 
     /**
