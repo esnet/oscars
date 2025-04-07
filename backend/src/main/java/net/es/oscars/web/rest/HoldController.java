@@ -87,6 +87,7 @@ public class HoldController {
 
         connLock.lock();
         try {
+            log.info("attempt to extend hold on connection " + connectionId);
             Optional<Connection> maybeConnection = connRepo.findByConnectionId(connectionId);
             if (maybeConnection.isPresent()) {
                 Connection conn = maybeConnection.get();
@@ -97,7 +98,7 @@ public class HoldController {
                     log.debug("pretending to extend hold for a non-HELD connection");
                 }
             } else {
-                throw new NoSuchElementException("connection not found");
+                throw new NoSuchElementException("connection " + connectionId + " not found");
             }
 
         } finally {

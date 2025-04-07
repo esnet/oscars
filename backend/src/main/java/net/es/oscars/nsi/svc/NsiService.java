@@ -749,9 +749,9 @@ public class NsiService {
         }
         Connection c = mc.get();
         if (c.getPhase().equals(Phase.ARCHIVED)) {
-            // if this is archived and the end date was 24 hours ago or more, don't return it
-            if (c.getArchived().getSchedule()
-                    .getEnding().isBefore(Instant.now().minus(24L, ChronoUnit.HOURS))) {
+            // if this is archived return it only the last modified date was 24 hours ago or less
+            int yesterday = (int) Instant.now().minus(24L, ChronoUnit.HOURS).getEpochSecond();
+            if (c.getLast_modified() > yesterday) {
                 return null;
             }
         }

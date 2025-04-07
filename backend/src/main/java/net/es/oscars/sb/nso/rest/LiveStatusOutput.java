@@ -21,8 +21,8 @@ public class LiveStatusOutput {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    private static class WrappedOutput {
-        private String result;
+    public static class WrappedOutput {
+        public String result;
     }
 
     public String getOutput() {

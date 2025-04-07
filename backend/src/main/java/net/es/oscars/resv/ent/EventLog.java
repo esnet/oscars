@@ -2,6 +2,7 @@ package net.es.oscars.resv.ent;
 
 import com.fasterxml.jackson.annotation.*;
 import jakarta.persistence.*;
+import jakarta.transaction.Transactional;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
 
@@ -14,6 +15,7 @@ import java.util.Objects;
 @ToString
 @RequiredArgsConstructor
 @Entity
+@Transactional
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

@@ -35,7 +35,7 @@ public class NsoProxySteps extends CucumberSteps {
     ArrayList<LiveStatusLspResult> lspResults;
 
     @When("^The getLiveStatusShow method is called with device \"([^\"]*)\" and arguments \"([^\"]*)\"$")
-    public void theGetLiveStatusShowMethodIsCalledWithDeviceAndArguments(String arg0, String arg1) {
+    public void theGetLiveStatusShowMethodIsCalledWithDeviceAndArguments(String arg0, String arg1) throws Throwable {
         LiveStatusRequest liveStatusRequest = new LiveStatusRequest(arg0, arg1);
         liveStatus = proxy.getLiveStatusShow(liveStatusRequest);
         // log.info(liveStatus);

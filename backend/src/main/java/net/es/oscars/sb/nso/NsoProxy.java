@@ -22,6 +22,7 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
+import net.es.oscars.web.beans.LiveStatusResponse;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 //import net.es.topo.common.dto.nso.enums.NsoService;
@@ -40,9 +41,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -427,26 +426,69 @@ public class NsoProxy {
         errorStr.append("esnet-status error\n");
         final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(liveStatusRequest);
         // first, try to get a LiveStatusOutput
+        ResponseEntity<Object> responseEntity = null;
         try {
-            ResponseEntity<LiveStatusOutput> responseEntity = restTemplate.postForEntity(restPath, requestEntity, LiveStatusOutput.class);
+            responseEntity = restTemplate.postForEntity(restPath, requestEntity, Object.class);
+            if (responseEntity.getStatusCode() != HttpStatus.OK) {
+                if (responseEntity.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                    throw new RestClientException("Bad request reported by server. Processing error message:\n" + responseEntity.getBody());
+                } else {
+                    throw new Exception("URL " + restPath + ". Unexpected response code: " + responseEntity.getStatusCode() + ", body:\n" + responseEntity.getBody().toString());
+                }
+            }
             if (responseEntity.getBody() != null) {
-                return responseEntity.getBody().getOutput();
+                // Attempt to deserialize as LiveStatusOutput
+                // or
+                // Attempt to deserialize as IetfRestconfErrorResponse
+                try {
+
+                    ObjectMapper mapper = new ObjectMapper();
+                    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+                    LinkedHashMap<String, String> body = ((LinkedHashMap<String, String>) responseEntity.getBody());
+
+                    String json = mapper.writeValueAsString(body);
+
+                    if (body.containsKey("esnet-status:output")) {
+                        LiveStatusOutput liveOutput = mapper.readValue(json, LiveStatusOutput.class);
+
+                        return liveOutput.getOutput();
+                    } else {
+                        // Cannot figure out what this is.
+                        throw new Exception("Unknown body content received. Cannot deserialize as LiveStatusOutput or IetfRestconfErrorResponse:\n" + json);
+                    }
+
+                } catch (Exception e) {
+                    // Unknown exception
+                    log.error("NsoProxy.getLiveStatusShow() - Error while attempting to process response for LiveStatusOutput:\n" + e.getMessage());
+                }
+
             } else {
                 errorStr.append("null response body\n");
             }
-        } catch (RestClientException ex) {
-            // if we get an exception, the underlying exception could be a HttpMessageNotReadableException
-            // because the actual response is an IetfRestconfErrorResponse
+        } catch (RestClientException re) {
+            try {
+                if (responseEntity != null) {
+                    ObjectMapper mapper = new ObjectMapper();
+                    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+                    LinkedHashMap<String, String> body = ((LinkedHashMap<String, String>) responseEntity.getBody());
 
-            // we try again, but this time, try to deserialize into that class so we can grab the error messages
-            ResponseEntity<IetfRestconfErrorResponse> errorResponse = restTemplate.postForEntity(restPath, requestEntity, IetfRestconfErrorResponse.class);
-            if (errorResponse.getBody() != null) {
-                for (IetfRestconfErrorResponse.IetfError error : errorResponse.getBody().getErrors().getErrorList()) {
-                    errorStr.append(error.getErrorMessage()).append("\n");
+                    String json = mapper.writeValueAsString(body);
+
+                    if (body.containsKey("ietf-restconf:errors")) {
+                        IetfRestconfErrorResponse ietfError = mapper.readValue(json, IetfRestconfErrorResponse.class);
+                        for (IetfRestconfErrorResponse.IetfError error : ietfError.getErrors().getErrorList()) {
+                            errorStr.append(error.getErrorMessage()).append("\n");
+                        }
+                    } else {
+                        throw new Exception("NsoProxy.getLiveStatusShow() - Error while attempting to process response for IetfRestconfErrorResponse:\n" + json);
+                    }
                 }
-            } else {
-                errorStr.append("null error body\n");
+            } catch (Exception e) {
+                log.error(e.getLocalizedMessage(), e);
             }
+        } catch (Exception e) {
+            // Not something we can deserialize.
+            log.error(e.getLocalizedMessage(), e);
         }
 
         return errorStr.toString();
