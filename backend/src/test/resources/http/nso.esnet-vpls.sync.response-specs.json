@@ -14,13 +14,13 @@
   {
     "connectionId": "BBBB",
     "vcId": 7000,
-    "data": "http/nso.esnet-vpls.sync.response.happy.json",
+    "data": "http/nso.esnet-vpls.sync.delete.response.happy.json",
     "status": 200
   },
   {
     "connectionId": "BBB2",
     "vcId": 7003,
-    "data": "http/nso.esnet-vpls.sync.response.happy.json",
+    "data": "http/nso.esnet-vpls.sync.delete.response.happy.json",
     "status": 200
   },
   {

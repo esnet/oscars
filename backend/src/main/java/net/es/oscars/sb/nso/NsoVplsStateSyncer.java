@@ -151,18 +151,18 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             if (!this.isLoaded()) {
                 throw new NsoStateSyncerException("No state loaded yet.");
             }
+
+            // First, evaluate all local VPLS states
+            Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = getLocalState().elements();
+            while (enumeration.hasMoreElements()) {
+                NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+                // This should automatically mark this VPLS as "noop", "add", "delete", or "redeploy"
+                evaluate(wrappedNsoVPLS.getInstance().getVcId());
+            }
+
             // Only synchronize if NSO service state was loaded, and the local service state is dirty = true.
             if (this.isDirty()) {
                 // Sync local state with NSO service state at path
-
-                // First, evaluate all local VPLS states
-                Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = getLocalState().elements();
-                while (enumeration.hasMoreElements()) {
-                    NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
-                    // This should automatically mark this VPLS as "noop", "add", "delete", or "redeploy"
-                    evaluate(wrappedNsoVPLS.getInstance().getVcId());
-                }
-
                 // Then, generate the RestTemplate / YangPatches and send using NsoProxy
                 List<NsoStateWrapper<NsoVPLS>> toDelete = filterLocalState(State.DELETE); // One Yang Patch (1 HTTP call)
                 List<NsoStateWrapper<NsoVPLS>> toAdd = filterLocalState(State.ADD); // One Yang Patch (1 HTTP call)
@@ -205,11 +205,12 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 }
                 // ...Delete END
 
-                // Mark as synchronized.
-                this.setSynchronized(true);
                 // Set state to "clean" state.
                 this.setDirty(false);
             }
+
+            // Mark as synchronized.
+            this.setSynchronized(true);
         } catch (NsoStateSyncerException nse) {
             log.error(nse.getMessage(), nse);
             throw nse;
@@ -544,6 +545,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             if (!isDirty() && !State.NOOP.equals(state)) {
                 setDirty(true);
             }
+            marked = true;
         } catch (NsoStateSyncerException nse) {
             log.error(nse.getMessage(), nse);
             // Continue execution, return false.

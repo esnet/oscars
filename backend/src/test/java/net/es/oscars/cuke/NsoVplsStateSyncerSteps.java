@@ -137,6 +137,10 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
         syncer.localState.put(id, newWrappedVpls);
 
     }
+    @Given("I had deleted VPLS instance {string}")
+    public void iHadDeletedVPLSInstance(String arg0) {
+        syncer.localState.remove(syncer.findLocalEntryByName(arg0));
+    }
 
     /**
      * Evaluate one or more VPLS IDs

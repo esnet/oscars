@@ -126,9 +126,10 @@ public class NsoProxy {
         String errorRef = "Error reference: [" + errorUuid + "]\n";
 
         try {
+            log.info("submitting yang patch to " + restPath);
             ResponseEntity<String> response = patchTemplate.exchange(restPath, HttpMethod.PATCH, entity, String.class);
             if (response.getStatusCode().isError()) {
-                log.error("raw error: " + response.getBody());
+                log.error("raw error: " + response.getBody() + "\n" + response.getHeaders());
                 StringBuilder errorStr = new StringBuilder();
                 try {
                     YangPatchErrorResponse errorResponse = new ObjectMapper().readValue(response.getBody(), YangPatchErrorResponse.class);
@@ -165,7 +166,7 @@ public class NsoProxy {
         DevelUtils.dumpDebug("build services", wrapper);
 
         try {
-            DevelUtils.dumpDebug("commit", wrapper);
+//            DevelUtils.dumpDebug("commit", wrapper);
             ResponseEntity<IetfRestconfErrorResponse> response = restTemplate.postForEntity(restPath, wrapper, IetfRestconfErrorResponse.class);
 
             if (response.getStatusCode().isError()) {

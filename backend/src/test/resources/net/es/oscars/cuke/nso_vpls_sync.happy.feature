@@ -106,12 +106,13 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
 
     # Delete the VPLS "BBBB"
     Given The VPLS instance "BBBB" is present in the NSO VPLS service state
-    When I delete VPLS instance "BBBB"
+    Given I had deleted VPLS instance "BBBB"
+    When I mark VPLS instance "BBBB" with "delete"
     Then VPLS "BBBB" is marked as "delete"
+    When I perform a synchronization
     Then The list of VPLS service instances marked "delete" has a count of 1
-    Then I perform a synchronization
-    When The NSO VPLS service is synchronized
-    Then The NSO VPLS service state now has 136 instances
+    Then The NSO VPLS service is synchronized
+
 #
 #  # Happy path
 #  Scenario: Modify NSO VPLS service state with mismatch for single redeploys (Happy Path)

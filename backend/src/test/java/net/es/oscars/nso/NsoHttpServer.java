@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.topo.common.dto.nso.NsoVPLS;
+import net.es.topo.common.dto.nso.YangPatch;
+import net.es.topo.common.dto.nso.YangPatchWrapper;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +20,7 @@ import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
@@ -43,7 +46,8 @@ public class NsoHttpServer {
                 "/restconf/data/esnet-status:esnet-status/nokia-show",
                 "/data/tailf-ncs:services/esnet-vpls:vpls",
                 "/data/tail-ncs:services/esnet-lsp:lsp",
-                "/restconf/data/tailf-ncs:services"
+                "/restconf/data/tailf-ncs:services",
+                "/restconf/data/"
         );
     }
 
@@ -78,12 +82,27 @@ public class NsoHttpServer {
     public static class NsoServlet extends HttpServlet {
 
         @Override
+        protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            String method = req.getMethod();
+            log.info("NsoServlet HTTP method: " + method);
+            if (method.equals("PATCH")) {
+                this.customDoPatch(req, resp);
+            } else {
+                super.service(req, resp);
+            }
+        }
+        @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             // Is this for an nso.esnet-vpls mock request?
             String uri = req.getRequestURI();
             try {
                 if (uri.startsWith("/data/tailf-ncs:services/esnet-vpls:vpls")) {
                     loadEsnetVplsMockData(req, resp);
+                } else {
+                    // Unknown.
+                    resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    resp.getWriter().write("404 Not Found");
+                    resp.getWriter().flush();
                 }
             } catch (Exception ex) {
                 log.error("Failed to load esnet vpls mock data", ex);
@@ -119,6 +138,57 @@ public class NsoHttpServer {
                 break;
             }
         }
+
+        protected void customDoPatch(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            String uri = req.getRequestURI();
+            log.info("PATCH request received, mocking " + uri);
+            if (uri.startsWith("/restconf/data/")) {
+                mockPatch(req, resp);
+            } else {
+                // Unknown.
+                resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                resp.getWriter().write("404 Not Found");
+                resp.getWriter().flush();
+            }
+        }
+
+        protected void mockPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+            StringBuilder payload = new StringBuilder();
+
+            try(BufferedReader reader = request.getReader()){
+                String line;
+                while ((line = reader.readLine()) != null){
+                    payload.append(line);
+                }
+            }
+            YangPatchWrapper patch = new ObjectMapper().readValue(payload.toString(), YangPatchWrapper.class);
+
+            NsoEsnetVplsYangPatchDeleteResponseSpec[] vplsResponseSpecs = new ObjectMapper()
+                    .readValue(
+                            new ClassPathResource("http/nso.esnet-vpls.sync.delete.response-specs.json").getFile(),
+                            NsoEsnetVplsYangPatchDeleteResponseSpec[].class
+                    );
+
+
+            log.info("patch request received, with payload:\n" + patch.toString());
+            response.setContentType("application/yang-data+json");
+
+            for( NsoEsnetVplsYangPatchDeleteResponseSpec responseSpec : vplsResponseSpecs) {
+                if (responseSpec.patchId().equals( patch.getPatch().getPatchId() )) {
+                    // read in the body from the file found in the path in the responseSpec...
+                    InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
+                    String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
+                    // ... then write it out as our response
+                    response.getWriter().write(body);
+                    response.setStatus(HttpServletResponse.SC_OK);
+
+                    return;
+                }
+            }
+
+            // @TODO return 404 if we get this far
+        }
+
         @Override
         protected void doPost(HttpServletRequest request, HttpServletResponse response)
                 throws ServletException, IOException {
@@ -131,6 +201,8 @@ public class NsoHttpServer {
             } else {
                 // Unknown.
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                response.getWriter().write("404 Not Found");
+                response.getWriter().flush();
             }
         }
 
@@ -212,4 +284,5 @@ public class NsoHttpServer {
     public record ResponseSpec(String device, String args, String body, Integer status) {}
     public record NsoEsnetVplsResponseSpec(String data, Integer status) {}
     public record NsoEsnetVplsYangPatchResponseSpec(String connectionId, Integer vcId, String data, Integer status) {}
+    public record NsoEsnetVplsYangPatchDeleteResponseSpec(String patchId, String data, Integer status) {}
 }
