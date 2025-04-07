@@ -168,5 +168,5 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Then The list of VPLS service instances marked "redeploy" has a count of 1
 
     Then The NSO VPLS service is synchronized
-    Then The list of VPLS service instances marked "no-op" has a count of 134
+    Then The list of VPLS service instances marked "no-op" has a count of 135
 
