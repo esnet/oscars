@@ -1,23 +1,32 @@
 @NsoVplsSyncSteps
-Feature: synchronize NSO service state to OSCARS state (Unhappy Path)
+Feature: Synchronize NSO service state to OSCARS state (Unhappy Path)
   I want to verify that NSO service state is synchronized to the OSCARS state (Unhappy Path)
 
-#  # Unhappy path
-#  Scenario: Read NSO VPLS service state, make decisions about add / delete / redeploy (Unhappy Path)
-#    Given I have initialized the world
-#    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.unhappy.json"
-#    Given The NSO VPLS service state is loaded
-#    Given The NSO VPLS service state has 139 instances
-#
-#    # AAAA does not exist! Attempt to add, but CANNOT. Exception thrown.
-#    Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
-#    When I evaluate VPLS "AAAA"
-#    Then I did receive an exception
-#
-#    # BBBB should exist! Attempt to delete, but CANNOT. Exception thrown.
-#    Given The VPLS instance "BBBB" is present in the NSO VPLS service state
-#    When I evaluate VPLS "BBBB"
-#    Then I did receive an exception
+  # Unhappy path
+  Scenario: Read NSO VPLS service state, make decisions about add (Unhappy Path)
+    Given I have initialized the world
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.unhappy.json"
+    Given The NSO VPLS service state is loaded
+    Given The NSO VPLS service state has 137 instances
+    Given The world is expecting an exception
+
+    # AAAA does not exist! Attempt to add, but CANNOT. Exception thrown.
+    Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
+    Given I did not add "AAAA"
+    When I evaluate VPLS "AAAA"
+    Then I did receive an exception
+
+  Scenario: Read NSO VPLS service state, make decisions about delete (Unhappy Path)
+    Given I have initialized the world
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.unhappy.json"
+    Given The NSO VPLS service state is loaded
+    Given The NSO VPLS service state has 137 instances
+    Given The world is expecting an exception
+
+    # BBBB should exist! Attempt to delete, but CANNOT. Exception thrown.
+    Given The VPLS instance "BBBB" is not loaded
+    When I mark VPLS instance "BBBB" with "delete"
+    Then I did receive an exception
 #
 #    # CCCC should exist and is mismatched w/ NSO state! Attempt to mark for redeploy, but CANNOT. Exception thrown.
 #    Given The VPLS instance "CCCC" is present in the NSO VPLS service state

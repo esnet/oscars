@@ -68,9 +68,9 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
 
     @Given("The VPLS instance {string} is not present in the NSO VPLS service state")
     public void theVPLSInstanceIsNotPresentInTheNSOVPLSServiceState(String arg0) throws Throwable {
-        // STUB
-        Integer id = syncer.getLocalVcIdByName(arg0);
-        assert id == 0;
+
+        NsoStateWrapper<NsoVPLS> wrappedVpls = syncer.findLocalEntryByName(arg0);
+        assert null == wrappedVpls;
     }
 
     @Given("I had added VPLS instance {string} from {string}")
@@ -168,12 +168,46 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
             );
     }
 
+    @Given("I did not add {string}")
+    public void iDidNotAdd(String arg0) {
+        // Do not actually mark it as "add". Do not add it to local state.
+        // In fact, assert it's not there!
+        NsoStateWrapper<NsoVPLS> wrappedVpls = syncer.findLocalEntryByName(arg0);
+        if (wrappedVpls != null) {
+            syncer
+                    .getLocalState()
+                    .remove(
+                            wrappedVpls
+                                    .getInstance()
+                                    .getVcId()
+                    );
+        }
+    }
+
+    @Given("The VPLS instance {string} is not loaded")
+    public void theVPLSInstanceIsNotLoaded(String arg0) {
+        NsoStateWrapper<NsoVPLS> localEntry = syncer.findLocalEntryByName(arg0);
+        NsoStateWrapper<NsoVPLS> remoteEntry = syncer.findRemoteEntryByName(arg0);
+        if (localEntry != null) {
+            syncer.getLocalState().remove(localEntry.getInstance().getVcId());
+        }
+        if (remoteEntry != null) {
+            syncer.getRemoteState().remove(remoteEntry.getInstance().getVcId());
+        }
+
+        localEntry = syncer.findLocalEntryByName(arg0);
+        remoteEntry = syncer.findRemoteEntryByName(arg0);
+
+        assert null == localEntry;
+        assert null == remoteEntry;
+    }
+
     /**
      * Evaluate one or more VPLS IDs
      * @param arg0 One or more comma-delimited VPLS IDs
      */
     @When("I evaluate VPLS {string}")
-    public void iEvaluateVPLS(String arg0) {
+    public void iEvaluateVPLS(String arg0) throws Throwable {
         try {
             // Attempt to get the VC ID from either a local or remote entry.
             int vcId = syncer.getLocalVcIdByName(arg0);
@@ -193,31 +227,39 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
      * @param arg1 the state to mark with ("add", "delete", "redeploy", "no-op")
      */
     @When("I mark VPLS instance {string} with {string}")
-    public void iMarkVPLSInstanceWith(String arg0, String arg1) throws Throwable {
-        int vcId = syncer.getLocalVcIdByName(arg0);
-        NsoStateSyncer.State requestedState = NsoStateSyncer
-            .State
-                .valueOf(
-                    arg1.replaceAll("-", "")
-                    .toUpperCase()
-                );
+    public void iMarkVPLSInstanceWith(String arg0, String arg1) throws NsoStateSyncerException {
+        try {
+            NsoStateWrapper<NsoVPLS> wrappedVpls = syncer.findLocalEntryByName(arg0);
+            if (wrappedVpls == null) {
+                throw new NsoStateSyncerException("Cannot mark '" + arg0+ "' as " + arg1 + ", no such VPLS found");
+            }
+            int vcId = wrappedVpls.getInstance().getVcId();
+            NsoStateSyncer.State requestedState = NsoStateSyncer
+                    .State
+                    .valueOf(
+                            arg1.replaceAll("-", "")
+                                    .toUpperCase()
+                    );
 
-        switch (requestedState) {
-            case ADD:
-                syncer.add(vcId);
-                break;
-            case DELETE:
-                syncer.delete(vcId);
-                break;
-            case REDEPLOY:
-                syncer.redeploy(vcId);
-                break;
-            case NOOP:
-                syncer.noop(vcId);
-                break;
-            default:
-                throw new AssertionError("Unknown requested state " + requestedState);
-                // Do nothing.
+            switch (requestedState) {
+                case ADD:
+                    syncer.add(vcId);
+                    break;
+                case DELETE:
+                    syncer.delete(vcId);
+                    break;
+                case REDEPLOY:
+                    syncer.redeploy(vcId);
+                    break;
+                case NOOP:
+                    syncer.noop(vcId);
+                    break;
+                default:
+                    throw new NsoStateSyncerException("Unknown requested state " + requestedState);
+                    // Do nothing.
+            }
+        } catch(NsoStateSyncerException e) {
+            world.add(e);
         }
     }
 
