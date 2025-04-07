@@ -139,7 +139,33 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     }
     @Given("I had deleted VPLS instance {string}")
     public void iHadDeletedVPLSInstance(String arg0) {
-        syncer.localState.remove(syncer.findLocalEntryByName(arg0));
+        NsoStateWrapper<NsoVPLS> wrappedVpls = syncer.findLocalEntryByName(arg0);
+        if (wrappedVpls != null) {
+            syncer.localState.remove(wrappedVpls);
+        }
+    }
+
+    @Given("I had marked {string} with {string}")
+    public void iHadMarkedWith(String arg0, String arg1) {
+        NsoStateWrapper<NsoVPLS> wrappedVpls = syncer.findLocalEntryByName(arg0);
+
+        assert wrappedVpls != null;
+
+        syncer
+            .localState
+            .get(
+                wrappedVpls
+                    .getInstance()
+                    .getVcId()
+            ).setState(
+                    NsoStateSyncer
+                        .State
+                        .valueOf(
+                                arg1
+                                    .replaceAll("-", "")
+                                    .toUpperCase()
+                        )
+            );
     }
 
     /**
@@ -218,41 +244,6 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
         );
         log.info(arg0 + " count: " + count + ", expected: " + arg1);
         assert count == arg1;
-    }
-
-    @Then("The list of VPLS service instances marked {string} equals {string}")
-    public void theListOfVPLSServiceInstancesMarkedEquals(String arg0, String arg1) throws Throwable {
-        // Unwrap and add the found NsoVPLS into a clean array list. Sorted.
-        List<NsoStateWrapper<NsoVPLS>> foundWrapped = syncer.filterLocalState(
-                NsoStateSyncer.State.valueOf(arg0.replaceAll("-", "").toUpperCase())
-        );
-
-        List<NsoVPLS> found = new ArrayList<>();
-        for (NsoStateWrapper<NsoVPLS> wrappedVpls : foundWrapped) {
-            found.add(wrappedVpls.getInstance());
-        }
-        found.sort((o1, o2) -> o1.getVcId().compareTo(o2.getVcId()));
-
-        // Load the expected list of NsoVPLS from file. Sorted.
-        List<NsoVPLS> loaded = loadNsoVplsListFromJson(arg1);
-        loaded.sort((o1, o2) -> o1.getVcId().compareTo(o2.getVcId()));
-
-        // Compare found to loaded. If both lists contain each other, they are "equal" enough.
-        assert loaded.size() == found.size();
-        assert loaded.containsAll(found);
-        assert found.containsAll(loaded);
-
-        // Assert each entry in found is exact equal to their
-        // counterpart in loaded. We expect them in the same order
-        // for test assertions.
-        for (int i = 0; i < found.size(); i++) {
-            NsoVPLS foundVpls = found.get(i);
-            NsoVPLS loadedVpls = loaded.get(i);
-
-            assert loadedVpls.getVcId().equals(foundVpls.getVcId());
-            assert loadedVpls.equals(foundVpls);
-        }
-
     }
 
     @Then("The NSO VPLS service state now has {int} instances")

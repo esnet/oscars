@@ -113,50 +113,60 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Then The list of VPLS service instances marked "delete" has a count of 1
     Then The NSO VPLS service is synchronized
 
-#
-#  # Happy path
-#  Scenario: Modify NSO VPLS service state with mismatch for single redeploys (Happy Path)
-#    Given I have initialized the world
-#    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-with-mismatch.json"
-#    Given The NSO VPLS service state is loaded
-#
-#    # Redeploy the VPLS "CCCC"
-#    Given The VPLS instance "CCCC" is present in the NSO VPLS service state
-#    When I redeploy VPLS instance "CCCC"
-#    Then VPLS "CCCC" is marked as "redeploy"
-#    When I perform a synchronization
-#    Then The NSO VPLS service is synchronized
-#    Then The VPLS instance "CCCC" matches "http/nso.esnet-vpls.connections-with-syncd-CCCC.json"
-#
-#  # Happy path
-#  Scenario: Modify NSO VPLS service state without mismatch for single no-op (Happy Path)
-#    Given I have initialized the world
-#    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
-#    Given The NSO VPLS service state is loaded
-#    Given The NSO VPLS service state has 139 instances
-#
-#    # No-op the VPLS "DDDD"
-#    Given The VPLS instance "DDDD" is present in the NSO VPLS service state
-#    When I no-op VPLS "DDDD"
-#    Then VPLS "DDDD" is marked as "no-op"
-#    Then The NSO VPLS service is synchronized
-#    Then The VPLS instance "DDDD" matches "http/nso.esnet-vpls.connections-with-syncd-DDD.json"
-#
-#
-#  # Happy path
-#  Scenario: Batch modify NSO VPLS service state with a big patch that applies one add, one delete, one redeploy all together (Happy Path)
-#    Given I have initialized the world
-#    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
-#    Given The NSO VPLS service state is loaded
-#    Given The NSO VPLS service state has 139 instances
-#
-#    # Apply batch operations as a patch.
+
+  # Happy path
+  Scenario: Modify NSO VPLS service state with mismatch for single redeploys (Happy Path)
+    Given I have initialized the world
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-with-mismatch.json"
+    Given The NSO VPLS service state is loaded
+
+    # Redeploy the VPLS "CCCC"
+    Given The VPLS instance "CCCC" is present in the NSO VPLS service state
+    Given I had marked "CCCC" with "redeploy"
+    Then VPLS "CCCC" is marked as "redeploy"
+    When I perform a synchronization
+    Then The list of VPLS service instances marked "redeploy" has a count of 1
+    Then The NSO VPLS service is synchronized
+
+  # Happy path
+  Scenario: Modify NSO VPLS service state without mismatch for single no-op (Happy Path)
+    Given I have initialized the world
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The NSO VPLS service state is loaded
+    Given The NSO VPLS service state has 137 instances
+
+    # No-op the VPLS "DDDD"
+    Given The VPLS instance "DDDD" is present in the NSO VPLS service state
+    Given I had marked "DDDD" with "no-op"
+    When I perform a synchronization
+    Then The NSO VPLS service is synchronized
+    Then The list of VPLS service instances marked "no-op" has a count of 137
+
+
+  # Happy path
+  Scenario: Batch modify NSO VPLS service state with a big patch that applies one add, one delete, one redeploy all together (Happy Path)
+    Given I have initialized the world
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The NSO VPLS service state is loaded
+    Given The NSO VPLS service state has 137 instances
+
+    # Apply batch operations as a patch.
 #    When I apply VPLS service patch from "http/nso.esnet-vpls.vpls-patch.json"
-#
-#    Then VPLS "AAAA" is marked as "add"
-#    Then VPLS "BBBB" is marked as "delete"
-#    Then VPLS "CCCC" is marked as "redeploy"
-#    Then VPLS "DDDD" is marked as "no-op"
-#    Then The NSO VPLS service is synchronized
-#    Then The list of VPLS service instances equals "http/nso.esnet-vpls.batch-no-op.json"
+
+    Given I had added VPLS instance "AAAA" from "http/nso.esnet-vpls.aaaa.json"
+    Given I had marked "BBBB" with "delete"
+    Given I had marked "CCCC" with "redeploy"
+
+    When I perform a synchronization
+
+    Then VPLS "AAAA" is marked as "add"
+    Then VPLS "BBBB" is marked as "delete"
+    Then VPLS "CCCC" is marked as "redeploy"
+    Then VPLS "DDDD" is marked as "no-op"
+    Then The list of VPLS service instances marked "add" has a count of 1
+    Then The list of VPLS service instances marked "delete" has a count of 1
+    Then The list of VPLS service instances marked "redeploy" has a count of 1
+
+    Then The NSO VPLS service is synchronized
+    Then The list of VPLS service instances marked "no-op" has a count of 134
 
