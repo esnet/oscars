@@ -11,8 +11,7 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.app.util.HeaderRequestInterceptor;
-//import net.es.oscars.sb.nso.dto.NsoLspResponse;
-//import net.es.oscars.sb.nso.dto.NsoVplsResponse;
+
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.exc.NsoDryrunException;
@@ -22,10 +21,9 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
-import net.es.oscars.web.beans.LiveStatusResponse;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
-//import net.es.topo.common.dto.nso.enums.NsoService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
@@ -38,6 +36,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
+
+import net.es.topo.common.dto.nso.enums.NsoService;
+import net.es.oscars.sb.nso.dto.NsoLspResponse;
+import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -124,9 +126,10 @@ public class NsoProxy {
         String errorRef = "Error reference: [" + errorUuid + "]\n";
 
         try {
+            log.info("submitting yang patch to " + restPath);
             ResponseEntity<String> response = patchTemplate.exchange(restPath, HttpMethod.PATCH, entity, String.class);
             if (response.getStatusCode().isError()) {
-                log.error("raw error: " + response.getBody());
+                log.error("raw error: " + response.getBody() + "\n" + response.getHeaders());
                 StringBuilder errorStr = new StringBuilder();
                 try {
                     YangPatchErrorResponse errorResponse = new ObjectMapper().readValue(response.getBody(), YangPatchErrorResponse.class);
@@ -163,7 +166,7 @@ public class NsoProxy {
         DevelUtils.dumpDebug("build services", wrapper);
 
         try {
-            DevelUtils.dumpDebug("commit", wrapper);
+//            DevelUtils.dumpDebug("commit", wrapper);
             ResponseEntity<IetfRestconfErrorResponse> response = restTemplate.postForEntity(restPath, wrapper, IetfRestconfErrorResponse.class);
 
             if (response.getStatusCode().isError()) {
@@ -495,45 +498,73 @@ public class NsoProxy {
     }
 
 
-//
-//    public NsoVplsResponse getVpls() throws JsonProcessingException {
-//        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS);
-//        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
-//    }
-//
-//
-//    public NsoLspResponse getLsps() throws JsonProcessingException {
-//        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP);
-//        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
-//    }
-//
-//
-//    public FromNsoServiceConfig getNsoServiceConfig(NsoService service) {
-//        log.info("get service config START %s ".formatted(service));
-//
-//        String path = switch (service) {
-//            case VPLS -> "/esnet-vpls:vpls";
-//            case LSP -> "/esnet-lsp:lsp";
-//            default -> null;
-//        };
-//
-//        FromNsoServiceConfig result = FromNsoServiceConfig.builder()
-//                .service(service)
-//                .successful(false)
-//                .build();
-//        String req = "data/tailf-ncs:services%s".formatted(path);
-//        String restPath = props.getUri() + req;
-//        String response = restTemplate.getForObject(restPath, String.class);
-//        // DevelUtils.dumpDebug("get-nso-service", response);
-//
-//        if (response != null) {
-//            result.setConfig(response);
-//            result.setSuccessful(true);
-//            log.debug("%s: get service COMPLETE ".formatted(service.toString()));
-//        } else {
-//            log.warn("%s: get config FAILED ".formatted(service.toString()));
-//        }
-//        return result;
-//    }
+
+    public NsoVplsResponse getVpls() throws Exception {
+        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS);
+        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
+    }
+
+    public NsoVplsResponse getVpls(String path) throws Exception {
+        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS, path);
+        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
+    }
+
+
+    public NsoLspResponse getLsps() throws Exception {
+        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP);
+        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
+    }
+
+    public NsoLspResponse getLsps(String path) throws Exception {
+        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP, path);
+        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
+    }
+
+    public String getNsoServiceConfigRestPath(NsoService service) throws Exception {
+        String path = switch (service) {
+            case VPLS -> "/esnet-vpls:vpls";
+            case LSP -> "/esnet-lsp:lsp";
+            default -> null;
+        };
+        if (path == null) {
+            throw new Exception("Could not determine service path type. Please use VPLS or LSP.");
+        };
+        String req = "data/tailf-ncs:services%s".formatted(path);
+
+        return props.getUri() + req;
+    }
+
+    public FromNsoServiceConfig getNsoServiceConfig(NsoService service) throws Exception {
+        String restPath = getNsoServiceConfigRestPath(service);
+        return getNsoServiceConfig(service, restPath);
+    };
+    public FromNsoServiceConfig getNsoServiceConfig(NsoService service, String path) throws Exception {
+        log.info("get service config START %s ".formatted(service));
+
+        FromNsoServiceConfig result = null;
+        try {
+            String response;
+
+            response = restTemplate.getForObject(path, String.class);
+
+//            DevelUtils.dumpDebug("get-nso-service", response);
+
+            if (response != null) {
+                result = new FromNsoServiceConfig();
+                result.setConfig(response);
+                result.setSuccessful(true);
+
+                log.info("%s: get service COMPLETE ".formatted(service.toString()));
+            } else {
+                log.error("%s: get config FAILED (response is null) ".formatted(service.toString()));
+                throw new Exception("%s: get config FAILED (response is null) ".formatted(service.toString()));
+            }
+
+        } catch (Exception e) {
+            log.error(e.getLocalizedMessage(), e);
+            throw e;
+        }
+        return result;
+    }
 
 }

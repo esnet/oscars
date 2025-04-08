@@ -1,0 +1,13 @@
+[
+  {
+    "patchId": "delete VPLS and LSP forBBBB",
+    "data": "http/nso.esnet-vpls.sync.delete.response.happy.json",
+    "status": 200
+  },
+  {
+    "patchId": "delete VPLS and LSP forBBB2",
+    "data": "http/nso.esnet-vpls.sync.delete.response.happy.json",
+    "status": 200
+  }
+]
+
