@@ -1,0 +1,38 @@
+[
+  {
+    "connectionId": "AAAA",
+    "vcId": 7001,
+    "data": "http/nso.esnet-vpls.sync.response.happy.json",
+    "status": 200
+  },
+  {
+    "connectionId": "AAA2",
+    "vcId": 7002,
+    "data": "http/nso.esnet-vpls.sync.response.happy.json",
+    "status": 200
+  },
+  {
+    "connectionId": "BBBB",
+    "vcId": 7000,
+    "data": "http/nso.esnet-vpls.sync.delete.response.happy.json",
+    "status": 200
+  },
+  {
+    "connectionId": "BBB2",
+    "vcId": 7003,
+    "data": "http/nso.esnet-vpls.sync.delete.response.happy.json",
+    "status": 200
+  },
+  {
+    "connectionId": "CCCC",
+    "vcId": 7005,
+    "data": "http/nso.esnet-vpls.sync.response.happy.json",
+    "status": 200
+  },
+  {
+    "connectionId": "CCC2",
+    "vcId": 7006,
+    "data": "http/nso.esnet-vpls.sync.response.happy.json",
+    "status": 200
+  }
+]
