@@ -2,10 +2,11 @@ package net.es.oscars.task;
 
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
-import net.es.oscars.app.exc.NsiException;
+import net.es.oscars.app.exc.NsiMappingException;
 import net.es.oscars.app.util.DbAccess;
 import net.es.oscars.nsi.beans.NsiModify;
 import net.es.oscars.nsi.ent.NsiMapping;
+import net.es.oscars.nsi.svc.NsiMappingService;
 import net.es.oscars.nsi.svc.NsiRequestManager;
 import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.resv.db.ConnectionRepository;
@@ -30,15 +31,17 @@ public class TransitionStates {
     private final ConnectionRepository connRepo;
     private final Startup startup;
     private final NsiService nsiService;
+    private final NsiMappingService nsiMappingService;
 
     private final DbAccess dbAccess;
     private final NsiRequestManager nsiRequestManager;
 
     public TransitionStates(ConnectionRepository connRepo, Startup startup,
-                            NsiService nsiService, DbAccess dbAccess, NsiRequestManager nsiRequestManager) {
+                            NsiService nsiService, NsiMappingService nsiMappingService, DbAccess dbAccess, NsiRequestManager nsiRequestManager) {
         this.connRepo = connRepo;
         this.startup = startup;
         this.nsiService = nsiService;
+        this.nsiMappingService = nsiMappingService;
         this.dbAccess = dbAccess;
         this.nsiRequestManager = nsiRequestManager;
     }
@@ -68,24 +71,16 @@ public class TransitionStates {
 
                     if (c.getHeld().getExpiration().isBefore(Instant.now())) {
                         log.info("will delete expired held connection: " + c.getConnectionId());
-                        try {
-                            Optional<NsiMapping> maybeMapping = nsiService.getMappingForOscarsId(c.getConnectionId());
-                            maybeMapping.ifPresent(timedOut::add);
-                        } catch (NsiException ex) {
-                            log.error(ex.getMessage(), ex);
-                        }
+                        Optional<NsiMapping> maybeMapping =  nsiMappingService.getMappingForOscarsId(c.getConnectionId());
+                        maybeMapping.ifPresent(timedOut::add);
                         deleteThese.add(c);
                     }
                 }
                 for (Connection c : reservedConns) {
                     if (c.getReserved().getSchedule().getEnding().isBefore(Instant.now())) {
                         log.info("will archive (and dismantle if needed) connection: " + c.getConnectionId());
-                        try {
-                            Optional<NsiMapping> maybeMapping = nsiService.getMappingForOscarsId(c.getConnectionId());
-                            maybeMapping.ifPresent(pastEndTime::add);
-                        } catch (NsiException ex) {
-                            log.error(ex.getMessage(), ex);
-                        }
+                        Optional<NsiMapping> maybeMapping =  nsiMappingService.getMappingForOscarsId(c.getConnectionId());
+                        maybeMapping.ifPresent(timedOut::add);
 
                         if (c.getState().equals(State.ACTIVE)) {
                             log.info(c.getConnectionId() + " : active; waiting for dismantle before archiving");
@@ -98,9 +93,9 @@ public class TransitionStates {
                 List<NsiModify> expiredModifies = nsiRequestManager.timedOut();
                 for (NsiModify mod : expiredModifies) {
                     try {
-                        NsiMapping mapping = nsiService.getMapping(mod.getNsiConnectionId());
+                        NsiMapping mapping = nsiMappingService.getMapping(mod.getNsiConnectionId());
                         nsiService.rollbackModify(mapping);
-                    } catch (NsiException ex) {
+                    } catch (NsiMappingException ex) {
                         log.error("unable to roll back expired modify for "+mod.getNsiConnectionId(), ex);
                     } finally {
                         nsiRequestManager.rollback(mod.getNsiConnectionId());

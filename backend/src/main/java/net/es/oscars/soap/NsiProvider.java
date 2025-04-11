@@ -7,11 +7,12 @@ import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.Error;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.ServiceException;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.provider.ConnectionProviderPort;
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
-import net.es.oscars.app.exc.NsiException;
+import net.es.oscars.app.exc.NsiInternalException;
+import net.es.oscars.app.exc.NsiMappingException;
+import net.es.oscars.app.exc.NsiValidationException;
 import net.es.oscars.nsi.beans.NsiErrors;
 import net.es.oscars.nsi.ent.NsiMapping;
-import net.es.oscars.nsi.svc.NsiService;
-import net.es.oscars.nsi.svc.NsiStateEngine;
+import net.es.oscars.nsi.svc.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -21,187 +22,187 @@ import java.util.UUID;
 @Component
 public class NsiProvider implements ConnectionProviderPort {
 
-    private NsiService nsiService;
-    private NsiStateEngine stateEngine;
+    private final NsiMappingService nsiMappingService;
+    private final NsiService nsiService;
+    private final NsiHeaderUtils nsiHeaderUtils;
+    private final NsiQueries nsiQueries;
 
 
     @Autowired
-    public NsiProvider(NsiService nsiService, NsiStateEngine stateEngine) {
+    public NsiProvider(NsiService nsiService, NsiMappingService nsiMappingService, NsiHeaderUtils nsiHeaderUtils, NsiQueries nsiQueries) {
         this.nsiService = nsiService;
-        this.stateEngine = stateEngine;
+        this.nsiMappingService = nsiMappingService;
+        this.nsiHeaderUtils = nsiHeaderUtils;
+        this.nsiQueries = nsiQueries;
     }
 
     @Override
     public GenericAcknowledgmentType provision(GenericRequestType parameters, Holder<CommonHeaderType> header) throws ServiceException {
         try {
-            nsiService.processHeader(header.value);
-            NsiMapping mapping = nsiService.getMapping(parameters.getConnectionId());
+            nsiHeaderUtils.processHeader(header.value);
+            NsiMapping mapping = nsiMappingService.getMapping(parameters.getConnectionId());
             nsiService.provision(header.value, mapping);
-        } catch (NsiException ex) {
+            nsiHeaderUtils.makeResponseHeader(header.value);
+            return new GenericAcknowledgmentType();
+
+        } catch (NsiMappingException | NsiValidationException | NsiInternalException ex) {
             log.error(ex.getMessage(), ex);
             throw new ServiceException(ex.getMessage());
         }
 
-        nsiService.makeResponseHeader(header.value);
-        return new GenericAcknowledgmentType();
     }
 
     @Override
     public GenericAcknowledgmentType reserveCommit(GenericRequestType parameters, Holder<CommonHeaderType> header) throws ServiceException {
         try {
-            nsiService.processHeader(header.value);
-            NsiMapping mapping = nsiService.getMapping(parameters.getConnectionId());
+            nsiHeaderUtils.processHeader(header.value);
+            NsiMapping mapping = nsiMappingService.getMapping(parameters.getConnectionId());
             nsiService.commit(header.value, mapping);
-        } catch (NsiException ex) {
+            nsiHeaderUtils.makeResponseHeader(header.value);
+            return new GenericAcknowledgmentType();
+        } catch (NsiValidationException | NsiInternalException | NsiMappingException ex) {
             log.error(ex.getMessage(), ex);
             throw new ServiceException(ex.getMessage());
         }
-
-        nsiService.makeResponseHeader(header.value);
-        return new GenericAcknowledgmentType();
     }
 
     @Override
     public GenericAcknowledgmentType terminate(GenericRequestType parameters, Holder<CommonHeaderType> header) throws ServiceException {
         try {
-            nsiService.processHeader(header.value);
-            NsiMapping mapping = nsiService.getMapping(parameters.getConnectionId());
+            nsiHeaderUtils.processHeader(header.value);
+            NsiMapping mapping = nsiMappingService.getMapping(parameters.getConnectionId());
             nsiService.terminate(header.value, mapping);
-        } catch (NsiException ex) {
+            nsiHeaderUtils.makeResponseHeader(header.value);
+            return new GenericAcknowledgmentType();
+
+        } catch (NsiMappingException | NsiValidationException | NsiInternalException ex) {
             log.error(ex.getMessage(), ex);
             throw new ServiceException(ex.getMessage());
         }
-
-
-        nsiService.makeResponseHeader(header.value);
-        return new GenericAcknowledgmentType();
     }
 
     @Override
     public ReserveResponseType reserve(ReserveType reserve, Holder<CommonHeaderType> header) throws ServiceException {
         try {
-            nsiService.processHeader(header.value);
-        } catch (NsiException ex) {
+            ReserveResponseType rrt = new ReserveResponseType();
+            nsiHeaderUtils.processHeader(header.value);
+
+            if (reserve.getConnectionId() == null) {
+                String nsiConnectionId = UUID.randomUUID().toString();
+                reserve.setConnectionId(nsiConnectionId);
+            }
+            NsiMapping mapping;
+            if (nsiMappingService.hasNsiMapping(reserve.getConnectionId())) {
+                mapping = nsiMappingService.getMapping(reserve.getConnectionId());
+
+                log.info("found existing mapping, triggering a modify");
+                // pass in the new version
+                nsiService.modify(header.value, reserve, mapping, reserve.getCriteria().getVersion());
+            } else {
+                mapping = nsiMappingService.newMapping(
+                        reserve.getConnectionId(),
+                        reserve.getGlobalReservationId(),
+                        header.value.getRequesterNSA(),
+                        reserve.getCriteria().getVersion()
+                );
+
+                log.info("no existing mapping, triggering a reserve");
+                nsiService.reserve(header.value, reserve, mapping);
+            }
+
+            log.info("returning reserve ack");
+            rrt.setConnectionId(mapping.getNsiConnectionId());
+            nsiHeaderUtils.makeResponseHeader(header.value);
+            return rrt;
+
+        } catch (NsiMappingException | NsiValidationException | NsiInternalException ex) {
             log.error(ex.getMessage(), ex);
             throw new ServiceException(ex.getMessage());
         }
-        NsiMapping mapping;
-
-        if (reserve.getConnectionId() == null) {
-            String nsiConnectionId = UUID.randomUUID().toString();
-            reserve.setConnectionId(nsiConnectionId);
-        }
-
-        if (stateEngine.findMapping(reserve.getConnectionId()).isPresent()) {
-            mapping = stateEngine.findMapping(reserve.getConnectionId()).get();
-            log.info("triggering a modify");
-            // pass in the new version
-            nsiService.modify(header.value, reserve, mapping, reserve.getCriteria().getVersion());
-        } else {
-            mapping = stateEngine.newMapping(
-                    reserve.getConnectionId(),
-                    reserve.getGlobalReservationId(),
-                    header.value.getRequesterNSA(),
-                    reserve.getCriteria().getVersion()
-            );
-
-            log.info("triggering a reserve");
-            nsiService.reserve(header.value, reserve, mapping);
-        }
-
-        log.info("returning reserve ack");
-
-        ReserveResponseType rrt = new ReserveResponseType();
-        rrt.setConnectionId(mapping.getNsiConnectionId());
-
-        nsiService.makeResponseHeader(header.value);
-        return rrt;
     }
-
-    /*
-    try {
-        String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(reserve);
-        log.debug(pretty);
-         pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(header);
-        log.debug(pretty);
-
-    } catch (JsonProcessingException ex) {
-        ex.printStackTrace();
-    }
-    */
 
     @Override
     public GenericAcknowledgmentType release(GenericRequestType parameters, Holder<CommonHeaderType> header) throws ServiceException {
         try {
-            nsiService.processHeader(header.value);
-            NsiMapping mapping = nsiService.getMapping(parameters.getConnectionId());
+            nsiHeaderUtils.processHeader(header.value);
+            NsiMapping mapping = nsiMappingService.getMapping(parameters.getConnectionId());
             nsiService.release(header.value, mapping);
-        } catch (NsiException ex) {
+            nsiHeaderUtils.makeResponseHeader(header.value);
+            return new GenericAcknowledgmentType();
+
+        } catch (NsiMappingException | NsiValidationException | NsiInternalException ex) {
             log.error(ex.getMessage(), ex);
             throw new ServiceException(ex.getMessage());
         }
 
-        nsiService.makeResponseHeader(header.value);
-        return new GenericAcknowledgmentType();
     }
 
     @Override
     public GenericAcknowledgmentType reserveAbort(GenericRequestType parameters, Holder<CommonHeaderType> header) throws ServiceException {
         try {
-            nsiService.processHeader(header.value);
-            NsiMapping mapping = nsiService.getMapping(parameters.getConnectionId());
+            nsiHeaderUtils.processHeader(header.value);
+            NsiMapping mapping = nsiMappingService.getMapping(parameters.getConnectionId());
             nsiService.abort(header.value, mapping);
-        } catch (NsiException ex) {
-            log.error(ex.getMessage(), ex);
-            throw new ServiceException(ex.getMessage());
+            nsiHeaderUtils.makeResponseHeader(header.value);
+            return new GenericAcknowledgmentType();
+
+        } catch (NsiValidationException | NsiMappingException | NsiInternalException e) {
+            throw new ServiceException(e.getMessage());
         }
 
-        nsiService.makeResponseHeader(header.value);
-        return new GenericAcknowledgmentType();
     }
 
     /* queries */
-
-
     @Override
     public QuerySummaryConfirmedType querySummarySync(QueryType querySummary,
                                                       Holder<CommonHeaderType> header) throws Error {
         try {
-            nsiService.processHeader(header.value);
-        } catch (NsiException ex) {
-            log.error(ex.getMessage(), ex);
-            throw new Error(ex.getMessage());
-        }
-
-        log.info("starting sync query");
-        try {
-            QuerySummaryConfirmedType qsct = nsiService.querySummary(querySummary);
-            nsiService.makeResponseHeader(header.value);
+            nsiHeaderUtils.processHeader(header.value);
+            log.info("starting sync query");
+            QuerySummaryConfirmedType qsct = nsiQueries.querySummary(querySummary);
+            nsiHeaderUtils.makeResponseHeader(header.value);
             return qsct;
-        } catch (NsiException ex) {
+
+        } catch (NsiValidationException | NsiInternalException ex) {
             log.error(ex.getMessage(), ex);
             throw new Error(ex.getMessage());
         }
-
     }
 
     @Override
     public GenericAcknowledgmentType querySummary(QueryType querySummary,
                                                   Holder<CommonHeaderType> header) throws ServiceException {
         try {
-            nsiService.processHeader(header.value);
-        } catch (NsiException ex) {
+            nsiHeaderUtils.processHeader(header.value);
+            log.info("starting async query");
+            nsiService.queryAsync(header.value, querySummary);
+
+
+            nsiHeaderUtils.makeResponseHeader(header.value);
+            return new GenericAcknowledgmentType();
+
+        } catch (NsiValidationException | NsiInternalException ex) {
             log.error(ex.getMessage(), ex);
             throw new ServiceException(ex.getMessage());
         }
-        log.info("starting async query");
-        nsiService.queryAsync(header.value, querySummary);
-
-
-        nsiService.makeResponseHeader(header.value);
-        return new GenericAcknowledgmentType();
     }
 
+    @Override
+    public GenericAcknowledgmentType queryRecursive(QueryType queryRecursive,
+                                                    Holder<CommonHeaderType> header) throws ServiceException {
+        try {
+            nsiHeaderUtils.processHeader(header.value);
+            log.info("starting recursive query");
+            nsiService.queryRecursive(header.value, queryRecursive);
+
+            nsiHeaderUtils.makeResponseHeader(header.value);
+            return new GenericAcknowledgmentType();
+
+        } catch (NsiValidationException | NsiInternalException ex) {
+            log.error(ex.getMessage(), ex);
+            throw new ServiceException(ex.getMessage());
+        }
+    }
 
     @Override
     public GenericAcknowledgmentType queryNotification(QueryNotificationType queryNotification,
@@ -221,21 +222,6 @@ public class NsiProvider implements ConnectionProviderPort {
         throw new ServiceException(NsiErrors.UNIMPLEMENTED + " - not implemented");
     }
 
-    @Override
-    public GenericAcknowledgmentType queryRecursive(QueryType queryRecursive,
-                                                    Holder<CommonHeaderType> header) throws ServiceException {
-        try {
-            nsiService.processHeader(header.value);
-        } catch (NsiException ex) {
-            log.error(ex.getMessage(), ex);
-            throw new ServiceException(ex.getMessage());
-        }
-        log.info("starting recursive query");
-        nsiService.queryRecursive(header.value, queryRecursive);
-
-        nsiService.makeResponseHeader(header.value);
-        return new GenericAcknowledgmentType();
-    }
 
     @Override
     public QueryNotificationConfirmedType queryNotificationSync(QueryNotificationType queryNotificationSync,
