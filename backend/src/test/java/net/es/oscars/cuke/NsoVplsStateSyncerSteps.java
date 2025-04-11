@@ -42,7 +42,7 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) throws Throwable {
         // Load the (mock) NSO response payload
         syncer = new NsoVplsStateSyncer(proxy);
-        syncer.load(arg0);
+        syncer.load();
     }
 
     @Given("The NSO VPLS service state is loaded")
