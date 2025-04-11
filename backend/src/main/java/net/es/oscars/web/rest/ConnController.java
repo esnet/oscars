@@ -3,10 +3,12 @@ package net.es.oscars.web.rest;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
+import net.es.oscars.app.exc.NsiMappingException;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.util.UsernameGetter;
 import net.es.oscars.nsi.ent.NsiMapping;
+import net.es.oscars.nsi.svc.NsiMappingService;
 import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.sb.ent.RouterCommandHistory;
@@ -51,6 +53,10 @@ public class ConnController {
 
     @Autowired
     private NsiService nsiSvc;
+
+    @Autowired
+    private NsiMappingService nsiMappingService;
+
 
     @Autowired
     private UsernameGetter usernameGetter;
@@ -109,13 +115,8 @@ public class ConnController {
         if (c.getPhase().equals(Phase.ARCHIVED)) {
             throw new ConnException("Cannot cancel ARCHIVED connection");
         } else {
-            try {
-                Optional<NsiMapping> om = nsiSvc.getMappingForOscarsId(c.getConnectionId());
-                om.ifPresent(nsiMapping -> nsiSvc.forcedEnd(nsiMapping));
-
-            } catch (NsiException ex) {
-                log.error(ex.getMessage(),ex);
-            }
+            Optional<NsiMapping> om = nsiMappingService.getMappingForOscarsId(c.getConnectionId());
+            om.ifPresent(nsiMapping -> nsiSvc.forcedEnd(nsiMapping));
             return connSvc.release(c);
         }
     }
