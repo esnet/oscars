@@ -84,30 +84,6 @@ public class NsoSyncControllerSteps extends CucumberSteps {
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
-    @Given("the client executes {string} on {string} with query {string}")
-    public void theClientExecutesOnWithQuery(String arg0, String arg1, String arg2) throws Throwable {
-        try {
-            HttpMethod method = HttpMethod.valueOf(arg0);
-            response = new ResponseEntity<>("", HttpStatus.NOT_FOUND);
-
-            switch (method) {
-                case GET:
-                    response = restTemplate.getForEntity(arg1 + "?" + arg2, String.class);
-                    break;
-                case DELETE:
-                    restTemplate.delete(arg1 + "?" + arg2);
-                    response = new ResponseEntity<>("", HttpStatus.OK);
-                    break;
-                default:
-                    // NOOP
-                    break;
-            }
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            throw new Throwable(e);
-        }
-    }
-
     @When("the client receives the response")
     public void theClientReceivesTheResponse() throws Throwable {}
 

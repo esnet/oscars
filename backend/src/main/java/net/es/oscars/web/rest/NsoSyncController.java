@@ -164,7 +164,7 @@ public class NsoSyncController {
     public NsoSyncResponse deleteNsoState(@PathVariable String vcId) throws Exception {
         try {
             NsoSyncResponse response = new NsoSyncResponse();
-            boolean synced = false;
+            boolean synced;
             synced = deleteListVpls(vcId);
             response.setSynchronized( synced );
 
