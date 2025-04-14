@@ -16,9 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.util.StreamUtils;
 
 import java.io.InputStream;
@@ -28,8 +26,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 @Slf4j
 @Category({UnitTests.class})
@@ -60,18 +57,22 @@ public class NsoSyncControllerSteps extends CucumberSteps {
             String payload = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
             response = new ResponseEntity<>("", HttpStatus.NOT_FOUND);
 
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+
             switch (method) {
                 case POST:
-                    response = restTemplate.postForEntity(arg1, payload, String.class);
+                    response = restTemplate.postForEntity(arg1, entity, String.class);
                     break;
                 case PUT:
 
-                    restTemplate.put(arg1, payload);
+                    restTemplate.put(arg1, entity);
                     response = new ResponseEntity<>("", HttpStatus.OK);
 
                     break;
                 case DELETE:
-                    restTemplate.delete(arg1, payload);
+                    restTemplate.delete(arg1, entity, String.class);
                     response = new ResponseEntity<>("", HttpStatus.OK);
                     break;
                 default:
@@ -121,5 +122,14 @@ public class NsoSyncControllerSteps extends CucumberSteps {
 
         assertEquals( expectedList, actualList);
 
+    }
+
+    @Then("the client receives a true synchronization flag")
+    public void theClientReceivesASynchronizationFlag() throws Throwable {
+
+        ObjectMapper mapper = new ObjectMapper();
+        NsoStateResponse actualResponse = mapper.readValue(response.getBody(), NsoStateResponse.class);
+
+        assertTrue(actualResponse.isSynchronized());
     }
 }

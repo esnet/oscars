@@ -110,13 +110,13 @@ public class NsoSyncController {
      * "remote" state from NSO. We then synchronize our local state to the remote NSO state.
      *
      * @param nsoStateRequest The NsoStateRequestPayload object containing a list of NsoVPLS objects.
-     * @return Returns an NsoSyncResponse, which has a boolean flag indicating if a sync was
+     * @return Returns an NsoStateResponse, which has a boolean flag indicating if a sync was
      * successful (synchronized = true), or if it failed (synchronized = false).
      * @throws NsoStateSyncerException NSO Synchronization exception.
      */
     @RequestMapping(value = "/api/nso-sync", method = RequestMethod.POST)
     @ResponseBody
-    public NsoSyncResponse postNsoState(@RequestBody NsoStateRequestPayload nsoStateRequest) throws Exception {
+    public NsoStateResponse postNsoState(@RequestBody NsoStateRequestPayload nsoStateRequest) throws Exception {
         try {
             boolean synced = false;
             if (nsoStateRequest.getVpls() != null) {
@@ -143,7 +143,10 @@ public class NsoSyncController {
                 );
             }
 
-            return new NsoSyncResponse(synced);
+            return NsoStateResponse
+                .builder()
+                .isSynchronized(true)
+                .build();
         } catch (Exception e) {
             log.error("HTTP POST /api/nso-sync - Exception while syncing NSO VPLS state from OSCARS", e);
             throw e;
@@ -161,9 +164,9 @@ public class NsoSyncController {
      */
     @RequestMapping(value = "/api/nso-sync/{vcId:.+}", method = RequestMethod.DELETE)
     @ResponseBody
-    public NsoSyncResponse deleteNsoState(@PathVariable String vcId) throws Exception {
+    public NsoStateResponse deleteNsoState(@PathVariable String vcId) throws Exception {
         try {
-            NsoSyncResponse response = new NsoSyncResponse();
+            NsoStateResponse response = new NsoStateResponse();
             boolean synced;
             synced = deleteListVpls(vcId);
             response.setSynchronized( synced );
