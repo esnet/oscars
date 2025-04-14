@@ -1,0 +1,180 @@
+{
+  "esnet-vpls:vpls": [
+    {
+      "vc-id": 7001,
+      "modified": {
+        "devices": ["snlnm-cr6", "sunn-cr6"],
+        "services": ["/tailf-ncs:services/esnet-port:port[device='snlnm-cr6'][ifce='lag-1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='snlnm-cr6'][service-id='7001']", "/tailf-ncs:services/esnet-port:port[device='sunn-cr6'][ifce='1/1/c6/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='sunn-cr6'][service-id='7001']"]
+      },
+      "directly-modified": {
+        "devices": ["snlnm-cr6", "sunn-cr6"],
+        "services": ["/tailf-ncs:services/esnet-shared:nokia-service-registry[device='sunn-cr6'][service-id='7001']", "/tailf-ncs:services/esnet-port:port[device='sunn-cr6'][ifce='1/1/c6/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='snlnm-cr6'][service-id='7001']", "/tailf-ncs:services/esnet-port:port[device='snlnm-cr6'][ifce='lag-1']"]
+      },
+      "created": "2024-05-09T23:37:31.691332+00:00",
+      "last-modified": "2024-05-09T23:37:31.691416+00:00",
+      "last-run": "2024-10-03T14:32:53.64214+00:00",
+      "description": "SNLA Secondary ExpressRoute Microsoft Peering",
+      "qos-mode": "guaranteed",
+      "name": "AAAA",
+      "routing-domain": "esnet-293",
+      "device": [
+        {
+          "device": "snlnm-cr6",
+          "endpoint": [
+            {
+              "ifce": "lag-1",
+              "vlan-id": 1181,
+              "layer2-description": "JZ77",
+              "qos": {
+                "ingress-mbps": 1,
+                "egress-mbps": 1,
+                "excess-action": "keep",
+                "qos-id": 7003
+              }
+            }
+          ]
+        },
+        {
+          "device": "sunn-cr6",
+          "endpoint": [
+            {
+              "ifce": "1/1/c6/1",
+              "vlan-id": 1180,
+              "layer2-description": "JZ77",
+              "qos": {
+                "ingress-mbps": 1,
+                "egress-mbps": 1,
+                "excess-action": "keep",
+                "qos-id": 7011
+              }
+            }
+          ]
+        }
+      ],
+      "sdp": [
+        {
+          "sdp-id": 7008,
+          "description": "JZ77",
+          "a": {
+            "device": "snlnm-cr6",
+            "mode": "spoke",
+            "vc-id": 7001,
+            "lsp": "JZ77-WRK-sunn-cr6"
+          },
+          "z": {
+            "device": "sunn-cr6",
+            "mode": "spoke",
+            "vc-id": 7001,
+            "lsp": "JZ77-WRK-snlnm-cr6"
+          },
+          "precedence": "primary"
+        },
+        {
+          "sdp-id": 7009,
+          "description": "JZ77",
+          "a": {
+            "device": "snlnm-cr6",
+            "mode": "spoke",
+            "vc-id": 7002,
+            "lsp": "JZ77-PRT-sunn-cr6"
+          },
+          "z": {
+            "device": "sunn-cr6",
+            "mode": "spoke",
+            "vc-id": 7002,
+            "lsp": "JZ77-PRT-snlnm-cr6"
+          },
+          "precedence": "secondary"
+        }
+      ]
+    },
+    {
+      "vc-id": 7002,
+      "modified": {
+        "devices": ["eqxdc4-cr6", "srs702a-cr6"],
+        "services": ["/tailf-ncs:services/esnet-port:port[device='srs702a-cr6'][ifce='1/1/c2/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='srs702a-cr6'][service-id='7002']", "/tailf-ncs:services/esnet-port:port[device='eqxdc4-cr6'][ifce='2/1/c18/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='eqxdc4-cr6'][service-id='7002']"]
+      },
+      "directly-modified": {
+        "devices": ["eqxdc4-cr6", "srs702a-cr6"],
+        "services": ["/tailf-ncs:services/esnet-shared:nokia-service-registry[device='eqxdc4-cr6'][service-id='7002']", "/tailf-ncs:services/esnet-port:port[device='eqxdc4-cr6'][ifce='2/1/c18/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='srs702a-cr6'][service-id='7002']", "/tailf-ncs:services/esnet-port:port[device='srs702a-cr6'][ifce='1/1/c2/1']"]
+      },
+      "created": "2024-04-13T00:55:49.989523+00:00",
+      "last-modified": "2024-04-13T00:55:49.98958+00:00",
+      "last-run": "2024-10-03T14:32:54.43363+00:00",
+      "description": "SRS Gov cloud secondary",
+      "qos-mode": "guaranteed",
+      "name": "AAA2",
+      "routing-domain": "esnet-293",
+      "device": [
+        {
+          "device": "eqxdc4-cr6",
+          "endpoint": [
+            {
+              "ifce": "2/1/c18/1",
+              "vlan-id": 2193,
+              "layer2-description": "AAA2",
+              "qos": {
+                "ingress-mbps": 1000,
+                "egress-mbps": 1000,
+                "excess-action": "keep",
+                "qos-id": 7001
+              }
+            }
+          ]
+        },
+        {
+          "device": "srs702a-cr6",
+          "endpoint": [
+            {
+              "ifce": "1/1/c2/1",
+              "vlan-id": 2193,
+              "layer2-description": "AAA2",
+              "qos": {
+                "ingress-mbps": 1000,
+                "egress-mbps": 1000,
+                "excess-action": "keep",
+                "qos-id": 7000
+              }
+            }
+          ]
+        }
+      ],
+      "sdp": [
+        {
+          "sdp-id": 7221,
+          "description": "AAA2",
+          "a": {
+            "device": "srs702a-cr6",
+            "mode": "spoke",
+            "vc-id": 7014,
+            "lsp": "AAA2-WRK-eqxdc4-cr6"
+          },
+          "z": {
+            "device": "eqxdc4-cr6",
+            "mode": "spoke",
+            "vc-id": 7014,
+            "lsp": "AAA2-WRK-srs702a-cr6"
+          },
+          "precedence": "primary"
+        },
+        {
+          "sdp-id": 7222,
+          "description": "AAA2",
+          "a": {
+            "device": "srs702a-cr6",
+            "mode": "spoke",
+            "vc-id": 7015,
+            "lsp": "AAA2-PRT-eqxdc4-cr6"
+          },
+          "z": {
+            "device": "eqxdc4-cr6",
+            "mode": "spoke",
+            "vc-id": 7015,
+            "lsp": "AAA2-PRT-srs702a-cr6"
+          },
+          "precedence": "secondary"
+        }
+      ]
+    }
+  ]
+}
