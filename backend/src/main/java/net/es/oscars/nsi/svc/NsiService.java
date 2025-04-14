@@ -11,9 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.ServiceException;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.requester.ConnectionRequesterPort;
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
-import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.ServiceExceptionType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.TypeValuePairType;
-import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.VariablesType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.P2PServiceBaseType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.OrderedStpType;
 import net.es.oscars.app.exc.*;
@@ -702,7 +700,7 @@ public class NsiService {
                 tvp.setType("connectionId");
 
                 return NsiHoldResult.builder()
-                        .errorCode(NsiErrors.MSG_ERROR)
+                        .errorCode(NsiErrors.MSG_PAYLOAD_ERROR)
                         .success(false)
                         .errorMessage("No connection id")
                         .tvps(tvps)
@@ -917,21 +915,6 @@ public class NsiService {
 
     /* utility / shared funcs */
 
-    public ServiceExceptionType makeSET(String error, String errNum, List<TypeValuePairType> tvps, NsiMapping mapping) {
-        ServiceExceptionType exceptionType = new ServiceExceptionType();
-        exceptionType.setConnectionId(mapping.getNsiConnectionId());
-        exceptionType.setNsaId(providerNsa);
-        exceptionType.setServiceType(SERVICE_TYPE);
-        exceptionType.setText(error);
-        exceptionType.setErrorId(errNum);
-        VariablesType vt = new VariablesType();
-        if (tvps != null) {
-            vt.getVariable().addAll(tvps);
-        }
-        exceptionType.setVariables(vt);
-
-        return exceptionType;
-    }
 
 
 
