@@ -6,12 +6,11 @@ import net.es.oscars.nsi.beans.NsiErrors;
 
 @Data
 @EqualsAndHashCode(callSuper=false)
-public class NsiMappingException extends Exception {
+public class NsiMappingException extends NsiException {
     private NsiErrors error;
 
     public NsiMappingException(String msg, NsiErrors error) {
-        super(msg);
-        this.error = error;
+        super(msg, error);
     }
     public NsiMappingException() {super(); }
 

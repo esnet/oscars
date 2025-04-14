@@ -4,7 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.P2PServiceBaseType;
+import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.NsiInternalException;
+import net.es.oscars.app.exc.NsiValidationException;
 import net.es.oscars.nsi.beans.NsiErrors;
 import net.es.oscars.nsi.db.NsiMappingRepository;
 import net.es.oscars.nsi.ent.NsiMapping;
@@ -27,6 +29,19 @@ public class NsiQueries {
     public NsiQueries(NsiMappingRepository nsiRepo, NsiMappingService nsiMappingService) {
         this.nsiRepo = nsiRepo;
         this.nsiMappingService = nsiMappingService;
+    }
+
+    public void validateQuery(QueryType query) throws NsiException {
+        if (query.getIfModifiedSince() != null) {
+            throw new NsiInternalException("IMS not supported yet", NsiErrors.UNIMPLEMENTED);
+        }
+
+        for (String connId : query.getConnectionId()) {
+            if (!nsiMappingService.hasNsiMapping(connId)) {
+                throw new NsiValidationException("NSI connection id not found", NsiErrors.RESERVATION_NONEXISTENT);
+            }
+        }
+
     }
 
     @Transactional
@@ -63,9 +78,6 @@ public class NsiQueries {
 
         qsct.setLastModified(nsiMappingService.getCalendar(Instant.now()));
 
-        if (query.getIfModifiedSince() != null) {
-            throw new NsiInternalException("IMS not supported yet", NsiErrors.UNIMPLEMENTED);
-        }
 
         Set<NsiMapping> mappings = new HashSet<>();
         if (query.getConnectionId().isEmpty() && query.getGlobalReservationId().isEmpty()) {

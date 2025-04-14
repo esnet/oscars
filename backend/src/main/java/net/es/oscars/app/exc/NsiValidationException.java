@@ -6,12 +6,11 @@ import net.es.oscars.nsi.beans.NsiErrors;
 
 @Data
 @EqualsAndHashCode(callSuper=false)
-public class NsiValidationException extends Exception {
+public class NsiValidationException extends NsiException {
     private NsiErrors error;
 
     public NsiValidationException(String msg, NsiErrors error) {
-        super(msg);
-        this.error = error;
+        super(msg, error);
     }
     public NsiValidationException() {super(); }
 

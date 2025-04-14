@@ -87,7 +87,7 @@ public class NsiMappingService {
         // log.debug("getting oscars connection for "+mapping.getOscarsConnectionId());
         Optional<Connection> c = connRepo.findByConnectionId(mapping.getOscarsConnectionId());
         if (c.isEmpty()) {
-            throw new NsiMappingException("OSCARS connection not found", NsiErrors.NO_SCH_ERROR);
+            throw new NsiMappingException("OSCARS connection not found", NsiErrors.RESERVATION_NONEXISTENT);
         } else {
             return c.get();
         }
@@ -118,18 +118,22 @@ public class NsiMappingService {
         return Optional.of(mappings.getFirst());
     }
 
+
+
     /* db funcs */
+    @Transactional
     public NsiMapping getMapping(String nsiConnectionId) throws NsiMappingException {
         if (nsiConnectionId == null || nsiConnectionId.isEmpty()) {
             throw new NsiMappingException("null or blank connection id! " + nsiConnectionId, NsiErrors.MISSING_PARAM_ERROR);
         }
         Optional<NsiMapping> mapping = nsiRepo.findByNsiConnectionId(nsiConnectionId);
         if (mapping.isEmpty()) {
-            throw new NsiMappingException("unknown connection id " + nsiConnectionId, NsiErrors.NO_SCH_ERROR);
+            throw new NsiMappingException("unknown connection id " + nsiConnectionId, NsiErrors.RESERVATION_NONEXISTENT);
         } else {
             return mapping.get();
         }
     }
+
     public boolean hasNsiMapping(String nsiConnectionId) throws NsiMappingException {
         if (nsiConnectionId == null || nsiConnectionId.isEmpty()) {
             throw new NsiMappingException("null or blank connection id! " + nsiConnectionId, NsiErrors.MISSING_PARAM_ERROR);
@@ -297,7 +301,7 @@ public class NsiMappingService {
             if (aRange.getFloor().equals(aRange.getCeiling())) {
                 if (zRange.getFloor().equals(zRange.getCeiling())) {
                     if (aRange.getFloor().equals(zRange.getFloor())) {
-                        throw new NsiValidationException("Cannot provision same port.vlan for both src and dst", NsiErrors.MSG_ERROR);
+                        throw new NsiValidationException("Cannot provision same port.vlan for both src and dst", NsiErrors.MSG_PAYLOAD_ERROR);
                     }
                 }
             }
@@ -404,7 +408,7 @@ public class NsiMappingService {
 
                             }
                         } catch (NumberFormatException ex) {
-                            throw new NsiValidationException("Could not parse vlan id parameter", NsiErrors.MSG_ERROR);
+                            throw new NsiValidationException("Could not parse vlan id parameter", NsiErrors.MSG_PAYLOAD_ERROR);
                         }
                     }
                 } else {

@@ -3,6 +3,9 @@ package net.es.oscars.nsi.svc;
 import jakarta.xml.ws.Holder;
 import lombok.extern.slf4j.Slf4j;
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.ServiceExceptionType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.TypeValuePairType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.VariablesType;
 import net.es.oscars.app.exc.NsiInternalException;
 import net.es.oscars.app.exc.NsiValidationException;
 import net.es.oscars.nsi.beans.NsiErrors;
@@ -23,6 +26,8 @@ public class NsiHeaderUtils {
     @Value("${nsi.provider-nsa}")
     private String providerNsa;
 
+
+    final public static String SERVICE_TYPE = "http://services.ogf.org/nsi/2013/12/descriptions/EVTS.A-GOLE";
     final public static String DEFAULT_PROTOCOL_VERSION = "application/vdn.ogf.nsi.cs.v2.provider+soap";
 
     private final NsiRequesterNSARepository requesterNsaRepo;
@@ -109,5 +114,22 @@ public class NsiHeaderUtils {
     public String newCorrelationId() {
         return "urn:uuid:" + UUID.randomUUID();
     }
+
+    public ServiceExceptionType makeSvcExcpType(String error, NsiErrors errNum, List<TypeValuePairType> tvps, String nsiConnectionId) {
+        ServiceExceptionType exceptionType = new ServiceExceptionType();
+        exceptionType.setConnectionId(nsiConnectionId);
+        exceptionType.setNsaId(providerNsa);
+        exceptionType.setServiceType(SERVICE_TYPE);
+        exceptionType.setText(error);
+        exceptionType.setErrorId(errNum.toString());
+        VariablesType vt = new VariablesType();
+        if (tvps != null) {
+            vt.getVariable().addAll(tvps);
+        }
+        exceptionType.setVariables(vt);
+
+        return exceptionType;
+    }
+
 
 }
