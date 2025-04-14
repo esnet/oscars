@@ -13,7 +13,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class NsoStateResponse {
+public class NsoStateRequestPayload {
     @JsonProperty("esnet-vpls:vpls")
-    public List<NsoVPLS> vpls;
+    private List<NsoVPLS> vpls;
 }

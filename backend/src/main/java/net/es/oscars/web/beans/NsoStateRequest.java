@@ -19,3 +19,4 @@ public class NsoStateRequest {
     @Builder.Default
     public List<Integer> vcIds = new ArrayList<>();
 }
+
