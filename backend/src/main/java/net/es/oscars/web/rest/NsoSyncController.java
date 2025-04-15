@@ -18,7 +18,7 @@ import java.util.*;
 
 /**
  * NsoSyncController REST API endpoint.
- * HTTP GET /api/nso-sync/{vcId:.+}
+ * HTTP GET /protected/nso-sync/{vcId:.+}
  * List of the NSO VPLS objects from NSO.
  * If provided, the vcId parameter can be one or more comma-separated
  * VC-ID integers to retrieve.
@@ -57,13 +57,13 @@ public class NsoSyncController {
     }
 
     /**
-     * HTTP GET /api/nso-sync
+     * HTTP GET /protected/nso-sync
      * Request for a list of NsoVPLS objects from NSO state.
      *
      * @return Returns a list of NsoVPLS objects
      * @throws Exception Throws an exception on failure.
      */
-    @RequestMapping(value = "/api/nso-sync", method = RequestMethod.GET)
+    @RequestMapping(value = "/protected/nso-sync", method = RequestMethod.GET)
     @ResponseBody
     public NsoStateResponse getNsoStates() throws Exception {
         try {
@@ -75,19 +75,19 @@ public class NsoSyncController {
                     .vpls(listVpls)
                     .build();
         } catch (Exception e) {
-            log.error("Exception while calling getNsoStates HTTP GET path '/api/nso-sync'", e);
+            log.error("Exception while calling getNsoStates HTTP GET path '/protected/nso-sync'", e);
             throw e;
         }
     }
 
     /**
-     * HTTP GET /api/nso-sync/{vcId:.+}
+     * HTTP GET /protected/nso-sync/{vcId:.+}
      * Request one or more (comma-delimited) NsoVPLS object(s) by vcId
      * @param vcId One or more comma-delimited vcId integers.
      * @return Returns a list of NsoVPLS objects.
      * @throws Exception Throws an exception on failure.
      */
-    @RequestMapping(value = "/api/nso-sync/{vcId:.+}", method = RequestMethod.GET)
+    @RequestMapping(value = "/protected/nso-sync/{vcId:.+}", method = RequestMethod.GET)
     @ResponseBody
     public NsoStateResponse getNsoStateById(@PathVariable String vcId) throws Exception {
         try {
@@ -98,13 +98,13 @@ public class NsoSyncController {
                     .vpls(listVpls)
                     .build();
         } catch (Exception e) {
-            log.error("HTTP GET /api/nso-sync/{vcId:.+} - Exception while calling getNsoStateById", e);
+            log.error("HTTP GET /protected/nso-sync/{vcId:.+} - Exception while calling getNsoStateById", e);
             throw new Exception(e);
         }
     }
 
     /**
-     * HTTP POST /api/nso-sync
+     * HTTP POST /protected/nso-sync
      * Send an HTTP BODY payload containing a list of NsoVPLS objects.
      * The list of NsoVPLS objects are treated as the "local" state, which is evaluated against the
      * "remote" state from NSO. We then synchronize our local state to the remote NSO state.
@@ -114,7 +114,7 @@ public class NsoSyncController {
      * successful (synchronized = true), or if it failed (synchronized = false).
      * @throws NsoStateSyncerException NSO Synchronization exception.
      */
-    @RequestMapping(value = "/api/nso-sync", method = RequestMethod.POST)
+    @RequestMapping(value = "/protected/nso-sync", method = RequestMethod.POST)
     @ResponseBody
     public NsoStateResponse postNsoState(@RequestBody NsoStateRequestPayload nsoStateRequest) throws Exception {
         try {
@@ -148,7 +148,7 @@ public class NsoSyncController {
                 .isSynchronized(true)
                 .build();
         } catch (Exception e) {
-            log.error("HTTP POST /api/nso-sync - Exception while syncing NSO VPLS state from OSCARS", e);
+            log.error("HTTP POST /protected/nso-sync - Exception while syncing NSO VPLS state from OSCARS", e);
             throw e;
         }
 
@@ -156,13 +156,13 @@ public class NsoSyncController {
     }
 
     /**
-     * HTTP DELETE /api/nso-sync/{vcId:.+}
+     * HTTP DELETE /protected/nso-sync/{vcId:.+}
      * Mark one or more vcID for 'delete' and synchronize to NSO state.
      * @param vcId One or more comma-delimited NSO VPLS objects by vcId.
      * @return If a 'delete' synchronization was a success (true), or not synchronized (false).
      * @throws NsoStateSyncerException Throws an exception if NSO synchronization failed.
      */
-    @RequestMapping(value = "/api/nso-sync/{vcId:.+}", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/protected/nso-sync/{vcId:.+}", method = RequestMethod.DELETE)
     @ResponseBody
     public NsoStateResponse deleteNsoState(@PathVariable String vcId) throws Exception {
         try {
@@ -173,7 +173,7 @@ public class NsoSyncController {
 
             return response;
         } catch (Exception e) {
-            log.error("HTTP DELETE /api/nso-sync - Exception while syncing NSO VPLS state from OSCARS", e);
+            log.error("HTTP DELETE /protected/nso-sync - Exception while syncing NSO VPLS state from OSCARS", e);
             throw e;
         }
     }
