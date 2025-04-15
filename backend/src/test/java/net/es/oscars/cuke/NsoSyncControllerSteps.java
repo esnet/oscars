@@ -1,16 +1,14 @@
 package net.es.oscars.cuke;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
-import net.es.oscars.web.beans.NsoStateRequest;
 import net.es.oscars.web.beans.NsoStateResponse;
 import net.es.topo.common.dto.nso.NsoVPLS;
-import org.eclipse.jetty.http.HttpMethod;
+import org.springframework.http.HttpMethod;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,9 +16,9 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
 import org.springframework.util.StreamUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.InputStream;
-import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Comparator;
@@ -42,6 +40,14 @@ public class NsoSyncControllerSteps extends CucumberSteps {
         HttpMethod method = HttpMethod.valueOf(arg0);
         if (method == HttpMethod.GET) {
             response = restTemplate.getForEntity(arg1, String.class);
+        } else if (method == HttpMethod.DELETE) {
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            HttpEntity<String> entity = new HttpEntity<>("", headers);
+
+            response = restTemplate.exchange(arg1, HttpMethod.DELETE, entity, String.class);
         } else {
             throw new Throwable("Unsupported HTTP method " + method);
         }
@@ -61,17 +67,17 @@ public class NsoSyncControllerSteps extends CucumberSteps {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<String> entity = new HttpEntity<>(payload, headers);
 
-            switch (method) {
-                case POST:
+            switch (arg0.toUpperCase()) {
+                case "POST":
                     response = restTemplate.postForEntity(arg1, entity, String.class);
                     break;
-                case PUT:
+                case "PUT":
 
                     restTemplate.put(arg1, entity);
                     response = new ResponseEntity<>("", HttpStatus.OK);
 
                     break;
-                case DELETE:
+                case "DELETE":
                     restTemplate.delete(arg1, entity, String.class);
                     response = new ResponseEntity<>("", HttpStatus.OK);
                     break;

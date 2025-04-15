@@ -32,3 +32,10 @@ Feature: Verify the NsoSyncController endpoint
     When the client receives the response
     Then the client receives a status code of 200
     And the client receives a true synchronization flag
+
+  # HTTP DELETE
+  Scenario: Change the NSO state
+    Given the client executes "DELETE" on "/api/nso-sync/7000"
+    When the client receives the response
+    Then the client receives a status code of 200
+    And the client receives a true synchronization flag
