@@ -3,6 +3,7 @@
 ### 1.2.23
 > Mar 2025
 - OS-421: Implement NsoVplsStateSyncer class to manage NSO VPLS state synchronization between OSCARS and NSO.
+- NSI fix for disabled callbacks
 
 ### 1.2.22
 > Mar 2025
