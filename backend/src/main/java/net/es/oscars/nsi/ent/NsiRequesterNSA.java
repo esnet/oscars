@@ -22,5 +22,7 @@ public class NsiRequesterNSA {
     @NonNull
     private String callbackUrl;
 
-
+    public boolean callbacksEnabled() {
+        return callbackUrl.startsWith("https") || callbackUrl.startsWith("http");
+    }
 }
