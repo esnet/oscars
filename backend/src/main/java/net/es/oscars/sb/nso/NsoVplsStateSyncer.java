@@ -166,6 +166,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 List<NsoStateWrapper<NsoVPLS>> toRedeploy = filterLocalState(State.REDEPLOY); // One Yang Patch (1 HTTP call)
 
                 // ...Delete BEGIN
+                // this for loop could be parallelized
                 for (NsoStateWrapper<NsoVPLS> wrapper : toDelete) {
                     NsoAdapter.NsoOscarsDismantle dismantle = getNsoOscarsDismantle(wrapper);
                     try {
@@ -177,8 +178,24 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 }
                 // ...Delete END
 
+                // ...Redeploy BEGIN
+                // the redeploys MIGHT need to be ordered in a certain way if there are
+                // resource dependencies
+                for (NsoStateWrapper<NsoVPLS> wrapper : toRedeploy) {
+                    NsoVPLS redeploy = wrapper.getInstance();
+                    String connectionId = redeploy.getName();
+                    try {
+                        nsoProxy.redeployServices(redeploy, connectionId);
+                    } catch (NsoCommitException nsoCommitException) {
+                        gotCommitError = true;
+                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                    }
+
+                }
+                // ...Redeploy END
 
                 // ...Add BEGIN
+                // this for loop could also be parallelized (but must run after the delete)
                 for (NsoStateWrapper<NsoVPLS> wrapper : toAdd) {
 
                     NsoServicesWrapper.NsoServicesWrapperBuilder addBuilder = NsoServicesWrapper.builder();
@@ -203,19 +220,6 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 }
                 // ...Add END
 
-                // ...Redeploy BEGIN
-                for (NsoStateWrapper<NsoVPLS> wrapper : toRedeploy) {
-                    NsoVPLS redeploy = wrapper.getInstance();
-                    String connectionId = redeploy.getName();
-                    try {
-                        nsoProxy.redeployServices(redeploy, connectionId);
-                    } catch (NsoCommitException nsoCommitException) {
-                        gotCommitError = true;
-                        log.info(nsoCommitException.getMessage(), nsoCommitException);
-                    }
-
-                }
-                // ...Redeploy END
 
                 // Set state to "clean" state.
                 this.setDirty(false);

@@ -1,5 +1,7 @@
 package net.es.oscars.sb;
 
+import lombok.Builder;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
@@ -32,7 +34,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class SouthboundPeriodicSyncer {
 
     @Value("${nso.sync}")
-    private Boolean sync;
+    private Boolean syncFeatureFlag;
 
     private final Startup startup;
     private final DbAccess dbAccess;
@@ -50,12 +52,13 @@ public class SouthboundPeriodicSyncer {
 
     @Scheduled(fixedDelayString = "${nso.sync-interval-millisec}")
     @Transactional
-    public void scheduledSync() {
-        if (!sync) return;
-        this.periodicSync();
+    public void periodicSync() {
+        if (!syncFeatureFlag) return;
+        this.sync();
     }
 
-    public void periodicSync() {
+    // TODO: complete the implementation
+    public void sync() {
         if (startup.isInStartup() || startup.isInShutdown()) {
             // log.info("application in startup or shutdown; skipping state transitions");
             return;
@@ -66,20 +69,23 @@ public class SouthboundPeriodicSyncer {
         if (gotLock) {
             try {
                 String vplsPath = nsoVplsStateSyncer.getNsoProxy().getNsoServiceConfigRestPath(NsoService.VPLS);
-                Dictionary<Integer, NsoStateWrapper<NsoVPLS>> desiredState = this.desiredState();
+                DesiredStateResult desiredState = this.desiredState();
                 nsoVplsStateSyncer.load(vplsPath);
-                nsoVplsStateSyncer.setLocalState(desiredState);
-                if (nsoVplsStateSyncer.sync(vplsPath)) {
+                nsoVplsStateSyncer.setLocalState(desiredState.getVplsState());
 
-                    nsoVplsStateSyncer.load(vplsPath);
-                    Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = nsoVplsStateSyncer.getLocalState().elements();
-                    while (enumeration.hasMoreElements()) {
-                        NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
-                        // This should automatically mark this VPLS as "noop", "add", "delete", or "redeploy"
-                        nsoVplsStateSyncer.evaluate(wrappedNsoVPLS.getInstance().getVcId());
-                    }
-                } else {
-                    // sync did not succeed
+                // perform a sync and try to sync as much as we can
+                nsoVplsStateSyncer.sync(vplsPath);
+
+
+                // now i want to figure out what bits actually synced and what did not
+                nsoVplsStateSyncer.load(vplsPath);
+                nsoVplsStateSyncer.setLocalState(desiredState.getVplsState());
+
+                Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = nsoVplsStateSyncer.getLocalState().elements();
+                while (enumeration.hasMoreElements()) {
+                    NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+                    // This should automatically mark this VPLS as "noop", "add", "delete", or "redeploy"
+                    nsoVplsStateSyncer.evaluate(wrappedNsoVPLS.getInstance().getVcId());
                 }
 
                 // reload state from NSO after sync
@@ -91,10 +97,18 @@ public class SouthboundPeriodicSyncer {
                 throw new RuntimeException(e);
             }
             connLock.unlock();
-
         }
     }
-    public Dictionary<Integer, NsoStateWrapper<NsoVPLS>> desiredState() throws StartupException {
+
+    @Data
+    @Builder
+    public static class DesiredStateResult {
+        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> vplsState;
+
+    }
+
+
+    public DesiredStateResult desiredState() throws StartupException {
 
         Interval interval = Interval.builder()
                 .beginning(Instant.now())
@@ -106,23 +120,38 @@ public class SouthboundPeriodicSyncer {
                 .interval(interval)
                 .page(1)
                 .build();
+
         // this is a list of all the connections that are currently active
         List<Connection> connections = connController.list(f).getConnections();
 
         Dictionary<Integer, NsoStateWrapper<NsoVPLS>> desiredState = new Hashtable<>();
+        Dictionary<Integer, Connection> connectionsByVplsId = new Hashtable<>();
+
         for (Connection c : connections) {
+            boolean addToDesiredVplsState = true;
+            // connections with buildmode AUTOMATIC are always in our desired state
+            if (c.getMode().equals(BuildMode.MANUAL)) {
+                // for MANUAL connections, we have to not skip any that should-be-undeployed
+                if (c.getDeploymentIntent().equals(DeploymentIntent.SHOULD_BE_UNDEPLOYED)) {
+                    // do not add it in the desired state
+                    addToDesiredVplsState = false;
+                }
+            }
+
             try {
                 NsoServicesWrapper wrapped = nsoAdapter.nsoOscarsServices(c);
                 for (NsoVPLS vpls : wrapped.getVplsInstances() ){
                     NsoStateWrapper<NsoVPLS> stateWrapper = new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, vpls);
-
-                    desiredState.put(vpls.getVcId(), stateWrapper);
+                    if (addToDesiredVplsState)  desiredState.put(vpls.getVcId(), stateWrapper);
+                    connectionsByVplsId.put(vpls.getVcId(), c);
                 }
             } catch (NsoGenException ex) {
                 log.error(ex.getMessage(),ex);
             }
         }
-        return desiredState;
+        return DesiredStateResult.builder()
+                .vplsState(desiredState)
+                .build();
     }
 
 }
