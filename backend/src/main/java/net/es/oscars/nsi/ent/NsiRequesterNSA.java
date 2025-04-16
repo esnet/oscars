@@ -4,6 +4,7 @@ import lombok.*;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import org.apache.commons.validator.routines.UrlValidator;
 
 @Data
 @Entity
@@ -23,6 +24,7 @@ public class NsiRequesterNSA {
     private String callbackUrl;
 
     public boolean callbacksEnabled() {
-        return callbackUrl.startsWith("https") || callbackUrl.startsWith("http");
+        UrlValidator validator = new UrlValidator();
+        return !callbackUrl.isEmpty() && validator.isValid(callbackUrl);
     }
 }
