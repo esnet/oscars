@@ -44,8 +44,8 @@ public class NsoHttpServer {
         return new ServletRegistrationBean<>(
                 servlet,
                 "/restconf/data/esnet-status:esnet-status/nokia-show",
-                "/data/tailf-ncs:services/esnet-vpls:vpls",
-                "/data/tail-ncs:services/esnet-lsp:lsp",
+                "/restconf/data/tailf-ncs:services/esnet-vpls:vpls",
+                "/restconf/data/tail-ncs:services/esnet-lsp:lsp",
                 "/restconf/data/tailf-ncs:services",
                 "/restconf/data/"
         );
@@ -96,7 +96,7 @@ public class NsoHttpServer {
             // Is this for an nso.esnet-vpls mock request?
             String uri = req.getRequestURI();
             try {
-                if (uri.startsWith("/data/tailf-ncs:services/esnet-vpls:vpls")) {
+                if (uri.startsWith("/restconf/data/tailf-ncs:services/esnet-vpls:vpls")) {
                     loadEsnetVplsMockData(req, resp);
                 } else {
                     // Unknown.
