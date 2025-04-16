@@ -1,19 +1,13 @@
 package net.es.oscars.sb.nso;
 
 import lombok.extern.slf4j.Slf4j;
-import net.es.oscars.app.props.NsoProperties;
-import net.es.oscars.sb.nso.ent.NsoService;
+import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
-import net.es.topo.common.dto.nso.YangPatch;
-import net.es.topo.common.dto.nso.YangPatchWrapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
-import net.es.topo.common.dto.nso.FromNsoServiceConfig;
 import net.es.topo.common.dto.nso.NsoVPLS;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
@@ -162,11 +156,26 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
             // Only synchronize if NSO service state was loaded, and the local service state is dirty = true.
             if (this.isDirty()) {
+                boolean gotCommitError = false;
+                this.setSynchronized(false);
+
                 // Sync local state with NSO service state at path
                 // Then, generate the RestTemplate / YangPatches and send using NsoProxy
                 List<NsoStateWrapper<NsoVPLS>> toDelete = filterLocalState(State.DELETE); // One Yang Patch (1 HTTP call)
                 List<NsoStateWrapper<NsoVPLS>> toAdd = filterLocalState(State.ADD); // One Yang Patch (1 HTTP call)
                 List<NsoStateWrapper<NsoVPLS>> toRedeploy = filterLocalState(State.REDEPLOY); // One Yang Patch (1 HTTP call)
+
+                // ...Delete BEGIN
+                for (NsoStateWrapper<NsoVPLS> wrapper : toDelete) {
+                    NsoAdapter.NsoOscarsDismantle dismantle = getNsoOscarsDismantle(wrapper);
+                    try {
+                        nsoProxy.deleteServices(dismantle);
+                    } catch (NsoCommitException nsoCommitException) {
+                        gotCommitError = true;
+                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                    }
+                }
+                // ...Delete END
 
 
                 // ...Add BEGIN
@@ -183,7 +192,13 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                         .vplsInstances(addList)
                         .build();
 
-                    nsoProxy.buildServices(addThese, connectionId);
+                    try {
+                        nsoProxy.buildServices(addThese, connectionId);
+                    } catch (NsoCommitException nsoCommitException) {
+                        gotCommitError = true;
+                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                    }
+
 
                 }
                 // ...Add END
@@ -192,25 +207,27 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 for (NsoStateWrapper<NsoVPLS> wrapper : toRedeploy) {
                     NsoVPLS redeploy = wrapper.getInstance();
                     String connectionId = redeploy.getName();
+                    try {
+                        nsoProxy.redeployServices(redeploy, connectionId);
+                    } catch (NsoCommitException nsoCommitException) {
+                        gotCommitError = true;
+                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                    }
 
-                    nsoProxy.redeployServices(redeploy, connectionId);
                 }
                 // ...Redeploy END
 
-                // ...Delete BEGIN
-                for (NsoStateWrapper<NsoVPLS> wrapper : toDelete) {
-                    NsoAdapter.NsoOscarsDismantle dismantle = getNsoOscarsDismantle(wrapper);
-
-                    nsoProxy.deleteServices(dismantle);
-                }
-                // ...Delete END
-
                 // Set state to "clean" state.
                 this.setDirty(false);
-            }
 
-            // Mark as synchronized.
-            this.setSynchronized(true);
+                if (!gotCommitError) {
+                    // Mark as synchronized.
+                    this.setSynchronized(true);
+                } else {
+                    this.setSynchronized(false);
+                }
+
+            }
         } catch (NsoStateSyncerException nse) {
             log.error(nse.getMessage(), nse);
             throw nse;
