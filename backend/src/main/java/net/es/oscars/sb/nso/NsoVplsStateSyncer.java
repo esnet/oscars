@@ -563,7 +563,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             log.info(description);
 
 
-            if (!isDirty() && !State.NOOP.equals(state)) {
+            if (!isDirty()) {
                 setDirty(true);
             }
             marked = true;

@@ -148,24 +148,47 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     @Given("I had marked {string} with {string}")
     public void iHadMarkedWith(String arg0, String arg1) {
         NsoStateWrapper<NsoVPLS> wrappedVpls = syncer.findLocalEntryByName(arg0);
+        NsoStateSyncer.State state = NsoStateSyncer
+            .State
+            .valueOf(
+                arg1
+                    .replace("-", "")
+                    .toUpperCase()
+            );
 
         assert wrappedVpls != null;
+        Integer vcId = wrappedVpls.getInstance().getVcId();
 
-        syncer
-            .localState
-            .get(
-                wrappedVpls
-                    .getInstance()
-                    .getVcId()
-            ).setState(
-                    NsoStateSyncer
-                        .State
-                        .valueOf(
-                                arg1
-                                    .replaceAll("-", "")
-                                    .toUpperCase()
-                        )
-            );
+        switch (state) {
+            case NOOP:
+                syncer.noop(vcId);
+                break;
+            case ADD:
+                syncer.add(vcId);
+                break;
+            case DELETE:
+                syncer.delete(vcId);
+                break;
+            case REDEPLOY:
+                syncer.redeploy(vcId);
+                break;
+        }
+
+        syncer.localState.remove(wrappedVpls);
+
+        wrappedVpls.setState(
+            NsoStateSyncer
+                .State
+                .valueOf(
+                        arg1
+                                .replaceAll("-", "")
+                                .toUpperCase()
+                )
+        );
+        syncer.localState.put(wrappedVpls.getInstance().getVcId(), wrappedVpls);
+
+
+
     }
 
     @Given("I did not add {string}")
