@@ -173,22 +173,6 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
                 syncer.redeploy(vcId);
                 break;
         }
-
-        syncer.localState.remove(wrappedVpls);
-
-        wrappedVpls.setState(
-            NsoStateSyncer
-                .State
-                .valueOf(
-                        arg1
-                                .replaceAll("-", "")
-                                .toUpperCase()
-                )
-        );
-        syncer.localState.put(wrappedVpls.getInstance().getVcId(), wrappedVpls);
-
-
-
     }
 
     @Given("I did not add {string}")
