@@ -34,6 +34,13 @@ public abstract class NsoStateSyncer<T> {
 
     /**
      * Loads the NSO service state data from the specified path.
+     * @return True if successful, False otherwise.
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
+    public abstract boolean load() throws NsoStateSyncerException;
+
+    /**
+     * Loads the NSO service state data from the specified path.
      * @param path The URI path string to the API endpoint to load.
      * @return True if successful, False otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.

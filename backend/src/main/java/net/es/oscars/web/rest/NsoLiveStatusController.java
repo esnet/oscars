@@ -32,9 +32,7 @@ import net.es.oscars.sb.nso.LiveStatusOperationalStateCacheManager;
 import net.es.oscars.sb.nso.db.NsoVcIdDAO;
 import net.es.oscars.sb.nso.ent.NsoVcId;
 
-import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -417,21 +415,6 @@ public class NsoLiveStatusController {
                 .serviceId(vcid)
                 .conn(conn)
                 .build();
-    }
-
-    private void dumpDebug(String context, Object o) {
-        String pretty = null;
-
-        try {
-            pretty = (new ObjectMapper())
-                    .registerModule(new JavaTimeModule())
-                    .writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(o);
-        } catch (JsonProcessingException ex) {
-            log.error(ex.getMessage());
-        }
-
-        log.info(context + "\n" + pretty);
     }
 
 }

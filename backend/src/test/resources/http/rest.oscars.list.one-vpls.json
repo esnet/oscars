@@ -1,0 +1,142 @@
+{
+  "esnet-vpls:vpls": [
+    {
+      "vc-id": 7000,
+      "modified": {
+        "devices": ["lasv-cr6", "llnl-cr6", "snlca902-cr6"],
+        "services": ["/tailf-ncs:services/esnet-port:port[device='snlca902-cr6'][ifce='2/1/c2/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='snlca902-cr6'][service-id='7000']", "/tailf-ncs:services/esnet-port:port[device='llnl-cr6'][ifce='1/1/c2/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='llnl-cr6'][service-id='7000']", "/tailf-ncs:services/esnet-port:port[device='lasv-cr6'][ifce='1/1/c17/3']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='lasv-cr6'][service-id='7000']"]
+      },
+      "directly-modified": {
+        "devices": ["lasv-cr6", "llnl-cr6", "snlca902-cr6"],
+        "services": ["/tailf-ncs:services/esnet-shared:nokia-service-registry[device='lasv-cr6'][service-id='7000']", "/tailf-ncs:services/esnet-port:port[device='lasv-cr6'][ifce='1/1/c17/3']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='llnl-cr6'][service-id='7000']", "/tailf-ncs:services/esnet-port:port[device='llnl-cr6'][ifce='1/1/c2/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='snlca902-cr6'][service-id='7000']", "/tailf-ncs:services/esnet-port:port[device='snlca902-cr6'][ifce='2/1/c2/1']"]
+      },
+      "created": "2024-05-09T18:14:23.150926+00:00",
+      "last-modified": "2024-05-09T18:14:23.15098+00:00",
+      "last-run": "2024-10-03T14:32:52.802322+00:00",
+      "description": "LANL NTS to LLNL",
+      "qos-mode": "guaranteed",
+      "name": "BBBB",
+      "routing-domain": "esnet-293",
+      "device": [
+        {
+          "device": "lasv-cr6",
+          "endpoint": [
+            {
+              "ifce": "1/1/c17/3",
+              "vlan-id": 1220,
+              "layer2-description": "ZRNX",
+              "qos": {
+                "ingress-mbps": 100,
+                "egress-mbps": 100,
+                "excess-action": "keep",
+                "qos-id": 7000
+              }
+            }
+          ]
+        },
+        {
+          "device": "llnl-cr6",
+          "endpoint": [
+            {
+              "ifce": "1/1/c2/1",
+              "vlan-id": 1220,
+              "layer2-description": "ZRNX",
+              "qos": {
+                "ingress-mbps": 100,
+                "egress-mbps": 100,
+                "excess-action": "keep",
+                "qos-id": 7000
+              }
+            }
+          ]
+        },
+        {
+          "device": "snlca902-cr6",
+          "endpoint": [
+            {
+              "ifce": "2/1/c2/1",
+              "vlan-id": 1220,
+              "layer2-description": "ZRNX",
+              "qos": {
+                "ingress-mbps": 1,
+                "egress-mbps": 1,
+                "excess-action": "keep",
+                "qos-id": 7000
+              }
+            }
+          ]
+        }
+      ],
+      "sdp": [
+        {
+          "sdp-id": 7233,
+          "description": "ZRNX",
+          "a": {
+            "device": "lasv-cr6",
+            "mode": "spoke",
+            "vc-id": 7000,
+            "lsp": "ZRNX-WRK-snlca902-cr6"
+          },
+          "z": {
+            "device": "snlca902-cr6",
+            "mode": "spoke",
+            "vc-id": 7000,
+            "lsp": "ZRNX-WRK-lasv-cr6"
+          },
+          "precedence": "primary"
+        },
+        {
+          "sdp-id": 7234,
+          "description": "ZRNX",
+          "a": {
+            "device": "lasv-cr6",
+            "mode": "spoke",
+            "vc-id": 7001,
+            "lsp": "ZRNX-PRT-snlca902-cr6"
+          },
+          "z": {
+            "device": "snlca902-cr6",
+            "mode": "spoke",
+            "vc-id": 7001,
+            "lsp": "ZRNX-PRT-lasv-cr6"
+          },
+          "precedence": "secondary"
+        },
+        {
+          "sdp-id": 7235,
+          "description": "ZRNX",
+          "a": {
+            "device": "llnl-cr6",
+            "mode": "spoke",
+            "vc-id": 7002,
+            "lsp": "ZRNX-WRK-lasv-cr6"
+          },
+          "z": {
+            "device": "lasv-cr6",
+            "mode": "spoke",
+            "vc-id": 7002,
+            "lsp": "ZRNX-WRK-llnl-cr6"
+          },
+          "precedence": "primary"
+        },
+        {
+          "sdp-id": 7236,
+          "description": "ZRNX",
+          "a": {
+            "device": "llnl-cr6",
+            "mode": "spoke",
+            "vc-id": 7003,
+            "lsp": "ZRNX-PRT-lasv-cr6"
+          },
+          "z": {
+            "device": "lasv-cr6",
+            "mode": "spoke",
+            "vc-id": 7003,
+            "lsp": "ZRNX-PRT-llnl-cr6"
+          },
+          "precedence": "secondary"
+        }
+      ]
+    }
+  ]
+}
