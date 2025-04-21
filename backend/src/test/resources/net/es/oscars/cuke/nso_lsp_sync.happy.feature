@@ -1,9 +1,17 @@
-#@NsoLspSyncSteps
-#Feature: synchronize NSO service state to OSCARS state
-#
-#  I want to
-#
-#  Scenario: Read NSO LSP service state, make decisions about add / delete / redeploy
+@NsoLspSyncSteps
+Feature: synchronize NSO service state to OSCARS state, LSP
+
+  I want to verify that NSO service state is synchronized to the OSCARS state (Happy Path).
+  Evaluation mechanism should automatically mark LSPs as one of "add", "delete", "redeploy", or "no-op".
+
+  Evaluate -> Mark -> Synchronize.
+
+  Scenario: Read NSO's LSP service state, make decisions about add / delete / redeploy
+    Given I have initialized the world
+    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The NSO VPLS service state is loaded
+    Given The NSO VPLS service state has 137 instances
+
 #    Given I have initialized the world
 #    Given I load the NSO LSP service state
 #    Then The NSO LSP service state has 818 instances

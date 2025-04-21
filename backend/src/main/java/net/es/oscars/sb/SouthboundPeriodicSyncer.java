@@ -52,7 +52,7 @@ public class SouthboundPeriodicSyncer {
 
     @Scheduled(fixedDelayString = "${nso.sync-interval-millisec}")
     @Transactional
-    public void periodicSync() {
+    public void periodicSyncTask() {
         if (!syncFeatureFlag) return;
         this.sync();
     }
