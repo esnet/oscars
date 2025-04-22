@@ -10,7 +10,7 @@ Feature: synchronize NSO service state to OSCARS state, LSP
     Given I have initialized the world
     Given I have retrieved the NSO LSPs
     Given The NSO LSP service state is loaded
-    Given The NSO LSP service state has 137 instances
+    Given The NSO LSP service state has 569 instances
 
     # AAAA (add VPLS, add LSPs)
 

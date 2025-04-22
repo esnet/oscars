@@ -1,5 +1,3 @@
-@NsoVplsSyncSteps
-@NsoLspSyncSteps
 @NsoSyncScheduledTaskSteps
 Feature: scheduled task to synchronize VPLS and LSP to NSO state
   I want to verify the scheduled task periodically syncs VPLS and LSP data to NSO state.

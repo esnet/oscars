@@ -22,12 +22,13 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
 
     @Given("The NSO LSP service state is loaded")
     public void the_NSO_LSP_service_state_is_loaded() {
-        // STUB
+        assert syncer.isLoaded();
     }
 
     @Given("The NSO LSP service state has {int} instances")
     public void theNSOLSPServiceStateHasInstances(int arg0) {
-        // STUB
+        log.info("NSO LSP service state has {} instances, expect {}", syncer.getLocalLSPState().size(), arg0);
+        assert syncer.getLocalLSPState().size() == arg0;
     }
 
     @Given("I have retrieved the NSO LSPs")
