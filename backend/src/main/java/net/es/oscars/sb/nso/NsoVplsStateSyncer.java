@@ -75,6 +75,17 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
         Dictionary<Integer, NsoStateWrapper<NsoVPLS>> remoteState = new Hashtable<>();
         setRemoteState(remoteState);
     }
+
+    /**
+     * Loads the NSO service state data from the specified path.
+     *
+     * @return True if successful, False otherwise.
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
+    @Override
+    public boolean load() throws NsoStateSyncerException {
+        return this.load("");
+    }
     /**
      * Loads the NSO service state data from the specified path.
      *
@@ -90,8 +101,10 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             if (!this.isDirty()) {
 
                 // Load NSO service state from path, with each NsoVPLS object is assigned a NOOP state as default.
+                NsoVplsResponse vplsResponse = path.isEmpty()
+                    ? nsoProxy.getVpls()
+                    : nsoProxy.getVpls(path);
 
-                NsoVplsResponse vplsResponse = nsoProxy.getVpls();
                 if (vplsResponse != null) {
 
                     // Get the VPLS, wrap each VPLS in NsoStateWrapper, and populate our

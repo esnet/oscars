@@ -21,11 +21,13 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
+import net.es.oscars.web.beans.NsoStateResponse;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
@@ -529,7 +531,7 @@ public class NsoProxy {
         if (path == null) {
             throw new Exception("Could not determine service path type. Please use VPLS or LSP.");
         };
-        String req = "data/tailf-ncs:services%s".formatted(path);
+        String req = "restconf/data/tailf-ncs:services%s".formatted(path);
 
         return props.getUri() + req;
     }
@@ -543,21 +545,26 @@ public class NsoProxy {
 
         FromNsoServiceConfig result = null;
         try {
-            String response;
+            ResponseEntity<String> response;
 
-            response = restTemplate.getForObject(path, String.class);
+            response = restTemplate.getForEntity(path, String.class);
 
 //            DevelUtils.dumpDebug("get-nso-service", response);
 
-            if (response != null) {
+            if (response.getStatusCode().is2xxSuccessful()) {
                 result = new FromNsoServiceConfig();
-                result.setConfig(response);
+                String body = response.getBody();
+                if (body != null) {
+                    result.setConfig(body);
+                } else {
+                    result.setConfig("{\"esnet-vpls:vpls\": []}");
+                }
                 result.setSuccessful(true);
 
                 log.info("%s: get service COMPLETE ".formatted(service.toString()));
             } else {
-                log.error("%s: get config FAILED (response is null) ".formatted(service.toString()));
-                throw new Exception("%s: get config FAILED (response is null) ".formatted(service.toString()));
+                log.error("%s: get config FAILED (response status was not HTTP 200 range.) ".formatted(service.toString()));
+                throw new Exception("%s: get config FAILED (response status was not HTTP 200 range.) ".formatted(service.toString()));
             }
 
         } catch (Exception e) {
