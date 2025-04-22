@@ -54,6 +54,7 @@ import net.es.topo.common.devel.DevelUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.cxf.binding.soap.SoapFault;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -581,14 +582,15 @@ public class NsiService {
                 Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
                 NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
 
-                ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
-                QuerySummaryConfirmedType qsct = this.querySummary(query);
-                try {
-                    port.querySummaryConfirmed(qsct, outHeader);
-
-                } catch (ServiceException | WebServiceException ex) {
-                    log.error("could not perform query callback");
-                    log.error(ex.getMessage(), ex);
+                if (requesterNSA.callbacksEnabled()) {
+                    ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
+                    QuerySummaryConfirmedType qsct = this.querySummary(query);
+                    try {
+                        port.querySummaryConfirmed(qsct, outHeader);
+                    } catch (ServiceException | WebServiceException ex) {
+                        log.error("could not perform query callback");
+                        log.error(ex.getMessage(), ex);
+                    }
                 }
             } catch (RuntimeException ex) {
                 log.error(ex.getMessage(), ex);
@@ -612,14 +614,16 @@ public class NsiService {
                 Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
                 NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
 
-                ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
-                QueryRecursiveConfirmedType qrct = this.queryRecursive(query);
-                try {
-                    port.queryRecursiveConfirmed(qrct, outHeader);
+                if (requesterNSA.callbacksEnabled()) {
+                    ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
+                    QueryRecursiveConfirmedType qrct = this.queryRecursive(query);
+                    try {
+                        port.queryRecursiveConfirmed(qrct, outHeader);
 
-                } catch (ServiceException | WebServiceException ex) {
-                    log.error("could not perform query callback");
-                    log.error(ex.getMessage(), ex);
+                    } catch (ServiceException | WebServiceException ex) {
+                        log.error("could not perform query callback");
+                        log.error(ex.getMessage(), ex);
+                    }
                 }
             } catch (RuntimeException ex) {
                 log.error(ex.getMessage(), ex);
@@ -1216,17 +1220,20 @@ public class NsiService {
             throw new NsiException("Unknown requester nsa id " + nsaId, NsiErrors.SEC_ERROR);
         }
         NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
-        ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
-        String corrId = this.newCorrelationId();
-        Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
 
-        ErrorEventType eet = new ErrorEventType();
-        eet.setOriginatingConnectionId(mapping.getNsiConnectionId());
-        eet.setOriginatingNSA(this.providerNsa);
+        if (requesterNSA.callbacksEnabled()) {
+            ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
+            String corrId = this.newCorrelationId();
+            Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
 
-        eet.setTimeStamp(this.getCalendar(Instant.now()));
-        eet.setEvent(EventEnumType.FORCED_END);
-        port.errorEvent(eet, outHeader);
+            ErrorEventType eet = new ErrorEventType();
+            eet.setOriginatingConnectionId(mapping.getNsiConnectionId());
+            eet.setOriginatingNSA(this.providerNsa);
+
+            eet.setTimeStamp(this.getCalendar(Instant.now()));
+            eet.setEvent(EventEnumType.FORCED_END);
+            port.errorEvent(eet, outHeader);
+        }
 
     }
 
@@ -1238,51 +1245,55 @@ public class NsiService {
         }
         NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
 
-        ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
+        if (requesterNSA.callbacksEnabled()) {
 
-        GenericConfirmedType gct = new GenericConfirmedType();
-        gct.setConnectionId(mapping.getNsiConnectionId());
+            ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
 
-        String corrId = inHeader.getCorrelationId();
+            GenericConfirmedType gct = new GenericConfirmedType();
+            gct.setConnectionId(mapping.getNsiConnectionId());
 
-        Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
+            String corrId = inHeader.getCorrelationId();
 
-        Connection c = nsiConnectionAccess.getOscarsConnection(mapping);
+            Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
 
-        ReserveConfirmedType rct = new ReserveConfirmedType();
+            Connection c = nsiConnectionAccess.getOscarsConnection(mapping);
 
-        rct.setConnectionId(mapping.getNsiConnectionId());
-        rct.setGlobalReservationId(mapping.getNsiGri());
-        rct.setDescription(c.getDescription());
+            ReserveConfirmedType rct = new ReserveConfirmedType();
 
-        ReservationConfirmCriteriaType rcct = new ReservationConfirmCriteriaType();
-        Schedule sch;
-        Components cmp;
-        if (c.getPhase().equals(Phase.HELD)) {
-            sch = c.getHeld().getSchedule();
-            cmp = c.getHeld().getCmp();
-        } else {
-            sch = c.getArchived().getSchedule();
-            cmp = c.getArchived().getCmp();
+            rct.setConnectionId(mapping.getNsiConnectionId());
+            rct.setGlobalReservationId(mapping.getNsiGri());
+            rct.setDescription(c.getDescription());
+
+            ReservationConfirmCriteriaType rcct = new ReservationConfirmCriteriaType();
+            Schedule sch;
+            Components cmp;
+            if (c.getPhase().equals(Phase.HELD)) {
+                sch = c.getHeld().getSchedule();
+                cmp = c.getHeld().getCmp();
+            } else {
+                sch = c.getArchived().getSchedule();
+                cmp = c.getArchived().getCmp();
+            }
+            ScheduleType st = this.oscarsToNsiSchedule(sch);
+
+            rcct.setSchedule(st);
+            rct.setCriteria(rcct);
+            rcct.setServiceType(SERVICE_TYPE);
+            rcct.setVersion(mapping.getDataplaneVersion());
+
+
+            P2PServiceBaseType p2p = makeP2P(cmp, mapping);
+            rcct.getAny().add(new ObjectFactory().createP2Ps(p2p));
+
+            try {
+                String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(rct);
+                log.debug("rcct: \n" + pretty);
+            } catch (JsonProcessingException ex) {
+                log.error(ex.getMessage(), ex);
+            }
+            port.reserveConfirmed(rct, outHeader);
         }
-        ScheduleType st = this.oscarsToNsiSchedule(sch);
 
-        rcct.setSchedule(st);
-        rct.setCriteria(rcct);
-        rcct.setServiceType(SERVICE_TYPE);
-        rcct.setVersion(mapping.getDataplaneVersion());
-
-
-        P2PServiceBaseType p2p = makeP2P(cmp, mapping);
-        rcct.getAny().add(new ObjectFactory().createP2Ps(p2p));
-
-        try {
-            String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(rct);
-            log.debug("rcct: \n" + pretty);
-        } catch (JsonProcessingException ex) {
-            log.error(ex.getMessage(), ex);
-        }
-        port.reserveConfirmed(rct, outHeader);
     }
 
     public void dataplaneCallback(NsiMapping mapping, State st) throws NsiException, ServiceException {
@@ -1293,28 +1304,32 @@ public class NsiService {
         }
         NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
 
-        ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
-        net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory of =
-                new net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory();
+        if (requesterNSA.callbacksEnabled()) {
 
-        DataPlaneStateChangeRequestType dsrt = of.createDataPlaneStateChangeRequestType();
-        DataPlaneStatusType dst = new DataPlaneStatusType();
-        dsrt.setConnectionId(mapping.getNsiConnectionId());
+            ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
+            net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory of =
+                    new net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory();
 
-        dsrt.setTimeStamp(this.getCalendar(Instant.now()));
+            DataPlaneStateChangeRequestType dsrt = of.createDataPlaneStateChangeRequestType();
+            DataPlaneStatusType dst = new DataPlaneStatusType();
+            dsrt.setConnectionId(mapping.getNsiConnectionId());
 
-        dst.setActive(false);
+            dsrt.setTimeStamp(this.getCalendar(Instant.now()));
 
-        if (st.equals(State.ACTIVE)) {
-            dst.setActive(true);
+            dst.setActive(false);
+
+            if (st.equals(State.ACTIVE)) {
+                dst.setActive(true);
+            }
+            dst.setVersion(mapping.getDataplaneVersion());
+            dst.setVersionConsistent(true);
+            dsrt.setDataPlaneStatus(dst);
+
+
+            String corrId = this.newCorrelationId();
+            Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
+            port.dataPlaneStateChange(dsrt, outHeader);
         }
-        dst.setVersion(mapping.getDataplaneVersion());
-        dst.setVersionConsistent(true);
-        dsrt.setDataPlaneStatus(dst);
-
-        String corrId = this.newCorrelationId();
-        Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
-        port.dataPlaneStateChange(dsrt, outHeader);
 
     }
 
@@ -1328,25 +1343,27 @@ public class NsiService {
         }
         NsiRequesterNSA requesterNSA = this.getRequesterNsa(nsaId).get();
 
-        ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
+        if (requesterNSA.callbacksEnabled()) {
+            ConnectionRequesterPort port = clientUtil.createRequesterClient(requesterNSA);
 
-        GenericConfirmedType gct = new GenericConfirmedType();
-        gct.setConnectionId(mapping.getNsiConnectionId());
+            GenericConfirmedType gct = new GenericConfirmedType();
+            gct.setConnectionId(mapping.getNsiConnectionId());
 
-        String corrId = inHeader.getCorrelationId();
+            String corrId = inHeader.getCorrelationId();
 
-        Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
-        if (event.equals(NsiEvent.ABORT_CF)) {
-            port.reserveAbortConfirmed(gct, outHeader);
+            Holder<CommonHeaderType> outHeader = this.makeClientHeader(nsaId, corrId);
+            if (event.equals(NsiEvent.ABORT_CF)) {
+                port.reserveAbortConfirmed(gct, outHeader);
 
-        } else if (event.equals(NsiEvent.COMMIT_CF)) {
-            port.reserveCommitConfirmed(gct, outHeader);
-        } else if (event.equals(NsiEvent.TERM_CF)) {
-            port.terminateConfirmed(gct, outHeader);
-        } else if (event.equals(NsiEvent.PROV_CF)) {
-            port.provisionConfirmed(gct, outHeader);
-        } else if (event.equals(NsiEvent.REL_CF)) {
-            port.releaseConfirmed(gct, outHeader);
+            } else if (event.equals(NsiEvent.COMMIT_CF)) {
+                port.reserveCommitConfirmed(gct, outHeader);
+            } else if (event.equals(NsiEvent.TERM_CF)) {
+                port.terminateConfirmed(gct, outHeader);
+            } else if (event.equals(NsiEvent.PROV_CF)) {
+                port.provisionConfirmed(gct, outHeader);
+            } else if (event.equals(NsiEvent.REL_CF)) {
+                port.releaseConfirmed(gct, outHeader);
+            }
         }
 
     }
@@ -1439,27 +1456,33 @@ public class NsiService {
             gft.setConnectionStates(this.makeConnectionStates(mapping, null));
 
         }
+        if (requesterNSA.callbacksEnabled()) {
+            if (event.equals(NsiEvent.RESV_FL)) {
+                port.reserveFailed(gft, outHeader);
 
+            } else if (event.equals(NsiEvent.COMMIT_FL)) {
+                port.reserveCommitFailed(gft, outHeader);
 
-        if (event.equals(NsiEvent.RESV_FL)) {
-            port.reserveFailed(gft, outHeader);
+            } else if (event.equals(NsiEvent.RESV_TIMEOUT)) {
+                ReserveTimeoutRequestType rrt = new ReserveTimeoutRequestType();
+                rrt.setConnectionId(mapping.getNsiConnectionId());
 
-        } else if (event.equals(NsiEvent.COMMIT_FL)) {
-            port.reserveCommitFailed(gft, outHeader);
+                rrt.setTimeStamp(this.getCalendar(Instant.now()));
+                // TODO: implement incrementing notificationIds
 
-        } else if (event.equals(NsiEvent.RESV_TIMEOUT)) {
-            ReserveTimeoutRequestType rrt = new ReserveTimeoutRequestType();
-            rrt.setConnectionId(mapping.getNsiConnectionId());
-
-            rrt.setTimeStamp(this.getCalendar(Instant.now()));
-            // TODO: implement incrementing notificationIds
-
-            rrt.setNotificationId(0L);
-            rrt.setOriginatingConnectionId(mapping.getNsiConnectionId());
-            rrt.setOriginatingNSA(providerNsa);
-            rrt.setTimeoutValue(nsiResvTimeout);
-            port.reserveTimeout(rrt, outHeader);
+                rrt.setNotificationId(0L);
+                rrt.setOriginatingConnectionId(mapping.getNsiConnectionId());
+                rrt.setOriginatingNSA(providerNsa);
+                rrt.setTimeoutValue(nsiResvTimeout);
+                try {
+                    port.reserveTimeout(rrt, outHeader);
+                } catch (SoapFault soapFault) {
+                    log.error("reserve timeout soap fault", soapFault);
+                }
+            }
         }
+
+
     }
 
     private XMLGregorianCalendar getCalendar(Instant when) throws NsiException {
@@ -1701,6 +1724,7 @@ public class NsiService {
     }
 
     public void updateRequester(String replyTo, String nsaId) throws NsiException {
+        if (replyTo == null) replyTo = "";
         Optional<NsiRequesterNSA> maybeRequester = this.getRequesterNsa(nsaId);
         if (maybeRequester.isPresent()) {
             NsiRequesterNSA requesterNSA = maybeRequester.get();
