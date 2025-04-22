@@ -1,19 +1,14 @@
 package net.es.oscars.sb.nso;
 
 import lombok.extern.slf4j.Slf4j;
-import net.es.oscars.app.props.NsoProperties;
-import net.es.oscars.sb.nso.ent.NsoService;
+import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
-import net.es.topo.common.dto.nso.YangPatch;
-import net.es.topo.common.dto.nso.YangPatchWrapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import net.es.topo.common.dto.nso.enums.NsoService;
 import org.springframework.stereotype.Component;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
-import net.es.topo.common.dto.nso.FromNsoServiceConfig;
 import net.es.topo.common.dto.nso.NsoVPLS;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
@@ -38,24 +33,35 @@ import java.util.*;
  * vplsStateSyncer.getLocalState().put(
  *   vpls.getVcId(), // The vc-id value
  *   vpls // The NsoVPLS object
- * )
+ * );
  *
- * // Remove an existing NsoVPLS
+ * // Mark as added
+ * vplsStateSyncer.add(vpls.getVcId());
+ *
+ * // Manually remove an existing NsoVPLS
  * vplsStateSyncer.getLocalState().remove(
  *   vpls.getVcId()
  * );
+ *
+ * // Preferably, just mark it for removal
+ * vplsStateSyncer.delete(vpls.getVcId);
+ *
  *
  * // Redeploy an existing NsoVPLS
  * // Assume we have an oldNsoVPLS object and a newNsoVPLS object.
  * // ... remove the old one first
  * vplsStateSyncer.getLocalState().remove(
  *   oldNsoVPLS.getVcId()
- * )
+ * );
+ *
  * // ... Add the new one
  * vplsStateSyncer.getLocalState().put(
  *   newNsoVPLS.getVcId(), // The vc-id value
  *   newNsoVPLS // The NsoVPLS object
- * )
+ * );
+ *
+ * // ... and mark it for redeployment
+ * vplsStateSyncer.redeploy(newNsoVPLS.getVcId());
  *
  * </pre>
  * @author aalbino
@@ -83,14 +89,24 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     }
 
     /**
-     * Loads the NSO service state data from the specified path.
+     * Loads the NSO service state data from the default NsoProxy path.
      *
      * @return True if successful, False otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
+
     @Override
     public boolean load() throws NsoStateSyncerException {
-        return this.load("");
+        boolean success = false;
+        try {
+            String path = nsoProxy.getNsoServiceConfigRestPath(NsoService.VPLS);
+            success = load(path);
+        } catch (Exception e) {
+            log.error("NsoVplsStateSyncer.load() - error while loading nso services", e);
+            throw new NsoStateSyncerException(e.getLocalizedMessage());
+        }
+
+        return success;
     }
     /**
      * Loads the NSO service state data from the specified path.
@@ -107,9 +123,12 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             if (!this.isDirty()) {
 
                 // Load NSO service state from path, with each NsoVPLS object is assigned a NOOP state as default.
-                NsoVplsResponse vplsResponse = path.isEmpty()
-                    ? nsoProxy.getVpls()
-                    : nsoProxy.getVpls(path);
+                NsoVplsResponse vplsResponse;
+                if (!path.isEmpty()) {
+                    vplsResponse = nsoProxy.getVpls(path);
+                } else {
+                    vplsResponse = nsoProxy.getVpls();
+                }
 
                 if (vplsResponse != null) {
 
@@ -175,14 +194,46 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
             // Only synchronize if NSO service state was loaded, and the local service state is dirty = true.
             if (this.isDirty()) {
+                boolean gotCommitError = false;
+                this.setSynchronized(false);
+
                 // Sync local state with NSO service state at path
                 // Then, generate the RestTemplate / YangPatches and send using NsoProxy
                 List<NsoStateWrapper<NsoVPLS>> toDelete = filterLocalState(State.DELETE); // One Yang Patch (1 HTTP call)
                 List<NsoStateWrapper<NsoVPLS>> toAdd = filterLocalState(State.ADD); // One Yang Patch (1 HTTP call)
                 List<NsoStateWrapper<NsoVPLS>> toRedeploy = filterLocalState(State.REDEPLOY); // One Yang Patch (1 HTTP call)
 
+                // ...Delete BEGIN
+                // this for loop could be parallelized
+                for (NsoStateWrapper<NsoVPLS> wrapper : toDelete) {
+                    NsoAdapter.NsoOscarsDismantle dismantle = getNsoOscarsDismantle(wrapper);
+                    try {
+                        nsoProxy.deleteServices(dismantle);
+                    } catch (NsoCommitException nsoCommitException) {
+                        gotCommitError = true;
+                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                    }
+                }
+                // ...Delete END
+
+                // ...Redeploy BEGIN
+                // the redeploys MIGHT need to be ordered in a certain way if there are
+                // resource dependencies
+                for (NsoStateWrapper<NsoVPLS> wrapper : toRedeploy) {
+                    NsoVPLS redeploy = wrapper.getInstance();
+                    String connectionId = redeploy.getName();
+                    try {
+                        nsoProxy.redeployServices(redeploy, connectionId);
+                    } catch (NsoCommitException nsoCommitException) {
+                        gotCommitError = true;
+                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                    }
+
+                }
+                // ...Redeploy END
 
                 // ...Add BEGIN
+                // this for loop could also be parallelized (but must run after the delete)
                 for (NsoStateWrapper<NsoVPLS> wrapper : toAdd) {
 
                     NsoServicesWrapper.NsoServicesWrapperBuilder addBuilder = NsoServicesWrapper.builder();
@@ -196,34 +247,29 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                         .vplsInstances(addList)
                         .build();
 
-                    nsoProxy.buildServices(addThese, connectionId);
+                    try {
+                        nsoProxy.buildServices(addThese, connectionId);
+                    } catch (NsoCommitException nsoCommitException) {
+                        gotCommitError = true;
+                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                    }
+
 
                 }
                 // ...Add END
 
-                // ...Redeploy BEGIN
-                for (NsoStateWrapper<NsoVPLS> wrapper : toRedeploy) {
-                    NsoVPLS redeploy = wrapper.getInstance();
-                    String connectionId = redeploy.getName();
-
-                    nsoProxy.redeployServices(redeploy, connectionId);
-                }
-                // ...Redeploy END
-
-                // ...Delete BEGIN
-                for (NsoStateWrapper<NsoVPLS> wrapper : toDelete) {
-                    NsoAdapter.NsoOscarsDismantle dismantle = getNsoOscarsDismantle(wrapper);
-
-                    nsoProxy.deleteServices(dismantle);
-                }
-                // ...Delete END
 
                 // Set state to "clean" state.
                 this.setDirty(false);
-            }
 
-            // Mark as synchronized.
-            this.setSynchronized(true);
+                if (!gotCommitError) {
+                    // Mark as synchronized.
+                    this.setSynchronized(true);
+                } else {
+                    this.setSynchronized(false);
+                }
+
+            }
         } catch (NsoStateSyncerException nse) {
             log.error(nse.getMessage(), nse);
             throw nse;
@@ -555,7 +601,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             log.info(description);
 
 
-            if (!isDirty() && !State.NOOP.equals(state)) {
+            if (!isDirty()) {
                 setDirty(true);
             }
             marked = true;

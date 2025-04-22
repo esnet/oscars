@@ -92,7 +92,7 @@
         <dependency>
             <groupId>net.es.topo.common</groupId>
             <artifactId>topo-common</artifactId>
-            <version>0.0.37</version>
+            <version>0.0.38</version>
         </dependency>
         <dependency>
             <groupId>net.es.nsi</groupId>
@@ -360,6 +360,13 @@
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <version>6.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>4.2.2</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <reporting>

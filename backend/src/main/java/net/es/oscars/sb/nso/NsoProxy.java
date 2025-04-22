@@ -557,7 +557,13 @@ public class NsoProxy {
                 if (body != null) {
                     result.setConfig(body);
                 } else {
-                    result.setConfig("{\"esnet-vpls:vpls\": []}");
+                    if (service == NsoService.VPLS) {
+                        result.setConfig("{\"esnet-vpls:vpls\": []}");
+                    } else if (service == NsoService.LSP) {
+                        result.setConfig("{\"esnet-lsp:lsp\": []}");
+                    } else {
+                        throw new Exception("Unknown service " + service);
+                    }
                 }
                 result.setSuccessful(true);
 

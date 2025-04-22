@@ -42,6 +42,8 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) throws Throwable {
         // Load the (mock) NSO response payload
         syncer = new NsoVplsStateSyncer(proxy);
+        // Note: we don't actually use arg0, as we expect the NsoHttpServer to mock the API endpoint.
+        // Make sure the file content you expect is mocked in NsoHttpServer!
         syncer.load();
     }
 
@@ -148,24 +150,31 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     @Given("I had marked {string} with {string}")
     public void iHadMarkedWith(String arg0, String arg1) {
         NsoStateWrapper<NsoVPLS> wrappedVpls = syncer.findLocalEntryByName(arg0);
+        NsoStateSyncer.State state = NsoStateSyncer
+            .State
+            .valueOf(
+                arg1
+                    .replace("-", "")
+                    .toUpperCase()
+            );
 
         assert wrappedVpls != null;
+        Integer vcId = wrappedVpls.getInstance().getVcId();
 
-        syncer
-            .localState
-            .get(
-                wrappedVpls
-                    .getInstance()
-                    .getVcId()
-            ).setState(
-                    NsoStateSyncer
-                        .State
-                        .valueOf(
-                                arg1
-                                    .replaceAll("-", "")
-                                    .toUpperCase()
-                        )
-            );
+        switch (state) {
+            case NOOP:
+                syncer.noop(vcId);
+                break;
+            case ADD:
+                syncer.add(vcId);
+                break;
+            case DELETE:
+                syncer.delete(vcId);
+                break;
+            case REDEPLOY:
+                syncer.redeploy(vcId);
+                break;
+        }
     }
 
     @Given("I did not add {string}")

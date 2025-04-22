@@ -14,6 +14,10 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 public class NsoProperties {
     @NonNull
+    private boolean sync = false;
+    private int syncIntervalMillisec = 10000;
+
+    @NonNull
     private String vcIdRange;
 
     @NonNull
