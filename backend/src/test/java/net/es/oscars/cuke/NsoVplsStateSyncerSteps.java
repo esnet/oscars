@@ -42,6 +42,8 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) throws Throwable {
         // Load the (mock) NSO response payload
         syncer = new NsoVplsStateSyncer(proxy);
+        // Note: we don't actually use arg0, as we expect the NsoHttpServer to mock the API endpoint.
+        // Make sure the file content you expect is mocked in NsoHttpServer!
         syncer.load();
     }
 

@@ -45,7 +45,7 @@ public class NsoHttpServer {
                 servlet,
                 "/restconf/data/esnet-status:esnet-status/nokia-show",
                 "/restconf/data/tailf-ncs:services/esnet-vpls:vpls",
-                "/restconf/data/tail-ncs:services/esnet-lsp:lsp",
+                "/restconf/data/tailf-ncs:services/esnet-lsp:lsp",
                 "/restconf/data/tailf-ncs:services",
                 "/restconf/data/"
         );
@@ -98,6 +98,8 @@ public class NsoHttpServer {
             try {
                 if (uri.startsWith("/restconf/data/tailf-ncs:services/esnet-vpls:vpls")) {
                     loadEsnetVplsMockData(req, resp);
+                } else if (uri.startsWith("/restconf/data/tailf-ncs:services/esnet-lsp:lsp")) {
+                    loadEsnetLspMockData(req, resp);
                 } else {
                     // Unknown.
                     resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -105,7 +107,7 @@ public class NsoHttpServer {
                     resp.getWriter().flush();
                 }
             } catch (Exception ex) {
-                log.error("Failed to load esnet vpls mock data", ex);
+                log.error("Failed to load ESNet mock data", ex);
             }
         }
 
@@ -122,6 +124,31 @@ public class NsoHttpServer {
                 );
 
             for (NsoEsnetVplsResponseSpec responseSpec : vplsResponseSpecs) {
+                // Just load all of them
+                InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
+                // Read the mock data from the file found in the responseSpec.body path
+                String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
+                // Write the mock data to our response
+                resp.getWriter().write(body);
+
+                // Set the mock HTTP status
+                resp.setStatus(responseSpec.status);
+                resp.setContentType("application/yang-data+json");
+                resp.getWriter().flush();
+
+                // We found our entry, break the loop
+                break;
+            }
+        }
+
+        private void loadEsnetLspMockData(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            NsoEsnetLspResponseSpec[] lspResponseSpecs = new ObjectMapper()
+                .readValue(
+                        new ClassPathResource("http/nso.esnet-lsp.response-specs.json").getFile(),
+                        NsoEsnetLspResponseSpec[].class
+                );
+
+            for (NsoEsnetLspResponseSpec responseSpec : lspResponseSpecs ) {
                 // Just load all of them
                 InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
                 // Read the mock data from the file found in the responseSpec.body path
@@ -285,4 +312,6 @@ public class NsoHttpServer {
     public record NsoEsnetVplsResponseSpec(String data, Integer status) {}
     public record NsoEsnetVplsYangPatchResponseSpec(String connectionId, Integer vcId, String data, Integer status) {}
     public record NsoEsnetVplsYangPatchDeleteResponseSpec(String patchId, String data, Integer status) {}
+
+    public record NsoEsnetLspResponseSpec(String data, Integer status) {}
 }

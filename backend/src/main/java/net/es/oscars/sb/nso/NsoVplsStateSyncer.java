@@ -3,6 +3,7 @@ package net.es.oscars.sb.nso;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
+import net.es.topo.common.dto.nso.enums.NsoService;
 import org.springframework.stereotype.Component;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.dto.NsoVplsResponse;
@@ -32,24 +33,35 @@ import java.util.*;
  * vplsStateSyncer.getLocalState().put(
  *   vpls.getVcId(), // The vc-id value
  *   vpls // The NsoVPLS object
- * )
+ * );
  *
- * // Remove an existing NsoVPLS
+ * // Mark as added
+ * vplsStateSyncer.add(vpls.getVcId());
+ *
+ * // Manually remove an existing NsoVPLS
  * vplsStateSyncer.getLocalState().remove(
  *   vpls.getVcId()
  * );
+ *
+ * // Preferably, just mark it for removal
+ * vplsStateSyncer.delete(vpls.getVcId);
+ *
  *
  * // Redeploy an existing NsoVPLS
  * // Assume we have an oldNsoVPLS object and a newNsoVPLS object.
  * // ... remove the old one first
  * vplsStateSyncer.getLocalState().remove(
  *   oldNsoVPLS.getVcId()
- * )
+ * );
+ *
  * // ... Add the new one
  * vplsStateSyncer.getLocalState().put(
  *   newNsoVPLS.getVcId(), // The vc-id value
  *   newNsoVPLS // The NsoVPLS object
- * )
+ * );
+ *
+ * // ... and mark it for redeployment
+ * vplsStateSyncer.redeploy(newNsoVPLS.getVcId());
  *
  * </pre>
  * @author aalbino
@@ -77,14 +89,24 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     }
 
     /**
-     * Loads the NSO service state data from the specified path.
+     * Loads the NSO service state data from the default NsoProxy path.
      *
      * @return True if successful, False otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
      */
+
     @Override
     public boolean load() throws NsoStateSyncerException {
-        return this.load("");
+        boolean success = false;
+        try {
+            String path = nsoProxy.getNsoServiceConfigRestPath(NsoService.VPLS);
+            success = load(path);
+        } catch (Exception e) {
+            log.error("NsoVplsStateSyncer.load() - error while loading nso services", e);
+            throw new NsoStateSyncerException(e.getLocalizedMessage());
+        }
+
+        return success;
     }
     /**
      * Loads the NSO service state data from the specified path.
@@ -101,9 +123,12 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             if (!this.isDirty()) {
 
                 // Load NSO service state from path, with each NsoVPLS object is assigned a NOOP state as default.
-                NsoVplsResponse vplsResponse = path.isEmpty()
-                    ? nsoProxy.getVpls()
-                    : nsoProxy.getVpls(path);
+                NsoVplsResponse vplsResponse;
+                if (!path.isEmpty()) {
+                    vplsResponse = nsoProxy.getVpls(path);
+                } else {
+                    vplsResponse = nsoProxy.getVpls();
+                }
 
                 if (vplsResponse != null) {
 

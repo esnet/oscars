@@ -1,14 +1,70 @@
 package net.es.oscars.sb.nso;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.sb.nso.dto.NsoLspResponse;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
+import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.topo.common.dto.nso.NsoLSP;
+import net.es.topo.common.dto.nso.NsoVPLS;
+import net.es.topo.common.dto.nso.enums.NsoService;
 import org.springframework.stereotype.Component;
 
+import java.util.Dictionary;
+import java.util.Hashtable;
+
+/**
+ * NSO LSP State synchronizer.
+ *
+ * @author aalbino
+ * @since 1.2.24
+ */
 @Slf4j
 @Component
+@Getter
+@Setter
 public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
+
+    private final NsoProxy nsoProxy;
+
+    public Dictionary<String, NsoStateWrapper<NsoLSP>> localLSPState;
+    private Dictionary<String, NsoStateWrapper<NsoLSP>> remoteLSPState;
+
+    public NsoLspStateSyncer(NsoProxy proxy) {
+        super();
+        this.nsoProxy = proxy;
+
+        // Local state, composed of the NSO LSP object, and the state we are marking it as.
+        // Default mark for each state should be NsoStateSyncer.State.NOOP
+        Dictionary<String, NsoStateWrapper<NsoLSP>> localState = new Hashtable<>();
+        setLocalLSPState(localState);
+
+        Dictionary<String, NsoStateWrapper<NsoLSP>> remoteState = new Hashtable<>();
+        setRemoteLSPState(remoteState);
+    }
+
+    /**
+     * Loads the NSO service state data from the default NsoProxy path.
+     *
+     * @return True if successful, False otherwise.
+     * @throws NsoStateSyncerException Will throw an exception if an error occurs.
+     */
+    @Override
+    public boolean load() throws NsoStateSyncerException {
+        boolean success = false;
+        try {
+            String path = nsoProxy.getNsoServiceConfigRestPath(NsoService.LSP);
+            success = load(path);
+        } catch (Exception e) {
+            log.error("NsoLspStateSyncer.load() - error while loading nso services", e);
+            throw new NsoStateSyncerException(e.getLocalizedMessage());
+        }
+
+        return success;
+    }
+
     /**
      * Loads the NSO service state data from the specified path.
      *
@@ -18,7 +74,45 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
      */
     @Override
     public boolean load(String path) throws NsoStateSyncerException {
-        return false;
+        try {
+
+            // Only load if local state is not dirty.
+            if (!this.isDirty()) {
+
+                NsoLspResponse lspResponse;
+                // Load NSO service state from path, with each NsoVPLS object is assigned a NOOP state as default.
+                if (!path.isEmpty()) {
+                    lspResponse = nsoProxy.getLsps(path);
+                } else {
+                    lspResponse = nsoProxy.getLsps();
+                }
+
+                if (lspResponse != null) {
+
+                    // Get the VPLS, wrap each VPLS in NsoStateWrapper, and populate our
+                    // copy of local and remote state.
+                    for (NsoLSP lsp : lspResponse.getNsoLSPs()) {
+                        // As the local VPLS matches the Remote VPLS state, state should be NOOP
+                        getLocalLSPState().put(lsp.getName(), new NsoStateWrapper<>(State.NOOP, lsp));
+                        getRemoteLSPState().put(lsp.getName(), new NsoStateWrapper<>(State.NOOP, lsp));
+                    }
+
+                    // Mark local state as loaded = true
+                    // Mark local state as dirty = false
+                    this.setLoaded(true);
+                    this.setDirty(false);
+                }
+            } else {
+                this.setLoaded(false);
+            }
+        } catch (NsoStateSyncerException nse) {
+            log.error(nse.getMessage(), nse);
+            throw nse;
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw new NsoStateSyncerException(e.getMessage());
+        }
+        return this.isLoaded();
     }
 
     /**
@@ -191,7 +285,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
     }
 
     /**
-     * Find a local state entry by ID.
+     * NOT IMPLEMENTED. Find a local state entry by ID.
      *
      * @param id The entry ID to look for.
      * @return The entry found within the local NSO state list.
@@ -213,7 +307,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
     }
 
     /**
-     * Find a remote state entry by ID.
+     * NOT IMPLEMENTED. Find a remote state entry by ID.
      *
      * @param id The entry ID to look for.
      * @return The entry found within the remote NSO state list.
