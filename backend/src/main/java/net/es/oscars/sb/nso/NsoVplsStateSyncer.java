@@ -180,6 +180,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     @Override
     public boolean sync(String path, boolean dryRun) throws NsoStateSyncerException {
         try {
+            this.setSynchronized(false);
             if (!this.isLoaded()) {
                 throw new NsoStateSyncerException("No state loaded yet.");
             }
