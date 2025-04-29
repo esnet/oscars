@@ -2,16 +2,20 @@ package net.es.oscars.cuke;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.nso.NsoHttpServer;
 import net.es.oscars.sb.nso.NsoLspStateSyncer;
 import net.es.oscars.sb.nso.NsoProxy;
 import net.es.oscars.sb.nso.NsoStateSyncer;
+import net.es.oscars.sb.nso.NsoVplsStateSyncer;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.YangPatchWrapper;
+import net.es.topo.common.dto.nso.enums.NsoService;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -33,10 +37,11 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
 
     @Autowired
     NsoLspStateSyncer syncer;
+    @Autowired
+    NsoVplsStateSyncer vplsSyncer;
 
     @Given("The NSO LSP service state is loaded")
-    public void the_NSO_LSP_service_state_is_loaded() {
-        assert syncer.isLoaded();
+    public void the_NSO_LSP_service_state_is_loaded() { assert syncer.isLoaded();
     }
 
     @Given("The NSO LSP service state has {int} instances")
@@ -54,17 +59,14 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
         assert syncer.load();
     }
 
-    @Given("I had added LSP instance name {string} with device {string} from {string} to VPLS {string} as endpoint {string}")
-    public void iHadAddedLSPInstanceNameWithDeviceFromToVPLS(String lspName, String lspDevice, String lspJsonFile, String vplsName, String endpointAorZ) throws Exception {
+    @Given("I had added LSP instance name {string} with device {string} from {string}")
+    public void iHadAddedLSPInstanceNameWithDeviceFromToVPLS(String lspName, String lspDevice, String lspJsonFile) throws Exception {
         assert Files.exists(new ClassPathResource(lspJsonFile).getFile().toPath());
         assert !lspDevice.isEmpty();
         assert !lspName.isEmpty();
 
         // OSCARS managed VPLS only!
         assert lspName.matches("(\\w+)-(WRK|PRT)-(.*)");
-
-        // A or Z endpoint?
-        assert endpointAorZ.matches("^(A|Z)$");
 
         int originalSize = syncer.getLocalState().size();
 
@@ -108,5 +110,20 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
         log.info("LSP list, was {}, expect {}, now {}", originalSize, originalSize + 1, syncer.getLocalState().size());
         assert syncer.getLocalState().size() == originalSize + 1;
         assert syncer.findLocalEntryByName(addLsp.instanceKey()) != null;
+    }
+
+    @When("I perform an LSP synchronization")
+    public void iPerformAnLSPSynchronization() throws Exception {
+        try {
+            assert syncer.sync(syncer.getNsoProxy().getNsoServiceConfigRestPath(NsoService.LSP));
+        } catch (Exception e) {
+            log.error(e.getLocalizedMessage(), e);
+            world.add(e);
+        }
+    }
+
+    @Then("The NSO LSP service is synchronized")
+    public void theNSOLSPServiceIsSynchronized() {
+        assert syncer.isSynchronized();
     }
 }

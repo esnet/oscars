@@ -31,8 +31,14 @@ Feature: synchronize NSO service state to OSCARS state, LSP
     Given The NSO LSP service state has 536 instances
 
     # AAAA (add VPLS, add LSPs)
-    Given I had added LSP instance name "C2KR-WRK-losa-cr6" with device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json" to VPLS "OSCARS-C2KR" as endpoint "A"
-    Given I had added LSP instance name "C2KR-WRK-wash-cr6" with device "losa-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json" to VPLS "OSCARS-C2KR" as endpoint "Z"
+    # ... VPLS "OSCARS-C2KR" as endpoint "A"
+    Given I had added LSP instance name "C2KR-WRK-losa-cr6" with device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+    # ... VPLS "OSCARS-C2KR" as endpoint "Z"
+    Given I had added LSP instance name "C2KR-WRK-wash-cr6" with device "losa-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+
+    When I perform an LSP synchronization
+    Then The NSO LSP service is synchronized
+    Then The NSO LSP service state has 538 instances
 
 
     # AAAA (add VPLS, redeploy existing LSPs)

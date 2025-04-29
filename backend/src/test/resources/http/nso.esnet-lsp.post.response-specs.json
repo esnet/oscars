@@ -1,0 +1,14 @@
+[
+  {
+    "lspName": "C2KR-WRK-losa-cr6",
+    "lspDevice": "wash-cr6",
+    "data": "http/nso.esnet-lsp.sync.response.happy.json",
+    "status": 200
+  },
+  {
+    "lspName": "C2KR-WRK-wash-cr6",
+    "lspDevice": "losa-cr6",
+    "data": "http/nso.esnet-lsp.sync.response.happy.json",
+    "status": 200
+  }
+]

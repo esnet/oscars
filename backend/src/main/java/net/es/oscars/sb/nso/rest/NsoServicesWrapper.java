@@ -9,6 +9,7 @@ import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.NsoLspPathType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -16,10 +17,12 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class NsoServicesWrapper {
+    @Builder.Default
     @JsonProperty("esnet-lsp:lsp")
-    List<NsoLSP> lspInstances;
+    List<NsoLSP> lspInstances = new ArrayList<>();
+    @Builder.Default
     @JsonProperty("esnet-vpls:vpls")
-    List<NsoVPLS> vplsInstances;
+    List<NsoVPLS> vplsInstances = new ArrayList<>();
 
     public String asCliCommands() {
         StringBuilder lspSetCmds = new StringBuilder();
