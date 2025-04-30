@@ -1,7 +1,7 @@
 @NsoLspSyncSteps
-Feature: synchronize NSO service state to OSCARS state, LSP
+Feature: synchronize NSO service state to OSCARS state, LSP (Happy Path)
 
-  I want to verify that NSO service state is synchronized to the OSCARS state (Happy Path).
+  I want to verify that NSO service state is synchronized to the OSCARS state.
   Evaluation mechanism should automatically mark LSPs as one of "add", "delete", "redeploy", or "no-op".
 
   Evaluate -> Mark -> Synchronize.

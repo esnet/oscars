@@ -154,9 +154,9 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
     }
 
     @When("I perform an LSP synchronization")
-    public void iPerformAnLSPSynchronization() throws Exception {
+    public void iPerformAnLSPSynchronization() throws NsoStateSyncerException, Exception {
         try {
-            assert syncer.sync(syncer.getNsoProxy().getNsoServiceConfigRestPath(NsoService.LSP));
+            syncer.sync(syncer.getNsoProxy().getNsoServiceConfigRestPath(NsoService.LSP));
         } catch (Exception e) {
             log.error(e.getLocalizedMessage(), e);
             world.add(e);
@@ -172,6 +172,11 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
     @Then("The NSO LSP service is synchronized")
     public void theNSOLSPServiceIsSynchronized() {
         assert syncer.isSynchronized();
+    }
+
+    @Then("The NSO LSP service is not synchronized")
+    public void theNSOLSPServiceIsNotSynchronized() {
+        assert !syncer.isSynchronized();
     }
 
 
