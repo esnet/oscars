@@ -304,6 +304,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
             if (!local.getInstance().equals(remote.getInstance())) {
                 // Mark for REDEPLOY
                 String description = "Local and remote state differ for LSP '" + local.getInstance().instanceKey() + "' (" + id + "), mark for redeploy.";
+                state = State.REDEPLOY;
                 redeploy(id, description);
             }
 
@@ -317,6 +318,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                 localState.put(id, remote);
 
                 delete(id, description);
+                state = State.DELETE;
                 log.info(description);
 
             } else if (local != null) {
@@ -324,6 +326,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                 // Exists locally, but not in remote. Mark local as "add".
                 String description = "No state found remotely for LSP '" + local.getInstance().instanceKey() + "' (" + id + "), mark for add.";
                 add(id, description);
+                state = State.ADD;
                 log.info(description);
 
             } else {

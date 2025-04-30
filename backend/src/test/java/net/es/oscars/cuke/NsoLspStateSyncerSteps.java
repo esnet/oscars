@@ -59,6 +59,25 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
         assert syncer.load();
     }
 
+    private NsoLSP[] loadJson(String lspJsonFile) throws Exception {
+        return new ObjectMapper()
+            .readValue(
+                new ClassPathResource(lspJsonFile).getFile(),
+                NsoLSP[].class
+            );
+    }
+
+    private NsoLSP findLSP(String lspName, String lspDevice, String lspJsonFile) throws Exception {
+        NsoLSP[] lsps = loadJson(lspJsonFile);
+        NsoLSP foundLsp = null;
+        for (NsoLSP lsp : lsps) {
+            if (lsp.getName().equals(lspName) && lsp.getDevice().equals(lspDevice)) {
+                foundLsp = lsp;
+                break;
+            }
+        }
+        return foundLsp;
+    }
     @Given("I had added LSP instance name {string} with device {string} from {string}")
     public void iHadAddedLSPInstanceNameWithDeviceFromToVPLS(String lspName, String lspDevice, String lspJsonFile) throws Exception {
         assert Files.exists(new ClassPathResource(lspJsonFile).getFile().toPath());
@@ -69,23 +88,13 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
         assert lspName.matches("(\\w+)-(WRK|PRT)-(.*)");
 
         int originalSize = syncer.getLocalState().size();
+        boolean found = false;
 
         // Add the LSP
-        NsoLSP[] lsps = new ObjectMapper()
-            .readValue(
-                new ClassPathResource(lspJsonFile).getFile(),
-                NsoLSP[].class
-            );
+        NsoLSP addLsp = findLSP(lspName, lspDevice, lspJsonFile);
 
-        boolean found = false;
-        NsoLSP addLsp = null;
-        for (NsoLSP lsp : lsps) {
-            if (lsp.getName().equals(lspName) && lsp.getDevice().equals(lspDevice)) {
-                found = true;
-                addLsp = lsp;
-                break;
-            }
-        }
+        found = addLsp != null;
+
         log.info("Found LSP with instance key {}? {}", lspName + "," + lspDevice, found);
         assert found;
 
@@ -99,17 +108,49 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
         log.info("Does the LSP already exist? {}", existingLsp != null);
         assert existingLsp == null;
 
-        // Ok, add it.
+        // Ok, add it. Default state is "NOOP", let evaluation() call set it to "ADD".
         state
             .put(
                 key.hashCode(),
-                new NsoStateWrapper<>(NsoStateSyncer.State.ADD, addLsp)
+                new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, addLsp)
             );
         syncer.setLocalState(state);
 
         log.info("LSP list, was {}, expect {}, now {}", originalSize, originalSize + 1, syncer.getLocalState().size());
         assert syncer.getLocalState().size() == originalSize + 1;
         assert syncer.findLocalEntryByName(addLsp.instanceKey()) != null;
+    }
+
+    @Given("I had marked LSP instance with name {string} and device {string} as {string}")
+    public void iHadMarkedLSPInstanceWithNameAndDeviceAs(String lspName, String lspDevice, String stateName) {
+        NsoStateSyncer.State state = NsoStateSyncer
+            .State
+            .valueOf(
+                stateName
+                    .replace("-", "")
+                    .toUpperCase()
+            );
+
+        int id = (lspName + "," + lspDevice).hashCode();
+        NsoStateWrapper<NsoLSP> lsp = syncer.findLocalEntryById(id);
+
+        assert lsp != null;
+
+        switch (state) {
+            case ADD:
+                syncer.add(id);
+                break;
+            case DELETE:
+                syncer.delete(id);
+                break;
+            case REDEPLOY:
+                syncer.redeploy(id);
+                break;
+            case NOOP:
+                syncer.noop(id);
+                break;
+        }
+
     }
 
     @When("I perform an LSP synchronization")
@@ -122,8 +163,55 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
         }
     }
 
+    @When("I evaluate LSP with name {string} and device {string}")
+    public void iEvaluateLSPWithNameAndDevice(String lspName, String lspDevice) throws Exception {
+        int id = (lspName + "," + lspDevice).hashCode();
+        syncer.evaluate(id);
+    }
+
     @Then("The NSO LSP service is synchronized")
     public void theNSOLSPServiceIsSynchronized() {
         assert syncer.isSynchronized();
+    }
+
+
+    @Then("The list of LSP service instances marked {string} has a count of {int}")
+    public void theListOfLSPServiceInstancesMarkedHasACountOf(String stateName, int expectedCount) {
+        NsoStateSyncer.State state = NsoStateSyncer
+            .State
+            .valueOf(
+                stateName
+                    .replace("-", "")
+                    .toUpperCase()
+            );
+        assert syncer.countByLocalState(state) == expectedCount;
+    }
+
+    @Given("I had changed LSP instance with name {string} and device {string} to name {string} and device {string} from {string}")
+    public void iHadChangedLSPInstanceWithNameAndDeviceToNameAndDeviceFrom(
+        String lspNameA, String lspDeviceA,
+        String lspNameB, String lspDeviceB,
+        String lspJsonFile
+    ) throws Exception {
+        assert Files.exists(new ClassPathResource(lspJsonFile).getFile().toPath());
+        NsoLSP[] lsps = loadJson(lspJsonFile);
+        NsoLSP newLsp = null;
+        Dictionary<Integer, NsoStateWrapper<NsoLSP>> state = syncer.getLocalState();
+        int id = (lspNameA + "," + lspDeviceA).hashCode();
+
+        for (NsoLSP lsp : lsps) {
+            if (lsp.getName().equals(lspNameB) && lsp.getDevice().equals(lspDeviceB)) {
+                newLsp = lsp;
+                break;
+            }
+        }
+
+        assert newLsp != null;
+
+        state.remove(id);
+        state.put(newLsp.instanceKey().hashCode(), new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, newLsp));
+
+        syncer.setLocalState(state);
+
     }
 }
