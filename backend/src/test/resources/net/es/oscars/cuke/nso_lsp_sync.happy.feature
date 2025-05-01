@@ -1,68 +1,115 @@
-#@NsoLspSyncSteps
-#Feature: synchronize NSO service state to OSCARS state
-#
-#  I want to
-#
-#  Scenario: Read NSO LSP service state, make decisions about add / delete / redeploy
-#    Given I have initialized the world
-#    Given I load the NSO LSP service state
-#    Then The NSO LSP service state has 818 instances
-#    When I load the list of active OSCARS connections from "connections-active.json"
-#    Then If I evaluate lsp "AAAA" I will decide that I need to "add"
-#    Then If I evaluate lsp "BBBB" I will decide that I need to "delete"
-#    Then If I evaluate lsp "CCCC" I will decide that I need to "redeploy"
-#    Then If I evaluate lsp "DDDD" I will decide that I need to "no-op"
-#
-#
-#  Scenario: Read NSO LSP service state, make decisions about multiple add / delete / redeploys
-#    Given I have initialized the world
-#    Given I load the NSO LSP service state
-#    Then The NSO LSP service state has 818 instances
-#    When I load the list of active OSCARS connections from "connections-active.json"
-#    Then The list of LSP service instances that need to be "added" equals "add-these.json"
-#    Then The list of LSP service instances that need to be "deleted" equals "delete-these.json"
-#    Then The list of LSP service instances that need to be "redeployed" equals "redeploy-these.json"
-#
-#
-#  Scenario: Modify NSO LSP service state with single adds / deletes / redeploys
-#    Given I have initialized the world
-#    Given I load the NSO LSP service state
-#    Then The NSO LSP service state has 818 instances
-#
-#    When I add LSP instance "AAAA"
-#    Then The LSP instance "AAAA" is present in the NSO LSP service state
-#    Then The NSO LSP service state has 819 instances
-#    Then The LSP instance "AAAA" is present in the NSO LSP service state
-#    Then If I evaluate lsp "AAAA" I will decide that I need to "no-op"
-#
-#
-#    Then The LSP instance "BBBB" is present in the NSO LSP service state
-#    When I delete LSP instance "BBBB"
-#    Then The LSP instance "BBBB" is not present in the NSO LSP service state
-#    Then The NSO LSP service state has 818 instances
-#    Then If I evaluate lsp "BBBB" I will decide that I need to "no-op"
-#
-#    Then The LSP instance "CCCC" is present in the NSO LSP service state
-#    Then The LSP instance "CCCC" does not match "CCCC.json"
-#    When I redeploy LSP instance "CCCC" to match "CCCC.json"
-#    Then The LSP instance "CCCC" is present in the NSO LSP service state
-#    Then The NSO LSP service state has 818 instances
-#    Then The LSP instance "CCCC" matches "CCCC.json"
-#    Then If I evaluate lsp "CCCC" I will decide that I need to "no-op"
-#
-#
-#  Scenario: Modify NSO LSP service state with a big patch that applies one add, one delete, one redeploy all together
-#    Given I have initialized the world
-#    Given I load the NSO LSP service state
-#    Then The NSO LSP service state has 818 instances
-#    When I apply LSP service patch from "LSP-patch.json"
-#    Then The NSO LSP service state has 818 instances
-#    Then The LSP instance "AAAA" is present in the NSO LSP service state
-#    Then The LSP instance "AAAA" matches "AAAA.json"
-#    Then The LSP instance "BBBB" is not present in the NSO LSP service state
-#    Then The LSP instance "CCCC" matches "CCCC.json"
-#    Then If I evaluate lsp "AAAA" I will decide that I need to "no-op"
-#    Then If I evaluate lsp "BBBB" I will decide that I need to "no-op"
-#    Then If I evaluate lsp "CCCC" I will decide that I need to "no-op"
-#
-#
+@NsoLspSyncSteps
+Feature: synchronize NSO service state to OSCARS state, LSP (Happy Path)
+
+  I want to verify that NSO service state is synchronized to the OSCARS state.
+  Evaluation mechanism should automatically mark LSPs as one of "add", "delete", "redeploy", or "no-op".
+
+  Evaluate -> Mark -> Synchronize.
+
+  # Rules for LSPs. (@haniotak)
+  #
+  # - An LSP is associated with exactly one VPLS ; a VPLS will have multiple LSPs
+  # - No LSPs should be present in NSO that are not associated with a VPLS ("orphans")
+  #
+  # DELETE
+  # - When a VPLS is deleted, all LSPs associated with it should be deleted
+  # - To delete an LSP associated with a VPLS, the VPLS must be deleted first
+  # - You can always delete an "orphan" LSP if you find one
+  #
+  # ADD
+  # - You must add all LSPs before adding their associated VPLS
+  # - Do not add any "orphan" LSPs
+  #
+  # REDEPLOY
+  # - Redeploying a VPLS can mean it is associated with a new set of VPLSs  - i.e. from {A, B, C} to {B, C', D} (C' has changed and needs to be redeployed)
+  # - Add any new LSPs first (D), redeploy any LSPs that changed (C), redeploy the VPLS itself, then delete the newly orphan LSPs (A)
+
+  Scenario: Read NSO's LSP service state, ADD evaluation.
+    Given I have initialized the world
+    Given I have retrieved the NSO LSPs
+    Given The NSO LSP service state is loaded
+    Given The NSO LSP service state has 536 instances
+
+    # Add LSPs
+    Given I had added LSP instance name "C2KR-WRK-losa-cr6" with device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+
+    When I evaluate LSP with name "C2KR-WRK-losa-cr6" and device "wash-cr6"
+    Then The list of LSP service instances marked "add" has a count of 1
+
+  Scenario: Read NSO's LSP service state, REDEPLOY evaluation.
+    Given I have initialized the world
+    Given I have retrieved the NSO LSPs
+    Given The NSO LSP service state is loaded
+    Given The NSO LSP service state has 536 instances
+
+    # Redeploy LSPs
+    Given I had changed LSP instance with name "C7WG-PRT-sunn-cr6" and device "wash-cr6" to name "C7WG-PRT-sunn-cr6" and device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c7wg.json"
+
+    When I evaluate LSP with name "C7WG-PRT-sunn-cr6" and device "wash-cr6"
+    Then The list of LSP service instances marked "redeploy" has a count of 1
+
+  Scenario: Read NSO's LSP service state, ADD synchronization.
+    Given I have initialized the world
+    Given I have retrieved the NSO LSPs
+    Given The NSO LSP service state is loaded
+    Given The NSO LSP service state has 536 instances
+
+    # Add LSPs
+    # ... Note, VPLS "OSCARS-C2KR" as endpoint "A"
+    Given I had added LSP instance name "C2KR-WRK-losa-cr6" with device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+    # ... Note, VPLS "OSCARS-C2KR" as endpoint "Z"
+    Given I had added LSP instance name "C2KR-WRK-wash-cr6" with device "losa-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+
+    When I perform an LSP synchronization
+
+    Then The list of LSP service instances marked "add" has a count of 2
+    Then The NSO LSP service is synchronized
+    Then The NSO LSP service state has 538 instances
+
+
+    # Redeploy LSPs
+  Scenario: Read NSO's LSP service state, REDEPLOY synchronization.
+    Given I have initialized the world
+    Given I have retrieved the NSO LSPs
+    Given The NSO LSP service state is loaded
+    Given The NSO LSP service state has 536 instances
+
+    Given I had marked LSP instance with name "C2WJ-PRT-newy32aoa-cr6" and device "star-cr6" as "redeploy"
+
+    When I perform an LSP synchronization
+
+    Then The list of LSP service instances marked "redeploy" has a count of 1
+    Then The NSO LSP service is synchronized
+
+    # Delete LSPs
+  Scenario: Read NSO's LSP service state, DELETE synchronization.
+    Given I have initialized the world
+    Given I have retrieved the NSO LSPs
+    Given The NSO LSP service state is loaded
+    Given The NSO LSP service state has 536 instances
+    Given I had marked LSP instance with name "C2WJ-PRT-newy32aoa-cr6" and device "star-cr6" as "delete"
+
+    When I perform an LSP synchronization
+
+    Then The list of LSP service instances marked "delete" has a count of 1
+    Then The NSO LSP service is synchronized
+
+    # NO-OP LSPs
+  Scenario: Read NSO's LSP service state, NOOP check.
+    Given I have initialized the world
+    Given I have retrieved the NSO LSPs
+    Given The NSO LSP service state is loaded
+    Given The NSO LSP service state has 536 instances
+
+    # Add LSPs
+    # ... Note, VPLS "OSCARS-C2KR" as endpoint "A"
+    Given I had added LSP instance name "C2KR-WRK-losa-cr6" with device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+    # ... Note, VPLS "OSCARS-C2KR" as endpoint "Z"
+    Given I had added LSP instance name "C2KR-WRK-wash-cr6" with device "losa-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+
+    When I perform an LSP synchronization
+
+    Then The list of LSP service instances marked "add" has a count of 2
+    Then The list of LSP service instances marked "no-op" has a count of 536
+    Then The NSO LSP service is synchronized
+    Then The NSO LSP service state has 538 instances

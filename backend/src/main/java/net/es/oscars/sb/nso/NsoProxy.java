@@ -21,11 +21,13 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
+import net.es.oscars.web.beans.NsoStateResponse;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
@@ -291,6 +293,63 @@ public class NsoProxy {
         return YangPatchWrapper.builder().patch(deletePatch).build();
     }
 
+    public static YangPatchWrapper makeDismantleLspYangPatch(String lspInstanceKey) {
+        List<YangPatch.YangEdit> edits = new ArrayList<>();
+        edits.add(YangPatch.YangEdit.builder()
+                .editId("delete " + lspInstanceKey)
+                .operation("delete")
+                .target("/tailf-ncs:services/esnet-lsp:lsp=" + lspInstanceKey)
+                .build());
+        YangPatch deletePatch = YangPatch.builder()
+                .patchId("delete LSP " + lspInstanceKey)
+                .edit(edits)
+                .build();
+
+
+        return YangPatchWrapper.builder().patch(deletePatch).build();
+    }
+
+    public static YangPatchWrapper makeRedeployLspYangPatch(NsoLSP lsp ) {
+        List<YangPatch.YangEdit> edits = new ArrayList<>();
+
+        String lspKeyArg = '=' + lsp.instanceKey();
+        String path = "/tailf-ncs:services/esnet-lsp:lsp" + lspKeyArg;
+
+        YangPatchLspWrapper lspWrapper = YangPatchLspWrapper
+            .builder()
+            .lsp(lsp)
+            .build();
+
+        edits.add(
+            YangPatch
+                .YangEdit
+                .builder()
+                .editId("replace " + lsp.instanceKey())
+                .operation("replace")
+                .value( lspWrapper )
+                .target(path)
+                .build()
+        );
+
+        YangPatch replacePatch = YangPatch
+            .builder()
+            .patchId("replace LSP " + lsp.instanceKey())
+            .edit(edits)
+            .build();
+
+        return YangPatchWrapper.builder().patch(replacePatch).build();
+    }
+
+    public void deleteLsp(YangPatchWrapper yangPatchWrapper, String lspInstanceKey) throws Exception {
+        String rollbackLabel = lspInstanceKey + "-dismantle";
+        submitYangPatch(yangPatchWrapper, rollbackLabel);
+    }
+
+    public void redeployLsp(YangPatchWrapper yangPatchWrapper, String lspInstanceKey) throws Exception {
+        String rollbackLabel = lspInstanceKey + "-replace";
+        submitYangPatch(yangPatchWrapper, rollbackLabel);
+    }
+
     public static YangPatchWrapper makeRedeployYangPatch(NsoVPLS vpls, String connectionId) {
         List<YangPatch.YangEdit> edits = new ArrayList<>();
 
@@ -333,6 +392,15 @@ public class NsoProxy {
         @JsonProperty("esnet-vpls:device")
         NsoVPLS.DeviceContainer device;
 
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class YangPatchLspWrapper {
+        @JsonProperty("esnet-lsp:lsp")
+        NsoLSP lsp;
     }
 
     // NSO live status fdb query stuff
@@ -529,7 +597,7 @@ public class NsoProxy {
         if (path == null) {
             throw new Exception("Could not determine service path type. Please use VPLS or LSP.");
         };
-        String req = "data/tailf-ncs:services%s".formatted(path);
+        String req = "restconf/data/tailf-ncs:services%s".formatted(path);
 
         return props.getUri() + req;
     }
@@ -543,21 +611,32 @@ public class NsoProxy {
 
         FromNsoServiceConfig result = null;
         try {
-            String response;
+            ResponseEntity<String> response;
 
-            response = restTemplate.getForObject(path, String.class);
+            response = restTemplate.getForEntity(path, String.class);
 
 //            DevelUtils.dumpDebug("get-nso-service", response);
 
-            if (response != null) {
+            if (response.getStatusCode().is2xxSuccessful()) {
                 result = new FromNsoServiceConfig();
-                result.setConfig(response);
+                String body = response.getBody();
+                if (body != null) {
+                    result.setConfig(body);
+                } else {
+                    if (service == NsoService.VPLS) {
+                        result.setConfig("{\"esnet-vpls:vpls\": []}");
+                    } else if (service == NsoService.LSP) {
+                        result.setConfig("{\"esnet-lsp:lsp\": []}");
+                    } else {
+                        throw new Exception("Unknown service " + service);
+                    }
+                }
                 result.setSuccessful(true);
 
                 log.info("%s: get service COMPLETE ".formatted(service.toString()));
             } else {
-                log.error("%s: get config FAILED (response is null) ".formatted(service.toString()));
-                throw new Exception("%s: get config FAILED (response is null) ".formatted(service.toString()));
+                log.error("%s: get config FAILED (response status was not HTTP 200 range.) ".formatted(service.toString()));
+                throw new Exception("%s: get config FAILED (response status was not HTTP 200 range.) ".formatted(service.toString()));
             }
 
         } catch (Exception e) {

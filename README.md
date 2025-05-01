@@ -24,3 +24,11 @@ Dockerfiles used for creating the application images. Different files are used f
 ### docs
 Various documentation; many documents need review and updating as of Nov 2023.
 
+
+### Telemetry 
+
+OSCARS uses OpenTelemetry, and requires a valid token in application.properties in the `otel.*` configuration section.
+
+See the dashboard at the Stardust dashboard https://eapm1.gc1.dev.stardust.es.net:8200/
+
+Go to "Services" > "oscars-backend"

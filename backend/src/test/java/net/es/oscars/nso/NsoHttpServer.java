@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
+import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.YangPatch;
 import net.es.topo.common.dto.nso.YangPatchWrapper;
@@ -44,8 +45,8 @@ public class NsoHttpServer {
         return new ServletRegistrationBean<>(
                 servlet,
                 "/restconf/data/esnet-status:esnet-status/nokia-show",
-                "/data/tailf-ncs:services/esnet-vpls:vpls",
-                "/data/tail-ncs:services/esnet-lsp:lsp",
+                "/restconf/data/tailf-ncs:services/esnet-vpls:vpls",
+                "/restconf/data/tailf-ncs:services/esnet-lsp:lsp",
                 "/restconf/data/tailf-ncs:services",
                 "/restconf/data/"
         );
@@ -96,8 +97,10 @@ public class NsoHttpServer {
             // Is this for an nso.esnet-vpls mock request?
             String uri = req.getRequestURI();
             try {
-                if (uri.startsWith("/data/tailf-ncs:services/esnet-vpls:vpls")) {
+                if (uri.startsWith("/restconf/data/tailf-ncs:services/esnet-vpls:vpls")) {
                     loadEsnetVplsMockData(req, resp);
+                } else if (uri.startsWith("/restconf/data/tailf-ncs:services/esnet-lsp:lsp")) {
+                    loadEsnetLspMockData(req, resp);
                 } else {
                     // Unknown.
                     resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -105,7 +108,7 @@ public class NsoHttpServer {
                     resp.getWriter().flush();
                 }
             } catch (Exception ex) {
-                log.error("Failed to load esnet vpls mock data", ex);
+                log.error("Failed to load ESNet mock data", ex);
             }
         }
 
@@ -122,6 +125,31 @@ public class NsoHttpServer {
                 );
 
             for (NsoEsnetVplsResponseSpec responseSpec : vplsResponseSpecs) {
+                // Just load all of them
+                InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
+                // Read the mock data from the file found in the responseSpec.body path
+                String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
+                // Write the mock data to our response
+                resp.getWriter().write(body);
+
+                // Set the mock HTTP status
+                resp.setStatus(responseSpec.status);
+                resp.setContentType("application/yang-data+json");
+                resp.getWriter().flush();
+
+                // We found our entry, break the loop
+                break;
+            }
+        }
+
+        private void loadEsnetLspMockData(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            NsoEsnetLspResponseSpec[] lspResponseSpecs = new ObjectMapper()
+                .readValue(
+                        new ClassPathResource("http/nso.esnet-lsp.response-specs.json").getFile(),
+                        NsoEsnetLspResponseSpec[].class
+                );
+
+            for (NsoEsnetLspResponseSpec responseSpec : lspResponseSpecs ) {
                 // Just load all of them
                 InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
                 // Read the mock data from the file found in the responseSpec.body path
@@ -193,7 +221,7 @@ public class NsoHttpServer {
         protected void doPost(HttpServletRequest request, HttpServletResponse response)
                 throws ServletException, IOException {
             String uri = request.getRequestURI();
-            log.info("POST request received, mocking " + uri);
+            log.info("POST request received, mocking " + uri + " with query: " + request.getQueryString());
             if (uri.startsWith("/restconf/data/esnet-status:esnet-status/nokia-show")) {
                 mockPostNokiaShow(request, response);
             } else if (uri.startsWith("/restconf/data/tailf-ncs:services")) {
@@ -215,30 +243,57 @@ public class NsoHttpServer {
                     payload.append(line);
                 }
             }
+            log.debug("HTTP POST request payload\n" + payload);
             // consume the incoming NsoServiceWrapper
             NsoServicesWrapper nsoServicesWrapper = new ObjectMapper().readValue(payload.toString(), NsoServicesWrapper.class);
 
             response.setContentType("application/yang-data+json");
-            NsoEsnetVplsYangPatchResponseSpec[] responseSpecs = new ObjectMapper()
-                .readValue(new ClassPathResource("http/nso.esnet-vpls.sync.response-specs.json").getFile(), NsoEsnetVplsYangPatchResponseSpec[].class);
 
-            for (NsoEsnetVplsYangPatchResponseSpec responseSpec : responseSpecs) {
-                // check by connectionId (VPLS name) and vc-id
-                int vcId = responseSpec.vcId;
-                String connectionId = responseSpec.connectionId;
+            // Is this for VPLS or LSP ?
+            if (!nsoServicesWrapper.getVplsInstances().isEmpty()) {
+                NsoEsnetVplsYangPatchResponseSpec[] responseSpecs = new ObjectMapper()
+                        .readValue(new ClassPathResource("http/nso.esnet-vpls.sync.response-specs.json").getFile(), NsoEsnetVplsYangPatchResponseSpec[].class);
 
-                for (NsoVPLS vpls : nsoServicesWrapper.getVplsInstances())
-                {
-                    // Currently only sending one VPLS per HTTP POST. :-/
-                    // We only need to find the one VPLS in the list of VPLS instances
-                    if (vpls.getVcId() == vcId && vpls.getName().equals(connectionId)) {
-                        // read in the body from the file found in the path in the responseSpec...
-                        InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
-                        String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
-                        // ... then write it out as our response
-                        response.getWriter().write(body);
-                        response.setStatus(responseSpec.status);
-                        return;
+                for (NsoEsnetVplsYangPatchResponseSpec responseSpec : responseSpecs) {
+                    // check by connectionId (VPLS name) and vc-id
+                    int vcId = responseSpec.vcId;
+                    String connectionId = responseSpec.connectionId;
+
+                    for (NsoVPLS vpls : nsoServicesWrapper.getVplsInstances()) {
+                        // Currently only sending one VPLS per HTTP POST. :-/
+                        // We only need to find the one VPLS in the list of VPLS instances
+                        if (vpls.getVcId() == vcId && vpls.getName().equals(connectionId)) {
+                            // read in the body from the file found in the path in the responseSpec...
+                            InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
+                            String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
+                            // ... then write it out as our response
+                            response.getWriter().write(body);
+                            response.setStatus(responseSpec.status);
+                            return;
+                        }
+                    }
+                }
+            } else if (!nsoServicesWrapper.getLspInstances().isEmpty()) {
+                NsoEsnetLspYangPatchResponseSpec[] responseSpecs = new ObjectMapper()
+                        .readValue(new ClassPathResource("http/nso.esnet-lsp.post.response-specs.json").getFile(), NsoEsnetLspYangPatchResponseSpec[].class);
+
+                for (NsoEsnetLspYangPatchResponseSpec responseSpec : responseSpecs) {
+                    // check by connectionId (VPLS name)
+                    String lspName = responseSpec.lspName;
+                    String lspDevice = responseSpec.lspDevice;
+
+                    for (NsoLSP lsp : nsoServicesWrapper.getLspInstances()) {
+                        // Currently only sending one VPLS per HTTP POST. :-/
+                        // We only need to find the one VPLS in the list of VPLS instances
+                        if (lsp.getName().equals(lspName) && lsp.getDevice().equals(lspDevice)) {
+                            // read in the body from the file found in the path in the responseSpec...
+                            InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
+                            String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
+                            // ... then write it out as our response
+                            response.getWriter().write(body);
+                            response.setStatus(responseSpec.status);
+                            return;
+                        }
                     }
                 }
             }
@@ -285,4 +340,7 @@ public class NsoHttpServer {
     public record NsoEsnetVplsResponseSpec(String data, Integer status) {}
     public record NsoEsnetVplsYangPatchResponseSpec(String connectionId, Integer vcId, String data, Integer status) {}
     public record NsoEsnetVplsYangPatchDeleteResponseSpec(String patchId, String data, Integer status) {}
+
+    public record NsoEsnetLspResponseSpec(String data, Integer status) {}
+    public record NsoEsnetLspYangPatchResponseSpec(String lspName, String lspDevice, String data, Integer status) {}
 }

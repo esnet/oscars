@@ -1,4 +1,9 @@
 # OSCARS Release Notes
+### 1.2.24
+> Apr 2025
+- OS-442: Implement NsoLspStateSyncer class to manage NSO LSP state synchronization between OSCARS and NSO.
+- SouthboundPeriodicSyncer Scheduled Task implemented to periodically synchronize between OSCARS and NSO state.
+- NsoSyncController REST API endpoint at `/protected/nso-sync` added to provide REST API endpoint functionality to the OSCARS to NSO state synchronization mechanisms.
 
 ### 1.2.23
 > Mar 2025
