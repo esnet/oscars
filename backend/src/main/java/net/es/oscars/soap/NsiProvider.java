@@ -161,18 +161,13 @@ public class NsiProvider implements ConnectionProviderPort {
 
     @Override
     public GenericAcknowledgmentType querySummary(QueryType query, Holder<CommonHeaderType> header) throws ServiceException {
-        this.asyncQuery(query, header, NsiAsyncQueue.QueryOperation.SUMMARY);
+        this.asyncQuery(query, header);
         return new GenericAcknowledgmentType();
     }
 
-    @Override
-    public GenericAcknowledgmentType queryRecursive(QueryType query, Holder<CommonHeaderType> header) throws ServiceException {
-        this.asyncQuery(query, header, NsiAsyncQueue.QueryOperation.RECURSIVE);
-        return new GenericAcknowledgmentType();
-    }
 
     // handles async query operations
-    private void asyncQuery(QueryType query, Holder<CommonHeaderType> header, NsiAsyncQueue.QueryOperation operation)
+    private void asyncQuery(QueryType query, Holder<CommonHeaderType> header)
             throws ServiceException {
 
         try {
@@ -189,7 +184,6 @@ public class NsiProvider implements ConnectionProviderPort {
         // finally we add our item to the work queue
         NsiAsyncQueue.Query asyncItem = NsiAsyncQueue.Query.builder()
                 .header(header.value)
-                .operation(operation)
                 .query(query)
                 .build();
         queue.add(asyncItem);
@@ -197,6 +191,11 @@ public class NsiProvider implements ConnectionProviderPort {
 
 
     /* ================================== UNIMPLEMENTED SECTION ================================== */
+    @Override
+    public GenericAcknowledgmentType queryRecursive(QueryType query, Holder<CommonHeaderType> header) throws ServiceException {
+        // do we even ever use recursive query?
+        throw new ServiceException(NsiErrors.UNIMPLEMENTED + " - not implemented");
+    }
 
     @Override
     public GenericAcknowledgmentType queryNotification(QueryNotificationType queryNotification,

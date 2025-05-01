@@ -84,7 +84,9 @@ public class NsiMappingService {
 
     @Transactional
     public Connection getOscarsConnection(NsiMapping mapping) throws NsiMappingException {
-        // log.debug("getting oscars connection for "+mapping.getOscarsConnectionId());
+        if (mapping == null) {
+            throw new NsiMappingException("null mapping", NsiErrors.RESERVATION_NONEXISTENT);
+        }
         Optional<Connection> c = connRepo.findByConnectionId(mapping.getOscarsConnectionId());
         if (c.isEmpty()) {
             throw new NsiMappingException("OSCARS connection not found", NsiErrors.RESERVATION_NONEXISTENT);
@@ -148,15 +150,15 @@ public class NsiMappingService {
     }
 
 
-    public NsiMapping newMapping(String nsiConnectionId, String nsiGri, String nsaId, Integer version) throws ServiceException {
+    public NsiMapping newMapping(String nsiConnectionId, String nsiGri, String nsaId, Integer version) throws NsiMappingException {
         if (nsiConnectionId == null || nsiConnectionId.isEmpty()) {
-            throw new ServiceException("null nsi connection id");
+            throw new NsiMappingException("null nsi connection id", NsiErrors.MSG_PAYLOAD_ERROR);
         }
         if (nsiGri == null) {
             nsiGri = "";
         }
         if (nsiRepo.findByNsiConnectionId(nsiConnectionId).isPresent()) {
-            throw new ServiceException("previously used nsi connection id! " + nsiConnectionId);
+            throw new NsiMappingException("previously used nsi connection id! " + nsiConnectionId, NsiErrors.MSG_PAYLOAD_ERROR);
         }
         String oscarsConnectionId = connUtils.genUniqueConnectionId();
 
@@ -165,6 +167,7 @@ public class NsiMappingService {
                 .nsiGri(nsiGri)
                 .oscarsConnectionId(oscarsConnectionId)
                 .dataplaneVersion(version)
+                .deployedDataplaneVersion(null)
                 .nsaId(nsaId)
                 .lifecycleState(LifecycleStateEnumType.CREATED)
                 .provisionState(ProvisionStateEnumType.RELEASED)
@@ -576,22 +579,37 @@ public class NsiMappingService {
     public ConnectionStatesType makeConnectionStates(NsiMapping mapping, Connection c) {
         DataPlaneStatusType dst = new DataPlaneStatusType();
         dst.setActive(false);
-        if (c != null) {
-            if (c.getState().equals(State.ACTIVE)) {
-                dst.setActive(true);
-            }
-        }
-        dst.setVersion(mapping.getDataplaneVersion());
-        dst.setVersionConsistent(true);
-
         ConnectionStatesType cst = new ConnectionStatesType();
-        cst.setDataPlaneStatus(dst);
-        cst.setLifecycleState(mapping.getLifecycleState());
-        cst.setProvisionState(mapping.getProvisionState());
-        cst.setReservationState(mapping.getReservationState());
-        if (cst.getLifecycleState().equals(LifecycleStateEnumType.TERMINATED)) {
-            dst.setActive(false);
+
+        // null mapping, something went wrong in initial reserve creation
+        if (mapping == null) {
+            dst.setVersion(0);
+            dst.setVersionConsistent(false);
+            cst.setReservationState(ReservationStateEnumType.RESERVE_FAILED);
+            cst.setLifecycleState(LifecycleStateEnumType.FAILED);
+            cst.setProvisionState(ProvisionStateEnumType.RELEASED);
+
+
+        } else {
+            if (c != null) {
+                if (c.getState().equals(State.ACTIVE)) {
+                    dst.setActive(true);
+                }
+            }
+            dst.setVersion(mapping.getDataplaneVersion());
+            dst.setVersionConsistent(true);
+
+            cst.setLifecycleState(mapping.getLifecycleState());
+            cst.setProvisionState(mapping.getProvisionState());
+            cst.setReservationState(mapping.getReservationState());
+            if (cst.getLifecycleState().equals(LifecycleStateEnumType.TERMINATED)) {
+                dst.setActive(false);
+            }
+
         }
+
+        cst.setDataPlaneStatus(dst);
+
         return cst;
     }
 
