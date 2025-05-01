@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiMappingException;
 import net.es.oscars.app.util.DbAccess;
-import net.es.oscars.nsi.beans.NsiModify;
+import net.es.oscars.nsi.beans.NsiRequest;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.svc.NsiMappingService;
 import net.es.oscars.nsi.svc.NsiRequestManager;
@@ -90,8 +90,8 @@ public class TransitionStates {
                     }
                 }
 
-                List<NsiModify> expiredModifies = nsiRequestManager.timedOut();
-                for (NsiModify mod : expiredModifies) {
+                List<NsiRequest> expiredModifies = nsiRequestManager.timedOut();
+                for (NsiRequest mod : expiredModifies) {
                     try {
                         NsiMapping mapping = nsiMappingService.getMapping(mod.getNsiConnectionId());
                         nsiService.rollbackModify(mapping);
