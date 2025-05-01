@@ -105,6 +105,11 @@ public class NsiMappingService {
     }
 
     @Transactional
+    public void delete(NsiMapping mapping) {
+        nsiRepo.delete(mapping);
+    }
+
+    @Transactional
     public Optional<NsiMapping> getMappingForOscarsId(String oscarsConnectionId) {
         List<NsiMapping> mappings = nsiRepo.findByOscarsConnectionId(oscarsConnectionId);
         if (mappings.isEmpty()) {

@@ -165,7 +165,7 @@ public class NsiStateEngine {
     public void abort(NsiEvent event, NsiMapping mapping) throws NsiStateException {
 
         if (event.equals(NsiEvent.ABORT_START)) {
-            if (!mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_HELD)) {
+            if (!mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_HELD) && !mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_FAILED)) {
                 throw new NsiStateException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
             }
             mapping.setReservationState(ReservationStateEnumType.RESERVE_ABORTING);

@@ -370,7 +370,7 @@ public class ConnService {
         log.info("modify bandwidth completed");
     }
 
-    public Validity modifyNsi(Connection c, Integer bandwidth, Instant beginning, Instant ending) throws ModifyException {
+    public Validity validateNsi(Connection c, Integer bandwidth, Instant beginning, Instant ending) {
         if (beginning != null) {
             c.getReserved().getSchedule().setBeginning(beginning);
         }
@@ -390,13 +390,31 @@ public class ConnService {
             }
         }
 
-        Validity v = verifyModification(c);
-        if (v.isValid()) {
-            this.modifySchedule(c, beginning, ending);
-            this.modifyBandwidth(c, bandwidth);
-        }
-        return v;
+        return verifyModification(c);
     }
+
+    public void modifyNsi(Connection c, Integer bandwidth, Instant beginning, Instant ending) throws ModifyException {
+        if (beginning != null) {
+            c.getReserved().getSchedule().setBeginning(beginning);
+        }
+        if (ending != null) {
+            c.getReserved().getSchedule().setEnding(ending);
+        }
+
+        if (bandwidth != null) {
+            for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
+                f.setIngressBandwidth(bandwidth);
+                f.setEgressBandwidth(bandwidth);
+            }
+
+            for (VlanPipe p : c.getReserved().getCmp().getPipes()) {
+                p.setAzBandwidth(bandwidth);
+                p.setZaBandwidth(bandwidth);
+            }
+        }
+        this.modifySchedule(c, beginning, ending);
+        this.modifyBandwidth(c, bandwidth);
+     }
 
 
 
