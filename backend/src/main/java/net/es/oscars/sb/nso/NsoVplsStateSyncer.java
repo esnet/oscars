@@ -180,6 +180,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     @Override
     public boolean sync(String path, boolean dryRun) throws NsoStateSyncerException {
         try {
+            this.setSynchronized(false);
             if (!this.isLoaded()) {
                 throw new NsoStateSyncerException("No state loaded yet.");
             }
@@ -329,6 +330,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             if (!local.getInstance().equals(remote.getInstance())) {
                 // Mark for REDEPLOY
                 String description = "Local and remote state differ for VPLS " + id + ", mark for redeploy.";
+                state = State.REDEPLOY;
                 redeploy(id, description);
             }
 
@@ -340,7 +342,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 // Exists in remote, but not locally. Copy to local, then mark as "delete".
                 remote.setState(State.NOOP);
                 localState.put(id, remote);
-
+                state = State.REDEPLOY;
                 delete(id, description);
                 log.info(description);
 
@@ -348,6 +350,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
                 // Exists locally, but not in remote. Mark local as "add".
                 String description = "No state found remotely for VPLS " + id + ", mark for add.";
+                state = State.ADD;
                 add(id, description);
                 log.info(description);
 

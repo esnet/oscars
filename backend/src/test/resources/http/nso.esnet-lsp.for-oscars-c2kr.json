@@ -1,0 +1,138 @@
+[
+  {
+    "name": "C2KR-PRT-losa-cr6",
+    "device": "wash-cr6",
+    "modified": {
+      "devices": ["wash-cr6"]
+    },
+    "directly-modified": {
+      "devices": ["wash-cr6"]
+    },
+    "created": "2025-01-10T20:34:09.866809+00:00",
+    "last-modified": "2025-01-10T20:34:09.866877+00:00",
+    "last-run": "2025-01-10T20:34:09.866907+00:00",
+    "routing-domain": "esnet-293",
+    "target": {
+      "device": "losa-cr6"
+    },
+    "metric": 100000,
+    "primary": {
+      "path-type": "loose",
+      "hold-priority": 4,
+      "setup-priority": 4
+    }
+  },
+  {
+    "name": "C2KR-PRT-wash-cr6",
+    "device": "losa-cr6",
+    "modified": {
+      "devices": ["losa-cr6"]
+    },
+    "directly-modified": {
+      "devices": ["losa-cr6"]
+    },
+    "created": "2025-01-10T20:34:09.996634+00:00",
+    "last-modified": "2025-01-10T20:34:09.996669+00:00",
+    "last-run": "2025-01-10T20:34:09.996699+00:00",
+    "routing-domain": "esnet-293",
+    "target": {
+      "device": "wash-cr6"
+    },
+    "metric": 100000,
+    "primary": {
+      "path-type": "loose",
+      "hold-priority": 4,
+      "setup-priority": 4
+    }
+  },
+  {
+    "name": "C2KR-WRK-losa-cr6",
+    "device": "wash-cr6",
+    "modified": {
+      "devices": ["wash-cr6"]
+    },
+    "directly-modified": {
+      "devices": ["wash-cr6"]
+    },
+    "created": "2025-01-10T20:34:10.087435+00:00",
+    "last-modified": "2025-01-10T20:34:10.087494+00:00",
+    "last-run": "2025-01-10T20:34:10.087528+00:00",
+    "routing-domain": "esnet-293",
+    "target": {
+      "device": "losa-cr6"
+    },
+    "metric": 100000,
+    "primary": {
+      "path-type": "strict",
+      "hop": [
+        {
+          "number": 1,
+          "ipv4": "134.55.56.90"
+        },
+        {
+          "number": 2,
+          "ipv4": "134.55.57.235"
+        },
+        {
+          "number": 3,
+          "ipv4": "134.55.56.162"
+        },
+        {
+          "number": 4,
+          "ipv4": "134.55.56.93"
+        },
+        {
+          "number": 5,
+          "ipv4": "134.55.56.20"
+        }
+      ],
+      "hold-priority": 5,
+      "setup-priority": 5
+    }
+  },
+  {
+    "name": "C2KR-WRK-wash-cr6",
+    "device": "losa-cr6",
+    "modified": {
+      "devices": ["losa-cr6"]
+    },
+    "directly-modified": {
+      "devices": ["losa-cr6"]
+    },
+    "created": "2025-01-10T20:34:10.175053+00:00",
+    "last-modified": "2025-01-10T20:34:10.175095+00:00",
+    "last-run": "2025-01-10T20:34:10.175128+00:00",
+    "routing-domain": "esnet-293",
+    "target": {
+      "device": "wash-cr6"
+    },
+    "metric": 100000,
+    "primary": {
+      "path-type": "strict",
+      "hop": [
+        {
+          "number": 1,
+          "ipv4": "134.55.56.21"
+        },
+        {
+          "number": 2,
+          "ipv4": "134.55.56.92"
+        },
+        {
+          "number": 3,
+          "ipv4": "134.55.56.163"
+        },
+        {
+          "number": 4,
+          "ipv4": "134.55.57.234"
+        },
+        {
+          "number": 5,
+          "ipv4": "134.55.56.91"
+        }
+      ],
+      "hold-priority": 5,
+      "setup-priority": 5
+    }
+  }
+]
