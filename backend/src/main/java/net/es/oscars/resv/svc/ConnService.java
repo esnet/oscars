@@ -101,6 +101,10 @@ public class ConnService {
     @Value("${resv.minimum-duration:15}")
     private Integer minDuration;
 
+    @Value("${resv.timeout}")
+    private Integer resvTimeout;
+
+
     public ConnectionList filter(ConnectionFilter filter) {
 
         List<Connection> reservedAndArchived = new ArrayList<>();
@@ -313,6 +317,7 @@ public class ConnService {
         return ConnectionSouthbound.RANCID;
     }
 
+    private Map<String, Connection> held = new HashMap<>();
 
     @Transactional
     public void modifySchedule(Connection c, Instant beginning, Instant ending) throws ModifyException {
@@ -547,19 +552,19 @@ public class ConnService {
                 .build();
     }
 
-
-    @Transactional
-    public ConnChangeResult release(Connection c) {
-        // if it is HELD or DESIGN, just delete it
-        if (c.getPhase().equals(Phase.HELD) || c.getPhase().equals(Phase.DESIGN)) {
-            log.info("deleting a HELD / DESIGN connection during release " + c.getConnectionId());
-            connRepo.delete(c);
-            connRepo.flush();
+    public ConnChangeResult unhold(String connectionId) {
+        if (this.held.containsKey(c.getConnectionId())) {
+            this.held.remove(c.getConnectionId());
             return ConnChangeResult.builder()
                     .what(ConnChange.DELETED)
                     .when(Instant.now())
                     .build();
         }
+
+    }
+
+    @Transactional
+    public ConnChangeResult release(Connection c) {
         // if it is ARCHIVED , nothing to do
         if (c.getPhase().equals(Phase.ARCHIVED)) {
             return ConnChangeResult.builder()
@@ -1108,6 +1113,12 @@ public class ConnService {
         if (connectionId == null || connectionId.isEmpty()) {
             throw new IllegalArgumentException("Null or empty connectionId");
         }
+
+
+        if (held.containsKey(connectionId)) {
+            return held.get(connectionId);
+        }
+
 //        log.info("looking for connectionId "+ connectionId);
         Optional<Connection> cOpt = connRepo.findByConnectionId(connectionId);
         if (cOpt.isPresent()) {
@@ -1120,24 +1131,56 @@ public class ConnService {
 
         }
     }
-
-    public Connection toNewConnection(SimpleConnection in) {
-        Connection c = Connection.builder()
-                .mode(BuildMode.AUTOMATIC)
-                .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
-                .deploymentState(DeploymentState.UNDEPLOYED)
-                .phase(Phase.HELD)
-                .description("")
-                .username("")
-                .last_modified((int) Instant.now().getEpochSecond())
-                .connectionId(in.getConnectionId())
-                .state(State.WAITING)
-                .connection_mtu(in.getConnection_mtu())
-                .build();
-        updateConnection(in, c);
-
-        return c;
+    public Instant extendHold(String connectionId) throws NoSuchElementException {
+        Instant expiration = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
+        if (held.containsKey(connectionId)) {
+            held.get(connectionId).getHeld().setExpiration(expiration);
+            return expiration;
+        } else {
+            throw new NoSuchElementException("connection not found for id " + connectionId);
+        }
     }
+
+    public void releaseHold(String connectionId) throws NoSuchElementException {
+        held.remove(connectionId);
+    }
+
+    public SimpleConnection holdConnection(SimpleConnection in) throws ConnException {
+
+        ReentrantLock connLock = dbAccess.getConnLock();
+        if (connLock.isLocked()) {
+            log.debug("connection lock already locked; returning from hold");
+            return null;
+        }
+        connLock.lock();
+
+        // maybe don't throw exception; populate all the Validity entries instead
+        Validity v = this.validate(in, ConnectionMode.NEW);
+        in.setValidity(v);
+
+        if (!v.isValid()) {
+            log.info("could not hold connection "+in.getConnectionId());
+            log.info("reason: "+v.getMessage());
+            connLock.unlock();
+            return in;
+        }
+
+        // we can hold it, so we do
+        Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
+        long secs = exp.toEpochMilli() / 1000L;
+        in.setHeldUntil((int) secs);
+
+
+        String connectionId = in.getConnectionId();
+        Connection c = simpleToHeldConnection(in);
+        this.held.put(connectionId, c);
+
+        connLock.unlock();
+        return in;
+
+    }
+
+
     private void dumpDebug(String context, Object o) {
         String pretty = null;
 

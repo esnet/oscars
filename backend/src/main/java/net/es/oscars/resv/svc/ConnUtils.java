@@ -3,8 +3,7 @@ package net.es.oscars.resv.svc;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.*;
-import net.es.oscars.resv.enums.Phase;
-import net.es.oscars.resv.enums.State;
+import net.es.oscars.resv.enums.*;
 import net.es.oscars.sb.nso.db.NsoVcIdDAO;
 import net.es.oscars.web.simple.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -205,22 +204,27 @@ public class ConnUtils {
 
     }
 
-    public static void updateConnection(SimpleConnection in, Connection c) throws IllegalArgumentException {
-        log.debug("updating connection " + c.getConnectionId());
-        if (!c.getPhase().equals(Phase.HELD)) {
-            throw new IllegalArgumentException(c.getConnectionId() + " not in HELD phase");
-        }
-        c.setDescription(in.getDescription());
-        c.setServiceId(in.getServiceId());
-        c.setUsername(in.getUsername());
-        c.setMode(in.getMode());
+    public static Connection simpleToHeldConnection(SimpleConnection in) throws IllegalArgumentException {
+        Connection c = Connection.builder()
+                .mode(in.getMode())
+                .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
+                .deploymentState(DeploymentState.UNDEPLOYED)
+                .phase(Phase.HELD)
+                .description(in.getDescription())
+                .username(in.getUsername())
+                .last_modified((int) Instant.now().getEpochSecond())
+                .connectionId(in.getConnectionId())
+                .state(State.WAITING)
+                .connection_mtu(in.getConnection_mtu())
+                .serviceId(in.getServiceId())
+                .build();
 
+        log.debug("setting a held connection " + c.getConnectionId());
         if (in.getConnection_mtu() != null) {
             c.setConnection_mtu(in.getConnection_mtu());
         } else {
             c.setConnection_mtu(9000);
         }
-        c.setState(State.WAITING);
         if (in.getTags() != null && !in.getTags().isEmpty()) {
             if (c.getTags() == null) {
                 c.setTags(new ArrayList<>());
@@ -361,6 +365,7 @@ public class ConnUtils {
                     .build();
             c.setHeld(h);
         }
+        return c;
     }
 
     public SimpleConnection fromConnection(Connection c, Boolean return_svc_ids) {

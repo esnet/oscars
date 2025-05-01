@@ -13,6 +13,7 @@ import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
+import net.es.oscars.resv.svc.ConnService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,15 +36,17 @@ public class TransitionStates {
 
     private final DbAccess dbAccess;
     private final NsiRequestManager nsiRequestManager;
+    private final ConnService connService;
 
     public TransitionStates(ConnectionRepository connRepo, Startup startup,
-                            NsiService nsiService, NsiMappingService nsiMappingService, DbAccess dbAccess, NsiRequestManager nsiRequestManager) {
+                            NsiService nsiService, NsiMappingService nsiMappingService, DbAccess dbAccess, NsiRequestManager nsiRequestManager, ConnService connService) {
         this.connRepo = connRepo;
         this.startup = startup;
         this.nsiService = nsiService;
         this.nsiMappingService = nsiMappingService;
         this.dbAccess = dbAccess;
         this.nsiRequestManager = nsiRequestManager;
+        this.connService = connService;
     }
 
     @Scheduled(fixedDelay = 5000)
@@ -57,11 +60,11 @@ public class TransitionStates {
         boolean gotLock = connLock.tryLock();
         if (gotLock) {
             try {
-                // log.info("got connection lock");
 
-                List<Connection> heldConns = connRepo.findByPhase(Phase.HELD);
+                List<Connection> heldConns = new ArrayList<>(connService.getHeld().values());
                 List<Connection> reservedConns = connRepo.findByPhase(Phase.RESERVED);
-                List<Connection> deleteThese = new ArrayList<>();
+
+                List<Connection> unholdThese = new ArrayList<>();
                 List<Connection> archiveThese = new ArrayList<>();
 
                 List<NsiMapping> pastEndTime = new ArrayList<>();
@@ -70,51 +73,55 @@ public class TransitionStates {
                 for (Connection c : heldConns) {
 
                     if (c.getHeld().getExpiration().isBefore(Instant.now())) {
-                        log.info("will delete expired held connection: " + c.getConnectionId());
+                        log.info("will un-hold a held connection that expired: " + c.getConnectionId());
                         Optional<NsiMapping> maybeMapping =  nsiMappingService.getMappingForOscarsId(c.getConnectionId());
                         maybeMapping.ifPresent(timedOut::add);
-                        deleteThese.add(c);
+                        unholdThese.add(c);
                     }
                 }
+
                 for (Connection c : reservedConns) {
                     if (c.getReserved().getSchedule().getEnding().isBefore(Instant.now())) {
-                        log.info("will archive (and dismantle if needed) connection: " + c.getConnectionId());
+                        log.info("will archive (and dismantle if needed) a reserved connection that reached its end time: " + c.getConnectionId());
                         Optional<NsiMapping> maybeMapping =  nsiMappingService.getMappingForOscarsId(c.getConnectionId());
-                        maybeMapping.ifPresent(timedOut::add);
+                        maybeMapping.ifPresent(pastEndTime::add);
 
                         if (c.getState().equals(State.ACTIVE)) {
-                            log.info(c.getConnectionId() + " : active; waiting for dismantle before archiving");
+                            log.info(c.getConnectionId() + " : active; will need to dismantle before archiving");
                         } else {
                             archiveThese.add(c);
                         }
                     }
                 }
 
-                List<NsiRequest> expiredModifies = nsiRequestManager.timedOut();
-                for (NsiRequest mod : expiredModifies) {
+                List<NsiRequest> expiredRequests = nsiRequestManager.timedOut();
+                for (NsiRequest req : expiredRequests) {
+                    nsiRequestManager.remove(req.getNsiConnectionId());
                     try {
-                        NsiMapping mapping = nsiMappingService.getMapping(mod.getNsiConnectionId());
-                        nsiService.rollbackModify(mapping);
+                        NsiMapping mapping = nsiMappingService.getMapping(req.getNsiConnectionId());
+                        nsiService.timeoutRequest(mapping);
                     } catch (NsiMappingException ex) {
-                        log.error("unable to roll back expired modify for "+mod.getNsiConnectionId(), ex);
-                    } finally {
-                        nsiRequestManager.rollback(mod.getNsiConnectionId());
+                        log.error("unable to roll back expired request for "+req.getNsiConnectionId(), ex);
                     }
                 }
+
 
                 for (NsiMapping mapping : pastEndTime) {
                     nsiService.pastEndTime(mapping);
                 }
+
                 for (NsiMapping mapping : timedOut) {
                     nsiService.resvTimedOut(mapping);
                 }
 
-                if (deleteThese.isEmpty() && archiveThese.isEmpty()) {
+                if (unholdThese.isEmpty() && archiveThese.isEmpty()) {
                     return;
                 }
 
-                deleteThese.forEach(c -> log.debug("Deleting "+c.getConnectionId()));
-                connRepo.deleteAll(deleteThese);
+                unholdThese.forEach(c -> {
+                    log.debug("Un-holding "+c.getConnectionId());
+                    connService.unhold(c.getConnectionId());
+                });
 
                 archiveThese.forEach(c -> {
                     log.debug("Archiving "+c.getConnectionId());

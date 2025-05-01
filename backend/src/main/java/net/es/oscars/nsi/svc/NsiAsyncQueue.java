@@ -9,6 +9,8 @@ import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.QueryType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReserveType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
 import net.es.oscars.app.exc.NsiException;
+import net.es.oscars.app.exc.NsiMappingException;
+import net.es.oscars.nsi.ent.NsiMapping;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -18,8 +20,16 @@ import java.util.concurrent.*;
 @Slf4j
 @Component
 public class NsiAsyncQueue {
+    private final NsiService nsiService;
+    private final NsiMappingService nsiMappingService;
 
     public ConcurrentLinkedQueue<AsyncItem> queue = new ConcurrentLinkedQueue<>();
+
+    public NsiAsyncQueue(NsiService nsiService, NsiMappingService nsiMappingService) {
+        this.nsiService = nsiService;
+        this.nsiMappingService = nsiMappingService;
+    }
+
     public void add(AsyncItem item) {
         queue.add(item);
     }
@@ -45,36 +55,36 @@ public class NsiAsyncQueue {
                 }
                 return results;
             };
-
-            // add failed items back to the queue
-            Future<Results> resultsFuture = executorService.submit(pollTask);
-            queue.addAll(resultsFuture.get().getFailed());
-        } catch (ExecutionException | InterruptedException e) {
-            log.error("error while polling queue", e);
-            throw new RuntimeException(e);
         }
 
     }
 
     public void processGeneric(Generic item) throws NsiException {
+        NsiMapping mapping = nsiMappingService.getMapping(item.getNsiConnectionId());
+        switch (item.getOperation()) {
+            case RELEASE -> nsiService.release(item.getHeader(), mapping);
+            case PROVISION -> nsiService.provision(item.getHeader(), mapping);
+            case TERMINATE ->  nsiService.terminate(item.getHeader(), mapping);
+            case RESV_ABORT -> nsiService.abort(item.getHeader(), mapping);
+            case RESV_COMMIT -> nsiService.commit(item.getHeader(), mapping);
+        }
 
     }
     public void processQuery(Query item) throws NsiException {
+        nsiService.queryAsync(item.getHeader(), item.getQuery());
 
     }
     public void processReserve(Reserve item) throws NsiException {
-
+        NsiMapping mapping = null;
+        try {
+            mapping = nsiMappingService.getMapping(item.getReserve().getConnectionId());
+        } catch (NsiMappingException ex) {
+            // if there's no existing mapping, leave it null and it will be created
+        }
+        nsiService.reserve(item.header, mapping, item.getReserve());
     }
 
 
-
-    /*
-                nsiHeaderUtils.processHeader(header.value);
-            NsiMapping mapping = nsiMappingService.getMapping(parameters.getConnectionId());
-            nsiService.terminate(header.value, mapping);
-            nsiHeaderUtils.makeResponseHeader(header.value);
-
-     */
 
     @Data
     @Builder
@@ -113,12 +123,8 @@ public class NsiAsyncQueue {
     @SuperBuilder(toBuilder = true)
     public static class Query extends AsyncItem {
         QueryType query;
-        QueryOperation operation;
     }
 
-    public enum QueryOperation {
-        SUMMARY, RECURSIVE;
-    }
 
 
     public enum GenericOperation {
