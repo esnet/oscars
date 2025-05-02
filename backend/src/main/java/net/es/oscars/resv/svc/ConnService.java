@@ -21,6 +21,7 @@ import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
 import net.es.topo.common.devel.DevelUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.Multigraph;
@@ -375,55 +376,6 @@ public class ConnService {
         log.info("modify bandwidth completed");
     }
 
-    public Validity validateNsi(Connection c, Integer bandwidth, Instant beginning, Instant ending) {
-        if (beginning != null) {
-            c.getReserved().getSchedule().setBeginning(beginning);
-        }
-        if (ending != null) {
-            c.getReserved().getSchedule().setEnding(ending);
-        }
-
-        if (bandwidth != null) {
-            for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
-                f.setIngressBandwidth(bandwidth);
-                f.setEgressBandwidth(bandwidth);
-            }
-
-            for (VlanPipe p : c.getReserved().getCmp().getPipes()) {
-                p.setAzBandwidth(bandwidth);
-                p.setZaBandwidth(bandwidth);
-            }
-        }
-
-        return verifyModification(c);
-    }
-
-    public void modifyNsi(Connection c, Integer bandwidth, Instant beginning, Instant ending) throws ModifyException {
-        if (beginning != null) {
-            c.getReserved().getSchedule().setBeginning(beginning);
-        }
-        if (ending != null) {
-            c.getReserved().getSchedule().setEnding(ending);
-        }
-
-        if (bandwidth != null) {
-            for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
-                f.setIngressBandwidth(bandwidth);
-                f.setEgressBandwidth(bandwidth);
-            }
-
-            for (VlanPipe p : c.getReserved().getCmp().getPipes()) {
-                p.setAzBandwidth(bandwidth);
-                p.setZaBandwidth(bandwidth);
-            }
-        }
-        this.modifySchedule(c, beginning, ending);
-        this.modifyBandwidth(c, bandwidth);
-     }
-
-
-
-
     public int findAvailableMaxBandwidth(Connection c) {
         Interval interval = Interval.builder()
                 .beginning(c.getReserved().getSchedule().getBeginning())
@@ -553,13 +505,11 @@ public class ConnService {
     }
 
     public ConnChangeResult unhold(String connectionId) {
-        if (this.held.containsKey(c.getConnectionId())) {
-            this.held.remove(c.getConnectionId());
-            return ConnChangeResult.builder()
-                    .what(ConnChange.DELETED)
-                    .when(Instant.now())
-                    .build();
-        }
+        this.held.remove(connectionId);
+        return ConnChangeResult.builder()
+                .what(ConnChange.DELETED)
+                .when(Instant.now())
+                .build();
 
     }
 
@@ -1109,14 +1059,13 @@ public class ConnService {
     }
 
 
-    public Connection findConnection(String connectionId) {
+    public Optional<Connection> findConnection(String connectionId) {
         if (connectionId == null || connectionId.isEmpty()) {
-            throw new IllegalArgumentException("Null or empty connectionId");
+            return Optional.empty();
         }
 
-
         if (held.containsKey(connectionId)) {
-            return held.get(connectionId);
+            return Optional.of(held.get(connectionId));
         }
 
 //        log.info("looking for connectionId "+ connectionId);
@@ -1125,10 +1074,9 @@ public class ConnService {
 
             Connection c = cOpt.get();
             c.setSouthbound(this.southbound(c.getConnectionId()));
-            return c;
+            return Optional.of(c);
         } else {
-            throw new NoSuchElementException("connection not found for id " + connectionId);
-
+            return Optional.empty();
         }
     }
     public Instant extendHold(String connectionId) throws NoSuchElementException {
@@ -1145,7 +1093,7 @@ public class ConnService {
         held.remove(connectionId);
     }
 
-    public SimpleConnection holdConnection(SimpleConnection in) throws ConnException {
+    public Pair<SimpleConnection, Connection> holdConnection(SimpleConnection in) throws ConnException {
 
         ReentrantLock connLock = dbAccess.getConnLock();
         if (connLock.isLocked()) {
@@ -1162,7 +1110,7 @@ public class ConnService {
             log.info("could not hold connection "+in.getConnectionId());
             log.info("reason: "+v.getMessage());
             connLock.unlock();
-            return in;
+            return Pair.of(in, null);
         }
 
         // we can hold it, so we do
@@ -1176,7 +1124,7 @@ public class ConnService {
         this.held.put(connectionId, c);
 
         connLock.unlock();
-        return in;
+        return Pair.of(in, c);
 
     }
 

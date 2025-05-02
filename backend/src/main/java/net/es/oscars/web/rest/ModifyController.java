@@ -55,26 +55,24 @@ public class ModifyController {
     @ResponseBody
     @Transactional
     public ModifyResponse modifyDescription(@RequestBody DescriptionModifyRequest request)
-            throws StartupException {
+            throws StartupException, NoSuchElementException {
         this.checkStartup();
 
         boolean success = false;
         String explanation = "";
-        Connection c = null;
-        DevelUtils.dumpDebug("modify description", request);
+        Connection c = connSvc.findConnection(request.getConnectionId()).orElseThrow(NoSuchElementException::new);
 
-        try {
-            c = connSvc.findConnection(request.getConnectionId());
-            if (request.getDescription().isEmpty()) {
-                explanation = "Description null or empty";
-            } else {
-                c.setDescription(request.getDescription());
+        DevelUtils.dumpDebug("modify description", request);
+        if (request.getDescription().isEmpty()) {
+            explanation = "Description null or empty";
+        } else {
+            c.setDescription(request.getDescription());
+            if (c.getPhase().equals(Phase.RESERVED)) {
                 connRepo.save(c);
-                success = true;
             }
-        } catch (NoSuchElementException ex) {
-            explanation = "connection " + request.getConnectionId() + " not found";
+            success = true;
         }
+
         return ModifyResponse.builder()
                 .success(success)
                 .explanation(explanation)
@@ -95,7 +93,7 @@ public class ModifyController {
         Instant floor = Instant.now();
         Instant ceiling = Instant.now();
         try {
-            Connection c = connSvc.findConnection(request.getConnectionId());
+            Connection c = connSvc.findConnection(request.getConnectionId()).orElseThrow(NoSuchElementException::new);
             if (c.getPhase() == Phase.RESERVED) {
                 switch (request.getType()) {
                     case END -> {
@@ -163,7 +161,7 @@ public class ModifyController {
             Instant requestedEnding = Instant.ofEpochMilli(request.getTimestamp() * 1000);
 
             try {
-                c = connSvc.findConnection(request.getConnectionId());
+                c = connSvc.findConnection(request.getConnectionId()).orElseThrow(NoSuchElementException::new);
                 if (!c.getSouthbound().equals(ConnectionSouthbound.NSO)) {
                     throw new ConnException("Connection southbound must be NSO");
                 }
@@ -208,7 +206,7 @@ public class ModifyController {
         Connection c = null;
 
         try {
-            c = connSvc.findConnection(request.getConnectionId());
+            c = connSvc.findConnection(request.getConnectionId()).orElseThrow(NoSuchElementException::new);
             if (c.getPhase() == Phase.RESERVED) {
                 try {
                     connSvc.modifyBandwidth(c, request.getBandwidth());
@@ -248,7 +246,7 @@ public class ModifyController {
 
 
         try {
-            Connection c = connSvc.findConnection(request.getConnectionId());
+            Connection c = connSvc.findConnection(request.getConnectionId()).orElseThrow(NoSuchElementException::new);
             if (c.getPhase() == Phase.RESERVED) {
                 allowed = true;
                 ceiling = connSvc.findAvailableMaxBandwidth(c);

@@ -11,6 +11,5 @@ import java.time.Instant;
 public class NsiRequest {
     public String nsiConnectionId;
     public Instant timeout;
-    public ReserveType initial;
     private ReserveType incoming;
 }

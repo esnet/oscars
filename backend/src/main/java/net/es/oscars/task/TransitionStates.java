@@ -65,7 +65,7 @@ public class TransitionStates {
                 List<Connection> reservedConns = connRepo.findByPhase(Phase.RESERVED);
 
                 List<Connection> unholdThese = new ArrayList<>();
-                List<Connection> archiveThese = new ArrayList<>();
+                List<Connection> releaseThese = new ArrayList<>();
 
                 List<NsiMapping> pastEndTime = new ArrayList<>();
                 List<NsiMapping> timedOut = new ArrayList<>();
@@ -89,7 +89,7 @@ public class TransitionStates {
                         if (c.getState().equals(State.ACTIVE)) {
                             log.info(c.getConnectionId() + " : active; will need to dismantle before archiving");
                         } else {
-                            archiveThese.add(c);
+                            releaseThese.add(c);
                         }
                     }
                 }
@@ -114,20 +114,14 @@ public class TransitionStates {
                     nsiService.resvTimedOut(mapping);
                 }
 
-                if (unholdThese.isEmpty() && archiveThese.isEmpty()) {
-                    return;
-                }
-
                 unholdThese.forEach(c -> {
                     log.debug("Un-holding "+c.getConnectionId());
                     connService.unhold(c.getConnectionId());
                 });
 
-                archiveThese.forEach(c -> {
-                    log.debug("Archiving "+c.getConnectionId());
-                    c.setPhase(Phase.ARCHIVED);
-                    c.setReserved(null);
-                    connRepo.saveAndFlush(c);
+                releaseThese.forEach(c -> {
+                    log.debug("Releasing "+c.getConnectionId());
+                    connService.release(c);
                 });
 
 

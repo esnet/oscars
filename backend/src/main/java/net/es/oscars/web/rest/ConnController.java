@@ -94,7 +94,7 @@ public class ConnController {
         this.checkStartup();
 
 
-        Connection c = connSvc.findConnection(connectionId);
+        Connection c = connSvc.findConnection(connectionId).orElseThrow();
         c.setUsername(usernameGetter.username(authentication));
 
         // String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(c);
@@ -110,7 +110,7 @@ public class ConnController {
     public ConnChangeResult release(@RequestBody String connectionId) throws StartupException, ConnException {
         this.checkStartup();
 
-        Connection c = connSvc.findConnection(connectionId);
+        Connection c = connSvc.findConnection(connectionId).orElseThrow();
 
         if (c.getPhase().equals(Phase.ARCHIVED)) {
             throw new ConnException("Cannot cancel ARCHIVED connection");
@@ -127,7 +127,7 @@ public class ConnController {
     public Connection setMode(@PathVariable String connectionId, @RequestBody String mode)
             throws StartupException, ConnException {
         this.checkStartup();
-        Connection c = connSvc.findConnection(connectionId);
+        Connection c = connSvc.findConnection(connectionId).orElseThrow();
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ConnException("invalid phase: " + c.getPhase() + " for connection " + connectionId);
         }
@@ -144,7 +144,7 @@ public class ConnController {
             throws StartupException {
         this.checkStartup();
 
-        Connection c = connSvc.findConnection(connectionId);
+        Connection c = connSvc.findConnection(connectionId).orElseThrow();
         log.info(c.getConnectionId() + " overriding state to " + state);
         c.setState(State.valueOf(state));
         connRepo.save(c);
@@ -155,7 +155,7 @@ public class ConnController {
     @ResponseBody
     public Connection info(@PathVariable String connectionId) throws StartupException, NoSuchElementException {
         this.checkStartup();
-        return connSvc.findConnection(connectionId);
+        return connSvc.findConnection(connectionId).orElseThrow(NoSuchElementException::new);
     }
 
     @RequestMapping(value = "/api/conn/history/{connectionId:.+}", method = RequestMethod.GET)

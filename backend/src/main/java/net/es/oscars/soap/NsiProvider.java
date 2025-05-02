@@ -23,14 +23,12 @@ public class NsiProvider implements ConnectionProviderPort {
     private final NsiMappingService nsiMappingService;
     private final NsiHeaderUtils nsiHeaderUtils;
     private final NsiQueries nsiQueries;
-    private final NsiReserve nsiReserve;
 
-    public NsiProvider(NsiAsyncQueue queue, NsiMappingService nsiMappingService, NsiHeaderUtils nsiHeaderUtils, NsiQueries nsiQueries, NsiReserve nsiReserve) {
+    public NsiProvider(NsiAsyncQueue queue, NsiMappingService nsiMappingService, NsiHeaderUtils nsiHeaderUtils, NsiQueries nsiQueries) {
         this.queue = queue;
         this.nsiMappingService = nsiMappingService;
         this.nsiHeaderUtils = nsiHeaderUtils;
         this.nsiQueries = nsiQueries;
-        this.nsiReserve = nsiReserve;
     }
 
 /* ================================== RESERVE SECTION ==================================
@@ -48,9 +46,7 @@ public class NsiProvider implements ConnectionProviderPort {
         }
 
         try {
-            // We validate the reserve
-            nsiReserve.validateReserve(reserve);
-            // then we process the header
+            // we process the header
             nsiHeaderUtils.processHeader(header.value);
         } catch (NsiException e) {
             String errMsg = e.getMessage();
