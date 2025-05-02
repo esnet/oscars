@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+import static net.es.oscars.app.util.PrettyPrinter.prettyLog;
+
 @Service
 @Slf4j
 @Data
@@ -43,25 +45,30 @@ public class ResvService {
 
 
     public Map<String, List<PeriodBandwidth>> reservedIngBws(Interval interval, Map<String, Connection> held, String connectionId) {
-        Set<Schedule> scheds = reservedOrHeldSchedules(interval, held, connectionId);
+        Set<Schedule> scheds = reservedSchedules(interval, connectionId);
 
         Map<String, List<PeriodBandwidth>> reservedIngBws = new HashMap<>();
+        Map<String, List<VlanFixture>> fixturesByConnId = new HashMap<>();
+        Map<String, List<VlanPipe>> pipesByConnId = new HashMap<>();
+        Map<String, Schedule> scheduleMap = new HashMap<>();
         for (Schedule sch : scheds) {
-
-            List<VlanFixture> fixtures = new ArrayList<>();
-            List<VlanPipe> pipes = new ArrayList<>();
-
-            if (sch.getPhase().equals(Phase.HELD)) {
-                Connection c = held.get(sch.getConnectionId());
-                if (c != null) {
-                    fixtures = c.getHeld().getCmp().getFixtures();
-                    pipes = c.getHeld().getCmp().getPipes();
-                }
-
-            } else if (sch.getPhase().equals(Phase.RESERVED)) {
-                fixtures = fixtureRepo.findBySchedule(sch);
-                pipes = pipeRepo.findBySchedule(sch);
+            if (sch.getPhase().equals(Phase.RESERVED)) {
+                fixturesByConnId.put(sch.getConnectionId(), fixtureRepo.findBySchedule(sch));
+                pipesByConnId.put(sch.getConnectionId(), pipeRepo.findBySchedule(sch));
+                scheduleMap.put(sch.getConnectionId(), sch);
             }
+        }
+        for (Connection c : held.values()) {
+            fixturesByConnId.put(c.getConnectionId(), c.getHeld().getCmp().getFixtures());
+            pipesByConnId.put(c.getConnectionId(), c.getHeld().getCmp().getPipes());
+            scheduleMap.put(c.getConnectionId(), c.getHeld().getSchedule());
+        }
+
+        for (String connId : scheduleMap.keySet()) {
+            List<VlanFixture> fixtures = fixturesByConnId.get(connId);
+            List<VlanPipe> pipes = pipesByConnId.get(connId);
+            Schedule sch = scheduleMap.get(connId);
+
             for (VlanFixture f : fixtures) {
                 String urn = f.getPortUrn();
                 PeriodBandwidth iPbw = PeriodBandwidth.builder()
@@ -118,24 +125,29 @@ public class ResvService {
     }
 
     public Map<String, List<PeriodBandwidth>> reservedEgBws(Interval interval, Map<String, Connection> held, String connectionId) {
-        Set<Schedule> scheds = reservedOrHeldSchedules(interval, held, connectionId);
+        Set<Schedule> scheds = reservedSchedules(interval, connectionId);
         Map<String, List<PeriodBandwidth>> reservedEgBws = new HashMap<>();
-
+        Map<String, List<VlanFixture>> fixturesByConnId = new HashMap<>();
+        Map<String, List<VlanPipe>> pipesByConnId = new HashMap<>();
+        Map<String, Schedule> scheduleMap = new HashMap<>();
         for (Schedule sch : scheds) {
-            List<VlanFixture> fixtures = new ArrayList<>();
-            List<VlanPipe> pipes = new ArrayList<>();
-
-            if (sch.getPhase().equals(Phase.HELD)) {
-                Connection c = held.get(sch.getConnectionId());
-                if (c != null) {
-                    fixtures = c.getHeld().getCmp().getFixtures();
-                    pipes = c.getHeld().getCmp().getPipes();
-                }
-
-            } else if (sch.getPhase().equals(Phase.RESERVED)) {
-                fixtures = fixtureRepo.findBySchedule(sch);
-                pipes = pipeRepo.findBySchedule(sch);
+            if (sch.getPhase().equals(Phase.RESERVED)) {
+                fixturesByConnId.put(sch.getConnectionId(), fixtureRepo.findBySchedule(sch));
+                pipesByConnId.put(sch.getConnectionId(), pipeRepo.findBySchedule(sch));
+                scheduleMap.put(sch.getConnectionId(), sch);
             }
+        }
+        for (Connection c : held.values()) {
+            fixturesByConnId.put(c.getConnectionId(), c.getHeld().getCmp().getFixtures());
+            pipesByConnId.put(c.getConnectionId(), c.getHeld().getCmp().getPipes());
+            scheduleMap.put(c.getConnectionId(), c.getHeld().getSchedule());
+        }
+
+
+        for (String connId : scheduleMap.keySet()) {
+            List<VlanFixture> fixtures = fixturesByConnId.get(connId);
+            List<VlanPipe> pipes = pipesByConnId.get(connId);
+            Schedule sch = scheduleMap.get(connId);
 
             for (VlanFixture f : fixtures) {
                 String urn = f.getPortUrn();
@@ -214,7 +226,7 @@ public class ResvService {
     // this grabs all schedule entries from RESERVED connections or ones currently HELD in memory in connService
     // if there is a schedule for a connectionId that is found RESERVED and HELD simultaneously,
     // we use the HELD one
-    public Set<Schedule> reservedOrHeldSchedules(Interval interval, Map<String, Connection> held, String connectionId) {
+    public Set<Schedule> reservedSchedules(Interval interval, String connectionId) {
         Map<String, Schedule> scheduleMap = new HashMap<>();
         List<Schedule> scheds = scheduleRepo.findOverlapping(interval.getBeginning(), interval.getEnding());
         for (Schedule sch : scheds) {
@@ -222,10 +234,6 @@ public class ResvService {
             if (sch.getPhase().equals(Phase.RESERVED)) {
                 scheduleMap.put(sch.getConnectionId(), sch);
             }
-        }
-        for (Connection c : held.values()) {
-            Schedule heldSchedule = c.getHeld().getSchedule();
-            scheduleMap.put(heldSchedule.getConnectionId(), heldSchedule);
         }
         // we want to ignore the schedule of the connectionId we got passed
         scheduleMap.remove(connectionId);
@@ -236,11 +244,29 @@ public class ResvService {
 
     public Collection<Vlan> reservedOrHeldVlans(Interval interval, Map<String, Connection> held, String connectionId) {
 
-        Set<Schedule> scheds = reservedOrHeldSchedules(interval, held, connectionId);
+        Set<Schedule> scheds = reservedSchedules(interval, connectionId);
+        Map<String, Set<Vlan>> vlansByConnectionId = new HashMap<>();
+
         HashSet<Vlan> reservedVlans = new HashSet<>();
         for (Schedule sch : scheds) {
-            List<Vlan> vlans = vlanRepo.findBySchedule(sch);
-            reservedVlans.addAll(vlans);
+            if (sch.getPhase().equals(Phase.RESERVED)) {
+                List<Vlan> vlans = vlanRepo.findBySchedule(sch);
+                vlansByConnectionId.put(sch.getConnectionId(), new HashSet<>(vlans));
+            }
+        }
+        for (Connection c : held.values()) {
+            prettyLog(c);
+            Set<Vlan> vlans = new HashSet<>();
+            for (VlanFixture f : c.getHeld().getCmp().getFixtures()) {
+
+                vlans.add(f.getVlan());
+            }
+            vlansByConnectionId.put(c.getConnectionId(), new HashSet<>(vlans));
+
+        }
+        vlansByConnectionId.remove(connectionId);
+        for (String connId : vlansByConnectionId.keySet()) {
+            reservedVlans.addAll(vlansByConnectionId.get(connId));
         }
         return reservedVlans;
     }

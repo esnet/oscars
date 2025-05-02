@@ -39,6 +39,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static net.es.oscars.app.util.PrettyPrinter.prettyLog;
 import static net.es.oscars.resv.svc.ConnUtils.*;
 import static net.es.oscars.sb.nso.NsoAdapter.NSO_TEMPLATE_VERSION;
 
@@ -455,6 +456,8 @@ public class ConnService {
 
 
         try {
+            log.info("removing from held " + c.getConnectionId());
+            held.remove(c.getConnectionId());
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
             c.setArchived(null);
@@ -477,10 +480,10 @@ public class ConnService {
             Instant instant = Instant.now();
             afterArchiveDeleted.setLast_modified((int) instant.getEpochSecond());
 
-            dumpDebug("afterArchiveDeleted", afterArchiveDeleted);
-
             Connection beforeNsoReserve = connRepo.saveAndFlush(afterArchiveDeleted);
             nsoResourceService.reserve(beforeNsoReserve);
+
+            log.info("committed " + c.getConnectionId());
 
 
         } finally {
@@ -1121,6 +1124,8 @@ public class ConnService {
 
         String connectionId = in.getConnectionId();
         Connection c = simpleToHeldConnection(in);
+        prettyLog(c);
+
         this.held.put(connectionId, c);
 
         connLock.unlock();

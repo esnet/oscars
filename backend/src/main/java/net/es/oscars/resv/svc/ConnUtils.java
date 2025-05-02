@@ -176,17 +176,19 @@ public class ConnUtils {
 
     public static Set<CommandParam> copyCommandParams(Set<CommandParam> cps, Schedule sch) {
         Set<CommandParam> res = new HashSet<>();
-        for (CommandParam cp : cps) {
-            res.add(CommandParam.builder()
-                    .connectionId(cp.getConnectionId())
-                    .paramType(cp.getParamType())
-                    .schedule(sch)
-                    .resource(cp.getResource())
-                    .intent(cp.getIntent())
-                    .target(cp.getTarget())
-                    .refId(cp.getRefId())
-                    .urn(cp.getUrn())
-                    .build());
+        if (cps != null) {
+            for (CommandParam cp : cps) {
+                res.add(CommandParam.builder()
+                        .connectionId(cp.getConnectionId())
+                        .paramType(cp.getParamType())
+                        .schedule(sch)
+                        .resource(cp.getResource())
+                        .intent(cp.getIntent())
+                        .target(cp.getTarget())
+                        .refId(cp.getRefId())
+                        .urn(cp.getUrn())
+                        .build());
+            }
         }
         return res;
     }
@@ -215,6 +217,7 @@ public class ConnUtils {
                 .last_modified((int) Instant.now().getEpochSecond())
                 .connectionId(in.getConnectionId())
                 .state(State.WAITING)
+                .tags(new ArrayList<>())
                 .connection_mtu(in.getConnection_mtu())
                 .serviceId(in.getServiceId())
                 .build();
@@ -390,20 +393,22 @@ public class ConnUtils {
         ZonedDateTime zonedDateTime = localDateTime.atZone(zoneId);
         Instant maxDate = zonedDateTime.toInstant();
 
-        Long b = s.getBeginning().getEpochSecond();
+        long b = s.getBeginning().getEpochSecond();
         if (s.getBeginning().isAfter(maxDate)) {
             b = maxDate.getEpochSecond();
         }
-        Long e = s.getEnding().getEpochSecond();
+        long e = s.getEnding().getEpochSecond();
         if (s.getEnding().isAfter(maxDate)) {
             e = maxDate.getEpochSecond();
         }
         List<SimpleTag> simpleTags = new ArrayList<>();
-        for (Tag t : c.getTags()) {
-            simpleTags.add(SimpleTag.builder()
-                    .category(t.getCategory())
-                    .contents(t.getContents())
-                    .build());
+        if (c.getTags() != null) {
+            for (Tag t : c.getTags()) {
+                simpleTags.add(SimpleTag.builder()
+                        .category(t.getCategory())
+                        .contents(t.getContents())
+                        .build());
+            }
         }
         List<Fixture> fixtures = new ArrayList<>();
         List<Junction> junctions = new ArrayList<>();
@@ -448,8 +453,8 @@ public class ConnUtils {
         });
 
         return (SimpleConnection.builder()
-                .begin(b.intValue())
-                .end(e.intValue())
+                .begin((int) b)
+                .end((int) e)
                 .connectionId(c.getConnectionId())
                 .serviceId(c.getServiceId())
                 .tags(simpleTags)

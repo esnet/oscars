@@ -1,5 +1,8 @@
 package net.es.oscars.web.rest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
@@ -97,7 +100,6 @@ public class ConnController {
         Connection c = connSvc.findConnection(connectionId).orElseThrow();
         c.setUsername(usernameGetter.username(authentication));
 
-        // String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(c);
         log.debug("committing : \n"+connectionId);
 
         return connSvc.commit(c);
