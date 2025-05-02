@@ -5,6 +5,7 @@ import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
+import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.Device;
 import net.es.oscars.topo.beans.PortBwVlan;
@@ -35,12 +36,14 @@ public class TopoSearchController {
     private final Startup startup;
     private final ResvService resvService;
     private final ConnectionRepository connRepo;
+    private final ConnService connService;
 
-    public TopoSearchController(TopologyStore topologyStore, Startup startup, ResvService resvService, ConnectionRepository connRepo) {
+    public TopoSearchController(TopologyStore topologyStore, Startup startup, ResvService resvService, ConnectionRepository connRepo, ConnService connService) {
         this.topologyStore = topologyStore;
         this.startup = startup;
         this.resvService = resvService;
         this.connRepo = connRepo;
+        this.connService = connService;
     }
 
     @ExceptionHandler(ConsistencyException.class)
@@ -97,8 +100,8 @@ public class TopoSearchController {
         }
 
 
-        Map<String, PortBwVlan> available = resvService.available(psr.getInterval(), psr.getConnectionId());
-        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(psr.getInterval(), psr.getConnectionId());
+        Map<String, PortBwVlan> available = resvService.available(psr.getInterval(), connService.getHeld(), psr.getConnectionId());
+        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(psr.getInterval(), connService.getHeld(), psr.getConnectionId());
 
         String term = null;
         if (!blankTerm) {
@@ -156,7 +159,7 @@ public class TopoSearchController {
             throw new SearchException("text search term may not be null or less than 4 characters long");
         }
 
-        Map<String, PortBwVlan> available = resvService.available(lwsr.getInterval(), lwsr.getConnectionId());
+        Map<String, PortBwVlan> available = resvService.available(lwsr.getInterval(), connService.getHeld(), lwsr.getConnectionId());
 
         String term = lwsr.getTerm().toUpperCase();
 
@@ -284,8 +287,8 @@ public class TopoSearchController {
         }
 
 
-        Map<String, PortBwVlan> available = resvService.available(interval, cepr.getConnectionId());
-        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(interval, cepr.getConnectionId());
+        Map<String, PortBwVlan> available = resvService.available(interval, connService.getHeld(), cepr.getConnectionId());
+        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(interval, connService.getHeld(), cepr.getConnectionId());
         List<EdgePort> results = new ArrayList<>();
         for (Device d : topology.getDevices().values()) {
             for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
@@ -315,8 +318,8 @@ public class TopoSearchController {
                         .beginning(Instant.now())
                         .ending(Instant.now().plus(24, ChronoUnit.HOURS))
                         .build();
-        Map<String, PortBwVlan> available = resvService.available(interval, null);
-        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(interval, null);
+        Map<String, PortBwVlan> available = resvService.available(interval, connService.getHeld(),null);
+        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(interval, connService.getHeld(), null);
 
 
         for (Device d : topology.getDevices().values()) {

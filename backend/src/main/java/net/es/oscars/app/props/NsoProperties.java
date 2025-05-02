@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 @Component
 @NoArgsConstructor
 public class NsoProperties {
-    @NonNull
     private boolean sync = false;
     private int syncIntervalMillisec = 10000;
 

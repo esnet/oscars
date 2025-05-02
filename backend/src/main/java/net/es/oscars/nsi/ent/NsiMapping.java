@@ -37,10 +37,17 @@ public class NsiMapping {
 
     @NonNull
     private Integer dataplaneVersion;
+
+    private Integer deployedDataplaneVersion;
+
     @NonNull
     private LifecycleStateEnumType lifecycleState;
     @NonNull
     private ReservationStateEnumType reservationState;
     @NonNull
     private ProvisionStateEnumType provisionState;
+
+    @Builder.Default
+    private Integer notificationId = 1;
+
 }

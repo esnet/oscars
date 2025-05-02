@@ -169,11 +169,7 @@ public class VirtInterfaceController {
             throw new NoSuchElementException();
         }
 
-        Connection conn = connSvc.findConnection(connectionId);
-        if (conn == null) {
-            log.info("Couldn't find OSCARS circuit for connection id " + connectionId);
-            throw new NoSuchElementException();
-        }
+        Connection conn = connSvc.findConnection(connectionId).orElseThrow(NoSuchElementException::new);
 
         Set<NsoVirtInterface> interfaces = virtInterfaceDAO.findByConnectionId(connectionId);
 
@@ -230,11 +226,7 @@ public class VirtInterfaceController {
         String ipAndSubnet = request.getIpAndSubnet();
 
         // check for connection id and find devices in circuit
-        Connection conn = connSvc.findConnection(connectionId);
-        if (conn == null) {
-            log.info("Couldn't find OSCARS circuit for connection id " + connectionId);
-            throw new NoSuchElementException();
-        }
+        Connection conn = connSvc.findConnection(connectionId).orElseThrow(NoSuchElementException::new);
 
         // check if device exists
         boolean deviceFound = false;

@@ -21,6 +21,7 @@ import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
 import net.es.topo.common.devel.DevelUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.Multigraph;
@@ -38,6 +39,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static net.es.oscars.app.util.PrettyPrinter.prettyLog;
 import static net.es.oscars.resv.svc.ConnUtils.*;
 import static net.es.oscars.sb.nso.NsoAdapter.NSO_TEMPLATE_VERSION;
 
@@ -100,6 +102,10 @@ public class ConnService {
 
     @Value("${resv.minimum-duration:15}")
     private Integer minDuration;
+
+    @Value("${resv.timeout}")
+    private Integer resvTimeout;
+
 
     public ConnectionList filter(ConnectionFilter filter) {
 
@@ -313,6 +319,7 @@ public class ConnService {
         return ConnectionSouthbound.RANCID;
     }
 
+    private Map<String, Connection> held = new HashMap<>();
 
     @Transactional
     public void modifySchedule(Connection c, Instant beginning, Instant ending) throws ModifyException {
@@ -370,44 +377,13 @@ public class ConnService {
         log.info("modify bandwidth completed");
     }
 
-    public Validity modifyNsi(Connection c, Integer bandwidth, Instant beginning, Instant ending) throws ModifyException {
-        if (beginning != null) {
-            c.getReserved().getSchedule().setBeginning(beginning);
-        }
-        if (ending != null) {
-            c.getReserved().getSchedule().setEnding(ending);
-        }
-
-        if (bandwidth != null) {
-            for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
-                f.setIngressBandwidth(bandwidth);
-                f.setEgressBandwidth(bandwidth);
-            }
-
-            for (VlanPipe p : c.getReserved().getCmp().getPipes()) {
-                p.setAzBandwidth(bandwidth);
-                p.setZaBandwidth(bandwidth);
-            }
-        }
-
-        Validity v = verifyModification(c);
-        if (v.isValid()) {
-            this.modifySchedule(c, beginning, ending);
-            this.modifyBandwidth(c, bandwidth);
-        }
-        return v;
-    }
-
-
-
-
     public int findAvailableMaxBandwidth(Connection c) {
         Interval interval = Interval.builder()
                 .beginning(c.getReserved().getSchedule().getBeginning())
                 .ending(c.getReserved().getSchedule().getEnding())
                 .build();
 
-        Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, c.getConnectionId());
+        Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, held, c.getConnectionId());
 
         Set<String> portUrns = new HashSet<>();
         for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
@@ -480,6 +456,8 @@ public class ConnService {
 
 
         try {
+            log.info("removing from held " + c.getConnectionId());
+            held.remove(c.getConnectionId());
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
             c.setArchived(null);
@@ -502,10 +480,10 @@ public class ConnService {
             Instant instant = Instant.now();
             afterArchiveDeleted.setLast_modified((int) instant.getEpochSecond());
 
-            dumpDebug("afterArchiveDeleted", afterArchiveDeleted);
-
             Connection beforeNsoReserve = connRepo.saveAndFlush(afterArchiveDeleted);
             nsoResourceService.reserve(beforeNsoReserve);
+
+            log.info("committed " + c.getConnectionId());
 
 
         } finally {
@@ -529,19 +507,17 @@ public class ConnService {
                 .build();
     }
 
+    public ConnChangeResult unhold(String connectionId) {
+        this.held.remove(connectionId);
+        return ConnChangeResult.builder()
+                .what(ConnChange.DELETED)
+                .when(Instant.now())
+                .build();
+
+    }
 
     @Transactional
     public ConnChangeResult release(Connection c) {
-        // if it is HELD or DESIGN, just delete it
-        if (c.getPhase().equals(Phase.HELD) || c.getPhase().equals(Phase.DESIGN)) {
-            log.info("deleting a HELD / DESIGN connection during release " + c.getConnectionId());
-            connRepo.delete(c);
-            connRepo.flush();
-            return ConnChangeResult.builder()
-                    .what(ConnChange.DELETED)
-                    .when(Instant.now())
-                    .build();
-        }
         // if it is ARCHIVED , nothing to do
         if (c.getPhase().equals(Phase.ARCHIVED)) {
             return ConnChangeResult.builder()
@@ -834,7 +810,7 @@ public class ConnService {
 
             }
 
-            Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, in.getConnectionId());
+            Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, held, in.getConnectionId());
 
             // make maps: urn -> total of what we are requesting to reserve for VLANs and BW
             Map<String, ImmutablePair<Integer, Integer>> inBwMap = new HashMap<>();
@@ -1086,40 +1062,78 @@ public class ConnService {
     }
 
 
-    public Connection findConnection(String connectionId) {
+    public Optional<Connection> findConnection(String connectionId) {
         if (connectionId == null || connectionId.isEmpty()) {
-            throw new IllegalArgumentException("Null or empty connectionId");
+            return Optional.empty();
         }
+
+        if (held.containsKey(connectionId)) {
+            return Optional.of(held.get(connectionId));
+        }
+
 //        log.info("looking for connectionId "+ connectionId);
         Optional<Connection> cOpt = connRepo.findByConnectionId(connectionId);
         if (cOpt.isPresent()) {
 
             Connection c = cOpt.get();
             c.setSouthbound(this.southbound(c.getConnectionId()));
-            return c;
+            return Optional.of(c);
+        } else {
+            return Optional.empty();
+        }
+    }
+    public Instant extendHold(String connectionId) throws NoSuchElementException {
+        Instant expiration = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
+        if (held.containsKey(connectionId)) {
+            held.get(connectionId).getHeld().setExpiration(expiration);
+            return expiration;
         } else {
             throw new NoSuchElementException("connection not found for id " + connectionId);
-
         }
     }
 
-    public Connection toNewConnection(SimpleConnection in) {
-        Connection c = Connection.builder()
-                .mode(BuildMode.AUTOMATIC)
-                .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
-                .deploymentState(DeploymentState.UNDEPLOYED)
-                .phase(Phase.HELD)
-                .description("")
-                .username("")
-                .last_modified((int) Instant.now().getEpochSecond())
-                .connectionId(in.getConnectionId())
-                .state(State.WAITING)
-                .connection_mtu(in.getConnection_mtu())
-                .build();
-        updateConnection(in, c);
-
-        return c;
+    public void releaseHold(String connectionId) throws NoSuchElementException {
+        held.remove(connectionId);
     }
+
+    public Pair<SimpleConnection, Connection> holdConnection(SimpleConnection in) throws ConnException {
+
+        ReentrantLock connLock = dbAccess.getConnLock();
+        if (connLock.isLocked()) {
+            log.debug("connection lock already locked; returning from hold");
+            return null;
+        }
+        connLock.lock();
+
+        // maybe don't throw exception; populate all the Validity entries instead
+        Validity v = this.validate(in, ConnectionMode.NEW);
+        in.setValidity(v);
+
+        if (!v.isValid()) {
+            log.info("could not hold connection "+in.getConnectionId());
+            log.info("reason: "+v.getMessage());
+            connLock.unlock();
+            return Pair.of(in, null);
+        }
+
+        // we can hold it, so we do
+        Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
+        long secs = exp.toEpochMilli() / 1000L;
+        in.setHeldUntil((int) secs);
+
+
+        String connectionId = in.getConnectionId();
+        Connection c = simpleToHeldConnection(in);
+        prettyLog(c);
+
+        this.held.put(connectionId, c);
+
+        connLock.unlock();
+        return Pair.of(in, c);
+
+    }
+
+
     private void dumpDebug(String context, Object o) {
         String pretty = null;
 

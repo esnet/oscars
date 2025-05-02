@@ -4,7 +4,7 @@ package net.es.oscars.soap;
 import lombok.extern.slf4j.Slf4j;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.requester.ConnectionRequesterPort;
-import net.es.oscars.app.exc.NsiException;
+import net.es.oscars.app.exc.NsiInternalException;
 import net.es.oscars.app.props.NsiProperties;
 import net.es.oscars.app.props.ClientUtilProperties;
 import net.es.oscars.nsi.beans.NsiErrors;
@@ -33,11 +33,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.*;
-import javax.xml.ws.handler.MessageContext;
 
 @Slf4j
 @Component
-public class ClientUtil {
+public class NsiSoapClientUtil {
 
     @Autowired
     private NsiProperties nsiProps;
@@ -54,7 +53,7 @@ public class ClientUtil {
      * @param requesterNSA the details of the requester to contact
      * @return the ConnectionRequesterPort that you can use at the client
      */
-    public ConnectionRequesterPort createRequesterClient(NsiRequesterNSA requesterNSA) throws NsiException {
+    public ConnectionRequesterPort createRequesterClient(NsiRequesterNSA requesterNSA) throws NsiInternalException {
         // if withGzipCompression is not set, default to application.properties setting for
         // client-util.enable-gzip-compression flag.
         return createRequesterClient(requesterNSA, false);
@@ -66,7 +65,7 @@ public class ClientUtil {
 *
      * @return the ConnectionRequesterPort that you can use at the client
      */
-    public ConnectionRequesterPort createRequesterClient(NsiRequesterNSA requesterNSA, boolean withGzipCompression) throws NsiException {
+    public ConnectionRequesterPort createRequesterClient(NsiRequesterNSA requesterNSA, boolean withGzipCompression) throws NsiInternalException {
         if (this.requesterPorts.containsKey(requesterNSA.getCallbackUrl())) {
             return this.requesterPorts.get(requesterNSA.getCallbackUrl());
         }
@@ -127,7 +126,7 @@ public class ClientUtil {
         return port;
     }
 
-    private void configureConduit(Client client, NsiRequesterNSA requesterNSA) throws NsiException {
+    private void configureConduit(Client client, NsiRequesterNSA requesterNSA) throws NsiInternalException {
         HTTPConduit conduit = (HTTPConduit) client.getConduit();
         if (requesterNSA.getCallbackUrl().startsWith("https")) {
 
@@ -153,7 +152,7 @@ public class ClientUtil {
             } catch (KeyStoreException | IOException | UnrecoverableKeyException |
                      NoSuchAlgorithmException | CertificateException ex) {
                 log.error(ex.getMessage(), ex);
-                throw new NsiException(ex.getMessage(), NsiErrors.NRM_ERROR);
+                throw new NsiInternalException(ex.getMessage(), NsiErrors.NRM_ERROR);
             }
         }
     }

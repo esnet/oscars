@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+import static net.es.oscars.app.util.PrettyPrinter.prettyLog;
+
 @Service
 @Slf4j
 @Data
@@ -41,69 +43,79 @@ public class ResvService {
     @Autowired
     private TopologyStore topologyStore;
 
-    public Map<String, List<PeriodBandwidth>> reservedIngBws(Interval interval, String connectionId) {
-        List<Schedule> scheds = scheduleRepo.findOverlapping(interval.getBeginning(), interval.getEnding());
+
+    public Map<String, List<PeriodBandwidth>> reservedIngBws(Interval interval, Map<String, Connection> held, String connectionId) {
+        Set<Schedule> scheds = reservedSchedules(interval, connectionId);
+
         Map<String, List<PeriodBandwidth>> reservedIngBws = new HashMap<>();
-
-
+        Map<String, List<VlanFixture>> fixturesByConnId = new HashMap<>();
+        Map<String, List<VlanPipe>> pipesByConnId = new HashMap<>();
+        Map<String, Schedule> scheduleMap = new HashMap<>();
         for (Schedule sch : scheds) {
-            if (connectionId != null ) {
-                if (sch.getConnectionId().equals(connectionId)) {
-                    continue;
-                }
+            if (sch.getPhase().equals(Phase.RESERVED)) {
+                fixturesByConnId.put(sch.getConnectionId(), fixtureRepo.findBySchedule(sch));
+                pipesByConnId.put(sch.getConnectionId(), pipeRepo.findBySchedule(sch));
+                scheduleMap.put(sch.getConnectionId(), sch);
+            }
+        }
+        for (Connection c : held.values()) {
+            fixturesByConnId.put(c.getConnectionId(), c.getHeld().getCmp().getFixtures());
+            pipesByConnId.put(c.getConnectionId(), c.getHeld().getCmp().getPipes());
+            scheduleMap.put(c.getConnectionId(), c.getHeld().getSchedule());
+        }
+
+        for (String connId : scheduleMap.keySet()) {
+            List<VlanFixture> fixtures = fixturesByConnId.get(connId);
+            List<VlanPipe> pipes = pipesByConnId.get(connId);
+            Schedule sch = scheduleMap.get(connId);
+
+            for (VlanFixture f : fixtures) {
+                String urn = f.getPortUrn();
+                PeriodBandwidth iPbw = PeriodBandwidth.builder()
+                        .bandwidth(f.getIngressBandwidth())
+                        .beginning(sch.getBeginning())
+                        .ending(sch.getEnding())
+                        .build();
+                addTo(reservedIngBws, urn, iPbw);
             }
 
-            if (sch.getPhase().equals(Phase.HELD) || sch.getPhase().equals(Phase.RESERVED)) {
-                List<VlanFixture> fixtures = fixtureRepo.findBySchedule(sch);
-                List<VlanPipe> pipes = pipeRepo.findBySchedule(sch);
-                for (VlanFixture f : fixtures) {
-                    String urn = f.getPortUrn();
-                    PeriodBandwidth iPbw = PeriodBandwidth.builder()
-                            .bandwidth(f.getIngressBandwidth())
-                            .beginning(sch.getBeginning())
-                            .ending(sch.getEnding())
-                            .build();
-                    addTo(reservedIngBws, urn, iPbw);
-                }
+            for (VlanPipe pipe : pipes) {
+                // hops go:
+                // device, outPort, inPort, device, outPort, inPort, device
+                // hops will always be empty, or 1 modulo 3
+                // bandwidth gets applied per direction i.e.
+                // az as egress on outPort, as ingress on inPort
+                if (pipe.getAzERO() != null) {
 
-                for (VlanPipe pipe : pipes) {
-                    // hops go:
-                    // device, outPort, inPort, device, outPort, inPort, device
-                    // hops will always be empty, or 1 modulo 3
-                    // bandwidth gets applied per direction i.e.
-                    // az as egress on outPort, as ingress on inPort
-                    if (pipe.getAzERO() != null) {
+                    for (int i = 0; i < pipe.getAzERO().size(); i++) {
+                        EroHop hop = pipe.getAzERO().get(i);
+                        String urn = hop.getUrn();
+                        PeriodBandwidth pbw = PeriodBandwidth.builder()
+                                .bandwidth(pipe.getAzBandwidth())
+                                .beginning(sch.getBeginning())
+                                .ending(sch.getEnding())
+                                .build();
 
-                        for (int i = 0; i < pipe.getAzERO().size(); i++) {
-                            EroHop hop = pipe.getAzERO().get(i);
-                            String urn = hop.getUrn();
-                            PeriodBandwidth pbw = PeriodBandwidth.builder()
-                                    .bandwidth(pipe.getAzBandwidth())
-                                    .beginning(sch.getBeginning())
-                                    .ending(sch.getEnding())
-                                    .build();
-
-                            if (i % 3 == 2) {
-                                addTo(reservedIngBws, urn, pbw);
-                            }
+                        if (i % 3 == 2) {
+                            addTo(reservedIngBws, urn, pbw);
                         }
                     }
+                }
 
-                    if (pipe.getZaERO() != null ) {
+                if (pipe.getZaERO() != null ) {
 
-                        for (int i = 0; i < pipe.getZaERO().size(); i++) {
-                            EroHop hop = pipe.getZaERO().get(i);
-                            String urn = hop.getUrn();
+                    for (int i = 0; i < pipe.getZaERO().size(); i++) {
+                        EroHop hop = pipe.getZaERO().get(i);
+                        String urn = hop.getUrn();
 
-                            PeriodBandwidth pbw = PeriodBandwidth.builder()
-                                    .bandwidth(pipe.getZaBandwidth())
-                                    .beginning(sch.getBeginning())
-                                    .ending(sch.getEnding())
-                                    .build();
+                        PeriodBandwidth pbw = PeriodBandwidth.builder()
+                                .bandwidth(pipe.getZaBandwidth())
+                                .beginning(sch.getBeginning())
+                                .ending(sch.getEnding())
+                                .build();
 
-                            if (i % 3 == 2) {
-                                addTo(reservedIngBws, urn, pbw);
-                            }
+                        if (i % 3 == 2) {
+                            addTo(reservedIngBws, urn, pbw);
                         }
                     }
                 }
@@ -112,69 +124,79 @@ public class ResvService {
         return reservedIngBws;
     }
 
-    public Map<String, List<PeriodBandwidth>> reservedEgBws(Interval interval, String connectionId) {
-        List<Schedule> scheds = scheduleRepo.findOverlapping(interval.getBeginning(), interval.getEnding());
+    public Map<String, List<PeriodBandwidth>> reservedEgBws(Interval interval, Map<String, Connection> held, String connectionId) {
+        Set<Schedule> scheds = reservedSchedules(interval, connectionId);
         Map<String, List<PeriodBandwidth>> reservedEgBws = new HashMap<>();
-
+        Map<String, List<VlanFixture>> fixturesByConnId = new HashMap<>();
+        Map<String, List<VlanPipe>> pipesByConnId = new HashMap<>();
+        Map<String, Schedule> scheduleMap = new HashMap<>();
         for (Schedule sch : scheds) {
-            if (connectionId != null) {
-                if (sch.getConnectionId().equals(connectionId)) {
-                    continue;
-                }
+            if (sch.getPhase().equals(Phase.RESERVED)) {
+                fixturesByConnId.put(sch.getConnectionId(), fixtureRepo.findBySchedule(sch));
+                pipesByConnId.put(sch.getConnectionId(), pipeRepo.findBySchedule(sch));
+                scheduleMap.put(sch.getConnectionId(), sch);
             }
-            if (sch.getPhase().equals(Phase.HELD) || sch.getPhase().equals(Phase.RESERVED)) {
-                List<VlanFixture> fixtures = fixtureRepo.findBySchedule(sch);
-                List<VlanPipe> pipes = pipeRepo.findBySchedule(sch);
+        }
+        for (Connection c : held.values()) {
+            fixturesByConnId.put(c.getConnectionId(), c.getHeld().getCmp().getFixtures());
+            pipesByConnId.put(c.getConnectionId(), c.getHeld().getCmp().getPipes());
+            scheduleMap.put(c.getConnectionId(), c.getHeld().getSchedule());
+        }
 
-                for (VlanFixture f : fixtures) {
-                    String urn = f.getPortUrn();
-                    PeriodBandwidth ePbw = PeriodBandwidth.builder()
-                            .bandwidth(f.getEgressBandwidth())
-                            .beginning(sch.getBeginning())
-                            .ending(sch.getEnding())
-                            .build();
 
-                    addTo(reservedEgBws, urn, ePbw);
-                }
+        for (String connId : scheduleMap.keySet()) {
+            List<VlanFixture> fixtures = fixturesByConnId.get(connId);
+            List<VlanPipe> pipes = pipesByConnId.get(connId);
+            Schedule sch = scheduleMap.get(connId);
 
-                for (VlanPipe pipe : pipes) {
-                    // hops go:
-                    // device, outPort, inPort, device, outPort, inPort, device
-                    // hops will always be empty, or 1 modulo 3
-                    // bandwidth gets applied per direction i.e.
-                    // az as egress on outPort, as ingress on inPort
-                    if (pipe.getAzERO() != null) {
+            for (VlanFixture f : fixtures) {
+                String urn = f.getPortUrn();
+                PeriodBandwidth ePbw = PeriodBandwidth.builder()
+                        .bandwidth(f.getEgressBandwidth())
+                        .beginning(sch.getBeginning())
+                        .ending(sch.getEnding())
+                        .build();
 
-                        for (int i = 0; i < pipe.getAzERO().size(); i++) {
+                addTo(reservedEgBws, urn, ePbw);
+            }
 
-                            EroHop hop = pipe.getAzERO().get(i);
-                            String urn = hop.getUrn();
-                            PeriodBandwidth pbw = PeriodBandwidth.builder()
-                                    .bandwidth(pipe.getAzBandwidth())
-                                    .beginning(sch.getBeginning())
-                                    .ending(sch.getEnding())
-                                    .build();
+            for (VlanPipe pipe : pipes) {
+                // hops go:
+                // device, outPort, inPort, device, outPort, inPort, device
+                // hops will always be empty, or 1 modulo 3
+                // bandwidth gets applied per direction i.e.
+                // az as egress on outPort, as ingress on inPort
+                if (pipe.getAzERO() != null) {
 
-                            if (i % 3 == 1) {
-                                addTo(reservedEgBws, urn, pbw);
-                            }
+                    for (int i = 0; i < pipe.getAzERO().size(); i++) {
+
+                        EroHop hop = pipe.getAzERO().get(i);
+                        String urn = hop.getUrn();
+                        PeriodBandwidth pbw = PeriodBandwidth.builder()
+                                .bandwidth(pipe.getAzBandwidth())
+                                .beginning(sch.getBeginning())
+                                .ending(sch.getEnding())
+                                .build();
+
+                        if (i % 3 == 1) {
+                            addTo(reservedEgBws, urn, pbw);
                         }
                     }
-                    if (pipe.getZaERO() != null) {
-                        for (int i = 0; i < pipe.getZaERO().size(); i++) {
-                            EroHop hop = pipe.getZaERO().get(i);
-                            String urn = hop.getUrn();
+                }
+                if (pipe.getZaERO() != null) {
+                    for (int i = 0; i < pipe.getZaERO().size(); i++) {
+                        EroHop hop = pipe.getZaERO().get(i);
+                        String urn = hop.getUrn();
 
-                            PeriodBandwidth pbw = PeriodBandwidth.builder()
-                                    .bandwidth(pipe.getZaBandwidth())
-                                    .beginning(sch.getBeginning())
-                                    .ending(sch.getEnding())
-                                    .build();
+                        PeriodBandwidth pbw = PeriodBandwidth.builder()
+                                .bandwidth(pipe.getZaBandwidth())
+                                .beginning(sch.getBeginning())
+                                .ending(sch.getEnding())
+                                .build();
 
-                            if (i % 3 == 1) {
+                        if (i % 3 == 1) {
 
-                                addTo(reservedEgBws, urn, pbw);
-                            }
+                            addTo(reservedEgBws, urn, pbw);
                         }
                     }
                 }
@@ -183,8 +205,8 @@ public class ResvService {
         return reservedEgBws;
     }
 
-    public Map<String, Map<Integer, Set<String>>> vlanUsage(Interval interval, String connectionId) {
-        Collection<Vlan> reservedVlans = this.reservedVlans(interval, connectionId);
+    public Map<String, Map<Integer, Set<String>>> vlanUsage(Interval interval, Map<String, Connection> held, String connectionId) {
+        Collection<Vlan> reservedVlans = this.reservedOrHeldVlans(interval, held, connectionId);
         Map<String, Map<Integer, Set<String>>> results = new HashMap<>();
 
         for (Vlan v : reservedVlans) {
@@ -201,38 +223,56 @@ public class ResvService {
         return results;
     }
 
-    public Collection<Vlan> reservedVlans(Interval interval, String connectionId) {
+    // this grabs all schedule entries from RESERVED connections or ones currently HELD in memory in connService
+    // if there is a schedule for a connectionId that is found RESERVED and HELD simultaneously,
+    // we use the HELD one
+    public Set<Schedule> reservedSchedules(Interval interval, String connectionId) {
+        Map<String, Schedule> scheduleMap = new HashMap<>();
         List<Schedule> scheds = scheduleRepo.findOverlapping(interval.getBeginning(), interval.getEnding());
-        HashSet<Vlan> reservedVlans = new HashSet<>();
-
         for (Schedule sch : scheds) {
-            if (connectionId != null ) {
-                if (sch.getConnectionId().equals(connectionId)) {
-                    continue;
-                }
+            // skip archived schedules
+            if (sch.getPhase().equals(Phase.RESERVED)) {
+                scheduleMap.put(sch.getConnectionId(), sch);
             }
-            if (sch.getPhase().equals(Phase.HELD) || sch.getPhase().equals(Phase.RESERVED)) {
+        }
+        // we want to ignore the schedule of the connectionId we got passed
+        scheduleMap.remove(connectionId);
+
+        return new HashSet<>(scheduleMap.values());
+    }
+
+
+    public Collection<Vlan> reservedOrHeldVlans(Interval interval, Map<String, Connection> held, String connectionId) {
+
+        Set<Schedule> scheds = reservedSchedules(interval, connectionId);
+        Map<String, Set<Vlan>> vlansByConnectionId = new HashMap<>();
+
+        HashSet<Vlan> reservedVlans = new HashSet<>();
+        for (Schedule sch : scheds) {
+            if (sch.getPhase().equals(Phase.RESERVED)) {
                 List<Vlan> vlans = vlanRepo.findBySchedule(sch);
-                reservedVlans.addAll(vlans);
+                vlansByConnectionId.put(sch.getConnectionId(), new HashSet<>(vlans));
             }
+        }
+        for (Connection c : held.values()) {
+            prettyLog(c);
+            Set<Vlan> vlans = new HashSet<>();
+            for (VlanFixture f : c.getHeld().getCmp().getFixtures()) {
+
+                vlans.add(f.getVlan());
+            }
+            vlansByConnectionId.put(c.getConnectionId(), new HashSet<>(vlans));
+
+        }
+        vlansByConnectionId.remove(connectionId);
+        for (String connId : vlansByConnectionId.keySet()) {
+            reservedVlans.addAll(vlansByConnectionId.get(connId));
         }
         return reservedVlans;
     }
 
     public Map<String, Integer> availableIngBws(Interval interval) {
-        Map<String, List<PeriodBandwidth>> reservedIngBws = reservedIngBws(interval, null);
-
-        /*
-        try {
-            ObjectMapper mapper = builder.build();
-            log.info(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reservedIngBws));
-        } catch (JsonProcessingException ex) {
-            log.error(ex.getMessage());
-        }
-        */
-
-
-
+        Map<String, List<PeriodBandwidth>> reservedIngBws = reservedIngBws(interval, new HashMap<>(), null);
 
         Map<String, TopoUrn> baseline = topologyStore.getTopoUrnMap();
         return ResvLibrary.availableBandwidthMap(BwDirection.INGRESS, baseline, reservedIngBws);
@@ -241,7 +281,7 @@ public class ResvService {
 
 
     public Map<String, Integer> availableEgBws(Interval interval) {
-        Map<String, List<PeriodBandwidth>> reservedEgBws = reservedEgBws(interval, null);
+        Map<String, List<PeriodBandwidth>> reservedEgBws = reservedEgBws(interval, new HashMap<>(), null);
         /*
         try {
             ObjectMapper mapper = builder.build();
@@ -255,10 +295,10 @@ public class ResvService {
         return ResvLibrary.availableBandwidthMap(BwDirection.EGRESS, baseline, reservedEgBws);
     }
 
-    public Map<String, PortBwVlan> available(Interval interval, String connectionId) {
-        Collection<Vlan> reservedVlans = reservedVlans(interval, connectionId);
-        Map<String, List<PeriodBandwidth>> reservedEgBws = reservedEgBws(interval, connectionId);
-        Map<String, List<PeriodBandwidth>> reservedIngBws = reservedIngBws(interval, connectionId);
+    public Map<String, PortBwVlan> available(Interval interval, Map<String, Connection> held, String connectionId) {
+        Collection<Vlan> reservedVlans = reservedOrHeldVlans(interval, held, connectionId);
+        Map<String, List<PeriodBandwidth>> reservedEgBws = reservedEgBws(interval, held, connectionId);
+        Map<String, List<PeriodBandwidth>> reservedIngBws = reservedIngBws(interval, held, connectionId);
 
         return ResvLibrary.portBwVlans(topologyStore.getTopoUrnMap(), reservedVlans, reservedIngBws, reservedEgBws);
     }

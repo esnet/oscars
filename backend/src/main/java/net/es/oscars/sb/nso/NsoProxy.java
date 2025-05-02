@@ -270,6 +270,7 @@ public class NsoProxy {
         }
     }
 
+
     public static YangPatchWrapper makeDismantleYangPatch(NsoAdapter.NsoOscarsDismantle dismantle) {
         List<YangPatch.YangEdit> edits = new ArrayList<>();
         edits.add(YangPatch.YangEdit.builder()
@@ -542,6 +543,11 @@ public class NsoProxy {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
                     LinkedHashMap<String, String> body = ((LinkedHashMap<String, String>) responseEntity.getBody());
+
+                    // protect against nulls
+                    if (body == null) {
+                        body = new LinkedHashMap<>();
+                    }
 
                     String json = mapper.writeValueAsString(body);
 

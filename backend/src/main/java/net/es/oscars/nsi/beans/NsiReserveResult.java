@@ -12,7 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class NsiHoldResult {
+public class NsiReserveResult {
     private Boolean success;
     private String errorMessage;
     private NsiErrors errorCode;

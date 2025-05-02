@@ -18,7 +18,7 @@ public class ConnListController {
 
     @QueryMapping
     public Connection ConnectionById(@Argument String connectionId) {
-        return connSvc.findConnection(connectionId);
+        return connSvc.findConnection(connectionId).orElseThrow();
     }
 
 }

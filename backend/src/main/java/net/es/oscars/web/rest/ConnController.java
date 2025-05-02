@@ -1,12 +1,17 @@
 package net.es.oscars.web.rest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
+import net.es.oscars.app.exc.NsiMappingException;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.util.UsernameGetter;
 import net.es.oscars.nsi.ent.NsiMapping;
+import net.es.oscars.nsi.svc.NsiMappingService;
 import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.sb.ent.RouterCommandHistory;
@@ -53,6 +58,10 @@ public class ConnController {
     private NsiService nsiSvc;
 
     @Autowired
+    private NsiMappingService nsiMappingService;
+
+
+    @Autowired
     private UsernameGetter usernameGetter;
 
     @ExceptionHandler(StartupException.class)
@@ -88,10 +97,9 @@ public class ConnController {
         this.checkStartup();
 
 
-        Connection c = connSvc.findConnection(connectionId);
+        Connection c = connSvc.findConnection(connectionId).orElseThrow();
         c.setUsername(usernameGetter.username(authentication));
 
-        // String pretty = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(c);
         log.debug("committing : \n"+connectionId);
 
         return connSvc.commit(c);
@@ -104,18 +112,13 @@ public class ConnController {
     public ConnChangeResult release(@RequestBody String connectionId) throws StartupException, ConnException {
         this.checkStartup();
 
-        Connection c = connSvc.findConnection(connectionId);
+        Connection c = connSvc.findConnection(connectionId).orElseThrow();
 
         if (c.getPhase().equals(Phase.ARCHIVED)) {
             throw new ConnException("Cannot cancel ARCHIVED connection");
         } else {
-            try {
-                Optional<NsiMapping> om = nsiSvc.getMappingForOscarsId(c.getConnectionId());
-                om.ifPresent(nsiMapping -> nsiSvc.forcedEnd(nsiMapping));
-
-            } catch (NsiException ex) {
-                log.error(ex.getMessage(),ex);
-            }
+            Optional<NsiMapping> om = nsiMappingService.getMappingForOscarsId(c.getConnectionId());
+            om.ifPresent(nsiMapping -> nsiSvc.forcedEnd(nsiMapping));
             return connSvc.release(c);
         }
     }
@@ -126,7 +129,7 @@ public class ConnController {
     public Connection setMode(@PathVariable String connectionId, @RequestBody String mode)
             throws StartupException, ConnException {
         this.checkStartup();
-        Connection c = connSvc.findConnection(connectionId);
+        Connection c = connSvc.findConnection(connectionId).orElseThrow();
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ConnException("invalid phase: " + c.getPhase() + " for connection " + connectionId);
         }
@@ -143,7 +146,7 @@ public class ConnController {
             throws StartupException {
         this.checkStartup();
 
-        Connection c = connSvc.findConnection(connectionId);
+        Connection c = connSvc.findConnection(connectionId).orElseThrow();
         log.info(c.getConnectionId() + " overriding state to " + state);
         c.setState(State.valueOf(state));
         connRepo.save(c);
@@ -154,7 +157,7 @@ public class ConnController {
     @ResponseBody
     public Connection info(@PathVariable String connectionId) throws StartupException, NoSuchElementException {
         this.checkStartup();
-        return connSvc.findConnection(connectionId);
+        return connSvc.findConnection(connectionId).orElseThrow(NoSuchElementException::new);
     }
 
     @RequestMapping(value = "/api/conn/history/{connectionId:.+}", method = RequestMethod.GET)
