@@ -11,6 +11,7 @@ import net.es.oscars.resv.ent.EroHop;
 import net.es.oscars.resv.ent.VlanJunction;
 import net.es.oscars.resv.ent.VlanPipe;
 import net.es.oscars.resv.enums.BwDirection;
+import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ResvLibrary;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.TopoUrn;
@@ -30,22 +31,24 @@ import java.util.*;
 public class PceService {
     private final ResvService resvService;
     private final Engine pceEngine;
-    final TopologyStore topologyStore;
+    private final TopologyStore topologyStore;
+    private final ConnService connService;
 
-    public PceService(ResvService resvService, Engine pceEngine, TopologyStore topologyStore) {
+    public PceService(ResvService resvService, Engine pceEngine, TopologyStore topologyStore, ConnService connService) {
         this.resvService = resvService;
         this.pceEngine = pceEngine;
         this.topologyStore = topologyStore;
+        this.connService = connService;
     }
 
 
     public AllPathsPceResponse calculateAllPaths(AllPathsPceRequest request) throws PCEException {
-        // get the baseline topology, then remove all bandwidth that is reserved by other reservations
+        // get the baseline topology, then remove all bandwidth reserved by other reservations
         // over the specified interval
 
         Map<String, TopoUrn> baseline = topologyStore.getTopoUrnMap();
-        Map<String, List<PeriodBandwidth>> reservedIngBws = resvService.reservedIngBws(request.getInterval(), request.getConnectionId());
-        Map<String, List<PeriodBandwidth>> reservedEgBws = resvService.reservedEgBws(request.getInterval(), request.getConnectionId());
+        Map<String, List<PeriodBandwidth>> reservedIngBws = resvService.reservedIngBws(request.getInterval(), connService.getHeld(), request.getConnectionId());
+        Map<String, List<PeriodBandwidth>> reservedEgBws = resvService.reservedEgBws(request.getInterval(), connService.getHeld(), request.getConnectionId());
         Map<String, Integer> availIngressBw = ResvLibrary.availableBandwidthMap(BwDirection.INGRESS, baseline, reservedIngBws);
         Map<String, Integer> availEgressBw = ResvLibrary.availableBandwidthMap(BwDirection.EGRESS, baseline, reservedEgBws);
 

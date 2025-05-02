@@ -266,7 +266,7 @@ public class NsiMappingService {
 
     }
 
-    public Pair<List<Fixture>, List<Junction>> fixturesAndJunctionsFor(P2PServiceBaseType p2p, Interval interval)
+    public Pair<List<Fixture>, List<Junction>> fixturesAndJunctionsFor(P2PServiceBaseType p2p, Interval interval, String oscarsConnectionId)
             throws NsiInternalException, NsiValidationException {
         String src = p2p.getSourceSTP();
         String dst = p2p.getDestSTP();
@@ -320,7 +320,7 @@ public class NsiMappingService {
         }
 
 
-        Map<String, PortBwVlan> available = resvService.available(interval, null);
+        Map<String, PortBwVlan> available = resvService.available(interval, connService.getHeld(), oscarsConnectionId);
         PortBwVlan aAvail = available.get(a_urn.getUrn());
         PortBwVlan zAvail = available.get(z_urn.getUrn());
 

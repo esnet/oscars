@@ -41,11 +41,9 @@ public class ResvService {
     @Autowired
     private TopologyStore topologyStore;
 
-    @Autowired
-    private ConnService connService;
 
-    public Map<String, List<PeriodBandwidth>> reservedIngBws(Interval interval, String connectionId) {
-        Set<Schedule> scheds = reservedOrHeldSchedules(interval, connectionId);
+    public Map<String, List<PeriodBandwidth>> reservedIngBws(Interval interval, Map<String, Connection> held, String connectionId) {
+        Set<Schedule> scheds = reservedOrHeldSchedules(interval, held, connectionId);
 
         Map<String, List<PeriodBandwidth>> reservedIngBws = new HashMap<>();
         for (Schedule sch : scheds) {
@@ -54,7 +52,7 @@ public class ResvService {
             List<VlanPipe> pipes = new ArrayList<>();
 
             if (sch.getPhase().equals(Phase.HELD)) {
-                Connection c = connService.getHeld().get(sch.getConnectionId());
+                Connection c = held.get(sch.getConnectionId());
                 if (c != null) {
                     fixtures = c.getHeld().getCmp().getFixtures();
                     pipes = c.getHeld().getCmp().getPipes();
@@ -119,8 +117,8 @@ public class ResvService {
         return reservedIngBws;
     }
 
-    public Map<String, List<PeriodBandwidth>> reservedEgBws(Interval interval, String connectionId) {
-        Set<Schedule> scheds = reservedOrHeldSchedules(interval, connectionId);
+    public Map<String, List<PeriodBandwidth>> reservedEgBws(Interval interval, Map<String, Connection> held, String connectionId) {
+        Set<Schedule> scheds = reservedOrHeldSchedules(interval, held, connectionId);
         Map<String, List<PeriodBandwidth>> reservedEgBws = new HashMap<>();
 
         for (Schedule sch : scheds) {
@@ -128,7 +126,7 @@ public class ResvService {
             List<VlanPipe> pipes = new ArrayList<>();
 
             if (sch.getPhase().equals(Phase.HELD)) {
-                Connection c = connService.getHeld().get(sch.getConnectionId());
+                Connection c = held.get(sch.getConnectionId());
                 if (c != null) {
                     fixtures = c.getHeld().getCmp().getFixtures();
                     pipes = c.getHeld().getCmp().getPipes();
@@ -195,8 +193,8 @@ public class ResvService {
         return reservedEgBws;
     }
 
-    public Map<String, Map<Integer, Set<String>>> vlanUsage(Interval interval, String connectionId) {
-        Collection<Vlan> reservedVlans = this.reservedOrHeldVlans(interval, connectionId);
+    public Map<String, Map<Integer, Set<String>>> vlanUsage(Interval interval, Map<String, Connection> held, String connectionId) {
+        Collection<Vlan> reservedVlans = this.reservedOrHeldVlans(interval, held, connectionId);
         Map<String, Map<Integer, Set<String>>> results = new HashMap<>();
 
         for (Vlan v : reservedVlans) {
@@ -216,7 +214,7 @@ public class ResvService {
     // this grabs all schedule entries from RESERVED connections or ones currently HELD in memory in connService
     // if there is a schedule for a connectionId that is found RESERVED and HELD simultaneously,
     // we use the HELD one
-    public Set<Schedule> reservedOrHeldSchedules(Interval interval, String connectionId) {
+    public Set<Schedule> reservedOrHeldSchedules(Interval interval, Map<String, Connection> held, String connectionId) {
         Map<String, Schedule> scheduleMap = new HashMap<>();
         List<Schedule> scheds = scheduleRepo.findOverlapping(interval.getBeginning(), interval.getEnding());
         for (Schedule sch : scheds) {
@@ -225,7 +223,7 @@ public class ResvService {
                 scheduleMap.put(sch.getConnectionId(), sch);
             }
         }
-        for (Connection c : connService.getHeld().values()) {
+        for (Connection c : held.values()) {
             Schedule heldSchedule = c.getHeld().getSchedule();
             scheduleMap.put(heldSchedule.getConnectionId(), heldSchedule);
         }
@@ -236,9 +234,9 @@ public class ResvService {
     }
 
 
-    public Collection<Vlan> reservedOrHeldVlans(Interval interval, String connectionId) {
+    public Collection<Vlan> reservedOrHeldVlans(Interval interval, Map<String, Connection> held, String connectionId) {
 
-        Set<Schedule> scheds = reservedOrHeldSchedules(interval, connectionId);
+        Set<Schedule> scheds = reservedOrHeldSchedules(interval, held, connectionId);
         HashSet<Vlan> reservedVlans = new HashSet<>();
         for (Schedule sch : scheds) {
             List<Vlan> vlans = vlanRepo.findBySchedule(sch);
@@ -248,7 +246,7 @@ public class ResvService {
     }
 
     public Map<String, Integer> availableIngBws(Interval interval) {
-        Map<String, List<PeriodBandwidth>> reservedIngBws = reservedIngBws(interval, null);
+        Map<String, List<PeriodBandwidth>> reservedIngBws = reservedIngBws(interval, new HashMap<>(), null);
 
         Map<String, TopoUrn> baseline = topologyStore.getTopoUrnMap();
         return ResvLibrary.availableBandwidthMap(BwDirection.INGRESS, baseline, reservedIngBws);
@@ -257,7 +255,7 @@ public class ResvService {
 
 
     public Map<String, Integer> availableEgBws(Interval interval) {
-        Map<String, List<PeriodBandwidth>> reservedEgBws = reservedEgBws(interval, null);
+        Map<String, List<PeriodBandwidth>> reservedEgBws = reservedEgBws(interval, new HashMap<>(), null);
         /*
         try {
             ObjectMapper mapper = builder.build();
@@ -271,10 +269,10 @@ public class ResvService {
         return ResvLibrary.availableBandwidthMap(BwDirection.EGRESS, baseline, reservedEgBws);
     }
 
-    public Map<String, PortBwVlan> available(Interval interval, String connectionId) {
-        Collection<Vlan> reservedVlans = reservedOrHeldVlans(interval, connectionId);
-        Map<String, List<PeriodBandwidth>> reservedEgBws = reservedEgBws(interval, connectionId);
-        Map<String, List<PeriodBandwidth>> reservedIngBws = reservedIngBws(interval, connectionId);
+    public Map<String, PortBwVlan> available(Interval interval, Map<String, Connection> held, String connectionId) {
+        Collection<Vlan> reservedVlans = reservedOrHeldVlans(interval, held, connectionId);
+        Map<String, List<PeriodBandwidth>> reservedEgBws = reservedEgBws(interval, held, connectionId);
+        Map<String, List<PeriodBandwidth>> reservedIngBws = reservedIngBws(interval, held, connectionId);
 
         return ResvLibrary.portBwVlans(topologyStore.getTopoUrnMap(), reservedVlans, reservedIngBws, reservedEgBws);
     }

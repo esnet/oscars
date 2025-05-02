@@ -382,7 +382,7 @@ public class ConnService {
                 .ending(c.getReserved().getSchedule().getEnding())
                 .build();
 
-        Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, c.getConnectionId());
+        Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, held, c.getConnectionId());
 
         Set<String> portUrns = new HashSet<>();
         for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
@@ -807,7 +807,7 @@ public class ConnService {
 
             }
 
-            Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, in.getConnectionId());
+            Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, held, in.getConnectionId());
 
             // make maps: urn -> total of what we are requesting to reserve for VLANs and BW
             Map<String, ImmutablePair<Integer, Integer>> inBwMap = new HashMap<>();

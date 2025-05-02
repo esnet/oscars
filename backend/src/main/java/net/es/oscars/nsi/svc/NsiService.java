@@ -2,7 +2,6 @@ package net.es.oscars.nsi.svc;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.ws.Holder;
 import jakarta.xml.ws.WebServiceException;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
@@ -671,6 +670,7 @@ public class NsiService {
     /* submit hold */
     public NsiReserveResult hold(ReserveType incomingRT, NsiMapping mapping) throws NsiInternalException {
         log.info("preparing connection");
+        String oscarsConnectionId = mapping.getOscarsConnectionId();
 
         P2PServiceBaseType p2p = nsiMappingService.getP2PService(incomingRT);
         log.info("got p2p");
@@ -708,7 +708,7 @@ public class NsiService {
 
         log.info("making fixtures and junctions");
         try {
-            Pair<List<Fixture>, List<Junction>> fixturesAndJunctions = nsiMappingService.fixturesAndJunctionsFor(p2p, interval);
+            Pair<List<Fixture>, List<Junction>> fixturesAndJunctions = nsiMappingService.fixturesAndJunctionsFor(p2p, interval, oscarsConnectionId);
             log.info("making pipes");
             List<Pipe> pipes = nsiMappingService.pipesFor(interval, mbps, fixturesAndJunctions.getRight(), include);
 

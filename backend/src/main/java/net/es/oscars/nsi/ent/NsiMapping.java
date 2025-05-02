@@ -48,6 +48,6 @@ public class NsiMapping {
     private ProvisionStateEnumType provisionState;
 
     @Builder.Default
-    private int notificationId = 1;
+    private Integer notificationId = 1;
 
 }

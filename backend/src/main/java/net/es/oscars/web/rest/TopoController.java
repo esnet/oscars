@@ -4,6 +4,7 @@ package net.es.oscars.web.rest;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
+import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.*;
 import net.es.oscars.topo.beans.Device;
@@ -38,6 +39,9 @@ public class TopoController {
 
     @Autowired
     private Startup startup;
+
+    @Autowired
+    private ConnService connService;
 
     // cache these in memory
 
@@ -121,7 +125,7 @@ public class TopoController {
     @ResponseBody
     public Map<String, PortBwVlan> available(@RequestBody Interval interval) throws StartupException {
         startup.startupCheck();
-        return resvService.available(interval, null);
+        return resvService.available(interval, connService.getHeld(), null);
 
     }
 
