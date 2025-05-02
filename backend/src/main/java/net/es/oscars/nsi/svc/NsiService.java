@@ -31,7 +31,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.xml.datatype.XMLGregorianCalendar;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -82,12 +81,10 @@ public class NsiService {
         String nsaId = header.getRequesterNSA();
         String nsiConnectionId  = incomingRT.getConnectionId();
         String nsiGri = incomingRT.getGlobalReservationId();
-        ReserveType initialRT;
         boolean newReservation = false;
         try {
             // no mapping means this is a brand new reserve
             if (mapping == null) {
-                initialRT = null;
                 newReservation = true;
 
                 // this will throw an NsiMappingException if it fails and do an errCallback
@@ -96,8 +93,7 @@ public class NsiService {
                 nsiStateEngine.reserve(NsiEvent.RESV_START, mapping);
                 nsiMappingService.save(mapping);
             } else {
-                // this is not a brand new reserve
-                // set up the initialRT so we can roll back to it
+                // this is not a brand new reserve, we already have a mapping and it should be at RESV_START
             }
 
             log.info("transitioning NSI state: RESV_CHECK");
@@ -115,7 +111,7 @@ public class NsiService {
                 tvps = validationResult.getTvps();
             } else {
                 log.info("submitting hold");
-                NsiReserveResult holdResult = this.hold(initialRT, incomingRT, mapping);
+                NsiReserveResult holdResult = this.hold(incomingRT, mapping);
                 if (holdResult.getSuccess()) {
                     log.info("successful reserve, updating state");
                     nsiStateEngine.reserve(NsiEvent.RESV_CF, mapping);
@@ -124,7 +120,6 @@ public class NsiService {
                     //
                     NsiRequest nsiRequest = NsiRequest.builder()
                             .nsiConnectionId(mapping.getNsiConnectionId())
-                            .initial(initialRT)
                             .incoming(incomingRT)
                             .timeout(timeout)
                             .build();
@@ -146,7 +141,7 @@ public class NsiService {
             nsiStateEngine.reserve(NsiEvent.RESV_FL, mapping);
             nsiMappingService.save(mapping);
 
-            // if this was an brand new reserve we delete the mapping and forget all about it
+            // if this was a brand new reservation, on failure we delete the mapping and forget all about it
             if (newReservation) {
                 nsiMappingService.delete(mapping);
             }
@@ -187,49 +182,24 @@ public class NsiService {
 
                 Connection c = nsiMappingService.getOscarsConnection(mapping);
 
-                // TODO: refactor this section when we update the service model and the RESERVED / HELD nonsense
-                if (nsiRequest.getInitial() == null) {
-                    connSvc.commit(c);
-                } else {
-
-                    int bandwidth = this.getModifyCapacity(nsiRequest.getIncoming()).intValue();
-                    Instant beginning = c.getReserved().getSchedule().getBeginning();
-                    Instant ending = c.getReserved().getSchedule().getEnding();
-
-
-                    ReservationRequestCriteriaType crit = nsiRequest.getIncoming().getCriteria();
-                    if (crit.getSchedule().getStartTime() != null) {
-                        log.info("got updated beginning");
-                        XMLGregorianCalendar xst = crit.getSchedule().getStartTime().getValue();
-                        beginning = xst.toGregorianCalendar().toInstant();
-                    }
-
-                    if (crit.getSchedule().getEndTime() != null) {
-                        log.info("got updated ending");
-                        XMLGregorianCalendar xet = crit.getSchedule().getEndTime().getValue();
-                        ending = xet.toGregorianCalendar().toInstant();
-                    }
-
-                    if (connSvc.validateNsi(c, bandwidth, beginning, ending).isValid()) {
-                        connSvc.modifyNsi(c, bandwidth, beginning, ending);
-                    }
-                }
+                connSvc.commit(c);
 
                 nsiStateEngine.commit(NsiEvent.COMMIT_CF, mapping);
-
-
                 mapping.setDataplaneVersion(nsiRequest.getIncoming().getCriteria().getVersion());
                 nsiMappingService.save(mapping);
+
+
                 log.info("new dataplane version " + mapping.getDataplaneVersion());
+
                 nsiRequestManager.remove(mapping.getNsiConnectionId());
                 this.okCallback(NsiEvent.COMMIT_CF, mapping, header);
                 log.info("ending commit");
                 return;
 
-            } catch (PCEException | ConnException | NsoResvException | NsiValidationException ex) {
+            } catch (PCEException | ConnException | NsoResvException ex) {
                 errorCode = NsiErrors.RESV_ERROR;
                 errorMessage = ex.getMessage();
-            } catch (NsiStateException | NsiMappingException | ModifyException ex  ) {
+            } catch (NsiStateException | NsiMappingException  ex  ) {
                 errorCode = NsiErrors.NRM_ERROR;
                 errorMessage = ex.getMessage();
 
@@ -260,21 +230,11 @@ public class NsiService {
                     nsiMappingService.save(mapping);
                     // remove the request
                     nsiRequestManager.remove(mapping.getNsiConnectionId());
-                    // if we are at an initial request we release the whole connection
-                    if (nsiRequest.getInitial() == null) {
-                        try {
-                            Connection c = nsiMappingService.getOscarsConnection(mapping);
-                            connSvc.release(c);
-                        } catch (NsiMappingException ex) {
-                            // catch this if we somehow didn't have an oscars connection associated
-                            // but there's nothing to do.
-                        }
-                        // finally we delete the mapping
-                        nsiMappingService.delete(mapping);
-                    } else {
-                        nsiStateEngine.abort(NsiEvent.ABORT_CF, mapping);
-                        nsiMappingService.save(mapping);
-                    }
+                    connSvc.unhold(mapping.getNsiConnectionId());
+
+                    nsiStateEngine.abort(NsiEvent.ABORT_CF, mapping);
+                    nsiMappingService.save(mapping);
+                    // TODO: this leaves the mapping around after the abort
 
                 } catch (NsiStateException ex ) {
                     // we should never be catching this; we checked if we are at an acceptable resv state
@@ -343,17 +303,18 @@ public class NsiService {
         log.info("starting terminate task for " + mapping.getNsiConnectionId());
 
         try {
+
+            // go from CREATED | PASSED_END_TIME | FAILED to TERMINATING
             nsiStateEngine.termStart(mapping);
             nsiMappingService.save(mapping);
 
-            // the cancel only needs to happen if we are not in FORCED_END or PASSED_END_TIME
-            if (mapping.getLifecycleState().equals(LifecycleStateEnumType.CREATED)) {
-                Connection c = nsiMappingService.getOscarsConnection(mapping);
-                connSvc.release(c);
-            }
+            Connection c = nsiMappingService.getOscarsConnection(mapping);
+            connSvc.release(c);
 
+            // go from TERMINATING to TERMINATED
             nsiStateEngine.termConfirm(mapping);
             nsiMappingService.save(mapping);
+
             log.info("completed terminate");
             this.okCallback(NsiEvent.TERM_CF, mapping, header);
 
@@ -376,9 +337,14 @@ public class NsiService {
     public void forcedEnd(NsiMapping mapping) {
         log.info("starting forcedEnd task for " + mapping.getNsiConnectionId());
         try {
+            // go from CREATED | FAILED directly to TERMINATED
             nsiStateEngine.forcedEnd(mapping);
             nsiMappingService.save(mapping);
-        } catch (NsiStateException ex) {
+
+            Connection c = nsiMappingService.getOscarsConnection(mapping);
+            connSvc.release(c);
+
+        } catch (NsiStateException |NsiMappingException ex) {
             log.error("failed forcedEnd, internal error");
             log.error(ex.getMessage(), ex);
         }
@@ -689,7 +655,7 @@ public class NsiService {
     /* utility / shared funcs */
 
     /* submit hold */
-    public NsiReserveResult hold(ReserveType initialRT, ReserveType incomingRT, NsiMapping mapping) throws NsiInternalException {
+    public NsiReserveResult hold(ReserveType incomingRT, NsiMapping mapping) throws NsiInternalException {
         log.info("preparing connection");
 
         P2PServiceBaseType p2p = nsiMappingService.getP2PService(incomingRT);
@@ -781,7 +747,9 @@ public class NsiService {
                         .build();
             }
 
-            Connection c = connSvc.toNewConnection(simpleConnection);
+            log.info("holding connection.. ");
+            Connection c = connSvc.holdConnection(simpleConnection).getRight();
+
             try {
                 String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(c);
                 log.debug("full conn: \n" + pretty);
@@ -790,9 +758,8 @@ public class NsiService {
                 // do nothing, this is just for debugging
             }
 
-            log.info("saving new connection");
-            connRepo.save(c);
             mapping.setOscarsConnectionId(c.getConnectionId());
+            nsiMappingService.save(mapping);
 
             return NsiReserveResult.builder()
                     .errorCode(NsiErrors.OK)
@@ -801,7 +768,7 @@ public class NsiService {
                     .tvps(tvps)
                     .build();
 
-        } catch (NsiValidationException ex) {
+        } catch (NsiValidationException | ConnException ex) {
             return NsiReserveResult.builder()
                     .errorCode(NsiErrors.RESV_ERROR)
                     .success(false)
@@ -811,8 +778,14 @@ public class NsiService {
         }
     }
 
+    // TODO: actually validate
     public NsiReserveResult validateRT(ReserveType rt) {
-
+        return NsiReserveResult.builder()
+                .errorCode(null)
+                .success(true)
+                .errorMessage("")
+                .tvps(new ArrayList<>())
+                .build();
     }
 
     public Long getModifyCapacity(ReserveType rt) throws NsiValidationException {

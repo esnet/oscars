@@ -18,6 +18,7 @@ import net.es.oscars.pce.PceService;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.State;
+import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ConnUtils;
 import net.es.oscars.resv.svc.ResvLibrary;
 import net.es.oscars.resv.svc.ResvService;
@@ -72,6 +73,9 @@ public class NsiMappingService {
 
     @Autowired
     private ConnUtils connUtils;
+    @Autowired
+    private ConnService connService;
+
     public NsiMappingService(ConnectionRepository connRepo, NsiMappingRepository nsiRepo, TopologyStore topologyStore, ResvService resvService, PceService pceService) {
         this.connRepo = connRepo;
         this.nsiRepo = nsiRepo;
@@ -87,7 +91,7 @@ public class NsiMappingService {
         if (mapping == null) {
             throw new NsiMappingException("null mapping", NsiErrors.RESERVATION_NONEXISTENT);
         }
-        Optional<Connection> c = connRepo.findByConnectionId(mapping.getOscarsConnectionId());
+        Optional<Connection> c = connService.findConnection(mapping.getNsiConnectionId());
         if (c.isEmpty()) {
             throw new NsiMappingException("OSCARS connection not found", NsiErrors.RESERVATION_NONEXISTENT);
         } else {

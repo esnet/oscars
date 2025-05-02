@@ -132,8 +132,7 @@ public class HoldController {
     @RequestMapping(value = "/protected/hold", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public SimpleConnection hold(Authentication authentication,
-                                 @RequestBody SimpleConnection in)
+    public SimpleConnection hold(Authentication authentication, @RequestBody SimpleConnection in)
             throws StartupException, ConnException {
 
         if (startup.isInStartup()) {
@@ -142,16 +141,14 @@ public class HoldController {
             throw new StartupException("OSCARS shutting down");
         }
         in.setUsername(usernameGetter.username(authentication));
-        return connSvc.holdConnection(in);
-
+        return connSvc.holdConnection(in).getLeft();
     }
 
     // TODO: at 1.1 implement this
     @RequestMapping(value = "/protected/pcehold", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public SimpleConnection pceHold(Authentication authentication,
-                                 @RequestBody SimpleConnection in)
+    public SimpleConnection pceHold(Authentication authentication, @RequestBody SimpleConnection in)
             throws StartupException, ConnException {
 
         return this.hold(authentication, in);

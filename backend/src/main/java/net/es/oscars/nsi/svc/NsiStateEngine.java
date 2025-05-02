@@ -133,6 +133,7 @@ public class NsiStateEngine {
     public void forcedEnd(NsiMapping mapping) throws NsiStateException {
         Set<LifecycleStateEnumType> allowedStates = new HashSet<>();
         allowedStates.add(LifecycleStateEnumType.CREATED);
+        allowedStates.add(LifecycleStateEnumType.FAILED);
         if (!allowedStates.contains(mapping.getLifecycleState())) {
             throw new NsiStateException("Invalid lifecycle state " + mapping.getLifecycleState(), NsiErrors.TRANS_ERROR);
         }
