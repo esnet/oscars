@@ -383,11 +383,8 @@ public class NsoLiveStatusController {
         }
 
         // find devices in circuit
-        Connection conn = connSvc.findConnection(connectionId);
-        if (conn == null) {
-            log.info("Couldn't find OSCARS circuit for connection id " + connectionId);
-            throw new NoSuchElementException();
-        } else if (!conn.getPhase().equals(Phase.RESERVED)) {
+        Connection conn = connSvc.findConnection(connectionId).orElseThrow(NoSuchElementException::new);
+        if (!conn.getPhase().equals(Phase.RESERVED)) {
             log.info("Connection is not RESERVED " + connectionId);
             throw new NoSuchElementException();
         }

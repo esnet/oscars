@@ -20,9 +20,11 @@ import java.util.List;
 public class NsoStateResponse {
     @JsonProperty("synchronized")
     @Null
+    @Builder.Default
     public boolean isSynchronized = false;
 
     @JsonProperty("esnet-vpls:vpls")
     @Null
+    @Builder.Default
     public List<NsoVPLS> vpls = new ArrayList<>();
 }

@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
 import net.es.oscars.dto.pss.cmd.CommandType;
+import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.resv.ent.VlanJunction;
 import net.es.oscars.resv.enums.DeploymentIntent;
 import net.es.oscars.sb.ent.RouterCommands;
@@ -35,6 +36,8 @@ public class SouthboundQueuer {
     private final List<SouthboundTask> running = new ArrayList<>();
     private final List<SouthboundTask> waiting = new ArrayList<>();
     private final List<SouthboundTask> done = new ArrayList<>();
+    @Autowired
+    private NsiService nsiService;
 
     @Transactional
     public void process() {
@@ -94,6 +97,7 @@ public class SouthboundQueuer {
                 CommandType rct = result.getCommandType();
                 // when the task was to build, dismantle or redeploy we update the connection state
                 if (rct.equals(CommandType.BUILD) || rct.equals(CommandType.DISMANTLE) || rct.equals(CommandType.REDEPLOY)) {
+                    nsiService.updateDataplane(result);
 
                     // this is kinda funky
                     cr.findByConnectionId(task.getConnectionId()).ifPresent(c -> {

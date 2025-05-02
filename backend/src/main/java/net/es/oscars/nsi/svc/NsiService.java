@@ -23,6 +23,7 @@ import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.sb.SouthboundTaskResult;
 import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.soap.NsiSoapClientUtil;
 import net.es.oscars.web.beans.*;
@@ -540,6 +541,20 @@ public class NsiService {
         }
     }
 
+    public void updateDataplane(SouthboundTaskResult sb) {
+        Optional<NsiMapping> optMapping = nsiMappingService.getMappingForOscarsId(sb.getConnectionId());
+        if (optMapping.isPresent()) {
+            NsiMapping mapping = optMapping.get();
+            if (sb.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
+                mapping.setDeployedDataplaneVersion(mapping.getDataplaneVersion());
+                nsiMappingService.save(mapping);
+            }
+            dataplaneCallback(mapping, sb.getState());
+        }
+        // no mapping present -> no need to do anything
+
+    }
+
     // used to notify when the dataplane version is updated
     public void dataplaneCallback(NsiMapping mapping, State st) {
         try {
@@ -563,10 +578,9 @@ public class NsiService {
             dst.setActive(false);
             if (st.equals(State.ACTIVE)) {
                 dst.setActive(true);
+                dst.setVersion(mapping.getDeployedDataplaneVersion());
+                dst.setVersionConsistent(mapping.getDataplaneVersion().equals(mapping.getDeployedDataplaneVersion()));
             }
-
-            dst.setVersion(mapping.getDeployedDataplaneVersion());
-            dst.setVersionConsistent(mapping.getDataplaneVersion().equals(mapping.getDeployedDataplaneVersion()));
 
             dsrt.setDataPlaneStatus(dst);
             dsrt.setNotificationId(notificationId);
@@ -786,28 +800,6 @@ public class NsiService {
                 .errorMessage("")
                 .tvps(new ArrayList<>())
                 .build();
-    }
-
-    public Long getModifyCapacity(ReserveType rt) throws NsiValidationException {
-        ReservationRequestCriteriaType crit = rt.getCriteria();
-        Long result = null;
-        for (Object obj : crit.getAny()) {
-            if (result == null) {
-                if (obj instanceof @SuppressWarnings("rawtypes")JAXBElement jaxb) {
-                    if (jaxb.getDeclaredType() == Long.class) {
-                        result = ((Long) jaxb.getValue());
-                        if (jaxb.getName().toString().equals("{http://schemas.ogf.org/nsi/2013/12/services/point2point}capacity")) {
-                            log.debug("matched capacity qname");
-                        }
-                    }
-                }
-            }
-        }
-
-        if (result == null) {
-            throw new NsiValidationException("unable to determine capacity", NsiErrors.MISSING_PARAM_ERROR);
-        }
-        return result;
     }
 
 

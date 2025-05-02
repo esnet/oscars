@@ -47,9 +47,11 @@ public class L2VPN {
     protected Tech tech;
 
     @OneToMany
+    @Builder.Default
     protected List<Bundle> bundles = new ArrayList<>();
 
     @OneToMany
+    @Builder.Default
     protected List<Endpoint> endpoints = new ArrayList<>();
 
 

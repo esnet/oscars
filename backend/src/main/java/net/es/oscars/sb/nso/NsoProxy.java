@@ -270,23 +270,6 @@ public class NsoProxy {
         }
     }
 
-    public static YangPatchWrapper makeDismantleLspYangPatch(String lspInstanceKey) {
-        List<YangPatch.YangEdit> edits = new ArrayList<>();
-        edits.add(YangPatch.YangEdit.builder()
-                .editId("delete " + lspInstanceKey)
-                .operation("delete")
-                .target("/tailf-ncs:services/esnet-lsp:lsp=" + lspInstanceKey)
-                .build());
-        YangPatch deletePatch = YangPatch.builder()
-                .patchId("delete LSP " + lspInstanceKey)
-                .edit(edits)
-                .build();
-
-
-        return YangPatchWrapper.builder().patch(deletePatch).build();
-    }
-
-
     public static YangPatchWrapper makeDismantleYangPatch(NsoAdapter.NsoOscarsDismantle dismantle) {
         List<YangPatch.YangEdit> edits = new ArrayList<>();
         edits.add(YangPatch.YangEdit.builder()
@@ -559,6 +542,11 @@ public class NsoProxy {
                     ObjectMapper mapper = new ObjectMapper();
                     mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
                     LinkedHashMap<String, String> body = ((LinkedHashMap<String, String>) responseEntity.getBody());
+
+                    // protect against nulls
+                    if (body == null) {
+                        body = new LinkedHashMap<>();
+                    }
 
                     String json = mapper.writeValueAsString(body);
 
