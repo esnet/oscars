@@ -94,9 +94,10 @@ public class NsiQueries {
             mappings.addAll(nsiRepo.findAll()
                     .stream()
                     .filter(m -> {
-                        // don't return TERMINATED or FAILED lifecycle unless they are recent
                         if (m.getLifecycleState().equals(LifecycleStateEnumType.TERMINATED) || m.getLifecycleState().equals(LifecycleStateEnumType.FAILED)) {
-                            if (m.getLastModified().isAfter(Instant.now().minus(1, ChronoUnit.HOURS))) {
+
+                            // filter out any in lifecycle TERMINATED or FAILED that haven't been modified in the last 1 hour
+                            if (m.getLastModified().isBefore(Instant.now().minus(1, ChronoUnit.HOURS))) {
                                 return false;
                             }
                         }
