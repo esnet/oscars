@@ -40,9 +40,11 @@ public class NsiProvider implements ConnectionProviderPort {
 
         ReserveResponseType rrt = new ReserveResponseType();
         // add our item to the work queue
-        if (reserve.getConnectionId() == null) {
+        if (reserve.getConnectionId() == null || reserve.getConnectionId().isEmpty()) {
             String nsiConnectionId = UUID.randomUUID().toString();
             reserve.setConnectionId(nsiConnectionId);
+        } else {
+            reserve.setConnectionId(reserve.getConnectionId());
         }
 
         try {
