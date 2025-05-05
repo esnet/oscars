@@ -81,19 +81,24 @@ public class NsiQueries {
 
         qsct.setLastModified(nsiMappingService.getCalendar(Instant.now()));
 
+        // set last modified if it happens to be empty
+        nsiRepo.findAll().forEach(m -> {
+            if (m.getLastModified() == null) {
+                m.setLastModified(Instant.now());
+            }
+        });
+
         Set<NsiMapping> mappings = new HashSet<>();
         if (query.getConnectionId().isEmpty() && query.getGlobalReservationId().isEmpty()) {
             // empty query = find all
             mappings.addAll(nsiRepo.findAll()
                     .stream()
                     .filter(m -> {
-                        // don't return TERMINATED or FAILED lifecycle..
+                        // don't return TERMINATED or FAILED lifecycle unless they are recent
                         if (m.getLifecycleState().equals(LifecycleStateEnumType.TERMINATED) || m.getLifecycleState().equals(LifecycleStateEnumType.FAILED)) {
-                            return false;
-                        }
-                        // or any that timed out or FAILED in reserve
-                        if (m.getReservationState().equals(ReservationStateEnumType.RESERVE_TIMEOUT) || (m.getReservationState().equals(ReservationStateEnumType.RESERVE_FAILED))) {
-                            return false;
+                            if (m.getLastModified().isAfter(Instant.now().minus(1, ChronoUnit.HOURS))) {
+                                return false;
+                            }
                         }
 
                         return true;

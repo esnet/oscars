@@ -36,6 +36,7 @@ import net.es.topo.common.model.oscars1.IntRange;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -107,6 +108,7 @@ public class NsiMappingService {
 
     @Transactional
     public NsiMapping save(NsiMapping mapping) {
+        mapping.setLastModified(Instant.now());
         return nsiRepo.save(mapping);
     }
 
@@ -176,12 +178,13 @@ public class NsiMappingService {
                 .lifecycleState(LifecycleStateEnumType.CREATED)
                 .provisionState(ProvisionStateEnumType.RELEASED)
                 .reservationState(ReservationStateEnumType.RESERVE_START)
+                .lastModified(Instant.now())
                 .build();
         log.info("added an NSI mapping: "+nsiConnectionId+" --> "+oscarsConnectionId);
         return mapping;
     }
 
-    public P2PServiceBaseType getP2PService(ReserveType rt) throws NsiInternalException {
+    public Optional<P2PServiceBaseType> getP2PService(ReserveType rt) {
         ReservationRequestCriteriaType crit = rt.getCriteria();
         P2PServiceBaseType p2pt = null;
         for (Object o : crit.getAny()) {
@@ -199,11 +202,10 @@ public class NsiMappingService {
                 }
             }
         }
-
         if (p2pt == null) {
-            throw new NsiInternalException("Missing P2PServiceBaseType element!", NsiErrors.MISSING_PARAM_ERROR);
+            return Optional.empty();
         }
-        return p2pt;
+        return Optional.of(p2pt);
     }
 
 
@@ -264,6 +266,39 @@ public class NsiMappingService {
 
         }
 
+    }
+
+    public Triple<List<Fixture>, List<Junction>, List<Pipe>> simpleComponents(Connection c, int mbps) {
+        List<Junction> junctions = new ArrayList<>();
+        List<Fixture> fixtures = new ArrayList<>();
+        List<Pipe> pipes = new ArrayList<>();
+        for (VlanFixture vf: c.getReserved().getCmp().getFixtures()) {
+            fixtures.add(Fixture.builder()
+                    .junction(vf.getJunction().getDeviceUrn())
+                    .port(vf.getPortUrn())
+                    .mbps(mbps)
+                    .inMbps(mbps)
+                    .outMbps(mbps)
+                    .strict(strictPolicing)
+                    .vlan(vf.getVlan().getVlanId())
+                    .build());
+        }
+        for (VlanJunction vj: c.getReserved().getCmp().getJunctions()) {
+            junctions.add(Junction.builder().device(vj.getDeviceUrn()).build());
+        }
+
+        for (VlanPipe vp: c.getReserved().getCmp().getPipes()) {
+            pipes.add(Pipe.builder()
+                            .a(vp.getA().getDeviceUrn())
+                            .z(vp.getZ().getDeviceUrn())
+                            .mbps(mbps)
+                            .azMbps(mbps)
+                            .zaMbps(mbps)
+                            .build());
+        }
+
+
+        return Triple.of(fixtures, junctions, pipes);
     }
 
     public Pair<List<Fixture>, List<Junction>> fixturesAndJunctionsFor(P2PServiceBaseType p2p, Interval interval, String oscarsConnectionId)
