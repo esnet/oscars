@@ -46,6 +46,7 @@ public class NsiProvider implements ConnectionProviderPort {
         }
 
         rrt.setConnectionId(nsiConnectionId);
+        reserve.setConnectionId(nsiConnectionId);
 
         try {
             // we process the header
