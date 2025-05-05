@@ -39,13 +39,13 @@ public class NsiProvider implements ConnectionProviderPort {
     public ReserveResponseType reserve(ReserveType reserve, Holder<CommonHeaderType> header) throws ServiceException {
 
         ReserveResponseType rrt = new ReserveResponseType();
-        // add our item to the work queue
-        if (reserve.getConnectionId() == null || reserve.getConnectionId().isEmpty()) {
-            String nsiConnectionId = UUID.randomUUID().toString();
-            reserve.setConnectionId(nsiConnectionId);
-        } else {
-            reserve.setConnectionId(reserve.getConnectionId());
+        String nsiConnectionId = reserve.getConnectionId();
+        if (nsiConnectionId == null || nsiConnectionId.isEmpty()) {
+            log.info("creating a new connectionId");
+            nsiConnectionId = UUID.randomUUID().toString();
         }
+
+        rrt.setConnectionId(nsiConnectionId);
 
         try {
             // we process the header
