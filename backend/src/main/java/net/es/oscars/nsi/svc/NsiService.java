@@ -480,6 +480,7 @@ public class NsiService {
             if (mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_CHECKING)) {
                 if (mapping.getLastModified().isBefore(Instant.now().minus(10, ChronoUnit.MINUTES))) {
                     try {
+                        log.info("timing out a stale mapping " + mapping.getNsiConnectionId() + " " + mapping.getOscarsConnectionId());
                         nsiStateEngine.resvTimedOut(mapping);
                         this.reserveTimeout(mapping);
                     } catch (NsiStateException e) {
@@ -487,6 +488,14 @@ public class NsiService {
                     }
                 }
             }
+            Optional<Connection> mc = nsiMappingService.getMaybeOscarsConnection(mapping);
+            if (mc.isEmpty()) {
+                if (mapping.getLastModified().isBefore(Instant.now().minus(10, ChronoUnit.MINUTES))) {
+                    log.info("deleting a mapping without OSCARS connection " + mapping.getNsiConnectionId() + " " + mapping.getOscarsConnectionId());
+                    nsiMappingService.delete(mapping);
+                }
+            }
+
         }
     }
 
