@@ -119,6 +119,9 @@ public class TransitionStates {
                     nsiService.resvTimedOut(mapping);
                 }
 
+                nsiService.housekeeping();
+
+
                 unholdThese.forEach(c -> {
                     log.debug("Un-holding "+c.getConnectionId());
                     connService.unhold(c.getConnectionId());

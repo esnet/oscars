@@ -95,8 +95,6 @@ public class NsiService {
                 log.info("transitioning state: RESV_START");
                 nsiStateEngine.reserve(NsiEvent.RESV_START, mapping);
                 nsiMappingService.save(mapping);
-            } else {
-                // this is not a brand new reserve, we already have a mapping and it should be at RESV_START
             }
 
             log.info("transitioning NSI state: RESV_CHECK");
@@ -475,6 +473,23 @@ public class NsiService {
         }
     }
 
+
+    public void housekeeping() {
+        for (NsiMapping mapping : nsiMappingService.findAll()) {
+            // find mappings in CHECKING and time them out if they end up stale
+            if (mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_CHECKING)) {
+                if (mapping.getLastModified().isBefore(Instant.now().minus(10, ChronoUnit.MINUTES))) {
+                    try {
+                        nsiStateEngine.resvTimedOut(mapping);
+                        this.reserveTimeout(mapping);
+                    } catch (NsiStateException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
+    }
+
     /* outbound SOAP calls  */
     public void reserveTimeout(NsiMapping mapping) {
         try {
@@ -521,8 +536,6 @@ public class NsiService {
         String corrId = inHeader.getCorrelationId();
         Holder<CommonHeaderType> outHeader = nsiHeaderUtils.makeClientHeader(nsaId, corrId);
 
-        GenericConfirmedType gct = new GenericConfirmedType();
-        gct.setConnectionId(mapping.getNsiConnectionId());
 
         Connection c = nsiMappingService.getOscarsConnection(mapping);
 
@@ -824,6 +837,7 @@ public class NsiService {
                 TypeValuePairType tvp = new TypeValuePairType();
                 tvp.setNamespace(NSI_TYPES);
                 tvp.setType("connectionId");
+                tvps.add(tvp);
 
                 return NsiReserveResult.builder()
                         .errorCode(NsiErrors.MSG_PAYLOAD_ERROR)

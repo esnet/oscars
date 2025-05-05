@@ -2,7 +2,6 @@ package net.es.oscars.nsi.svc;
 
 import jakarta.xml.bind.JAXBElement;
 import lombok.extern.slf4j.Slf4j;
-import net.es.nsi.lib.soap.gen.nsi_2_0.connection.ifce.ServiceException;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.P2PServiceBaseType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.DirectionalityType;
@@ -15,7 +14,6 @@ import net.es.oscars.nsi.beans.NsiErrors;
 import net.es.oscars.nsi.db.NsiMappingRepository;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.pce.PceService;
-import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.ConnService;
@@ -56,7 +54,6 @@ import java.util.*;
 @Slf4j
 public class NsiMappingService {
 
-    private final ConnectionRepository connRepo;
     private final NsiMappingRepository nsiRepo;
     private final TopologyStore topologyStore;
     private final ResvService resvService;
@@ -77,8 +74,7 @@ public class NsiMappingService {
     @Autowired
     private ConnService connService;
 
-    public NsiMappingService(ConnectionRepository connRepo, NsiMappingRepository nsiRepo, TopologyStore topologyStore, ResvService resvService, PceService pceService) {
-        this.connRepo = connRepo;
+    public NsiMappingService(NsiMappingRepository nsiRepo, TopologyStore topologyStore, ResvService resvService, PceService pceService) {
         this.nsiRepo = nsiRepo;
         this.topologyStore = topologyStore;
         this.resvService = resvService;
@@ -116,6 +112,9 @@ public class NsiMappingService {
     public void delete(NsiMapping mapping) {
         nsiRepo.delete(mapping);
     }
+    public List<NsiMapping> findAll() {
+        return nsiRepo.findAll();
+    }
 
     @Transactional
     public Optional<NsiMapping> getMappingForOscarsId(String oscarsConnectionId) {
@@ -147,13 +146,6 @@ public class NsiMappingService {
         }
     }
 
-    public boolean hasNsiMapping(String nsiConnectionId) throws NsiMappingException {
-        if (nsiConnectionId == null || nsiConnectionId.isEmpty()) {
-            throw new NsiMappingException("null or blank connection id! " + nsiConnectionId, NsiErrors.MISSING_PARAM_ERROR);
-        }
-        Optional<NsiMapping> mapping = nsiRepo.findByNsiConnectionId(nsiConnectionId);
-        return mapping.isPresent();
-    }
 
 
     public NsiMapping newMapping(String nsiConnectionId, String nsiGri, String nsaId, Integer version) throws NsiMappingException {
@@ -222,12 +214,12 @@ public class NsiMappingService {
         }
         // first element of ero should be the first device...
         if (include.isEmpty()) {
-            include.add(junctions.get(0).getDevice());
-        } else if (!include.get(0).equals(junctions.get(0).getDevice())) {
-            include.add(0, junctions.get(0).getDevice());
+            include.add(junctions.getFirst().getDevice());
+        } else if (!include.getFirst().equals(junctions.get(0).getDevice())) {
+            include.addFirst(junctions.getFirst().getDevice());
         }
         // last element of ero should be the last device.
-        if (!include.get(include.size() - 1).equals(junctions.get(1).getDevice())) {
+        if (!include.getLast().equals(junctions.get(1).getDevice())) {
             include.add(junctions.get(1).getDevice());
         }
 
@@ -585,7 +577,7 @@ public class NsiMappingService {
             strEro.add(srcStp);
             strEro.add(dstStp);
         } else {
-            VlanPipe p = cmp.getPipes().get(0);
+            VlanPipe p = cmp.getPipes().getFirst();
             strEro.add(srcStp);
             for (int i = 0; i < p.getAzERO().size(); i++) {
                 // skip devices in NSI ERO
