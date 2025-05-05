@@ -65,6 +65,13 @@ public class NsiAsyncQueue {
                 }
                 return results;
             };
+
+            Future<Results> future = executorService.submit(pollTask);
+            future.get();
+
+            executorService.shutdown();
+        } catch (InterruptedException | ExecutionException e) {
+            log.error(e.getLocalizedMessage(), e);
         }
 
     }

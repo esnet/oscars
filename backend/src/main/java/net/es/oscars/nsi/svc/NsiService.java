@@ -78,6 +78,8 @@ public class NsiService {
 
     public void reserve(CommonHeaderType header, NsiMapping mapping, ReserveType incomingRT)
             throws NsiInternalException, NsiStateException, NsiMappingException {
+        log.info("starting reserve for nsi connection id" + incomingRT.getConnectionId());
+
         String nsaId = header.getRequesterNSA();
         String nsiConnectionId  = incomingRT.getConnectionId();
         String nsiGri = incomingRT.getGlobalReservationId();
