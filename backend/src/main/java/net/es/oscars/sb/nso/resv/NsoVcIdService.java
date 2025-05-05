@@ -24,6 +24,14 @@ public class NsoVcIdService {
     @Autowired
     private NsoVcIdDAO nsoVcIdDAO;
 
+    @Transactional
+    public void migrate(Long newScheduleId, Long oldScheduleId) {
+        nsoVcIdDAO.findAllByScheduleId(oldScheduleId).forEach(nsoVcId -> {
+            nsoVcId.setScheduleId(newScheduleId);
+            nsoVcIdDAO.save(nsoVcId);
+        });
+    }
+
 
     @Transactional
     public void findAndReserveVcId(Connection conn, List<Schedule> schedules) throws NsoResvException {

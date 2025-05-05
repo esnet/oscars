@@ -31,6 +31,12 @@ public class NsoResourceService {
     @Autowired
     private ScheduleRepository scheduleRepo;
 
+    public void migrate(Long newScheduleId, Long oldScheduleId) {
+        nsoVcIdService.migrate(newScheduleId, oldScheduleId);
+        nsoSdpIdService.migrate(newScheduleId, oldScheduleId);
+        nsoQosSapPolicyIdService.migrate(newScheduleId, oldScheduleId);
+        nsoSdpVcIdService.migrate(newScheduleId, oldScheduleId);
+    }
 
     public void reserve(Connection conn) throws NsoResvException {
         log.info("starting NSO resource reservation");

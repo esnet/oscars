@@ -31,6 +31,14 @@ public class NsoSdpVcIdService {
     private NsoSdpIdDAO nsoSdpIdDAO;
 
     @Transactional
+    public void migrate(Long newScheduleId, Long oldScheduleId) {
+        nsoSdpVcIdDAO.findAllByScheduleId(oldScheduleId).forEach(sdpVcId -> {
+            sdpVcId.setScheduleId(newScheduleId);
+            nsoSdpVcIdDAO.save(sdpVcId);
+        });
+    }
+
+    @Transactional
     public void findAndReserveNsoSdpVcIds(Connection conn, List<Schedule> schedules) throws NsoResvException {
         // we use the same VC-id on the spoke-sdps at the end of each pipe.
         // this is similar to the SDP id but this time we NEED to match the vc-id values

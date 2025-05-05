@@ -462,26 +462,34 @@ public class ConnService {
             c.setPhase(Phase.RESERVED);
             c.setArchived(null);
 
-            Connection afterArchiveDeleted = connRepo.save(c);
+            Optional<Connection> existing = connRepo.findByConnectionId(c.getConnectionId());
+            boolean isModify = false;
+            Long scheduleId = null;
+            if (existing.isPresent()) {
+                isModify = true;
+                log.info("deleting from db " + c.getConnectionId());
+                scheduleId = existing.get().getReserved().getSchedule().getId();
+                connRepo.delete(existing.get());
 
-            // try and delete any previous archived stuff that might exist
-            archivedRepo.findByConnectionId(afterArchiveDeleted.getConnectionId()).ifPresent(archivedRepo::delete);
+            }
 
-            reservedFromHeld(afterArchiveDeleted);
-            archiveFromReserved(afterArchiveDeleted);
+            reservedFromHeld(c);
+            archiveFromReserved(c);
 
-            afterArchiveDeleted.setHeld(null);
+            c.setHeld(null);
 
-            // try and delete any held components that might still be around
-            heldRepo.findByConnectionId(afterArchiveDeleted.getConnectionId()).ifPresent(heldRepo::delete);
 
-            afterArchiveDeleted.setDeploymentState(DeploymentState.UNDEPLOYED);
-            afterArchiveDeleted.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
-            Instant instant = Instant.now();
-            afterArchiveDeleted.setLast_modified((int) instant.getEpochSecond());
+            c.setDeploymentState(DeploymentState.UNDEPLOYED);
+            c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
+            c.setLast_modified((int) Instant.now().getEpochSecond());
 
-            Connection beforeNsoReserve = connRepo.saveAndFlush(afterArchiveDeleted);
-            nsoResourceService.reserve(beforeNsoReserve);
+            connRepo.saveAndFlush(c);
+            if (!isModify) {
+                nsoResourceService.reserve(c);
+            } else {
+                nsoResourceService.migrate(scheduleId, c.getReserved().getSchedule().getId());
+            }
+
 
             log.info("committed " + c.getConnectionId());
 

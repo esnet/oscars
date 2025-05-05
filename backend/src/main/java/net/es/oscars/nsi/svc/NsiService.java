@@ -725,7 +725,7 @@ public class NsiService {
 
     /* submit hold */
     public NsiReserveResult hold(ReserveType incomingRT, NsiMapping mapping) throws NsiInternalException, NsiValidationException {
-        log.info("preparing connection");
+        log.info("hold for "+mapping.getNsiConnectionId()+" "+mapping.getOscarsConnectionId());
         String oscarsConnectionId = mapping.getOscarsConnectionId();
 
         //
@@ -741,6 +741,7 @@ public class NsiService {
 
         // we always get capacity (hopefully)
         int mbps = (int) op2p.get().getCapacity();;
+        log.info("capacity: " + mbps);
         long begin;
         long end;
         Interval interval;
@@ -749,9 +750,11 @@ public class NsiService {
         List<Pipe> pipes;
 
         List<String> include = new ArrayList<>();
+        ConnectionMode connectionMode = ConnectionMode.NEW;
 
         if (optC.isPresent()) {
             Connection c = optC.get();
+            connectionMode = ConnectionMode.MODIFY;
             if (crit.getSchedule() != null) {
                 interval = nsiMappingService.nsiToOscarsSchedule(crit.getSchedule());
                 begin = interval.getBeginning().getEpochSecond();
@@ -759,12 +762,16 @@ public class NsiService {
             } else {
                 begin = c.getReserved().getSchedule().getBeginning().getEpochSecond();
                 end = c.getReserved().getSchedule().getEnding().getEpochSecond();
+                interval = Interval.builder()
+                        .beginning(c.getReserved().getSchedule().getBeginning())
+                        .ending(c.getReserved().getSchedule().getEnding())
+                        .build();
             }
             // recreate f, j, p based on reserved w modified mbps if applicable
-            Triple<List<Fixture>, List<Junction>, List<Pipe>> fjp = nsiMappingService.simpleComponents(c, mbps);
+            Pair<List<Fixture>, List<Junction>> fjp = nsiMappingService.simpleComponents(c, mbps);
             fixtures = fjp.getLeft();
-            junctions = fjp.getMiddle();
-            pipes = fjp.getRight();
+            junctions = fjp.getRight();
+            pipes = nsiMappingService.pipesFor(interval, mbps, junctions, include);
 
         } else {
             // a new reserve
@@ -831,7 +838,8 @@ public class NsiService {
             }
             // add a validity check
             try {
-                Validity v = connSvc.validate(simpleConnection, ConnectionMode.NEW);
+
+                Validity v = connSvc.validate(simpleConnection, connectionMode);
 
                 if (!v.isValid()) {
                     return NsiReserveResult.builder()

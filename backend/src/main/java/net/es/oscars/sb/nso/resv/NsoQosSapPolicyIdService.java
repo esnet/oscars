@@ -24,6 +24,15 @@ public class NsoQosSapPolicyIdService {
     @Autowired
     private NsoQosSapPolicyIdDAO nsoQosSapPolicyIdDAO;
 
+
+    @Transactional
+    public void migrate(Long newScheduleId, Long oldScheduleId) {
+        nsoQosSapPolicyIdDAO.findAllByScheduleId(oldScheduleId).forEach(qspId -> {
+            qspId.setScheduleId(newScheduleId);
+            nsoQosSapPolicyIdDAO.save(qspId);
+        });
+    }
+
     @Transactional
     public void findAndReserveQosSapPolicyIds(Connection conn, List<Schedule> schedules) throws NsoResvException {
         Map<String, Set<VlanFixture>> byDevice = new HashMap<>();

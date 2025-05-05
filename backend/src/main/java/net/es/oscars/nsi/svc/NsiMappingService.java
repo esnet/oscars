@@ -260,10 +260,9 @@ public class NsiMappingService {
 
     }
 
-    public Triple<List<Fixture>, List<Junction>, List<Pipe>> simpleComponents(Connection c, int mbps) {
+    public Pair<List<Fixture>, List<Junction>> simpleComponents(Connection c, int mbps) {
         List<Junction> junctions = new ArrayList<>();
         List<Fixture> fixtures = new ArrayList<>();
-        List<Pipe> pipes = new ArrayList<>();
         for (VlanFixture vf: c.getReserved().getCmp().getFixtures()) {
             fixtures.add(Fixture.builder()
                     .junction(vf.getJunction().getDeviceUrn())
@@ -279,18 +278,8 @@ public class NsiMappingService {
             junctions.add(Junction.builder().device(vj.getDeviceUrn()).build());
         }
 
-        for (VlanPipe vp: c.getReserved().getCmp().getPipes()) {
-            pipes.add(Pipe.builder()
-                            .a(vp.getA().getDeviceUrn())
-                            .z(vp.getZ().getDeviceUrn())
-                            .mbps(mbps)
-                            .azMbps(mbps)
-                            .zaMbps(mbps)
-                            .build());
-        }
 
-
-        return Triple.of(fixtures, junctions, pipes);
+        return Pair.of(fixtures, junctions);
     }
 
     public Pair<List<Fixture>, List<Junction>> fixturesAndJunctionsFor(P2PServiceBaseType p2p, Interval interval, String oscarsConnectionId)
