@@ -102,7 +102,7 @@ public class NsiMappingService {
     @Transactional
     public Optional<Connection> getMaybeOscarsConnection(NsiMapping mapping) {
         // log.debug("getting oscars connection for "+mapping.getOscarsConnectionId());
-        return connRepo.findByConnectionId(mapping.getOscarsConnectionId());
+        return connService.findConnection(mapping.getOscarsConnectionId());
     }
 
     @Transactional
