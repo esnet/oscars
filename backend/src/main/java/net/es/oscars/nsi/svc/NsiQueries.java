@@ -95,10 +95,6 @@ public class NsiQueries {
                         if (m.getReservationState().equals(ReservationStateEnumType.RESERVE_TIMEOUT) || (m.getReservationState().equals(ReservationStateEnumType.RESERVE_FAILED))) {
                             return false;
                         }
-                        // or any that don't have an OSCARS connection
-                        if (nsiMappingService.getMappingForOscarsId(m.getOscarsConnectionId()).isEmpty()) {
-                            return false;
-                        }
 
                         return true;
                     }).collect(Collectors.toSet())

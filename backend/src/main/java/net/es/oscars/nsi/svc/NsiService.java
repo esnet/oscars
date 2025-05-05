@@ -44,8 +44,8 @@ import static net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReservationStateE
 public class NsiService {
 
     private final NsiQueries nsiQueries;
-    @Value("${nsi.resv-timeout}")
-    private Integer nsiResvTimeout;
+    @Value("${resv.timeout}")
+    private Integer resvTimeout;
 
     @Value("${nsi.provider-nsa}")
     private String providerNsa;
@@ -118,7 +118,7 @@ public class NsiService {
                     log.info("successful reserve, updating state");
                     nsiStateEngine.reserve(NsiEvent.RESV_CF, mapping);
                     nsiMappingService.save(mapping);
-                    Instant timeout = Instant.now().plus(nsiResvTimeout, ChronoUnit.SECONDS);
+                    Instant timeout = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
                     //
                     NsiRequest nsiRequest = NsiRequest.builder()
                             .nsiConnectionId(mapping.getNsiConnectionId())
@@ -474,7 +474,10 @@ public class NsiService {
             nsiMappingService.save(mapping);
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
-
+            if (requesterNSA.getCallbackUrl().isEmpty()) {
+                log.info("empty callback url, unable to reserveTimeout");
+                return;
+            }
             ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
             String corrId = nsiHeaderUtils.newCorrelationId();
             Holder<CommonHeaderType> outHeader = nsiHeaderUtils.makeClientHeader(nsaId, corrId);
@@ -485,7 +488,7 @@ public class NsiService {
             rrt.setConnectionId(mapping.getNsiConnectionId());
             rrt.setOriginatingNSA(this.providerNsa);
             rrt.setTimeStamp(nsiMappingService.getCalendar(Instant.now()));
-            rrt.setTimeoutValue(nsiResvTimeout);
+            rrt.setTimeoutValue(resvTimeout);
             rrt.setNotificationId(notificationId);
 
             port.reserveTimeout(rrt, outHeader);
@@ -498,6 +501,11 @@ public class NsiService {
     public void reserveConfirmCallback(NsiMapping mapping, CommonHeaderType inHeader) throws NsiInternalException, NsiMappingException {
         String nsaId = mapping.getNsaId();
         NsiRequesterNSA requesterNSA = nsiHeaderUtils.getRequesterNsa(nsaId);
+        if (requesterNSA.getCallbackUrl().isEmpty()) {
+            log.info("empty callback url, unable to reserveConfirmCallback");
+            return;
+        }
+
         ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
 
         String corrId = inHeader.getCorrelationId();
@@ -567,6 +575,11 @@ public class NsiService {
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
 
+            if (requesterNSA.getCallbackUrl().isEmpty()) {
+                log.info("empty callback url, unable to dataplaneCallback");
+                return;
+            }
+
             ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
             net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory of =
                     new net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ObjectFactory();
@@ -601,6 +614,11 @@ public class NsiService {
             String nsaId = mapping.getNsaId();
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
+            if (requesterNSA.getCallbackUrl().isEmpty()) {
+                log.info("empty callback url, unable to okCallback");
+                return;
+            }
+
             ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
 
             GenericConfirmedType gct = new GenericConfirmedType();
@@ -632,6 +650,10 @@ public class NsiService {
         try {
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
+            if (requesterNSA.getCallbackUrl().isEmpty()) {
+                log.info("empty callback url, unable to errCallback");
+                return;
+            }
 
             ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
 
@@ -691,7 +713,7 @@ public class NsiService {
         long begin = interval.getBeginning().getEpochSecond();
         long end = interval.getEnding().getEpochSecond();
 
-        Instant exp = Instant.now().plus(nsiResvTimeout, ChronoUnit.SECONDS);
+        Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         long expSecs = exp.toEpochMilli() / 1000L;
         log.info("got schedule and bw");
 

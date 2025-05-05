@@ -75,6 +75,10 @@ public class TransitionStates {
                     if (c.getHeld().getExpiration().isBefore(Instant.now())) {
                         log.info("will un-hold a held connection that expired: " + c.getConnectionId());
                         Optional<NsiMapping> maybeMapping =  nsiMappingService.getMappingForOscarsId(c.getConnectionId());
+                        maybeMapping.ifPresent(m -> {
+                            log.info("timing out associated NSI mapping: " + m.getNsiConnectionId());
+                            timedOut.add(m);
+                        });
                         maybeMapping.ifPresent(timedOut::add);
                         unholdThese.add(c);
                     }
@@ -98,10 +102,11 @@ public class TransitionStates {
                 for (NsiRequest req : expiredRequests) {
                     nsiRequestManager.remove(req.getNsiConnectionId());
                     try {
+                        log.info("an NSI request timed out " + req.getNsiConnectionId());
                         NsiMapping mapping = nsiMappingService.getMapping(req.getNsiConnectionId());
                         nsiService.timeoutRequest(mapping);
                     } catch (NsiMappingException ex) {
-                        log.error("unable to roll back expired request for "+req.getNsiConnectionId(), ex);
+                        log.error("mapping problem: "+req.getNsiConnectionId(), ex);
                     }
                 }
 

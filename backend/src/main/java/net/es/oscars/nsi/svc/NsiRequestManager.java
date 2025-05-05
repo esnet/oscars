@@ -33,9 +33,9 @@ public class NsiRequestManager {
     // returns any timed out modifies
     public List<NsiRequest> timedOut() {
         List<NsiRequest> result = new ArrayList<>();
-        for (NsiRequest modify : inFlightRequests.values()) {
-            if (modify.getTimeout().isBefore(Instant.now())) {
-                result.add(modify);
+        for (NsiRequest reserve : inFlightRequests.values()) {
+            if (reserve.getTimeout().isBefore(Instant.now())) {
+                result.add(reserve);
             }
         }
         return result;
