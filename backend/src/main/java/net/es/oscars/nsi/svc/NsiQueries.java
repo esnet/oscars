@@ -38,9 +38,11 @@ public class NsiQueries {
         }
 
         for (String connId : query.getConnectionId()) {
+            /*
             if (!nsiMappingService.hasNsiMapping(connId)) {
                 throw new NsiValidationException("NSI connection id not found", NsiErrors.RESERVATION_NONEXISTENT);
             }
+             */
         }
 
     }

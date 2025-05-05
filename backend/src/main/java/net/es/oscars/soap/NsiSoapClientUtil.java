@@ -128,6 +128,7 @@ public class NsiSoapClientUtil {
 
     private void configureConduit(Client client, NsiRequesterNSA requesterNSA) throws NsiInternalException {
         HTTPConduit conduit = (HTTPConduit) client.getConduit();
+        log.info("configureConduit for "+requesterNSA.getCallbackUrl());
         if (requesterNSA.getCallbackUrl().startsWith("https")) {
 
             try {

@@ -91,7 +91,7 @@ public class NsiMappingService {
         if (mapping == null) {
             throw new NsiMappingException("null mapping", NsiErrors.RESERVATION_NONEXISTENT);
         }
-        Optional<Connection> c = connService.findConnection(mapping.getNsiConnectionId());
+        Optional<Connection> c = connService.findConnection(mapping.getOscarsConnectionId());
         if (c.isEmpty()) {
             throw new NsiMappingException("OSCARS connection not found", NsiErrors.RESERVATION_NONEXISTENT);
         } else {
