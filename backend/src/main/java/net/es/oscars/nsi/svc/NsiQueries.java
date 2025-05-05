@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -46,6 +47,7 @@ public class NsiQueries {
 
     @Transactional
     public QueryRecursiveConfirmedType queryRecursive(QueryType query) throws NsiInternalException {
+        log.info("queryRecursive");
         QueryRecursiveConfirmedType qrct = new QueryRecursiveConfirmedType();
 
         Set<NsiMapping> mappings = new HashSet<>();
@@ -57,7 +59,6 @@ public class NsiQueries {
         }
 
         Long resultId = 0L;
-        List<NsiMapping> invalidMappings = new ArrayList<>();
         for (NsiMapping mapping : mappings) {
             QueryRecursiveResultType qrrt = this.toQRRT(mapping);
             if (qrrt != null) {
@@ -67,22 +68,39 @@ public class NsiQueries {
             }
 
         }
-        nsiRepo.deleteAll(invalidMappings);
         return qrct;
     }
 
 
     @Transactional
     public QuerySummaryConfirmedType querySummary(QueryType query) throws NsiInternalException {
+        log.info("querySummary");
         QuerySummaryConfirmedType qsct = new QuerySummaryConfirmedType();
 
         qsct.setLastModified(nsiMappingService.getCalendar(Instant.now()));
 
-
         Set<NsiMapping> mappings = new HashSet<>();
         if (query.getConnectionId().isEmpty() && query.getGlobalReservationId().isEmpty()) {
             // empty query = find all
-            mappings.addAll(nsiRepo.findAll());
+            mappings.addAll(nsiRepo.findAll()
+                    .stream()
+                    .filter(m -> {
+                        // don't return TERMINATED or FAILED lifecycle..
+                        if (m.getLifecycleState().equals(LifecycleStateEnumType.TERMINATED) || m.getLifecycleState().equals(LifecycleStateEnumType.FAILED)) {
+                            return false;
+                        }
+                        // or any that timed out or FAILED in reserve
+                        if (m.getReservationState().equals(ReservationStateEnumType.RESERVE_TIMEOUT) || (m.getReservationState().equals(ReservationStateEnumType.RESERVE_FAILED))) {
+                            return false;
+                        }
+                        // or any that don't have an OSCARS connection
+                        if (nsiMappingService.getMappingForOscarsId(m.getOscarsConnectionId()).isEmpty()) {
+                            return false;
+                        }
+
+                        return true;
+                    }).collect(Collectors.toSet())
+            );
             log.debug("added all mappings: " + mappings.size());
         } else {
             for (String connId : query.getConnectionId()) {
@@ -97,7 +115,6 @@ public class NsiQueries {
         }
 
         Long resultId = 0L;
-        List<NsiMapping> invalidMappings = new ArrayList<>();
         for (NsiMapping mapping : mappings) {
             // log.debug("query result entry "+mapping.getNsiConnectionId()+" --- "+mapping.getOscarsConnectionId());
             QuerySummaryResultType qsrt = this.toQSRT(mapping);
@@ -107,7 +124,6 @@ public class NsiQueries {
                 resultId++;
             }
         }
-        nsiRepo.deleteAll(invalidMappings);
         log.debug("returning results, total: " + resultId);
         return qsct;
     }
