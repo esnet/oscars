@@ -467,9 +467,16 @@ public class ConnService {
             Optional<Connection> existing = connRepo.findByConnectionId(c.getConnectionId());
             boolean isModify = false;
             Long scheduleId = null;
+
+            // previous fixture ids
+            Map<String, Long> prevFixtureIds = new HashMap<>();
+
             if (existing.isPresent()) {
                 isModify = true;
                 log.info("deleting from db previous " + existing.get().getConnectionId());
+                for (VlanFixture vf : existing.get().getReserved().getCmp().getFixtures()) {
+                    prevFixtureIds.put(vf.getPortUrn()+":"+vf.getVlan().getVlanId(), vf.getId());
+                }
                 scheduleId = existing.get().getReserved().getSchedule().getId();
                 connRepo.delete(existing.get());
                 if (c.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
@@ -491,7 +498,13 @@ public class ConnService {
             if (!isModify) {
                 nsoResourceService.reserve(c);
             } else {
-                nsoResourceService.migrate(scheduleId, c.getReserved().getSchedule().getId());
+                Map<Long, Long> fixtureIdMap = new HashMap<>();
+                for (VlanFixture vf : c.getReserved().getCmp().getFixtures()) {
+                    String key = vf.getPortUrn()+":"+vf.getVlan().getVlanId();
+                    fixtureIdMap.put(prevFixtureIds.get(key), vf.getId());
+                }
+
+                nsoResourceService.migrate(scheduleId, c.getReserved().getSchedule().getId(), fixtureIdMap);
             }
 
 
