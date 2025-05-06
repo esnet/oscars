@@ -5,7 +5,7 @@ Feature: Synchronize NSO service state to OSCARS state (Unhappy Path)
   # Unhappy path
   Scenario: Read NSO VPLS service state, make decisions about add (Unhappy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.unhappy.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 137 instances
     Given The world is expecting an exception
@@ -18,7 +18,7 @@ Feature: Synchronize NSO service state to OSCARS state (Unhappy Path)
 
   Scenario: Read NSO VPLS service state, make decisions about delete (Unhappy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.unhappy.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 137 instances
     Given The world is expecting an exception
@@ -30,7 +30,7 @@ Feature: Synchronize NSO service state to OSCARS state (Unhappy Path)
 
   Scenario: Read NSO VPLS service state, make decisions about delete (Unhappy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.unhappy.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 137 instances
     Given The world is expecting an exception
@@ -42,7 +42,7 @@ Feature: Synchronize NSO service state to OSCARS state (Unhappy Path)
 
   Scenario: Read NSO VPLS service state, make decisions about no-op (Unhappy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.unhappy.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 137 instances
     Given The world is expecting an exception

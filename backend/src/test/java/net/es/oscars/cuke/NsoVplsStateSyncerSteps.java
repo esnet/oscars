@@ -38,8 +38,8 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     @Autowired
     NsoProxy proxy;
 
-    @Given("The list of active OSCARS connections are loaded from {string}")
-    public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) throws Throwable {
+    @Given("The list of active OSCARS connections are loaded")
+    public void theListOfActiveOSCARSConnectionsAreLoadedFrom() throws Throwable {
         // Load the (mock) NSO response payload
         syncer = new NsoVplsStateSyncer(proxy);
         // Note: we don't actually use arg0, as we expect the NsoHttpServer to mock the API endpoint.
