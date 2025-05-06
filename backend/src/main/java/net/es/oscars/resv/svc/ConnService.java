@@ -461,28 +461,32 @@ public class ConnService {
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
             c.setArchived(null);
+            DeploymentState deploymentState = DeploymentState.UNDEPLOYED;
+            DeploymentIntent deploymentIntent = DeploymentIntent.SHOULD_BE_UNDEPLOYED;
 
             Optional<Connection> existing = connRepo.findByConnectionId(c.getConnectionId());
             boolean isModify = false;
             Long scheduleId = null;
             if (existing.isPresent()) {
                 isModify = true;
-                log.info("deleting from db " + c.getConnectionId());
+                log.info("deleting from db previous " + existing.get().getConnectionId());
                 scheduleId = existing.get().getReserved().getSchedule().getId();
                 connRepo.delete(existing.get());
+                if (c.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
+                    deploymentState = DeploymentState.DEPLOYED;
+                    deploymentIntent = DeploymentIntent.SHOULD_BE_REDEPLOYED;
+                }
 
             }
 
             reservedFromHeld(c);
             archiveFromReserved(c);
-
             c.setHeld(null);
-
-
-            c.setDeploymentState(DeploymentState.UNDEPLOYED);
-            c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
+            c.setDeploymentState(deploymentState);
+            c.setDeploymentIntent(deploymentIntent);
             c.setLast_modified((int) Instant.now().getEpochSecond());
 
+            log.info("saving to db new " + c.getConnectionId());
             connRepo.saveAndFlush(c);
             if (!isModify) {
                 nsoResourceService.reserve(c);
@@ -1100,7 +1104,7 @@ public class ConnService {
         }
     }
 
-    public void releaseHold(String connectionId) throws NoSuchElementException {
+    public void releaseHold(String connectionId) {
         held.remove(connectionId);
     }
 

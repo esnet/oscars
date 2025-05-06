@@ -94,6 +94,8 @@ public class NsiStateEngine {
         Set<ReservationStateEnumType> allowedStates = new HashSet<>();
         allowedStates.add(ReservationStateEnumType.RESERVE_HELD);
         allowedStates.add(ReservationStateEnumType.RESERVE_CHECKING);
+        allowedStates.add(ReservationStateEnumType.RESERVE_ABORTING);
+        allowedStates.add(ReservationStateEnumType.RESERVE_COMMITTING);
 
         if (!allowedStates.contains(mapping.getReservationState())) {
             throw new NsiStateException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
