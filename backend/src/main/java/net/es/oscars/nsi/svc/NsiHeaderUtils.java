@@ -121,7 +121,12 @@ public class NsiHeaderUtils {
         exceptionType.setNsaId(providerNsa);
         exceptionType.setServiceType(SERVICE_TYPE);
         exceptionType.setText(error);
-        exceptionType.setErrorId(errNum.toString());
+        if (errNum != null) {
+            exceptionType.setErrorId(errNum.toString());
+        } else {
+            log.error("null errNum, using NRM_ERROR");
+            exceptionType.setErrorId(NsiErrors.NRM_ERROR.toString());
+        }
         VariablesType vt = new VariablesType();
         if (tvps != null) {
             vt.getVariable().addAll(tvps);

@@ -8,9 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.QueryType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReserveType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
+import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.NsiMappingException;
 import net.es.oscars.nsi.ent.NsiMapping;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -22,19 +24,27 @@ import java.util.concurrent.*;
 public class NsiAsyncQueue {
     private final NsiService nsiService;
     private final NsiMappingService nsiMappingService;
+    private final Startup startup;
 
     public ConcurrentLinkedQueue<AsyncItem> queue = new ConcurrentLinkedQueue<>();
 
-    public NsiAsyncQueue(NsiService nsiService, NsiMappingService nsiMappingService) {
+    public NsiAsyncQueue(NsiService nsiService, NsiMappingService nsiMappingService, Startup startup) {
         this.nsiService = nsiService;
         this.nsiMappingService = nsiMappingService;
+        this.startup = startup;
     }
 
     public void add(AsyncItem item) {
         queue.add(item);
     }
 
+    @Scheduled(fixedDelayString = "${nsi.queue-interval-millisec}")
     public void processQueue() {
+        if (startup.isInStartup() || startup.isInShutdown()) {
+            // log.info("application in startup or shutdown; skipping queue processing");
+            return;
+        }
+
         try (ExecutorService executorService = Executors.newFixedThreadPool(1)) {
 
             Callable<Results> pollTask = () -> {
@@ -55,6 +65,13 @@ public class NsiAsyncQueue {
                 }
                 return results;
             };
+
+            Future<Results> future = executorService.submit(pollTask);
+            future.get();
+
+            executorService.shutdown();
+        } catch (InterruptedException | ExecutionException e) {
+            log.error(e.getLocalizedMessage(), e);
         }
 
     }

@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -37,15 +38,18 @@ public class NsiQueries {
         }
 
         for (String connId : query.getConnectionId()) {
+            /*
             if (!nsiMappingService.hasNsiMapping(connId)) {
                 throw new NsiValidationException("NSI connection id not found", NsiErrors.RESERVATION_NONEXISTENT);
             }
+             */
         }
 
     }
 
     @Transactional
     public QueryRecursiveConfirmedType queryRecursive(QueryType query) throws NsiInternalException {
+        log.info("queryRecursive");
         QueryRecursiveConfirmedType qrct = new QueryRecursiveConfirmedType();
 
         Set<NsiMapping> mappings = new HashSet<>();
@@ -57,7 +61,6 @@ public class NsiQueries {
         }
 
         Long resultId = 0L;
-        List<NsiMapping> invalidMappings = new ArrayList<>();
         for (NsiMapping mapping : mappings) {
             QueryRecursiveResultType qrrt = this.toQRRT(mapping);
             if (qrrt != null) {
@@ -67,22 +70,41 @@ public class NsiQueries {
             }
 
         }
-        nsiRepo.deleteAll(invalidMappings);
         return qrct;
     }
 
 
     @Transactional
     public QuerySummaryConfirmedType querySummary(QueryType query) throws NsiInternalException {
+        log.info("querySummary");
         QuerySummaryConfirmedType qsct = new QuerySummaryConfirmedType();
 
         qsct.setLastModified(nsiMappingService.getCalendar(Instant.now()));
 
+        // set last modified if it happens to be empty
+        nsiRepo.findAll().forEach(m -> {
+            if (m.getLastModified() == null) {
+                m.setLastModified(Instant.now());
+            }
+        });
 
         Set<NsiMapping> mappings = new HashSet<>();
         if (query.getConnectionId().isEmpty() && query.getGlobalReservationId().isEmpty()) {
             // empty query = find all
-            mappings.addAll(nsiRepo.findAll());
+            mappings.addAll(nsiRepo.findAll()
+                    .stream()
+                    .filter(m -> {
+                        if (m.getLifecycleState().equals(LifecycleStateEnumType.TERMINATED) || m.getLifecycleState().equals(LifecycleStateEnumType.FAILED)) {
+
+                            // filter out any in lifecycle TERMINATED or FAILED that haven't been modified in the last 1 hour
+                            if (m.getLastModified().isBefore(Instant.now().minus(1, ChronoUnit.HOURS))) {
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    }).collect(Collectors.toSet())
+            );
             log.debug("added all mappings: " + mappings.size());
         } else {
             for (String connId : query.getConnectionId()) {
@@ -97,7 +119,6 @@ public class NsiQueries {
         }
 
         Long resultId = 0L;
-        List<NsiMapping> invalidMappings = new ArrayList<>();
         for (NsiMapping mapping : mappings) {
             // log.debug("query result entry "+mapping.getNsiConnectionId()+" --- "+mapping.getOscarsConnectionId());
             QuerySummaryResultType qsrt = this.toQSRT(mapping);
@@ -107,7 +128,6 @@ public class NsiQueries {
                 resultId++;
             }
         }
-        nsiRepo.deleteAll(invalidMappings);
         log.debug("returning results, total: " + resultId);
         return qsct;
     }

@@ -209,7 +209,7 @@ public class ConnUtils {
     public static Connection simpleToHeldConnection(SimpleConnection in) throws IllegalArgumentException {
         Connection c = Connection.builder()
                 .mode(in.getMode())
-                .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
+                .deploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED)
                 .deploymentState(DeploymentState.UNDEPLOYED)
                 .phase(Phase.HELD)
                 .description(in.getDescription())

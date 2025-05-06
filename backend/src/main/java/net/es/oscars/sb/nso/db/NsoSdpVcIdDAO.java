@@ -11,5 +11,5 @@ import java.util.List;
 public interface NsoSdpVcIdDAO extends CrudRepository<NsoSdpVcId, Long> {
     List<NsoSdpVcId> findNsoSdpVcIdByScheduleId(Long scheduleId);
     List<NsoSdpVcId> findNsoSdpVcIdByConnectionId(String connectionId);
-
+    List<NsoSdpVcId> findAllByScheduleId(Long scheduleId);
 }

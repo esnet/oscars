@@ -13,6 +13,6 @@ public interface NsoQosSapPolicyIdDAO extends CrudRepository<NsoQosSapPolicyId, 
     List<NsoQosSapPolicyId> findNsoQosSapPolicyIdByScheduleId(Long scheduleId);
     List<NsoQosSapPolicyId> findNsoQosSapPolicyIdByConnectionId(String connectionId);
     Optional<NsoQosSapPolicyId> findNsoQosSapPolicyIdByFixtureId(Long fixtureId);
-
+    List<NsoQosSapPolicyId> findAllByScheduleId(Long scheduleId);
 }
 

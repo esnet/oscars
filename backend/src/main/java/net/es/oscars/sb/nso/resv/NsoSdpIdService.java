@@ -24,6 +24,15 @@ public class NsoSdpIdService {
     private NsoSdpIdDAO nsoSdpIdDAO;
 
     @Transactional
+    public void migrate(Long newScheduleId, Long oldScheduleId) {
+        nsoSdpIdDAO.findAllByScheduleId(oldScheduleId).forEach(sdpId -> {
+            sdpId.setScheduleId(newScheduleId);
+            nsoSdpIdDAO.save(sdpId);
+        });
+    }
+
+
+    @Transactional
     public void findAndReserveNsoSdpIds(Connection conn, List<Schedule> schedules) throws NsoResvException {
         // we want to use the same SDP id on the two devices at the end of each pipe.
         // we don't technically _need_ to match these, but it's nice

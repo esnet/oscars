@@ -9,6 +9,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 
+import java.time.Instant;
+
 @Data
 @Entity
 @Builder
@@ -49,5 +51,7 @@ public class NsiMapping {
 
     @Builder.Default
     private Integer notificationId = 1;
+
+    private Instant lastModified;
 
 }
