@@ -2,6 +2,7 @@ package net.es.oscars.topo.beans.v2;
 
 import com.fasterxml.jackson.annotation.*;
 import lombok.*;
+import net.es.topo.common.model.oscars1.EthernetEncapsulation;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -23,6 +24,9 @@ public class EdgePort {
 
     @NonNull
     private String name;
+
+    @NonNull
+    private EthernetEncapsulation encapsulation;
 
     @NonNull
     private Bandwidth bandwidth;

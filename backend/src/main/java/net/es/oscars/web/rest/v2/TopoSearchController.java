@@ -21,6 +21,7 @@ import net.es.oscars.web.beans.v2.LspWaypoint;
 import net.es.oscars.web.beans.v2.LspWaypointSearchRequest;
 import net.es.oscars.web.beans.v2.PortSearchRequest;
 import net.es.oscars.web.beans.v2.ConnectionEdgePortRequest;
+import net.es.topo.common.model.oscars1.EthernetEncapsulation;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -375,6 +376,11 @@ public class TopoSearchController {
                                  Map<String, PortBwVlan> available,
                                  Map<String, Map<Integer, Set<String>>> vlanUsageMap) throws ConsistencyException {
 
+        EthernetEncapsulation encapsulation = EthernetEncapsulation.DOT1Q;
+        if (p.getReservableVlans().size() <= 1) {
+            encapsulation = EthernetEncapsulation.NULL;
+        }
+
         String[] parts = p.getUrn().split(":");
         if (parts.length != 2) {
             throw new ConsistencyException("Invalid port URN format");
@@ -414,6 +420,7 @@ public class TopoSearchController {
                 .device(parts[0])
                 .name(parts[1])
                 .bandwidth(bw)
+                .encapsulation(encapsulation)
                 .availability(EdgePort.Availability.builder().vlan(vlanAvailability).build())
                 .description(p.getTags())
                 .esdbEquipmentInterfaceId(p.getEsdbEquipmentInterfaceId())

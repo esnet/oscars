@@ -478,6 +478,12 @@ public class NsiService {
 
     public void housekeeping() {
         for (NsiMapping mapping : nsiMappingService.findAll()) {
+            if (mapping.getLastModified() == null) {
+                mapping.setLastModified(Instant.now());
+            }
+            if (mapping.getNotificationId() == null) {
+                mapping.setNotificationId(0);
+            }
             // find mappings in a transitional state and time them out if they end up stale
             Set<ReservationStateEnumType> transitionalStates = Stream
                     .of(RESERVE_ABORTING, RESERVE_CHECKING, RESERVE_COMMITTING)

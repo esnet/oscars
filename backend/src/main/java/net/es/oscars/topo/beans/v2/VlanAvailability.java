@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import net.es.topo.common.model.oscars1.IntRange;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -22,22 +23,27 @@ public class VlanAvailability {
     private String asExpression() {
         return IntRange.asString(ranges);
     }
-//    @JsonGetter("intervals")
-//    private String asIntervals() {
-//        return IntRange.asIntervalNotation(ranges);
-//    }
 
     @JsonGetter("tuples")
     private List<List<Integer>> asTuples() {
         List<List<Integer>> result = new ArrayList<>();
 
-        ranges.stream()
-                .sorted()
-                .forEach(range -> result.add(new ArrayList<>() {{
-                    add(range.getFloor());
-                    add(range.getCeiling());
-                }}));
+        ranges.stream().sorted(new IntRangeComparator())
+                    .forEach(range -> result.add(new ArrayList<>() {
+                        {
+                            add(range.getFloor());
+                            if (!range.getFloor().equals(range.getCeiling())) {
+                                add(range.getCeiling());
+                            }
+                        }
+                    }));
 
         return result;
+    }
+    private static class IntRangeComparator implements Comparator<IntRange> {
+        @Override
+        public int compare(IntRange o1, IntRange o2) {
+            return o1.getFloor().compareTo(o2.getFloor());
+        }
     }
 }
