@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.util.DbAccess;
+import net.es.oscars.app.util.PrettyPrinter;
 import net.es.oscars.model.Interval;
 import net.es.oscars.sb.db.RouterCommandsRepository;
 import net.es.oscars.sb.ent.RouterCommands;
@@ -467,7 +468,7 @@ public class ConnService {
 
             Optional<Connection> existing = connRepo.findByConnectionId(c.getConnectionId());
             boolean isModify = false;
-            Long scheduleId = null;
+            Long oldScheduleId = null;
 
             // previous fixture ids
             Map<String, Long> prevFixtureIds = new HashMap<>();
@@ -476,9 +477,13 @@ public class ConnService {
                 isModify = true;
                 log.info("deleting from db previous " + existing.get().getConnectionId());
                 for (VlanFixture vf : existing.get().getReserved().getCmp().getFixtures()) {
-                    prevFixtureIds.put(vf.getPortUrn() + ":" + vf.getVlan().getVlanId(), vf.getId());
+                    prevFixtureIds.put(vf.urn(), vf.getId());
+                    log.info("previous fixture id for " + vf.urn() + " : " + vf.getId());
+
                 }
-                scheduleId = existing.get().getReserved().getSchedule().getId();
+                PrettyPrinter.prettyLog(prevFixtureIds);
+
+                oldScheduleId = existing.get().getReserved().getSchedule().getId();
                 connRepo.delete(existing.get());
                 if (c.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
                     deploymentState = DeploymentState.DEPLOYED;
@@ -501,11 +506,18 @@ public class ConnService {
             } else {
                 Map<Long, Long> fixtureIdMap = new HashMap<>();
                 for (VlanFixture vf : c.getReserved().getCmp().getFixtures()) {
-                    String key = vf.getPortUrn() + ":" + vf.getVlan().getVlanId();
-                    fixtureIdMap.put(prevFixtureIds.get(key), vf.getId());
-                }
 
-                nsoResourceService.migrate(scheduleId, c.getReserved().getSchedule().getId(), fixtureIdMap);
+                    Long prevFixtureId = prevFixtureIds.get(vf.urn());
+                    Long newFixtureId = vf.getId();
+                    fixtureIdMap.put(prevFixtureId, newFixtureId);
+                    log.info("new fixture id for " + vf.urn() + " : " + vf.getId());
+                }
+                log.info("migrating NSO resources for " + c.getConnectionId());
+
+                PrettyPrinter.prettyLog(fixtureIdMap);
+
+                Long newScheduleId = c.getReserved().getSchedule().getId();
+                nsoResourceService.migrate(newScheduleId, oldScheduleId, fixtureIdMap);
             }
 
 
