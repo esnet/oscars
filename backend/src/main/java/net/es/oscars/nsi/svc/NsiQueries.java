@@ -190,7 +190,7 @@ public class NsiQueries {
         if (mc.isEmpty()) {
             // if an OSCARS connection is not present, we might be in RESV_CHECKING, in that case return something
             // there should be an in-flight request so use that
-            if (request == null) {
+            if (request == null || request.getIncoming() == null) {
                 log.error("NSI mapping without OSCARS connection has no in-flight request " + mapping.getNsiConnectionId());
                 return null;
             }
@@ -223,11 +223,12 @@ public class NsiQueries {
             } else {
                 sch = c.getArchived().getSchedule();
             }
+            description = c.getDescription();
+
             qsrct.setSchedule(nsiMappingService.oscarsToNsiSchedule(sch));
             Components cmp = getComponents(c);
             p2p = nsiMappingService.makeP2P(cmp, mapping);
-            description = request.getIncoming().getDescription();
-             cst = nsiMappingService.makeConnectionStates(mapping, c);
+            cst = nsiMappingService.makeConnectionStates(mapping, c);
         }
 
         qsrct.setServiceType(NsiService.SERVICE_TYPE);
