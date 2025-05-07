@@ -94,14 +94,13 @@ public class NsiService {
 
                 // this will throw an NsiMappingException if it fails and do an errCallback
                 mapping = nsiMappingService.newMapping(nsiConnectionId, nsiGri, nsaId, incomingRT.getCriteria().getVersion());
-                log.info("transitioning state: RESV_START");
-                nsiStateEngine.reserve(NsiEvent.RESV_START, mapping);
+                nsiMappingService.save(mapping);
+            } else {
+                log.info("transitioning NSI state: RESV_CHECK");
+                nsiStateEngine.reserve(NsiEvent.RESV_CHECK, mapping);
                 nsiMappingService.save(mapping);
             }
 
-            log.info("transitioning NSI state: RESV_CHECK");
-            nsiStateEngine.reserve(NsiEvent.RESV_CHECK, mapping);
-            nsiMappingService.save(mapping);
             String errorMessage;
             NsiErrors errorCode;
             List<TypeValuePairType> tvps;
@@ -200,7 +199,6 @@ public class NsiService {
                 mapping.setDataplaneVersion(nsiRequest.getIncoming().getCriteria().getVersion());
                 nsiMappingService.save(mapping);
 
-
                 log.info("new dataplane version " + mapping.getDataplaneVersion());
 
                 nsiRequestManager.remove(mapping.getNsiConnectionId());
@@ -209,9 +207,11 @@ public class NsiService {
                 return;
 
             } catch (PCEException | ConnException | NsoResvException ex) {
+                log.error("commit failed: " + ex.getMessage(), ex);
                 errorCode = NsiErrors.RESV_ERROR;
                 errorMessage = ex.getMessage();
             } catch (NsiStateException | NsiMappingException  ex  ) {
+                log.error("commit failed: " + ex.getMessage(), ex);
                 errorCode = NsiErrors.NRM_ERROR;
                 errorMessage = ex.getMessage();
 
@@ -225,7 +225,7 @@ public class NsiService {
             log.error(ex.getMessage(), ex);
         }
 
-        this.errCallback(NsiEvent.COMMIT_FL, nsiConnectionId, nsaId, mapping,
+        this.errCallback(NsiEvent.COMMIT_FL, nsaId, nsiConnectionId, mapping,
                 errorMessage, errorCode, new ArrayList<>(),
                 header.getCorrelationId());
 
@@ -451,9 +451,7 @@ public class NsiService {
     public void errorNotify(EventEnumType event, NsiMapping mapping) {
         try {
             String nsaId = mapping.getNsaId();
-            int notificationId = mapping.getNotificationId();
-            mapping.setNotificationId(notificationId + 1);
-            nsiMappingService.save(mapping);
+            int notificationId = nsiMappingService.nextNotificationId(mapping);
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
 
@@ -479,11 +477,9 @@ public class NsiService {
     public void housekeeping() {
         for (NsiMapping mapping : nsiMappingService.findAll()) {
             if (mapping.getLastModified() == null) {
-                mapping.setLastModified(Instant.now());
+                nsiMappingService.save(mapping);
             }
-            if (mapping.getNotificationId() == null) {
-                mapping.setNotificationId(0);
-            }
+
             // find mappings in a transitional state and time them out if they end up stale
             Set<ReservationStateEnumType> transitionalStates = Stream
                     .of(RESERVE_ABORTING, RESERVE_CHECKING, RESERVE_COMMITTING)
@@ -517,9 +513,8 @@ public class NsiService {
     public void reserveTimeout(NsiMapping mapping) {
         try {
             String nsaId = mapping.getNsaId();
-            int notificationId = mapping.getNotificationId();
-            mapping.setNotificationId(notificationId + 1);
-            nsiMappingService.save(mapping);
+
+            int notificationId = nsiMappingService.nextNotificationId(mapping);
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
             if (requesterNSA.getCallbackUrl().isEmpty()) {
@@ -615,9 +610,8 @@ public class NsiService {
         try {
             log.info("dataplaneCallback ");
             String nsaId = mapping.getNsaId();
-            int notificationId = mapping.getNotificationId();
-            mapping.setNotificationId(notificationId + 1);
-            nsiMappingService.save(mapping);
+
+            int notificationId = nsiMappingService.nextNotificationId(mapping);
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
 

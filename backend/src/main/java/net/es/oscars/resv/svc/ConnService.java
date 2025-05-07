@@ -451,6 +451,7 @@ public class ConnService {
         Validity v = this.validateCommit(c);
         if (!v.isValid()) {
             connLock.unlock();
+            log.error("commit validation failed for " + c.getConnectionId() + " " + v.getMessage());
             throw new ConnException("Invalid connection for commit; errors follow: \n" + v.getMessage());
         }
 
@@ -475,7 +476,7 @@ public class ConnService {
                 isModify = true;
                 log.info("deleting from db previous " + existing.get().getConnectionId());
                 for (VlanFixture vf : existing.get().getReserved().getCmp().getFixtures()) {
-                    prevFixtureIds.put(vf.getPortUrn()+":"+vf.getVlan().getVlanId(), vf.getId());
+                    prevFixtureIds.put(vf.getPortUrn() + ":" + vf.getVlan().getVlanId(), vf.getId());
                 }
                 scheduleId = existing.get().getReserved().getSchedule().getId();
                 connRepo.delete(existing.get());
@@ -500,7 +501,7 @@ public class ConnService {
             } else {
                 Map<Long, Long> fixtureIdMap = new HashMap<>();
                 for (VlanFixture vf : c.getReserved().getCmp().getFixtures()) {
-                    String key = vf.getPortUrn()+":"+vf.getVlan().getVlanId();
+                    String key = vf.getPortUrn() + ":" + vf.getVlan().getVlanId();
                     fixtureIdMap.put(prevFixtureIds.get(key), vf.getId());
                 }
 
@@ -1107,6 +1108,7 @@ public class ConnService {
             return Optional.empty();
         }
     }
+
     public Instant extendHold(String connectionId) throws NoSuchElementException {
         Instant expiration = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         if (held.containsKey(connectionId)) {
@@ -1135,8 +1137,8 @@ public class ConnService {
         in.setValidity(v);
 
         if (!v.isValid()) {
-            log.info("could not hold connection "+in.getConnectionId());
-            log.info("reason: "+v.getMessage());
+            log.info("could not hold connection " + in.getConnectionId());
+            log.info("reason: " + v.getMessage());
             connLock.unlock();
             return Pair.of(in, null);
         }

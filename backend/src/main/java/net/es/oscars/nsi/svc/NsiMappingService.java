@@ -130,7 +130,14 @@ public class NsiMappingService {
         return Optional.of(mappings.getFirst());
     }
 
-
+    @Transactional
+    public int nextNotificationId(NsiMapping mapping) {
+        if (mapping.getNotificationId() == null) {
+            mapping.setNotificationId(1);
+        }
+        mapping.setNotificationId(mapping.getNotificationId() + 1);
+        return nsiRepo.save(mapping).getNotificationId();
+    }
 
     /* db funcs */
     @Transactional
@@ -169,7 +176,7 @@ public class NsiMappingService {
                 .nsaId(nsaId)
                 .lifecycleState(LifecycleStateEnumType.CREATED)
                 .provisionState(ProvisionStateEnumType.RELEASED)
-                .reservationState(ReservationStateEnumType.RESERVE_START)
+                .reservationState(ReservationStateEnumType.RESERVE_CHECKING)
                 .lastModified(Instant.now())
                 .build();
         log.info("added an NSI mapping: "+nsiConnectionId+" --> "+oscarsConnectionId);
