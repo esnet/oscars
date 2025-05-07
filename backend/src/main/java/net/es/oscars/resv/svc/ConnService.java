@@ -534,6 +534,7 @@ public class ConnService {
     }
 
     public ConnChangeResult unhold(String connectionId) {
+        log.info("unholding " + connectionId);
         this.held.remove(connectionId);
         return ConnChangeResult.builder()
                 .what(ConnChange.DELETED)

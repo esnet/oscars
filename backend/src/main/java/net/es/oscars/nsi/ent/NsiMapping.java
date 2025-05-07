@@ -51,6 +51,12 @@ public class NsiMapping {
 
     @Builder.Default
     private Integer notificationId = 1;
+    public Integer getNotificationId() {
+        if (notificationId == null) {
+            notificationId = 1;
+        }
+        return notificationId;
+    }
 
     private Instant lastModified;
 

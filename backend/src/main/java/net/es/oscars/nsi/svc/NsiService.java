@@ -338,11 +338,7 @@ public class NsiService {
 
     }
 
-    public void timeoutRequest(NsiMapping mapping) {
-        log.info("reserve request timed out for " + mapping.getNsiConnectionId() + " " + mapping.getOscarsConnectionId());
-        this.resvTimedOut(mapping);
 
-    }
 
     // triggered from ConnController.release(), called by the UI when the user
     // presses the "Release" button
