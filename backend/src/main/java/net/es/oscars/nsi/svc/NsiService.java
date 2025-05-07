@@ -242,7 +242,7 @@ public class NsiService {
                     nsiMappingService.save(mapping);
                     // remove the request
                     nsiRequestManager.remove(mapping.getNsiConnectionId());
-                    connSvc.unhold(mapping.getNsiConnectionId());
+                    connSvc.unhold(mapping.getOscarsConnectionId());
 
                     nsiStateEngine.abort(NsiEvent.ABORT_CF, mapping);
                     nsiMappingService.save(mapping);
