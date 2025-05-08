@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.util.DbAccess;
+import net.es.oscars.app.util.PrettyPrinter;
 import net.es.oscars.model.Interval;
 import net.es.oscars.sb.db.RouterCommandsRepository;
 import net.es.oscars.sb.ent.RouterCommands;
@@ -451,6 +452,7 @@ public class ConnService {
         Validity v = this.validateCommit(c);
         if (!v.isValid()) {
             connLock.unlock();
+            log.error("commit validation failed for " + c.getConnectionId() + " " + v.getMessage());
             throw new ConnException("Invalid connection for commit; errors follow: \n" + v.getMessage());
         }
 
@@ -461,33 +463,63 @@ public class ConnService {
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
             c.setArchived(null);
+            DeploymentState deploymentState = DeploymentState.UNDEPLOYED;
+            DeploymentIntent deploymentIntent = DeploymentIntent.SHOULD_BE_UNDEPLOYED;
 
             Optional<Connection> existing = connRepo.findByConnectionId(c.getConnectionId());
             boolean isModify = false;
-            Long scheduleId = null;
+            Long oldScheduleId = null;
+
+            // previous fixture ids
+            Map<String, Long> prevFixtureIds = new HashMap<>();
+
             if (existing.isPresent()) {
                 isModify = true;
-                log.info("deleting from db " + c.getConnectionId());
-                scheduleId = existing.get().getReserved().getSchedule().getId();
-                connRepo.delete(existing.get());
+                log.info("deleting from db previous " + existing.get().getConnectionId());
+                for (VlanFixture vf : existing.get().getReserved().getCmp().getFixtures()) {
+                    prevFixtureIds.put(vf.urn(), vf.getId());
+                    log.info("previous fixture id for " + vf.urn() + " : " + vf.getId());
 
+                }
+                if (existing.get().getDeploymentState().equals(DeploymentState.DEPLOYED)) {
+                    deploymentState = DeploymentState.DEPLOYED;
+                    deploymentIntent = DeploymentIntent.SHOULD_BE_REDEPLOYED;
+                }
+
+                PrettyPrinter.prettyLog(prevFixtureIds);
+
+                oldScheduleId = existing.get().getReserved().getSchedule().getId();
+                connRepo.delete(existing.get());
             }
 
             reservedFromHeld(c);
             archiveFromReserved(c);
-
             c.setHeld(null);
-
-
-            c.setDeploymentState(DeploymentState.UNDEPLOYED);
-            c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
+            c.setDeploymentState(deploymentState);
+            c.setDeploymentIntent(deploymentIntent);
             c.setLast_modified((int) Instant.now().getEpochSecond());
 
+            log.info("saving to db " + c.getConnectionId());
             connRepo.saveAndFlush(c);
+            PrettyPrinter.prettyLog(c);
+
             if (!isModify) {
                 nsoResourceService.reserve(c);
             } else {
-                nsoResourceService.migrate(scheduleId, c.getReserved().getSchedule().getId());
+                Map<Long, Long> fixtureIdMap = new HashMap<>();
+                for (VlanFixture vf : c.getReserved().getCmp().getFixtures()) {
+
+                    Long prevFixtureId = prevFixtureIds.get(vf.urn());
+                    Long newFixtureId = vf.getId();
+                    fixtureIdMap.put(prevFixtureId, newFixtureId);
+                    log.info("new fixture id for " + vf.urn() + " : " + vf.getId());
+                }
+                log.info("migrating NSO resources for " + c.getConnectionId());
+
+                PrettyPrinter.prettyLog(fixtureIdMap);
+
+                Long newScheduleId = c.getReserved().getSchedule().getId();
+                nsoResourceService.migrate(newScheduleId, oldScheduleId, fixtureIdMap);
             }
 
 
@@ -516,6 +548,7 @@ public class ConnService {
     }
 
     public ConnChangeResult unhold(String connectionId) {
+        log.info("unholding " + connectionId);
         this.held.remove(connectionId);
         return ConnChangeResult.builder()
                 .what(ConnChange.DELETED)
@@ -1090,6 +1123,7 @@ public class ConnService {
             return Optional.empty();
         }
     }
+
     public Instant extendHold(String connectionId) throws NoSuchElementException {
         Instant expiration = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         if (held.containsKey(connectionId)) {
@@ -1100,7 +1134,7 @@ public class ConnService {
         }
     }
 
-    public void releaseHold(String connectionId) throws NoSuchElementException {
+    public void releaseHold(String connectionId) {
         held.remove(connectionId);
     }
 
@@ -1118,8 +1152,8 @@ public class ConnService {
         in.setValidity(v);
 
         if (!v.isValid()) {
-            log.info("could not hold connection "+in.getConnectionId());
-            log.info("reason: "+v.getMessage());
+            log.info("could not hold connection " + in.getConnectionId());
+            log.info("reason: " + v.getMessage());
             connLock.unlock();
             return Pair.of(in, null);
         }

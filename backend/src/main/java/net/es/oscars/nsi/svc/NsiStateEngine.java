@@ -93,7 +93,10 @@ public class NsiStateEngine {
     public void resvTimedOut(NsiMapping mapping) throws NsiStateException {
         Set<ReservationStateEnumType> allowedStates = new HashSet<>();
         allowedStates.add(ReservationStateEnumType.RESERVE_HELD);
+        allowedStates.add(ReservationStateEnumType.RESERVE_TIMEOUT);
         allowedStates.add(ReservationStateEnumType.RESERVE_CHECKING);
+        allowedStates.add(ReservationStateEnumType.RESERVE_ABORTING);
+        allowedStates.add(ReservationStateEnumType.RESERVE_COMMITTING);
 
         if (!allowedStates.contains(mapping.getReservationState())) {
             throw new NsiStateException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
@@ -137,6 +140,7 @@ public class NsiStateEngine {
         Set<LifecycleStateEnumType> allowedStates = new HashSet<>();
         allowedStates.add(LifecycleStateEnumType.CREATED);
         allowedStates.add(LifecycleStateEnumType.FAILED);
+        allowedStates.add(LifecycleStateEnumType.TERMINATED);
         if (!allowedStates.contains(mapping.getLifecycleState())) {
             throw new NsiStateException("Invalid lifecycle state " + mapping.getLifecycleState(), NsiErrors.TRANS_ERROR);
         }

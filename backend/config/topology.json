@@ -126,16 +126,8 @@
           "reservableEgressBw": 100000,
           "reservableVlans": [
             {
-              "floor": 1112,
-              "ceiling": 4095
-            },
-            {
-              "floor": 2,
-              "ceiling": 910
-            },
-            {
-              "floor": 912,
-              "ceiling": 1110
+              "floor": 0,
+              "ceiling": 0
             }
           ],
           "esdbEquipmentInterfaceId": 14106
@@ -860,12 +852,8 @@
           "reservableEgressBw": 10000,
           "reservableVlans": [
             {
-              "floor": 2,
-              "ceiling": 1798
-            },
-            {
-              "floor": 1801,
-              "ceiling": 4095
+              "floor": 0,
+              "ceiling": 0
             }
           ],
           "esdbEquipmentInterfaceId": 13245

@@ -27,6 +27,7 @@ import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.soap.NsiSoapClientUtil;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
+import net.es.topo.common.devel.DevelUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,9 +37,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReservationStateEnumType.RESERVE_FAILED;
-import static net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReservationStateEnumType.RESERVE_HELD;
+import static net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReservationStateEnumType.*;
 
 @Component
 @Slf4j
@@ -92,14 +94,13 @@ public class NsiService {
 
                 // this will throw an NsiMappingException if it fails and do an errCallback
                 mapping = nsiMappingService.newMapping(nsiConnectionId, nsiGri, nsaId, incomingRT.getCriteria().getVersion());
-                log.info("transitioning state: RESV_START");
-                nsiStateEngine.reserve(NsiEvent.RESV_START, mapping);
+                nsiMappingService.save(mapping);
+            } else {
+                log.info("transitioning NSI state: RESV_CHECK");
+                nsiStateEngine.reserve(NsiEvent.RESV_CHECK, mapping);
                 nsiMappingService.save(mapping);
             }
 
-            log.info("transitioning NSI state: RESV_CHECK");
-            nsiStateEngine.reserve(NsiEvent.RESV_CHECK, mapping);
-            nsiMappingService.save(mapping);
             String errorMessage;
             NsiErrors errorCode;
             List<TypeValuePairType> tvps;
@@ -198,7 +199,6 @@ public class NsiService {
                 mapping.setDataplaneVersion(nsiRequest.getIncoming().getCriteria().getVersion());
                 nsiMappingService.save(mapping);
 
-
                 log.info("new dataplane version " + mapping.getDataplaneVersion());
 
                 nsiRequestManager.remove(mapping.getNsiConnectionId());
@@ -207,9 +207,11 @@ public class NsiService {
                 return;
 
             } catch (PCEException | ConnException | NsoResvException ex) {
+                log.error("commit failed: " + ex.getMessage(), ex);
                 errorCode = NsiErrors.RESV_ERROR;
                 errorMessage = ex.getMessage();
             } catch (NsiStateException | NsiMappingException  ex  ) {
+                log.error("commit failed: " + ex.getMessage(), ex);
                 errorCode = NsiErrors.NRM_ERROR;
                 errorMessage = ex.getMessage();
 
@@ -223,7 +225,7 @@ public class NsiService {
             log.error(ex.getMessage(), ex);
         }
 
-        this.errCallback(NsiEvent.COMMIT_FL, nsiConnectionId, nsaId, mapping,
+        this.errCallback(NsiEvent.COMMIT_FL, nsaId, nsiConnectionId, mapping,
                 errorMessage, errorCode, new ArrayList<>(),
                 header.getCorrelationId());
 
@@ -240,7 +242,7 @@ public class NsiService {
                     nsiMappingService.save(mapping);
                     // remove the request
                     nsiRequestManager.remove(mapping.getNsiConnectionId());
-                    connSvc.unhold(mapping.getNsiConnectionId());
+                    connSvc.unhold(mapping.getOscarsConnectionId());
 
                     nsiStateEngine.abort(NsiEvent.ABORT_CF, mapping);
                     nsiMappingService.save(mapping);
@@ -336,11 +338,7 @@ public class NsiService {
 
     }
 
-    public void timeoutRequest(NsiMapping mapping) {
-        log.info("reserve request timed out for " + mapping.getNsiConnectionId() + " " + mapping.getOscarsConnectionId());
-        this.resvTimedOut(mapping);
 
-    }
 
     // triggered from ConnController.release(), called by the UI when the user
     // presses the "Release" button
@@ -449,9 +447,7 @@ public class NsiService {
     public void errorNotify(EventEnumType event, NsiMapping mapping) {
         try {
             String nsaId = mapping.getNsaId();
-            int notificationId = mapping.getNotificationId();
-            mapping.setNotificationId(notificationId + 1);
-            nsiMappingService.save(mapping);
+            int notificationId = nsiMappingService.nextNotificationId(mapping);
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
 
@@ -476,11 +472,21 @@ public class NsiService {
 
     public void housekeeping() {
         for (NsiMapping mapping : nsiMappingService.findAll()) {
-            // find mappings in CHECKING and time them out if they end up stale
-            if (mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_CHECKING)) {
+            if (mapping.getLastModified() == null) {
+                nsiMappingService.save(mapping);
+            }
+
+            // find mappings in a transitional state and time them out if they end up stale
+            Set<ReservationStateEnumType> transitionalStates = Stream
+                    .of(RESERVE_ABORTING, RESERVE_CHECKING, RESERVE_COMMITTING)
+                    .collect(Collectors.toSet());
+
+            if (transitionalStates.contains(mapping.getReservationState())) {
                 if (mapping.getLastModified().isBefore(Instant.now().minus(10, ChronoUnit.MINUTES))) {
                     try {
-                        log.info("timing out a stale mapping " + mapping.getNsiConnectionId() + " " + mapping.getOscarsConnectionId());
+                        log.info("timing out a mapping stuck in transitional state " + mapping.getNsiConnectionId() + " "+mapping.getReservationState());
+                        // release holds if they have any
+                        connSvc.releaseHold(mapping.getOscarsConnectionId());
                         nsiStateEngine.resvTimedOut(mapping);
                         this.reserveTimeout(mapping);
                     } catch (NsiStateException e) {
@@ -503,9 +509,8 @@ public class NsiService {
     public void reserveTimeout(NsiMapping mapping) {
         try {
             String nsaId = mapping.getNsaId();
-            int notificationId = mapping.getNotificationId();
-            mapping.setNotificationId(notificationId + 1);
-            nsiMappingService.save(mapping);
+
+            int notificationId = nsiMappingService.nextNotificationId(mapping);
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
             if (requesterNSA.getCallbackUrl().isEmpty()) {
@@ -601,9 +606,8 @@ public class NsiService {
         try {
             log.info("dataplaneCallback ");
             String nsaId = mapping.getNsaId();
-            int notificationId = mapping.getNotificationId();
-            mapping.setNotificationId(notificationId + 1);
-            nsiMappingService.save(mapping);
+
+            int notificationId = nsiMappingService.nextNotificationId(mapping);
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
 
@@ -732,15 +736,19 @@ public class NsiService {
         Optional<Connection> optC = connSvc.findConnection(mapping.getOscarsConnectionId());
         ReservationRequestCriteriaType crit = incomingRT.getCriteria();
 
-        Optional<P2PServiceBaseType> op2p = nsiMappingService.getP2PService(incomingRT);
-        P2PServiceBaseType p2p;
+        DevelUtils.dumpDebug("incomingRT", incomingRT);
 
-        if (op2p.isEmpty()) {
+        Optional<P2PServiceBaseType> op2ps = nsiMappingService.getP2PService(incomingRT);
+
+        if (op2ps.isEmpty()) {
             throw new NsiValidationException("missing p2ps for reserve ", NsiErrors.MSG_PAYLOAD_ERROR);
         }
 
+        P2PServiceBaseType p2ps = op2ps.get();
         // we always get capacity (hopefully)
-        int mbps = (int) op2p.get().getCapacity();;
+        int mbps = (int) p2ps.getCapacity();;
+        DevelUtils.dumpDebug("p2ps", p2ps);
+
         log.info("capacity: " + mbps);
         long begin;
         long end;
@@ -776,26 +784,25 @@ public class NsiService {
         } else {
             // a new reserve
             log.info("got p2p for new reserve");
-            p2p = op2p.get();
-            if (p2p.getSourceSTP() != null) {
-                mapping.setSrc(p2p.getSourceSTP());
+            if (p2ps.getSourceSTP() != null) {
+                mapping.setSrc(p2ps.getSourceSTP());
             }
-            if (p2p.getDestSTP() != null) {
-                mapping.setDst(p2p.getDestSTP());
+            if (p2ps.getDestSTP() != null) {
+                mapping.setDst(p2ps.getDestSTP());
             }
 
             interval = nsiMappingService.nsiToOscarsSchedule(crit.getSchedule());
             begin = interval.getBeginning().getEpochSecond();
             end = interval.getEnding().getEpochSecond();
 
-            Pair<List<Fixture>, List<Junction>> fjs = nsiMappingService.fixturesAndJunctionsFor(p2p, interval, oscarsConnectionId);
+            Pair<List<Fixture>, List<Junction>> fjs = nsiMappingService.fixturesAndJunctionsFor(p2ps, interval, oscarsConnectionId);
             fixtures = fjs.getLeft();
             junctions = fjs.getRight();
 
             pipes = nsiMappingService.pipesFor(interval, mbps, junctions, include);
 
-            if (p2p.getEro() != null) {
-                for (OrderedStpType stp : p2p.getEro().getOrderedSTP()) {
+            if (p2ps.getEro() != null) {
+                for (OrderedStpType stp : p2ps.getEro().getOrderedSTP()) {
                     String urn = nsiMappingService.internalUrnFromStp(stp.getStp());
                     include.add(urn);
                 }

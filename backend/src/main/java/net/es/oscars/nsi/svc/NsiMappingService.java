@@ -130,7 +130,14 @@ public class NsiMappingService {
         return Optional.of(mappings.getFirst());
     }
 
-
+    @Transactional
+    public int nextNotificationId(NsiMapping mapping) {
+        if (mapping.getNotificationId() == null) {
+            mapping.setNotificationId(1);
+        }
+        mapping.setNotificationId(mapping.getNotificationId() + 1);
+        return nsiRepo.save(mapping).getNotificationId();
+    }
 
     /* db funcs */
     @Transactional
@@ -169,7 +176,7 @@ public class NsiMappingService {
                 .nsaId(nsaId)
                 .lifecycleState(LifecycleStateEnumType.CREATED)
                 .provisionState(ProvisionStateEnumType.RELEASED)
-                .reservationState(ReservationStateEnumType.RESERVE_START)
+                .reservationState(ReservationStateEnumType.RESERVE_CHECKING)
                 .lastModified(Instant.now())
                 .build();
         log.info("added an NSI mapping: "+nsiConnectionId+" --> "+oscarsConnectionId);
@@ -178,26 +185,22 @@ public class NsiMappingService {
 
     public Optional<P2PServiceBaseType> getP2PService(ReserveType rt) {
         ReservationRequestCriteriaType crit = rt.getCriteria();
-        P2PServiceBaseType p2pt = null;
+        P2PServiceBaseType p2pt;
         for (Object o : crit.getAny()) {
             if (o instanceof P2PServiceBaseType) {
                 p2pt = (P2PServiceBaseType) o;
+                return Optional.of(p2pt);
             } else {
                 try {
-
-                    @SuppressWarnings("unchecked") JAXBElement<P2PServiceBaseType> payload
-                            = (JAXBElement<P2PServiceBaseType>) o;
+                    @SuppressWarnings("unchecked") JAXBElement<P2PServiceBaseType> payload = (JAXBElement<P2PServiceBaseType>) o;
                     p2pt = payload.getValue();
+                    return Optional.of(p2pt);
                 } catch (ClassCastException ex) {
                     log.error(ex.getMessage(), ex);
-                    p2pt = null;
                 }
             }
         }
-        if (p2pt == null) {
-            return Optional.empty();
-        }
-        return Optional.of(p2pt);
+        return Optional.empty();
     }
 
 

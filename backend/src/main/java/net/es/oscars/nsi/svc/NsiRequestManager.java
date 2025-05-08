@@ -25,8 +25,13 @@ public class NsiRequestManager {
     public NsiRequest getInFlightRequest(String nsiConnectionId) {
         return inFlightRequests.get(nsiConnectionId);
     }
+
     // committing, aborting, timing out or failing a request removes it from the list of in-flight ones
     public void remove(String nsiConnectionId) {
+        log.info("removing NsiRequest for " + nsiConnectionId);
+        if (!inFlightRequests.containsKey(nsiConnectionId)) {
+            log.info("could not find NsiRequest for " + nsiConnectionId);
+        }
         inFlightRequests.remove(nsiConnectionId);
     }
 

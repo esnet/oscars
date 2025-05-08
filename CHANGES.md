@@ -1,4 +1,13 @@
 # OSCARS Release Notes
+### 1.2.25
+> May 2025
+- NSI rewrite
+- HELD reservations no longer written to DB, hold -> commit flow updated
+- adding a few untagged ports to standalone topology
+- add encapsulation to EdgePort
+- remove jackson customization, use .properties config instead
+- pom.xml cleanups, dependency updates
+
 ### 1.2.24
 > Apr 2025
 - OS-442: Implement NsoLspStateSyncer class to manage NSO LSP state synchronization between OSCARS and NSO.

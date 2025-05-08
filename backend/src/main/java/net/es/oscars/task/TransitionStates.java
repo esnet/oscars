@@ -19,9 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -67,8 +65,8 @@ public class TransitionStates {
                 List<Connection> unholdThese = new ArrayList<>();
                 List<Connection> releaseThese = new ArrayList<>();
 
-                List<NsiMapping> pastEndTime = new ArrayList<>();
-                List<NsiMapping> timedOut = new ArrayList<>();
+                Set<NsiMapping> pastEndTime = new HashSet<>();
+                Set<NsiMapping> timedOut = new HashSet<>();
 
                 for (Connection c : heldConns) {
 
@@ -102,9 +100,9 @@ public class TransitionStates {
                 for (NsiRequest req : expiredRequests) {
                     nsiRequestManager.remove(req.getNsiConnectionId());
                     try {
-                        log.info("an NSI request timed out " + req.getNsiConnectionId());
                         NsiMapping mapping = nsiMappingService.getMapping(req.getNsiConnectionId());
-                        nsiService.timeoutRequest(mapping);
+                        timedOut.add(mapping);
+                        log.info("an NSI request timed out " + req.getNsiConnectionId());
                     } catch (NsiMappingException ex) {
                         log.error("mapping problem: "+req.getNsiConnectionId(), ex);
                     }

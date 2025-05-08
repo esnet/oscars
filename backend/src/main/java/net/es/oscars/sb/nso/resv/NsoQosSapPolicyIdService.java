@@ -26,9 +26,11 @@ public class NsoQosSapPolicyIdService {
 
 
     @Transactional
-    public void migrate(Long newScheduleId, Long oldScheduleId) {
+    public void migrate(Long newScheduleId, Long oldScheduleId, Map<Long, Long> fixtureIdMap) {
         nsoQosSapPolicyIdDAO.findAllByScheduleId(oldScheduleId).forEach(qspId -> {
             qspId.setScheduleId(newScheduleId);
+            // migrate fixture id
+            qspId.setFixtureId(fixtureIdMap.get(qspId.getFixtureId()));
             nsoQosSapPolicyIdDAO.save(qspId);
         });
     }

@@ -49,7 +49,7 @@ public class VlanFixture {
 
     // mandatory; a fixture is always associated with a junction
     @NonNull
-    @ManyToOne(cascade=CascadeType.ALL)
+    @ManyToOne(cascade = CascadeType.ALL)
     private VlanJunction junction;
 
     // mandatory; a fixture is always associated with a specific port
@@ -85,6 +85,11 @@ public class VlanFixture {
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @ToString.Exclude
     private Set<CommandParam> commandParams;
+
+
+    public String urn() {
+        return portUrn + "." + vlan.getVlanId();
+    }
 
     @Override
     public final boolean equals(Object o) {

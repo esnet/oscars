@@ -31,10 +31,10 @@ public class NsoResourceService {
     @Autowired
     private ScheduleRepository scheduleRepo;
 
-    public void migrate(Long newScheduleId, Long oldScheduleId) {
+    public void migrate(Long newScheduleId, Long oldScheduleId, Map<Long, Long> fixtureIdMap) {
         nsoVcIdService.migrate(newScheduleId, oldScheduleId);
         nsoSdpIdService.migrate(newScheduleId, oldScheduleId);
-        nsoQosSapPolicyIdService.migrate(newScheduleId, oldScheduleId);
+        nsoQosSapPolicyIdService.migrate(newScheduleId, oldScheduleId, fixtureIdMap);
         nsoSdpVcIdService.migrate(newScheduleId, oldScheduleId);
     }
 

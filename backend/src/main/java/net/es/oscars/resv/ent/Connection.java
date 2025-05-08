@@ -61,7 +61,6 @@ public class Connection {
     private Long id;
 
     @NonNull
-    @Column(unique = true)
     private String connectionId;
 
     @NonNull

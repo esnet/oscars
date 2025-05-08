@@ -8,6 +8,7 @@ import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.NsiInternalException;
 import net.es.oscars.app.exc.NsiValidationException;
 import net.es.oscars.nsi.beans.NsiErrors;
+import net.es.oscars.nsi.beans.NsiRequest;
 import net.es.oscars.nsi.db.NsiMappingRepository;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.resv.ent.*;
@@ -26,10 +27,12 @@ public class NsiQueries {
 
     private final NsiMappingRepository nsiRepo;
     private final NsiMappingService nsiMappingService;
+    private final NsiRequestManager nsiRequestManager;
 
-    public NsiQueries(NsiMappingRepository nsiRepo, NsiMappingService nsiMappingService) {
+    public NsiQueries(NsiMappingRepository nsiRepo, NsiMappingService nsiMappingService, NsiRequestManager nsiRequestManager) {
         this.nsiRepo = nsiRepo;
         this.nsiMappingService = nsiMappingService;
+        this.nsiRequestManager = nsiRequestManager;
     }
 
     public void validateQuery(QueryType query) throws NsiException {
@@ -77,6 +80,7 @@ public class NsiQueries {
     @Transactional
     public QuerySummaryConfirmedType querySummary(QueryType query) throws NsiInternalException {
         log.info("querySummary");
+
         QuerySummaryConfirmedType qsct = new QuerySummaryConfirmedType();
 
         qsct.setLastModified(nsiMappingService.getCalendar(Instant.now()));
@@ -120,8 +124,11 @@ public class NsiQueries {
 
         Long resultId = 0L;
         for (NsiMapping mapping : mappings) {
-            // log.debug("query result entry "+mapping.getNsiConnectionId()+" --- "+mapping.getOscarsConnectionId());
-            QuerySummaryResultType qsrt = this.toQSRT(mapping);
+            // this might be null if there's no in-flight reserve request, that's ok
+            NsiRequest nsiRequest = nsiRequestManager.getInFlightRequest(mapping.getNsiConnectionId());
+
+                    // log.debug("query result entry "+mapping.getNsiConnectionId()+" --- "+mapping.getOscarsConnectionId());
+            QuerySummaryResultType qsrt = this.toQSRT(mapping, nsiRequest);
             if (qsrt != null) {
                 qsrt.setResultId(resultId);
                 qsct.getReservation().add(qsrt);
@@ -172,50 +179,71 @@ public class NsiQueries {
         return qrrt;
     }
 
-    public QuerySummaryResultType toQSRT(NsiMapping mapping) throws NsiInternalException {
+    public QuerySummaryResultType toQSRT(NsiMapping mapping, NsiRequest request) throws NsiInternalException {
         Optional<Connection> mc = nsiMappingService.getMaybeOscarsConnection(mapping);
-        if (mc.isEmpty()) {
-            log.error("nsi mapping for nonexistent OSCARS connection " + mapping.getOscarsConnectionId());
-            return null;
-        }
-        Connection c = mc.get();
-        if (c.getPhase().equals(Phase.ARCHIVED)) {
-            // if this is archived return it only the last modified date was 24 hours ago or less
-            int yesterday = (int) Instant.now().minus(24L, ChronoUnit.HOURS).getEpochSecond();
-            if (c.getLast_modified() > yesterday) {
-                return null;
-            }
-        }
-
         QuerySummaryResultType qsrt = new QuerySummaryResultType();
         qsrt.setConnectionId(mapping.getNsiConnectionId());
-
         QuerySummaryResultCriteriaType qsrct = new QuerySummaryResultCriteriaType();
-        Schedule sch;
-        if (c.getPhase().equals(Phase.HELD)) {
-            sch = c.getHeld().getSchedule();
+        String description;
+        ConnectionStatesType cst;
+        if (mc.isEmpty()) {
+            // if an OSCARS connection is not present, we might be in RESV_CHECKING, in that case return something
+            // there should be an in-flight request so use that
+            if (request == null || request.getIncoming() == null) {
+                log.error("NSI mapping without OSCARS connection has no in-flight request " + mapping.getNsiConnectionId());
+                return null;
+            }
+            log.info("returning a placeholder for "+mapping.getNsiConnectionId());
+            qsrct.setSchedule(request.getIncoming().getCriteria().getSchedule());
+            description = request.getIncoming().getDescription();
+            cst = new ConnectionStatesType();
+            cst.setProvisionState(mapping.getProvisionState());
+            cst.setLifecycleState(mapping.getLifecycleState());
+            cst.setReservationState(mapping.getReservationState());
+            DataPlaneStatusType dst = new DataPlaneStatusType();
+            dst.setVersion(mapping.getDataplaneVersion());
+            dst.setActive(false);
+            dst.setVersionConsistent(true);
+            cst.setDataPlaneStatus(dst);
+
         } else {
-            sch = c.getArchived().getSchedule();
+            Connection c = mc.get();
+            Schedule sch;
+
+            if (c.getPhase().equals(Phase.ARCHIVED)) {
+                // if this is archived, return it only the last modified date was 24 hours ago or less
+                int yesterday = (int) Instant.now().minus(24L, ChronoUnit.HOURS).getEpochSecond();
+                if (c.getLast_modified() > yesterday) {
+                    return null;
+                }
+            }
+            if (c.getPhase().equals(Phase.HELD)) {
+                sch = c.getHeld().getSchedule();
+            } else {
+                sch = c.getArchived().getSchedule();
+            }
+            description = c.getDescription();
+
+            qsrct.setSchedule(nsiMappingService.oscarsToNsiSchedule(sch));
+            Components cmp = getComponents(c);
+            P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping);
+
+            net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory p2pof = new ObjectFactory();
+            qsrct.getAny().add(p2pof.createP2Ps(p2p));
+            cst = nsiMappingService.makeConnectionStates(mapping, c);
         }
-        qsrct.setSchedule(nsiMappingService.oscarsToNsiSchedule(sch));
+
         qsrct.setServiceType(NsiService.SERVICE_TYPE);
         qsrct.setVersion(mapping.getDataplaneVersion());
 
-        Components cmp = getComponents(c);
-        P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping);
 
-        net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory p2pof
-                = new ObjectFactory();
-
-        qsrct.getAny().add(p2pof.createP2Ps(p2p));
         qsrt.getCriteria().add(qsrct);
 
-        qsrt.setDescription(c.getDescription());
+        qsrt.setDescription(description);
         qsrt.setGlobalReservationId(mapping.getNsiGri());
         qsrt.setRequesterNSA(mapping.getNsaId());
-        ConnectionStatesType cst = nsiMappingService.makeConnectionStates(mapping, c);
         qsrt.setConnectionStates(cst);
-        qsrt.setNotificationId(0L);
+        qsrt.setNotificationId(Long.valueOf(mapping.getNotificationId()));
         return qsrt;
     }
 
