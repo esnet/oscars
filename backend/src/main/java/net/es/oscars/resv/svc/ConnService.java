@@ -475,6 +475,7 @@ public class ConnService {
             if (existing.isPresent()) {
                 isModify = true;
                 log.info("deleting from db previous " + existing.get().getConnectionId());
+
                 for (VlanFixture vf : existing.get().getReserved().getCmp().getFixtures()) {
                     prevFixtureIds.put(vf.urn(), vf.getId());
                     log.info("previous fixture id for " + vf.urn() + " : " + vf.getId());
@@ -498,7 +499,7 @@ public class ConnService {
             c.setDeploymentIntent(deploymentIntent);
             c.setLast_modified((int) Instant.now().getEpochSecond());
 
-            log.info("saving to db " + c.getConnectionId());
+            log.info("saving updated connection to db " + c.getConnectionId());
             connRepo.saveAndFlush(c);
             PrettyPrinter.prettyLog(c);
 
@@ -547,7 +548,9 @@ public class ConnService {
     }
 
     public ConnChangeResult unhold(String connectionId) {
-        log.info("unholding " + connectionId);
+        if (held.containsKey(connectionId)) {
+            log.info("unholding " + connectionId);
+        }
         this.held.remove(connectionId);
         return ConnChangeResult.builder()
                 .what(ConnChange.DELETED)
@@ -570,7 +573,7 @@ public class ConnService {
             log.info("un-holding " + c.getConnectionId());
             this.unhold(c.getConnectionId());
 
-            // it might have a RESERVED component; in that case we re-assign c
+            // it might have a RESERVED component; in that case we re-assign c and fall through to the next section
             if (connRepo.findByConnectionId(c.getConnectionId()).isPresent()) {
                 c = connRepo.findByConnectionId(c.getConnectionId()).get();
             } else {

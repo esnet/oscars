@@ -321,13 +321,12 @@ public class NsiService {
         log.info("starting terminate task for " + mapping.getNsiConnectionId());
 
         try {
-
             // go from CREATED | PASSED_END_TIME | FAILED to TERMINATING
             nsiStateEngine.termStart(mapping);
             nsiMappingService.save(mapping);
 
-            Connection c = nsiMappingService.getOscarsConnection(mapping);
-            connSvc.release(c);
+            Optional<Connection> c = nsiMappingService.getMaybeOscarsConnection(mapping);
+            c.ifPresent(connSvc::release);
 
             // go from TERMINATING to TERMINATED
             nsiStateEngine.termConfirm(mapping);
@@ -337,7 +336,7 @@ public class NsiService {
             this.okCallback(NsiEvent.TERM_CF, mapping, header);
 
 
-        } catch (NsiMappingException | NsiStateException ex) {
+        } catch (NsiStateException ex) {
             log.error("failed terminate, internal error");
             log.error(ex.getMessage(), ex);
         }
