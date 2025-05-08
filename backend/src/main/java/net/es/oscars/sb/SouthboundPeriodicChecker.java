@@ -81,7 +81,7 @@ public class SouthboundPeriodicChecker {
             // modify intents on connections
             for (Connection c: shouldBeDeployed)  {
                 if (c.getDeploymentIntent().equals(DeploymentIntent.SHOULD_BE_UNDEPLOYED)) {
-                    log.info("was set to should-be-deployed "+c.getConnectionId());
+                    log.info("now set to should-be-deployed "+c.getConnectionId());
                     c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED);
                     connRepo.save(c);
                 }
@@ -89,7 +89,7 @@ public class SouthboundPeriodicChecker {
 
             for (Connection c: shouldBeMadeUndeployed)  {
                 if (c.getDeploymentIntent().equals(DeploymentIntent.SHOULD_BE_DEPLOYED)) {
-                    log.info("was set to should-be-undeployed "+c.getConnectionId());
+                    log.info("now set to should-be-undeployed "+c.getConnectionId());
                     c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED);
                     connRepo.save(c);
                 }

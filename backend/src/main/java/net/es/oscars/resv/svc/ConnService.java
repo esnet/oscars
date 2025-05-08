@@ -481,15 +481,15 @@ public class ConnService {
                     log.info("previous fixture id for " + vf.urn() + " : " + vf.getId());
 
                 }
-                PrettyPrinter.prettyLog(prevFixtureIds);
-
-                oldScheduleId = existing.get().getReserved().getSchedule().getId();
-                connRepo.delete(existing.get());
-                if (c.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
+                if (existing.get().getDeploymentState().equals(DeploymentState.DEPLOYED)) {
                     deploymentState = DeploymentState.DEPLOYED;
                     deploymentIntent = DeploymentIntent.SHOULD_BE_REDEPLOYED;
                 }
 
+                PrettyPrinter.prettyLog(prevFixtureIds);
+
+                oldScheduleId = existing.get().getReserved().getSchedule().getId();
+                connRepo.delete(existing.get());
             }
 
             reservedFromHeld(c);
@@ -499,8 +499,10 @@ public class ConnService {
             c.setDeploymentIntent(deploymentIntent);
             c.setLast_modified((int) Instant.now().getEpochSecond());
 
-            log.info("saving to db new " + c.getConnectionId());
+            log.info("saving to db " + c.getConnectionId());
             connRepo.saveAndFlush(c);
+            PrettyPrinter.prettyLog(c);
+
             if (!isModify) {
                 nsoResourceService.reserve(c);
             } else {
