@@ -67,6 +67,28 @@ public class NsoStateManager {
         return isLoaded;
     }
 
+    public void clear() {
+        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> clearVpls = new Hashtable<>();
+        Dictionary<Integer, NsoStateWrapper<NsoLSP>> clearLsps = new Hashtable<>();
+
+        nsoVplsStateSyncer.setLocalState(clearVpls);
+        nsoLspStateSyncer.setLocalState(clearLsps);
+
+        nsoVplsStateSyncer.setLoaded(false);
+        nsoLspStateSyncer.setLoaded(false);
+
+        nsoVplsStateSyncer.setSynchronized(false);
+        nsoLspStateSyncer.setSynchronized(false);
+
+        nsoVplsStateSyncer.setDirty(false);
+        nsoLspStateSyncer.setDirty(false);
+
+        setValid(false);
+        setQueued(false);
+        setVplsSynced(false);
+        setLspSynced(false);
+    }
+
     /**
      * Add or replace an LSP
      * @param lsp The NsoLSP to add, or the replacement NsoLSP if the LSP exists.
@@ -93,6 +115,16 @@ public class NsoStateManager {
      * @throws NsoStateManagerException Throws an exception if there was an issue while attempting to mark the LSP (and possible VPLS) for deletion.
      */
     public boolean deleteLsp(NsoLSP lsp) throws NsoStateManagerException {
+        return deleteLsp(lsp, true);
+    }
+    /**
+     * Marks an LSP for deletion. If it was the last LSP associated with a VPLS and deleteVPLSIfLast = true, the VPLS is also marked for deletion.
+     * @param lsp The NsoLSP to delete.
+     * @param deleteVPLSIfLast Boolean flag. If true, and the LSP was that last associated LSP with the corresponding VPLS, the VPLS will be marked for deletion.
+     * @return Returns true an existing LSP was found and marked for deletion.
+     * @throws NsoStateManagerException Throws an exception if there was an issue while attempting to mark the LSP (and possible VPLS) for deletion.
+     */
+    public boolean deleteLsp(NsoLSP lsp, boolean deleteVPLSIfLast) throws NsoStateManagerException {
         boolean success = false;
         Dictionary<Integer, NsoStateWrapper<NsoLSP>> localLspState = getNsoLspStateSyncer().getLocalState();
         NsoStateWrapper<NsoLSP> existingLsp = getNsoLspStateSyncer().findLocalEntryByName(lsp.instanceKey());
@@ -105,8 +137,8 @@ public class NsoStateManager {
             localLspState.remove(existingLsp.getInstance().instanceKey().hashCode());
             getNsoLspStateSyncer().setLocalState(localLspState);
 
-            // @TODO check if there are any LSPs left in the VPLS. If none, delete the VPLS
-            if (_countLspReferencesInVplsState(lsp, localVplsState) == 0) {
+            // check if there are any LSPs left in the VPLS. If none, delete the VPLS
+            if (deleteVPLSIfLast && _countLspReferencesInVplsState(lsp, localVplsState) == 0) {
                 for (NsoStateWrapper<NsoVPLS> wrappedVpls : existingVplsList) {
                     localVplsState.remove(wrappedVpls.getInstance().getVcId());
                 }
@@ -395,7 +427,7 @@ public class NsoStateManager {
                 this.nsoVplsStateSyncer.getNsoProxy().getNsoServiceConfigRestPath(NsoService.VPLS)
             )
         );
-        log.info("Sync complete. VPLS is synchronized? ({}), LSP is sychronized? (){}", this.isVplsSynced(), this.isLspSynced());
+        log.info("Sync complete. VPLS is synchronized? ({}), LSP is sychronized? ({})", this.isVplsSynced(), this.isLspSynced());
         return this.isVplsSynced() && this.isLspSynced();
     }
 

@@ -6,20 +6,15 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
-import net.es.oscars.sb.nso.NsoLspStateSyncer;
-import net.es.oscars.sb.nso.NsoProxy;
-import net.es.oscars.sb.nso.NsoStateManager;
-import net.es.oscars.sb.nso.NsoVplsStateSyncer;
+import net.es.oscars.sb.nso.*;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
-import net.es.oscars.sb.nso.exc.NsoStateManagerException;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 
-import java.util.Dictionary;
-import java.util.List;
+import java.nio.file.Files;
 
 @Slf4j
 @Category({UnitTests.class})
@@ -35,6 +30,7 @@ public class NsoStateManagerSteps extends CucumberSteps {
 
     @Given("The NSO state manager loads VPLS and LSP states")
     public void the_list_of_active_oscars_connections_are_loaded() {
+        stateManager.clear();
         assert stateManager.load();
     }
 
@@ -79,6 +75,32 @@ public class NsoStateManagerSteps extends CucumberSteps {
 
         // Assert the LSP info
         assert stateManager.validateVplsHasLspAssociation(vpls, lsp, entryAZ);
+
+    }
+
+    @Given("I had changed LSP instance in the state manager with name {string} and device {string} to name {string} and device {string} from {string}")
+    public void iHadChangedLSPInstanceInTheStateManagerWithNameAndDeviceToNameAndDeviceFrom(
+        String lspNameA, String lspDeviceA,
+        String lspNameB, String lspDeviceB,
+        String lspJsonFile
+    ) throws Exception {
+        assert Files.exists(new ClassPathResource(lspJsonFile).getFile().toPath());
+
+        NsoLSP[] lsps = loadLspsFromJson(lspJsonFile);
+        NsoLSP newLsp = null;
+        NsoStateWrapper<NsoLSP> existingLsp = stateManager.getNsoLspStateSyncer().findLocalEntryByName(lspNameA + "," + lspDeviceA);
+
+        for (NsoLSP lsp : lsps) {
+            if (lsp.getName().equals(lspNameB) && lsp.getDevice().equals(lspDeviceB)) {
+                newLsp = lsp;
+                break;
+            }
+        }
+
+        assert newLsp != null;
+        // We aren't expecting the associated VPLS to end up empty, so don't delete it!
+        stateManager.deleteLsp(existingLsp.getInstance(), false);
+        stateManager.putLsp(newLsp);
 
     }
 
@@ -133,4 +155,6 @@ public class NsoStateManagerSteps extends CucumberSteps {
     public void theStateManagerLocalStateIsSynchronized() {
         assert stateManager.isLspSynced() && stateManager.isVplsSynced();
     }
+
+
 }
