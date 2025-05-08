@@ -115,6 +115,7 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
                 new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, addLsp)
             );
         syncer.setLocalState(state);
+        syncer.setDirty(true);
 
         log.info("LSP list, was {}, expect {}, now {}", originalSize, originalSize + 1, syncer.getLocalState().size());
         assert syncer.getLocalState().size() == originalSize + 1;
@@ -217,6 +218,6 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
         state.put(newLsp.instanceKey().hashCode(), new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, newLsp));
 
         syncer.setLocalState(state);
-
+        syncer.setDirty(true);
     }
 }

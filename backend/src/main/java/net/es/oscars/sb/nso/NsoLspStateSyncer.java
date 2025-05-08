@@ -319,7 +319,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
 
                 delete(id, description);
                 state = State.DELETE;
-                log.info(description);
+                log.info("description: " + description);
 
             } else if (local != null) {
 
@@ -327,7 +327,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                 String description = "No state found remotely for LSP '" + local.getInstance().instanceKey() + "' (" + id + "), mark for add.";
                 add(id, description);
                 state = State.ADD;
-                log.info(description);
+                log.info("description: " + description);
 
             } else {
                 // Doesn't exist in local OR remote. Throw exception
@@ -597,7 +597,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
             getLocalState().remove(id);
             getLocalState().put(id, lspWrapped);
 
-            log.info(description);
+            log.info("description: " + description);
 
 
             if (!isDirty()) {

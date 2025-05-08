@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.sb.nso.*;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
+import net.es.oscars.sb.nso.exc.NsoStateManagerException;
+import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import org.junit.experimental.categories.Category;
@@ -29,7 +31,7 @@ public class NsoStateManagerSteps extends CucumberSteps {
     NsoProxy proxy;
 
     @Given("The NSO state manager loads VPLS and LSP states")
-    public void the_list_of_active_oscars_connections_are_loaded() {
+    public void the_state_manager_loads_VPLS_and_LSP_states() throws NsoStateManagerException {
         stateManager.clear();
         assert stateManager.load();
     }
@@ -104,6 +106,17 @@ public class NsoStateManagerSteps extends CucumberSteps {
 
     }
 
+    @Given("I had deleted LSP instance in the state manager with name {string} and device {string}")
+    public void iHadMarkedLSPInstanceInTheStateManagerWithNameAndDeviceAs(String lspName, String lspDevice) throws NsoStateManagerException {
+
+        int id = (lspName + "," + lspDevice).hashCode();
+        NsoStateWrapper<NsoLSP> lsp = stateManager.getNsoLspStateSyncer().findLocalEntryById(id);
+
+        assert lsp != null;
+
+        stateManager.deleteLsp(lsp.getInstance());
+    }
+
     @When("The state manager validates")
     public void theStateManagerValidates() {
 
@@ -153,8 +166,8 @@ public class NsoStateManagerSteps extends CucumberSteps {
 
     @Then("The state manager is synchronized")
     public void theStateManagerLocalStateIsSynchronized() {
-        assert stateManager.isLspSynced() && stateManager.isVplsSynced();
+        // Only assert true if dirty.
+        assert !stateManager.getNsoLspStateSyncer().isDirty() || stateManager.isLspSynced();
+        assert !stateManager.getNsoVplsStateSyncer().isDirty() || stateManager.isVplsSynced();
     }
-
-
 }

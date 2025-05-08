@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.exc.NsoStateManagerException;
+import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.NsoService;
@@ -57,12 +58,16 @@ public class NsoStateManager {
         nsoLspStateSyncer = new NsoLspStateSyncer(proxy);
     }
 
-    public boolean load()
+    public boolean load() throws NsoStateManagerException
     {
-        setLoaded(
-            nsoVplsStateSyncer.load()
-            && nsoLspStateSyncer.load()
-        );
+        try {
+            setLoaded(
+                nsoVplsStateSyncer.load()
+                    && nsoLspStateSyncer.load()
+            );
+        } catch (NsoStateSyncerException e) {
+            throw new NsoStateManagerException(e.getLocalizedMessage());
+        }
 
         return isLoaded;
     }
@@ -106,6 +111,7 @@ public class NsoStateManager {
         existingLsp = new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, lsp);
         localState.put(lsp.instanceKey().hashCode(), existingLsp);
         getNsoLspStateSyncer().setLocalState(localState);
+        getNsoLspStateSyncer().setDirty(true);
     }
 
     /**
@@ -136,6 +142,7 @@ public class NsoStateManager {
 
             localLspState.remove(existingLsp.getInstance().instanceKey().hashCode());
             getNsoLspStateSyncer().setLocalState(localLspState);
+            getNsoLspStateSyncer().setDirty(true);
 
             // check if there are any LSPs left in the VPLS. If none, delete the VPLS
             if (deleteVPLSIfLast && _countLspReferencesInVplsState(lsp, localVplsState) == 0) {
@@ -143,6 +150,7 @@ public class NsoStateManager {
                     localVplsState.remove(wrappedVpls.getInstance().getVcId());
                 }
                 getNsoVplsStateSyncer().setLocalState(localVplsState);
+                getNsoVplsStateSyncer().setDirty(true);
             }
             success = true;
         }
@@ -174,6 +182,7 @@ public class NsoStateManager {
         existingVpls = new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, vpls);
         localState.put(existingVpls.getInstance().getVcId(), existingVpls);
         getNsoVplsStateSyncer().setLocalState(localState);
+        getNsoVplsStateSyncer().setDirty(true);
 
     }
 
@@ -203,6 +212,9 @@ public class NsoStateManager {
 
             getNsoLspStateSyncer().setLocalState(localLspState);
             getNsoVplsStateSyncer().setLocalState(localVplsState);
+
+            getNsoVplsStateSyncer().setDirty(true);
+            getNsoLspStateSyncer().setDirty(true);
 
             success = true;
         }
