@@ -452,7 +452,6 @@ public class ConnService {
         Validity v = this.validateCommit(c);
         if (!v.isValid()) {
             connLock.unlock();
-            log.error("commit validation failed for " + c.getConnectionId() + " " + v.getMessage());
             throw new ConnException("Invalid connection for commit; errors follow: \n" + v.getMessage());
         }
 
@@ -565,6 +564,21 @@ public class ConnService {
                     .what(ConnChange.ARCHIVED)
                     .when(Instant.now())
                     .build();
+        } else if (c.getPhase().equals(Phase.HELD)) {
+
+            // un-hold if it is held..
+            log.info("un-holding " + c.getConnectionId());
+            this.unhold(c.getConnectionId());
+
+            // it might have a RESERVED component; in that case we re-assign c
+            if (connRepo.findByConnectionId(c.getConnectionId()).isPresent()) {
+                c = connRepo.findByConnectionId(c.getConnectionId()).get();
+            } else {
+                return ConnChangeResult.builder()
+                        .what(ConnChange.DELETED)
+                        .when(Instant.now())
+                        .build();
+            }
         }
 
         if (c.getPhase().equals(Phase.RESERVED)) {
@@ -739,40 +753,38 @@ public class ConnService {
         }
 
         // validate global connection params
-        if (mode.equals(ConnectionMode.NEW)) {
-            // check the connection ID:
-            String connectionId = in.getConnectionId();
-            if (connectionId == null) {
-                error.append("null connection id\n");
+        // check the connection ID:
+        String connectionId = in.getConnectionId();
+        if (connectionId == null) {
+            error.append("null connection id\n");
+            valid = false;
+        } else {
+            if (!connectionId.matches("^[a-zA-Z][a-zA-Z0-9_\\-]+$")) {
+                error.append("connection id invalid format \n");
                 valid = false;
-            } else {
-                if (!connectionId.matches("^[a-zA-Z][a-zA-Z0-9_\\-]+$")) {
-                    error.append("connection id invalid format \n");
-                    valid = false;
-                }
-                if (connectionId.length() > 12) {
-                    error.append("connection id too long\n");
-                    valid = false;
-                } else if (connectionId.length() < 4) {
-                    error.append("connection id too short\n");
-                    valid = false;
-                }
             }
-            // check the connection MTU
-            if (in.getConnection_mtu() != null) {
-                if (in.getConnection_mtu() < minMtu || in.getConnection_mtu() > maxMtu) {
-                    error.append("MTU must be between ").append(minMtu).append(" and ").append(maxMtu).append(" (inclusive)\n");
-                    valid = false;
-                }
-            } else {
-                in.setConnection_mtu(defaultMtu);
+            if (connectionId.length() > 12) {
+                error.append("connection id too long\n");
+                valid = false;
+            } else if (connectionId.length() < 4) {
+                error.append("connection id too short\n");
+                valid = false;
             }
+        }
+        // check the connection MTU
+        if (in.getConnection_mtu() != null) {
+            if (in.getConnection_mtu() < minMtu || in.getConnection_mtu() > maxMtu) {
+                error.append("MTU must be between ").append(minMtu).append(" and ").append(maxMtu).append(" (inclusive)\n");
+                valid = false;
+            }
+        } else {
+            in.setConnection_mtu(defaultMtu);
+        }
 
-            // description:
-            if (in.getDescription() == null) {
-                error.append("null description\n");
-                valid = false;
-            }
+        // description:
+        if (in.getDescription() == null) {
+            error.append("null description\n");
+            valid = false;
         }
 
 
@@ -1135,6 +1147,9 @@ public class ConnService {
     }
 
     public void releaseHold(String connectionId) {
+        if (held.containsKey(connectionId)) {
+            log.info("releasing an existing hold for connection " + connectionId);
+        }
         held.remove(connectionId);
     }
 
@@ -1143,7 +1158,7 @@ public class ConnService {
         ReentrantLock connLock = dbAccess.getConnLock();
         if (connLock.isLocked()) {
             log.debug("connection lock already locked; returning from hold");
-            return null;
+            return Pair.of(in, null);
         }
         connLock.lock();
 

@@ -29,7 +29,6 @@ import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
 import net.es.topo.common.devel.DevelUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -214,12 +213,19 @@ public class NsiService {
                 log.error("commit failed: " + ex.getMessage(), ex);
                 errorCode = NsiErrors.NRM_ERROR;
                 errorMessage = ex.getMessage();
-
             }
         }
 
         try {
+            // remove the failed request
+
+            nsiRequestManager.remove(mapping.getNsiConnectionId());
+            log.info("un-holding " + mapping.getOscarsConnectionId());
+            connSvc.unhold(mapping.getOscarsConnectionId());
+
             nsiStateEngine.commit(NsiEvent.COMMIT_FL, mapping);
+
+
             nsiMappingService.save(mapping);
         } catch (NsiStateException ex  ) {
             log.error(ex.getMessage(), ex);
@@ -426,7 +432,7 @@ public class NsiService {
         } catch (NsiStateException ex) {
             log.error("Internal error: " + ex.getMessage(), ex);
         }
-        this.reserveTimeout(mapping);
+        this.reserveTimeoutCallback(mapping);
 
 
     }
@@ -483,15 +489,10 @@ public class NsiService {
 
             if (transitionalStates.contains(mapping.getReservationState())) {
                 if (mapping.getLastModified().isBefore(Instant.now().minus(10, ChronoUnit.MINUTES))) {
-                    try {
-                        log.info("timing out a mapping stuck in transitional state " + mapping.getNsiConnectionId() + " "+mapping.getReservationState());
-                        // release holds if they have any
-                        connSvc.releaseHold(mapping.getOscarsConnectionId());
-                        nsiStateEngine.resvTimedOut(mapping);
-                        this.reserveTimeout(mapping);
-                    } catch (NsiStateException e) {
-                        throw new RuntimeException(e);
-                    }
+                    log.info("timing out a mapping stuck in transitional state " + mapping.getNsiConnectionId() + " "+mapping.getReservationState());
+                    // release holds if they have any
+                    connSvc.releaseHold(mapping.getOscarsConnectionId());
+                    this.resvTimedOut(mapping);
                 }
             }
             Optional<Connection> mc = nsiMappingService.getMaybeOscarsConnection(mapping);
@@ -506,7 +507,7 @@ public class NsiService {
     }
 
     /* outbound SOAP calls  */
-    public void reserveTimeout(NsiMapping mapping) {
+    public void reserveTimeoutCallback(NsiMapping mapping) {
         try {
             String nsaId = mapping.getNsaId();
 
