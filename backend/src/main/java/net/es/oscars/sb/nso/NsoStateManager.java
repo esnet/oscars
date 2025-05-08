@@ -395,7 +395,7 @@ public class NsoStateManager {
                 this.nsoVplsStateSyncer.getNsoProxy().getNsoServiceConfigRestPath(NsoService.VPLS)
             )
         );
-
+        log.info("Sync complete. VPLS is synchronized? ({}), LSP is sychronized? (){}", this.isVplsSynced(), this.isLspSynced());
         return this.isVplsSynced() && this.isLspSynced();
     }
 

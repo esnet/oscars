@@ -270,6 +270,9 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                     this.setSynchronized(false);
                 }
 
+            } else {
+                // No changes, assume synchronized.
+                this.setSynchronized(true);
             }
         } catch (NsoStateSyncerException nse) {
             log.error(nse.getMessage(), nse);

@@ -33,7 +33,7 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Then The state manager is synchronized
 
 
-#  Scenario: One (1) VPLS, associated with one (1) LSP at point A, and one (1) LSP at point B. (Modify LSP)
+  Scenario: One (1) VPLS, associated with one (1) LSP at point A, and one (1) LSP at point B. (Modify LSP)
 #    Given I have initialized the world
 #
 #    Given The NSO state manager loads VPLS and LSP states

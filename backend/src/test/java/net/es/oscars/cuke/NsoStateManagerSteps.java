@@ -126,11 +126,7 @@ public class NsoStateManagerSteps extends CucumberSteps {
 
     @When("The state manager synchronizes")
     public void theStateManagerSynchronizes() throws Exception {
-        //stateManager.sync();
-
-        // Kludge for now. Need to implement HTTP mocks in NsoHttpServer
-        stateManager.setLspSynced(true);
-        stateManager.setVplsSynced(true);
+        stateManager.sync();
     }
 
     @Then("The state manager is synchronized")

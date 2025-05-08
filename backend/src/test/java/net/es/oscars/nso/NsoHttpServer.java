@@ -228,6 +228,7 @@ public class NsoHttpServer {
                 mockPostTailfNcs(request, response);
             } else {
                 // Unknown.
+                log.info("POST request not handled yet " + uri + " with query: " + request.getQueryString());
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 response.getWriter().write("404 Not Found");
                 response.getWriter().flush();
@@ -273,6 +274,7 @@ public class NsoHttpServer {
                         }
                     }
                 }
+                log.warn("Did not find a corresponding mock POST response (VPLS endpoint) in http/nso.esnet-vpls.sync.response-specs.json");
             } else if (!nsoServicesWrapper.getLspInstances().isEmpty()) {
                 NsoEsnetLspYangPatchResponseSpec[] responseSpecs = new ObjectMapper()
                         .readValue(new ClassPathResource("http/nso.esnet-lsp.post.response-specs.json").getFile(), NsoEsnetLspYangPatchResponseSpec[].class);
@@ -281,10 +283,11 @@ public class NsoHttpServer {
                     // check by connectionId (VPLS name)
                     String lspName = responseSpec.lspName;
                     String lspDevice = responseSpec.lspDevice;
-
+                    log.info("Checking mock POST response LSP with name " + lspName + " and device " + lspDevice);
                     for (NsoLSP lsp : nsoServicesWrapper.getLspInstances()) {
                         // Currently only sending one VPLS per HTTP POST. :-/
                         // We only need to find the one VPLS in the list of VPLS instances
+                        log.info("...Does it equal our request LSP with name " + lsp.getName() + " and device " + lsp.getDevice() + "?");
                         if (lsp.getName().equals(lspName) && lsp.getDevice().equals(lspDevice)) {
                             // read in the body from the file found in the path in the responseSpec...
                             InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
@@ -292,14 +295,18 @@ public class NsoHttpServer {
                             // ... then write it out as our response
                             response.getWriter().write(body);
                             response.setStatus(responseSpec.status);
+                            log.info("Yes. Found mock POST response for LSP " + lspName + " and device " + lspDevice);
                             return;
                         }
                     }
                 }
+                log.warn("Did not find a corresponding mock POST response (LSP endpoint) in http/nso.esnet-lsp.post.response-specs.json");
             }
 
             // If we got this far, it means the requested mock payload was "404 Not found"... (we don't have it listed)
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+//            response.getWriter().write("404 Not Found");
+            response.getWriter().flush();
         }
 
         protected void mockPostNokiaShow(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
