@@ -1,4 +1,5 @@
 @NsoStateManager
+@NsoStateManagerHappy
 Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS and LSP information before synchronization. (Happy path)
 
   # A VPLS contains a list of SDPs, which is always 2 sdp objects.

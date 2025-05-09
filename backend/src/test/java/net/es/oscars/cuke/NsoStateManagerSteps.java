@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Dictionary;
 import java.util.List;
 
 @Slf4j
@@ -140,6 +141,11 @@ public class NsoStateManagerSteps extends CucumberSteps {
         assert stateManager.isValid();
     }
 
+    @Then("The state manager is not valid")
+    public void theStateManagerIsNotValid() {
+        assert !stateManager.isValid();
+    }
+
 //    @When("The state manager queues")
 //    public void theStateManagerQueues() {
 //        stateManager.queue();
@@ -149,25 +155,6 @@ public class NsoStateManagerSteps extends CucumberSteps {
 //    public void theStateManagerLocalStateIsQueued() {
 //        assert stateManager.isQueued();
 //    }
-
-    private NsoLSP loadLspFromJson(String lspName, String lspDevice, String lspJsonFile) throws Exception {
-        NsoLSP[] lsps = loadLspsFromJson(lspJsonFile);
-        NsoLSP foundLsp = null;
-        for (NsoLSP lsp : lsps) {
-            if (lsp.getName().equals(lspName) && lsp.getDevice().equals(lspDevice)) {
-                foundLsp = lsp;
-            }
-        }
-
-        return foundLsp;
-    }
-    private NsoLSP[] loadLspsFromJson(String lspJsonFile) throws Exception {
-        return new ObjectMapper()
-            .readValue(
-                new ClassPathResource(lspJsonFile).getFile(),
-                NsoLSP[].class
-            );
-    }
 
     @When("The state manager synchronizes")
     public void theStateManagerSynchronizes() throws Exception {
@@ -198,6 +185,19 @@ public class NsoStateManagerSteps extends CucumberSteps {
         stateManager.getNsoVplsStateSyncer().evaluate(vcId);
     }
 
+    @When("The VPLS instance {string} from JSON file {string} is put in the state manager")
+    public void theVPLSInstanceIsReplacedInTheStateManagerWithFromJSONFile(String vplsReplacementName, String vplsJsonFile) throws Exception {
+        NsoVPLS replacementVpls = loadSingleVplsFromJson(vplsReplacementName, vplsJsonFile);
+
+        assert replacementVpls != null;
+
+        try {
+            stateManager.putVpls(replacementVpls);
+        } catch (NsoStateManagerException e) {
+            world.add(e);
+        }
+    }
+
     static class MockNsoResponseErrorHandler extends NsoResponseErrorHandler {
         List<ClientHttpResponse> clientHttpResponseList = new ArrayList<>();
 
@@ -215,5 +215,45 @@ public class NsoStateManagerSteps extends CucumberSteps {
             }
 
         }
+    }
+
+    private NsoLSP loadLspFromJson(String lspName, String lspDevice, String lspJsonFile) throws Exception {
+        NsoLSP[] lsps = loadLspsFromJson(lspJsonFile);
+        NsoLSP foundLsp = null;
+        for (NsoLSP lsp : lsps) {
+            if (lsp.getName().equals(lspName) && lsp.getDevice().equals(lspDevice)) {
+                foundLsp = lsp;
+                break;
+            }
+        }
+
+        return foundLsp;
+    }
+    private NsoLSP[] loadLspsFromJson(String lspJsonFile) throws Exception {
+        return new ObjectMapper()
+            .readValue(
+                new ClassPathResource(lspJsonFile).getFile(),
+                NsoLSP[].class
+            );
+    }
+
+    private NsoVPLS loadSingleVplsFromJson(String vplsName, String vplsJsonFile) throws Exception {
+        NsoVPLS[] allVpls = loadAllVplsFromJson(vplsJsonFile);
+        NsoVPLS foundVpls = null;
+        for (NsoVPLS vpls : allVpls) {
+            if (vpls.getName().equals(vplsName)) {
+                foundVpls = vpls;
+                break;
+            }
+        }
+        return foundVpls;
+    }
+
+    private NsoVPLS[] loadAllVplsFromJson(String vplsJsonFile) throws Exception {
+        return new ObjectMapper()
+            .readValue(
+                new ClassPathResource(vplsJsonFile).getFile(),
+                NsoVPLS[].class
+            );
     }
 }

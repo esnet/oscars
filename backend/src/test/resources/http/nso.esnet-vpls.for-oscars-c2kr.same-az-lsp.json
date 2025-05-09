@@ -1,0 +1,90 @@
+[
+  {
+    "vc-id": 7102,
+    "modified": {
+      "devices": ["losa-cr6", "wash-cr6"],
+      "services": ["/tailf-ncs:services/esnet-port:port[device='wash-cr6'][ifce='lag-50']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='wash-cr6'][service-id='7102']", "/tailf-ncs:services/esnet-port:port[device='losa-cr6'][ifce='2/1/c4/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='losa-cr6'][service-id='7102']"]
+    },
+    "directly-modified": {
+      "devices": ["losa-cr6", "wash-cr6"],
+      "services": ["/tailf-ncs:services/esnet-shared:nokia-service-registry[device='losa-cr6'][service-id='7102']", "/tailf-ncs:services/esnet-port:port[device='losa-cr6'][ifce='2/1/c4/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='wash-cr6'][service-id='7102']", "/tailf-ncs:services/esnet-port:port[device='wash-cr6'][ifce='lag-50']"]
+    },
+    "created": "2025-01-10T20:34:10.265054+00:00",
+    "last-modified": "2025-01-10T20:34:10.265113+00:00",
+    "last-run": "2025-01-10T20:34:10.265148+00:00",
+    "description": "deltaId+cc292481-2cc4-42f3-9b0a-622a4bbf0ef5:uuid+d08c3e65-ddfe-4783-8ce7-9213a",
+    "qos-mode": "guaranteed",
+    "name": "OSCARS-C2KR",
+    "routing-domain": "esnet-293",
+    "device": [
+      {
+        "device": "losa-cr6",
+        "endpoint": [
+          {
+            "ifce": "2/1/c4/1",
+            "vlan-id": 3612,
+            "layer2-description": "C2KR",
+            "qos": {
+              "ingress-mbps": 1000,
+              "egress-mbps": 1000,
+              "excess-action": "keep",
+              "qos-id": 7003
+            }
+          }
+        ]
+      },
+      {
+        "device": "wash-cr6",
+        "endpoint": [
+          {
+            "ifce": "lag-50",
+            "vlan-id": 3612,
+            "layer2-description": "C2KR",
+            "qos": {
+              "ingress-mbps": 1000,
+              "egress-mbps": 1000,
+              "excess-action": "keep",
+              "qos-id": 7010
+            }
+          }
+        ]
+      }
+    ],
+    "sdp": [
+      {
+        "sdp-id": 7197,
+        "description": "C2KR",
+        "a": {
+          "device": "wash-cr6",
+          "mode": "spoke",
+          "vc-id": 7012,
+          "lsp": "C2KR-WRK-losa-cr6"
+        },
+        "z": {
+          "device": "wash-cr6",
+          "mode": "spoke",
+          "vc-id": 7012,
+          "lsp": "C2KR-WRK-losa-cr6"
+        },
+        "precedence": "primary"
+      },
+      {
+        "sdp-id": 7198,
+        "description": "C2KR",
+        "a": {
+          "device": "losa-cr6",
+          "mode": "spoke",
+          "vc-id": 7013,
+          "lsp": "C2KR-PRT-wash-cr6"
+        },
+        "z": {
+          "device": "losa-cr6",
+          "mode": "spoke",
+          "vc-id": 7013,
+          "lsp": "C2KR-PRT-wash-cr6"
+        },
+        "precedence": "secondary"
+      }
+    ]
+  }
+]

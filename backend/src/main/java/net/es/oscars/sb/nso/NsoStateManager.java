@@ -415,6 +415,9 @@ public class NsoStateManager {
                 continue;
             }
             for (NsoVPLS.SDP sdp : vpls.getSdp()) {
+                if (sdp.getA().equals(sdp.getZ())) {
+                    throw new NsoStateManagerException("A VPLS should not re-use the same LSP within an SDP as both point A and Z");
+                }
                 if (
                     ( sdp.getA().getLsp().equals(lsp.getName()) && sdp.getA().getDevice().equals(lsp.getDevice()) )
                     || ( sdp.getZ().getLsp().equals(lsp.getName()) && sdp.getZ().getDevice().equals(lsp.getDevice()) )
