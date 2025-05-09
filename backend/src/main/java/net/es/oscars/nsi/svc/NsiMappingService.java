@@ -549,35 +549,43 @@ public class NsiMappingService {
         tvt.setType("oscarsId");
         tvt.setValue(mapping.getOscarsConnectionId());
         p2p.getParameter().add(tvt);
-
-        VlanFixture a = cmp.getFixtures().getFirst();
-        String srcStp = this.nsiUrnFromInternal(a.getPortUrn()) + "?vlan=" + a.getVlan().getVlanId();
-        if (mapping.getSrc() != null) {
-            String[] stpParts = StringUtils.split(mapping.getSrc(), "\\?");
-            srcStp = stpParts[0] + "?vlan=" + a.getVlan().getVlanId();
-        }
-
-        VlanFixture z = cmp.getFixtures().get(1);
-        String dstStp = this.nsiUrnFromInternal(z.getPortUrn()) + "?vlan=" + z.getVlan().getVlanId();
-        if (mapping.getDst() != null) {
-            String[] stpParts = StringUtils.split(mapping.getDst(), "\\?");
-            dstStp = stpParts[0] + "?vlan=" + z.getVlan().getVlanId();
-        }
-
+        String srcStp = mapping.getSrc();
+        String dstStp = mapping.getDst();
+        long capacity = 0L;
         List<String> strEro = new ArrayList<>();
-        if (cmp.getPipes() == null || cmp.getPipes().isEmpty()) {
-            strEro.add(srcStp);
-            strEro.add(dstStp);
-        } else {
-            VlanPipe p = cmp.getPipes().getFirst();
-            strEro.add(srcStp);
-            for (int i = 0; i < p.getAzERO().size(); i++) {
-                // skip devices in NSI ERO
-                if (i % 3 != 0) {
-                    strEro.add(this.nsiUrnFromInternal(p.getAzERO().get(i).getUrn()));
+
+        if (cmp != null) {
+            if (!cmp.getFixtures().isEmpty()) {
+                VlanFixture a = cmp.getFixtures().getFirst();
+                srcStp = this.nsiUrnFromInternal(a.getPortUrn()) + "?vlan=" + a.getVlan().getVlanId();
+                if (mapping.getSrc() != null) {
+                    String[] stpParts = StringUtils.split(mapping.getSrc(), "\\?");
+                    srcStp = stpParts[0] + "?vlan=" + a.getVlan().getVlanId();
+                }
+                capacity = a.getIngressBandwidth();
+            }
+            if (cmp.getFixtures().size() >= 2) {
+                VlanFixture z = cmp.getFixtures().get(1);
+                dstStp = this.nsiUrnFromInternal(z.getPortUrn()) + "?vlan=" + z.getVlan().getVlanId();
+                if (mapping.getDst() != null) {
+                    String[] stpParts = StringUtils.split(mapping.getDst(), "\\?");
+                    dstStp = stpParts[0] + "?vlan=" + z.getVlan().getVlanId();
                 }
             }
-            strEro.add(dstStp);
+            if (cmp.getPipes() == null || cmp.getPipes().isEmpty()) {
+                strEro.add(srcStp);
+                strEro.add(dstStp);
+            } else {
+                VlanPipe p = cmp.getPipes().getFirst();
+                strEro.add(srcStp);
+                for (int i = 0; i < p.getAzERO().size(); i++) {
+                    // skip devices in NSI ERO
+                    if (i % 3 != 0) {
+                        strEro.add(this.nsiUrnFromInternal(p.getAzERO().get(i).getUrn()));
+                    }
+                }
+                strEro.add(dstStp);
+            }
         }
 
         StpListType ero = new StpListType();
@@ -585,14 +593,12 @@ public class NsiMappingService {
             OrderedStpType ostp = new OrderedStpType();
             ostp.setStp(strEro.get(i));
             ostp.setOrder(i);
-
             ero.getOrderedSTP().add(ostp);
-
         }
 
         p2p.setSourceSTP(srcStp);
         p2p.setDestSTP(dstStp);
-        p2p.setCapacity(a.getIngressBandwidth());
+        p2p.setCapacity(capacity);
         p2p.setEro(ero);
         p2p.setDirectionality(DirectionalityType.BIDIRECTIONAL);
         p2p.setSymmetricPath(true);
