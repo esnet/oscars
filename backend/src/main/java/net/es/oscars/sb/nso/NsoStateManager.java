@@ -158,7 +158,8 @@ public class NsoStateManager {
      * @throws NsoStateManagerException Throws an exception if there was an issue while attempting to mark the VPLS for add or redeployment.
      */
     public void putVpls(NsoVPLS vpls) throws NsoStateManagerException {
-        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> localState = getNsoVplsStateSyncer().getLocalState();
+        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> localVplsState = getNsoVplsStateSyncer().getLocalState();
+
         NsoStateWrapper<NsoVPLS> existingVpls = getNsoVplsStateSyncer().findRemoteEntryById(vpls.getVcId());
 
         // The LSPs must already exist
@@ -170,12 +171,12 @@ public class NsoStateManager {
 
         // Add or replace the VPLS
         if (existingVpls != null) {
-            localState.remove(existingVpls.getInstance().getVcId());
+            localVplsState.remove(existingVpls.getInstance().getVcId());
         }
 
         existingVpls = new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, vpls);
-        localState.put(existingVpls.getInstance().getVcId(), existingVpls);
-        getNsoVplsStateSyncer().setLocalState(localState);
+        localVplsState.put(existingVpls.getInstance().getVcId(), existingVpls);
+        getNsoVplsStateSyncer().setLocalState(localVplsState);
         getNsoVplsStateSyncer().setDirty(true);
 
     }
