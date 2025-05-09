@@ -11,9 +11,10 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Given I have initialized the world
 
     Given The NSO state manager loads VPLS and LSP states
+    Given The invalid VPLS instances don't exist
 
     Given The NSO VPLS service state is loaded into the state manager
-    Given The NSO VPLS service state has 137 instances in the state manager
+    Given The NSO VPLS service state has 131 instances in the state manager
 
     Given The NSO LSP service state is loaded by the state manager
     Given The NSO LSP service state has 536 instances in the state manager
@@ -22,6 +23,7 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
 
     # Add an LSP to a VPLS
     Given The LSP with name "C2KR-PRT-losa-cr6" and device "wash-cr6" from JSON file "http/nso.esnet-lsp.for-oscars-c2kr.json" is added to VPLS "OSCARS-C2KR" as SDP entry "A"
+    Given The LSP with name "C2KR-PRT-wash-cr6" and device "losa-cr6" from JSON file "http/nso.esnet-lsp.for-oscars-c2kr.json" is added to VPLS "OSCARS-C2KR" as SDP entry "Z"
 
     # ... does it validate()?
     When The state manager validates
@@ -38,9 +40,10 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Given I have initialized the world
 
     Given The NSO state manager loads VPLS and LSP states
+    Given The invalid VPLS instances don't exist
 
     Given The NSO VPLS service state is loaded into the state manager
-    Given The NSO VPLS service state has 137 instances in the state manager
+    Given The NSO VPLS service state has 131 instances in the state manager
 
     Given The NSO LSP service state is loaded by the state manager
     Given The NSO LSP service state has 536 instances in the state manager
@@ -64,9 +67,10 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Given I have initialized the world
 
     Given The NSO state manager loads VPLS and LSP states
+    Given The invalid VPLS instances don't exist
 
     Given The NSO VPLS service state is loaded into the state manager
-    Given The NSO VPLS service state has 137 instances in the state manager
+    Given The NSO VPLS service state has 131 instances in the state manager
 
     Given The NSO LSP service state is loaded by the state manager
     Given The NSO LSP service state has 536 instances in the state manager
@@ -75,6 +79,8 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
 
     # Delete LSP of a VPLS. Last LSP, when deleted, should also cause VPLS to be deleted by default (unless a flag parameter is set to false)
     Given I had deleted LSP instance in the state manager with name "C2WJ-PRT-newy32aoa-cr6" and device "star-cr6"
+    Given I had deleted LSP instance in the state manager with name "C2WJ-PRT-star-cr6" and device "newy32aoa-cr6"
+
     # ... validate()?
     When The state manager validates
     Then The state manager is valid
@@ -91,9 +97,10 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Given I have initialized the world
 
     Given The NSO state manager loads VPLS and LSP states
+    Given The invalid VPLS instances don't exist
 
     Given The NSO VPLS service state is loaded into the state manager
-    Given The NSO VPLS service state has 137 instances in the state manager
+    Given The NSO VPLS service state has 131 instances in the state manager
 
     Given The NSO LSP service state is loaded by the state manager
     Given The NSO LSP service state has 536 instances in the state manager

@@ -1,6 +1,7 @@
 package net.es.oscars.cuke;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -9,7 +10,6 @@ import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.sb.nso.*;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.exc.NsoStateManagerException;
-import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.oscars.sb.nso.rest.NsoResponseErrorHandler;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
@@ -37,6 +37,11 @@ public class NsoStateManagerSteps extends CucumberSteps {
 
     MockNsoResponseErrorHandler mockErrorHandler = new MockNsoResponseErrorHandler();
 
+    @Before("@NsoStateManager")
+    public void before() {
+        stateManager.getNsoVplsStateSyncer().clear();
+        stateManager.getNsoLspStateSyncer().clear();
+    }
 
     @Given("The NSO state manager loads VPLS and LSP states")
     public void the_state_manager_loads_VPLS_and_LSP_states() throws NsoStateManagerException {
@@ -45,6 +50,33 @@ public class NsoStateManagerSteps extends CucumberSteps {
         NsoProxy.setPatchErrorHandler(mockErrorHandler);
         stateManager.clear();
         assert stateManager.load();
+    }
+
+    @Given("The invalid VPLS instances don't exist")
+    public void theInvalidVplsInstancesDontExists() {
+        // Clean out known invalid VPLS entries
+        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> localVplsState = stateManager.getNsoVplsStateSyncer().getLocalState();
+        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> remoteVplsState = stateManager.getNsoVplsStateSyncer().getRemoteState();
+
+        List<String> knownInvalidVpls = new ArrayList<>() {};
+
+        knownInvalidVpls.add("BBB2");
+        knownInvalidVpls.add("DOE-IN");
+        knownInvalidVpls.add("DOE-IN-FNE");
+        knownInvalidVpls.add("SPaRC-NMS");
+        knownInvalidVpls.add("SPaRC");
+        knownInvalidVpls.add("OSCARS-XYFK");
+
+        for (String vplsName : knownInvalidVpls) {
+            NsoStateWrapper<NsoVPLS> localVpls = stateManager.getNsoVplsStateSyncer().findLocalEntryByName(vplsName);
+            NsoStateWrapper<NsoVPLS> remoteVpls = stateManager.getNsoVplsStateSyncer().findRemoteEntryByName(vplsName);
+
+            localVplsState.remove(localVpls.getInstance().getVcId());
+            remoteVplsState.remove(remoteVpls.getInstance().getVcId());
+        }
+
+        stateManager.getNsoVplsStateSyncer().setLocalState(localVplsState);
+        stateManager.getNsoVplsStateSyncer().setRemoteState(remoteVplsState);
     }
 
     @Given("The NSO VPLS service state is loaded into the state manager")
@@ -72,13 +104,18 @@ public class NsoStateManagerSteps extends CucumberSteps {
         assert stateManager.getNsoVplsStateSyncer().findLocalEntryByName(arg0) != null;
     }
 
-    @Given("The LSP with name {string} and device {string} from JSON file {string} is added to VPLS {string} as SDP entry {string}")
-    public void anLSPIsAddedToAnExistingVPLS(String lspName, String lspDevice, String lspJsonFile, String vplsName, String entryAZ) throws Exception {
-        // load an LSP from JSON file, add to existing LSP state
+    @When("The LSP with name {string} and device {string} from JSON file {string} is added")
+    public void anLSPIsAdded(String lspName, String lspDevice, String lspJsonFile) throws Exception {
         NsoLSP lsp = loadLspFromJson(lspName, lspDevice, lspJsonFile);
         assert lsp != null;
 
         stateManager.putLsp(lsp);
+    }
+    @Given("The LSP with name {string} and device {string} from JSON file {string} is added to VPLS {string} as SDP entry {string}")
+    public void anLSPIsAddedToAnExistingVPLS(String lspName, String lspDevice, String lspJsonFile, String vplsName, String entryAZ) throws Exception {
+
+        // load an LSP from JSON file, add to existing LSP state
+        anLSPIsAdded(lspName, lspDevice, lspJsonFile);
 
         // find the VPLS
         NsoStateWrapper<NsoVPLS> vplsWrapped = stateManager.getNsoVplsStateSyncer().findLocalEntryByName(vplsName);
@@ -87,6 +124,7 @@ public class NsoStateManagerSteps extends CucumberSteps {
         NsoVPLS vpls = vplsWrapped.getInstance();
 
         // Assert the LSP info
+        NsoLSP lsp = loadLspFromJson(lspName, lspDevice, lspJsonFile);
         assert stateManager.validateVplsHasLspAssociation(vpls, lsp, entryAZ);
 
     }
@@ -194,6 +232,7 @@ public class NsoStateManagerSteps extends CucumberSteps {
         try {
             stateManager.putVpls(replacementVpls);
         } catch (NsoStateManagerException e) {
+            log.error("NsoStateManagerSteps put VPLS {} into state manager failed.", replacementVpls.getName(), e);
             world.add(e);
         }
     }

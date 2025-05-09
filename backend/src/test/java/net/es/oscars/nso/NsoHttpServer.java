@@ -311,12 +311,13 @@ public class NsoHttpServer {
                 NsoEsnetLspYangPatchResponseSpec[] responseSpecs = new ObjectMapper()
                         .readValue(new ClassPathResource("http/nso.esnet-lsp.post.response-specs.json").getFile(), NsoEsnetLspYangPatchResponseSpec[].class);
 
-                for (NsoEsnetLspYangPatchResponseSpec responseSpec : responseSpecs) {
-                    // check by connectionId (VPLS name)
-                    String lspName = responseSpec.lspName;
-                    String lspDevice = responseSpec.lspDevice;
-                    log.info("Checking mock POST response LSP with name " + lspName + " and device " + lspDevice);
-                    for (NsoLSP lsp : nsoServicesWrapper.getLspInstances()) {
+
+                for (NsoLSP lsp : nsoServicesWrapper.getLspInstances()) {
+                    for (NsoEsnetLspYangPatchResponseSpec responseSpec : responseSpecs) {
+                        // check by connectionId (VPLS name)
+                        String lspName = responseSpec.lspName;
+                        String lspDevice = responseSpec.lspDevice;
+                        log.info("Checking mock POST response LSP with name " + lspName + " and device " + lspDevice);
                         // Currently only sending one VPLS per HTTP POST. :-/
                         // We only need to find the one VPLS in the list of VPLS instances
                         log.info("...Does it equal our request LSP with name " + lsp.getName() + " and device " + lsp.getDevice() + "?");
@@ -331,8 +332,9 @@ public class NsoHttpServer {
                             return;
                         }
                     }
+                    log.warn("Did not find a corresponding mock POST response for LSP instance key {} (LSP endpoint) in http/nso.esnet-lsp.post.response-specs.json", lsp.instanceKey());
                 }
-                log.warn("Did not find a corresponding mock POST response (LSP endpoint) in http/nso.esnet-lsp.post.response-specs.json");
+
             }
 
             // If we got this far, it means the requested mock payload was "404 Not found"... (we don't have it listed)

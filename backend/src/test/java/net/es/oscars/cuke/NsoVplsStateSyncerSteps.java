@@ -1,6 +1,7 @@
 package net.es.oscars.cuke;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -33,10 +34,16 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     @Autowired
     private CucumberWorld world;
 
+    @Autowired
     NsoVplsStateSyncer syncer;
 
     @Autowired
     NsoProxy proxy;
+
+    @Before("@NsoVplsSyncSteps")
+    public void before() {
+        syncer.clear();
+    }
 
     @Given("The list of active OSCARS connections are loaded")
     public void theListOfActiveOSCARSConnectionsAreLoadedFrom() throws Throwable {

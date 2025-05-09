@@ -73,20 +73,9 @@ public class NsoStateManager {
     }
 
     public void clear() {
-        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> clearVpls = new Hashtable<>();
-        Dictionary<Integer, NsoStateWrapper<NsoLSP>> clearLsps = new Hashtable<>();
 
-        nsoVplsStateSyncer.setLocalState(clearVpls);
-        nsoLspStateSyncer.setLocalState(clearLsps);
-
-        nsoVplsStateSyncer.setLoaded(false);
-        nsoLspStateSyncer.setLoaded(false);
-
-        nsoVplsStateSyncer.setSynchronized(false);
-        nsoLspStateSyncer.setSynchronized(false);
-
-        nsoVplsStateSyncer.setDirty(false);
-        nsoLspStateSyncer.setDirty(false);
+        nsoVplsStateSyncer.clear();
+        nsoLspStateSyncer.clear();
 
         setValid(false);
         setQueued(false);
@@ -242,7 +231,6 @@ public class NsoStateManager {
             // For each VPLS, assert we have an entry for the expected LSP
             // - An LSP is associated with exactly one VPLS ; a VPLS will have multiple LSPs
             // - No LSPs should be present in NSO that are not associated with a VPLS ("orphans")
-            boolean isValid = true;
 
             Dictionary<Integer, NsoStateWrapper<NsoVPLS>> nsoVplsLocal = nsoVplsStateSyncer.getLocalState();
             Dictionary<Integer, NsoStateWrapper<NsoLSP>> nsoLspLocal = nsoLspStateSyncer.getLocalState();
@@ -250,7 +238,7 @@ public class NsoStateManager {
             Enumeration<NsoStateWrapper<NsoLSP>> enumerationLsp = nsoLspStateSyncer.getLocalState().elements();
             Enumeration<NsoStateWrapper<NsoVPLS>> enumerationVpls = nsoVplsStateSyncer.getLocalState().elements();
 
-            boolean isEntryValid = false;
+            boolean isEntryValid = true;
             // Check LSPs exist for each VPLS first.
             while (enumerationLsp.hasMoreElements()) {
                 NsoStateWrapper<NsoLSP> lspWrapped = enumerationLsp.nextElement();
@@ -265,31 +253,57 @@ public class NsoStateManager {
                     } else {
                         log.warn("Found an LSP that belongs to more than one (1) VPLS. LSP instance: " + lspWrapped.getInstance().instanceKey());
                     }
+                    return isValid();
                 }
-                isValid = isValid && isEntryValid;
             }
 
-//            while (enumerationVpls.hasMoreElements()) {
-//                NsoStateWrapper<NsoVPLS> vplsWrapped = enumerationVpls.nextElement();
-//                isEntryValid = _validateOneVplsToOneLsp(vplsWrapped.getInstance(), nsoLspLocal);
-//                if (!isEntryValid) {
-//                    int count = _countVplsReferencesInLspState(vplsWrapped.getInstance(), nsoLspLocal);
-//                    if (count == 0) {
-//                        // This VPLS isn't associated with an LSP. It may need to be removed.
-//                        log.warn("Found a VPLS that does not have any associated LSPs. VPLS name: " + vplsWrapped.getInstance().getName());
-//                    } else {
-//                        log.warn("Found a VPLS that is associated with more than one (1) LSP. VPLS name: " + vplsWrapped.getInstance().getName());
-//                    }
-//                }
-//                isValid = isValid && isEntryValid;
-//            }
 
-            this.setValid(isValid);
+            while (enumerationVpls.hasMoreElements()) {
+                NsoStateWrapper<NsoVPLS> vplsWrapped = enumerationVpls.nextElement();
+                isEntryValid = _validateOneVplsHasEvenNumberOfLsp(vplsWrapped.getInstance(), nsoLspLocal);
+                if (!isEntryValid) {
+                    int count = _countVplsReferencesInLspState(vplsWrapped.getInstance(), nsoLspLocal);
+                    int modulus = count % 2; // Assert LSPs are in pairs, as SDPs have point A and point Z LSPs.
+                    if (count == 0) {
+                        // This VPLS isn't associated with an LSP. It may need to be removed.
+                        log.warn("Found a VPLS that does not have any associated LSPs. VPLS name: " + vplsWrapped.getInstance().getName());
+                    } else if (modulus != 0) {
+                        log.warn("Found a VPLS that is associated with an odd number ({}) of LSP. VPLS name: " + vplsWrapped.getInstance().getName(), count);
+                    }
+                    return isValid();
+                }
+
+                boolean isSdpAZValid = true;
+
+                if (vplsWrapped.getInstance().getSdp() != null) {
+                    isSdpAZValid = validateVplsSDPs(vplsWrapped.getInstance());
+                    if (!isSdpAZValid) {
+                        log.warn("Found a VPLS with invalid SDP entry. VPLS " + vplsWrapped.getInstance().getName() + " has one or more SDP entries where the LSP for A and the LSP for Z are identical.");
+
+                        return isValid();
+                    }
+                }
+            }
+
+            this.setValid(true);
         } catch (Exception ex) {
             log.error(ex.getLocalizedMessage(), ex);
             throw new NsoStateManagerException(ex.getLocalizedMessage());
         }
         return this.isValid();
+    }
+
+    public boolean validateVplsSDPs(NsoVPLS vpls) throws NsoStateManagerException {
+        for (NsoVPLS.SDP sdp : vpls.getSdp()) {
+            // Do not allow A VPLS to have an SDP with the LSP for A and Z
+            if (
+                sdp.getA().getLsp().equals(sdp.getZ().getLsp())
+                    && sdp.getA().getDevice().equals(sdp.getZ().getDevice())
+            ) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public boolean validateVplsHasLspAssociation(NsoVPLS vpls, NsoLSP lsp, String asAorZ) throws NsoStateManagerException {
@@ -318,8 +332,8 @@ public class NsoStateManager {
         return valid;
     }
 
-    private boolean _validateOneVplsToOneLsp(NsoVPLS vpls, Dictionary<Integer, NsoStateWrapper<NsoLSP>> nsoLspState) throws NsoStateManagerException {
-        return _countVplsReferencesInLspState(vpls, nsoLspState) == 1;
+    private boolean _validateOneVplsHasEvenNumberOfLsp(NsoVPLS vpls, Dictionary<Integer, NsoStateWrapper<NsoLSP>> nsoLspState) throws NsoStateManagerException {
+        return _countVplsReferencesInLspState(vpls, nsoLspState) % 2 == 0;
     }
 
     private boolean _validateOneLspToOneVpls(NsoLSP lsp, Dictionary<Integer, NsoStateWrapper<NsoVPLS>> nsoVplsState) throws NsoStateManagerException {
@@ -415,12 +429,20 @@ public class NsoStateManager {
                 continue;
             }
             for (NsoVPLS.SDP sdp : vpls.getSdp()) {
-                if (sdp.getA().equals(sdp.getZ())) {
-                    throw new NsoStateManagerException("A VPLS should not re-use the same LSP within an SDP as both point A and Z");
-                }
+//                if (sdp.getA().equals(sdp.getZ())) {
+//                    throw new NsoStateManagerException("A VPLS should not re-use the same LSP within an SDP as both point A and Z");
+//                }
+                String sdpLspAName = sdp.getA().getLsp();
+                String sdpLspZName = sdp.getZ().getLsp();
+                String sdpLspADevice = sdp.getA().getDevice();
+                String sdpLspZDevice = sdp.getZ().getDevice();
+
+                String lspName = lsp.getName();
+                String lspDevice = lsp.getDevice();
+
                 if (
-                    ( sdp.getA().getLsp().equals(lsp.getName()) && sdp.getA().getDevice().equals(lsp.getDevice()) )
-                    || ( sdp.getZ().getLsp().equals(lsp.getName()) && sdp.getZ().getDevice().equals(lsp.getDevice()) )
+                    ( sdpLspAName.equals(lspName) && sdpLspADevice.equals(lspDevice) )
+                    || ( sdpLspZName.equals(lspName) && sdpLspZDevice.equals(lspDevice) )
                 ) {
                     vplsReferencesInLspState.add(wrappedNsoLsp);
                 }

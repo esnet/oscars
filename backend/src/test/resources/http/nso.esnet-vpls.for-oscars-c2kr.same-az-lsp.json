@@ -55,16 +55,16 @@
         "sdp-id": 7197,
         "description": "C2KR",
         "a": {
-          "device": "wash-cr6",
+          "device": "losa-cr6",
           "mode": "spoke",
           "vc-id": 7012,
-          "lsp": "C2KR-WRK-losa-cr6"
+          "lsp": "C2KR-WRK-wash-cr6"
         },
         "z": {
-          "device": "wash-cr6",
+          "device": "losa-cr6",
           "mode": "spoke",
           "vc-id": 7012,
-          "lsp": "C2KR-WRK-losa-cr6"
+          "lsp": "C2KR-WRK-wash-cr6"
         },
         "precedence": "primary"
       },
@@ -72,16 +72,16 @@
         "sdp-id": 7198,
         "description": "C2KR",
         "a": {
-          "device": "losa-cr6",
+          "device": "wash-cr6",
           "mode": "spoke",
           "vc-id": 7013,
-          "lsp": "C2KR-PRT-wash-cr6"
+          "lsp": "C2KR-PRT-losa-cr6"
         },
         "z": {
-          "device": "losa-cr6",
+          "device": "wash-cr6",
           "mode": "spoke",
           "vc-id": 7013,
-          "lsp": "C2KR-PRT-wash-cr6"
+          "lsp": "C2KR-PRT-losa-cr6"
         },
         "precedence": "secondary"
       }

@@ -8,10 +8,7 @@ import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 
 @Getter
 @Setter
@@ -29,8 +26,17 @@ public abstract class NsoStateSyncer<T> {
     private boolean isDirty = false;
     private boolean isSynchronized = false;
 
-    public Dictionary<Integer, T> localState;
-    private Dictionary<Integer, T> remoteState;
+    public Dictionary<Integer, T> localState = new Hashtable<>();
+    private Dictionary<Integer, T> remoteState = new Hashtable<>();
+
+    public void clear() {
+        isLoaded = false;
+        isDirty = false;
+        isSynchronized = false;
+
+        localState = new Hashtable<>();
+        remoteState = new Hashtable<>();
+    }
 
     /**
      * Loads the NSO service state data from the specified path.
