@@ -13,6 +13,11 @@
     "patchId": "redeploy VPLS for CCCC",
     "data": "http/nso.esnet-vpls.sync.response.happy.json",
     "status": 200
+  },
+  {
+    "patchId": "delete VPLS and LSP forOSCARS-C2WJ",
+    "data": "http/nso.esnet-vpls.sync.response.happy.json",
+    "status": 200
   }
 ]
 

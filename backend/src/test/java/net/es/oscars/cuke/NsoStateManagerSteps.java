@@ -10,13 +10,20 @@ import net.es.oscars.sb.nso.*;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.exc.NsoStateManagerException;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
+import net.es.oscars.sb.nso.rest.NsoResponseErrorHandler;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.client.ClientHttpResponse;
 
+import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Category({UnitTests.class})
@@ -27,11 +34,14 @@ public class NsoStateManagerSteps extends CucumberSteps {
     @Autowired
     NsoStateManager stateManager;
 
-    @Autowired
-    NsoProxy proxy;
+    MockNsoResponseErrorHandler mockErrorHandler = new MockNsoResponseErrorHandler();
+
 
     @Given("The NSO state manager loads VPLS and LSP states")
     public void the_state_manager_loads_VPLS_and_LSP_states() throws NsoStateManagerException {
+
+        NsoProxy.setRestErrorHandler(mockErrorHandler);
+        NsoProxy.setPatchErrorHandler(mockErrorHandler);
         stateManager.clear();
         assert stateManager.load();
     }
@@ -169,5 +179,41 @@ public class NsoStateManagerSteps extends CucumberSteps {
         // Only assert true if dirty.
         assert !stateManager.getNsoLspStateSyncer().isDirty() || stateManager.isLspSynced();
         assert !stateManager.getNsoVplsStateSyncer().isDirty() || stateManager.isVplsSynced();
+    }
+
+    @Then("The VPLS {string} in the state manager was marked {string}")
+    public void theVPLSInTheStateManagerWasMarked(String arg0, String arg1) {
+
+        int vcId = stateManager.getNsoVplsStateSyncer().getLocalVcIdByName(arg0);
+        NsoStateSyncer.State markedAs = stateManager.getNsoVplsStateSyncer().getLocalState().get(vcId).state;
+        NsoStateSyncer.State expectedState = NsoStateSyncer.State.valueOf(arg1.replaceAll("-", "").toUpperCase());
+
+        log.info("NsoStateManagerSteps expect VPLS {} was marked as {}, actual state was {}", arg0, expectedState, markedAs);
+        assert expectedState == markedAs;
+    }
+
+    @When("The VPLS instance {string} is evaluated")
+    public void theVPLSInstanceIsEvaluated(String arg0) {
+        int vcId = stateManager.getNsoVplsStateSyncer().getLocalVcIdByName(arg0);
+        stateManager.getNsoVplsStateSyncer().evaluate(vcId);
+    }
+
+    static class MockNsoResponseErrorHandler extends NsoResponseErrorHandler {
+        List<ClientHttpResponse> clientHttpResponseList = new ArrayList<>();
+
+        @Override
+        public void handleError(URI url, HttpMethod method, ClientHttpResponse httpResponse) throws IOException {
+            // just log stuff
+            log.error("NsoResponseErrorHandler: Error handling " + url + " " + method + " " + httpResponse.getStatusCode());
+
+            if (httpResponse.getStatusCode().is5xxServerError()) {
+                log.error("...server error status text: {}", httpResponse.getStatusText());
+                clientHttpResponseList.add(httpResponse);
+            } else if (httpResponse.getStatusCode().is4xxClientError()) {
+                log.error("...client error status text: {}", httpResponse.getStatusText());
+                clientHttpResponseList.add(httpResponse);
+            }
+
+        }
     }
 }

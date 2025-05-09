@@ -212,7 +212,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
 
                     } catch (NsoCommitException nsoCommitException) {
                         gotCommitError = true;
-                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
                     }
                 }
                 // ...Delete END
@@ -230,7 +230,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
 
                     } catch (NsoCommitException nsoCommitException) {
                         gotCommitError = true;
-                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
                     }
 
                 }
@@ -266,6 +266,8 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                 // Mark as synchronized.
                 this.setSynchronized(!gotCommitError);
 
+            } else {
+                log.info("LSP State is not dirty. Nothing to synchronize.");
             }
         } catch (NsoStateSyncerException nse) {
             log.error(nse.getMessage(), nse);

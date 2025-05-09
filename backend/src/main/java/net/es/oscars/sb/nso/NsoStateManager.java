@@ -132,25 +132,30 @@ public class NsoStateManager {
      */
     public boolean deleteLsp(NsoLSP lsp, boolean deleteVPLSIfLast) throws NsoStateManagerException {
         boolean success = false;
-        Dictionary<Integer, NsoStateWrapper<NsoLSP>> localLspState = getNsoLspStateSyncer().getLocalState();
         NsoStateWrapper<NsoLSP> existingLsp = getNsoLspStateSyncer().findLocalEntryByName(lsp.instanceKey());
 
         // Only attempt to remove the LSP if it actually exists in the state.
         if (existingLsp != null) {
-            List<NsoStateWrapper<NsoVPLS>> existingVplsList = _findLspReferencesInVplsState(lsp, getNsoVplsStateSyncer().getLocalState());
-            Dictionary<Integer, NsoStateWrapper<NsoVPLS>> localVplsState = getNsoVplsStateSyncer().getLocalState();
 
-            localLspState.remove(existingLsp.getInstance().instanceKey().hashCode());
-            getNsoLspStateSyncer().setLocalState(localLspState);
-            getNsoLspStateSyncer().setDirty(true);
+
+            getNsoLspStateSyncer().delete(existingLsp.getInstance().instanceKey().hashCode());
 
             // check if there are any LSPs left in the VPLS. If none, delete the VPLS
-            if (deleteVPLSIfLast && _countLspReferencesInVplsState(lsp, localVplsState) == 0) {
+            Dictionary<Integer, NsoStateWrapper<NsoVPLS>> localVplsState = getNsoVplsStateSyncer().getLocalState();
+            List<NsoStateWrapper<NsoVPLS>> existingVplsList = _findLspReferencesInVplsState(lsp, localVplsState);
+
+            if (deleteVPLSIfLast) {
+
                 for (NsoStateWrapper<NsoVPLS> wrappedVpls : existingVplsList) {
-                    localVplsState.remove(wrappedVpls.getInstance().getVcId());
+                    int countLspsInVpls = _countVplsReferencesInLspState(wrappedVpls.getInstance(), getNsoLspStateSyncer().getLocalState());
+
+                    if (countLspsInVpls == 0) {
+                        getNsoVplsStateSyncer().delete(wrappedVpls.getInstance().getVcId());
+                        log.info("Deleted VPLS {}, as there are no more LSPs associated with it. ", wrappedVpls.getInstance().getName());
+                    } else {
+                        log.info("Will not delete VPLS. There are still {} LSP references in VPLS {}", countLspsInVpls, wrappedVpls.getInstance().getName());
+                    }
                 }
-                getNsoVplsStateSyncer().setLocalState(localVplsState);
-                getNsoVplsStateSyncer().setDirty(true);
             }
             success = true;
         }
@@ -195,26 +200,28 @@ public class NsoStateManager {
      */
     public boolean deleteVpls(NsoVPLS vpls) throws NsoStateManagerException {
         boolean success = false;
-        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> localVplsState = getNsoVplsStateSyncer().getLocalState();
-        Dictionary<Integer, NsoStateWrapper<NsoLSP>> localLspState = getNsoLspStateSyncer().getLocalState();
+//        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> localVplsState = getNsoVplsStateSyncer().getLocalState();
+//        Dictionary<Integer, NsoStateWrapper<NsoLSP>> localLspState = getNsoLspStateSyncer().getLocalState();
 
         NsoStateWrapper<NsoVPLS> existingVpls = getNsoVplsStateSyncer().findRemoteEntryById(vpls.getVcId());
 
         if (existingVpls != null) {
             // Delete the VPLS
-            localVplsState.remove(existingVpls.getInstance().getVcId());
+//            localVplsState.remove(existingVpls.getInstance().getVcId());
+            getNsoVplsStateSyncer().delete(existingVpls.getInstance().getVcId());
 
             // ...and delete associated the LSPs
             List<NsoStateWrapper<NsoLSP>> existingLspList = _findVplsReferencesInLspState(vpls, getNsoLspStateSyncer().getLocalState());
             for (NsoStateWrapper<NsoLSP> wrappedLsp : existingLspList) {
-                localLspState.remove(wrappedLsp.getInstance().instanceKey().hashCode());
+//                localLspState.remove(wrappedLsp.getInstance().instanceKey().hashCode());
+                getNsoLspStateSyncer().delete(wrappedLsp.getInstance().instanceKey().hashCode());
             }
 
-            getNsoLspStateSyncer().setLocalState(localLspState);
-            getNsoVplsStateSyncer().setLocalState(localVplsState);
-
-            getNsoVplsStateSyncer().setDirty(true);
-            getNsoLspStateSyncer().setDirty(true);
+//            getNsoLspStateSyncer().setLocalState(localLspState);
+//            getNsoVplsStateSyncer().setLocalState(localVplsState);
+//
+//            getNsoVplsStateSyncer().setDirty(true);
+//            getNsoLspStateSyncer().setDirty(true);
 
             success = true;
         }
@@ -247,6 +254,8 @@ public class NsoStateManager {
             // Check LSPs exist for each VPLS first.
             while (enumerationLsp.hasMoreElements()) {
                 NsoStateWrapper<NsoLSP> lspWrapped = enumerationLsp.nextElement();
+                if (lspWrapped.getState().equals(NsoStateSyncer.State.DELETE)) continue;
+
                 isEntryValid = _validateOneLspToOneVpls(lspWrapped.getInstance(), nsoVplsLocal) || validationIgnoreOrphanedLsps;
                 if (!isEntryValid) {
                     int count = _countLspReferencesInVplsState(lspWrapped.getInstance(), nsoVplsLocal);
@@ -322,6 +331,8 @@ public class NsoStateManager {
 
         List<NsoStateWrapper<NsoLSP>> vplsReferencesInLspState = _findVplsReferencesInLspState(vpls, nsoLspState);
         for (NsoStateWrapper<NsoLSP> wrappedNsoLSP : vplsReferencesInLspState) {
+            if (wrappedNsoLSP.getState().equals(NsoStateSyncer.State.DELETE)) continue;
+
             NsoLSP lsp = wrappedNsoLSP.getInstance();
 
             for (NsoVPLS.SDP sdp : vpls.getSdp()) {
@@ -343,6 +354,9 @@ public class NsoStateManager {
 
         List<NsoStateWrapper<NsoVPLS>> lspReferencesInVplsState = _findLspReferencesInVplsState(lsp, nsoVplsState);
         for (NsoStateWrapper<NsoVPLS> wrappedNsoVPLS : lspReferencesInVplsState) {
+
+            if (wrappedNsoVPLS.getState().equals(NsoStateSyncer.State.DELETE)) continue;
+
             NsoVPLS vpls = wrappedNsoVPLS.getInstance();
             // Each VPLS has a lis of SDPs
             for (NsoVPLS.SDP sdp : vpls.getSdp()) {
@@ -367,6 +381,7 @@ public class NsoStateManager {
 
         while (enumeration.hasMoreElements()) {
             NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+            if (wrappedNsoVPLS.getState().equals(NsoStateSyncer.State.DELETE)) continue;
             NsoVPLS vpls = wrappedNsoVPLS.getInstance();
             // Each VPLS has a lis of SDPs
             if (vpls.getSdp() == null || vpls.getSdp().isEmpty()) {
@@ -393,6 +408,8 @@ public class NsoStateManager {
 
         while (enumeration.hasMoreElements()) {
             NsoStateWrapper<NsoLSP> wrappedNsoLsp = enumeration.nextElement();
+            if (wrappedNsoLsp.getState().equals(NsoStateSyncer.State.DELETE)) continue;
+
             NsoLSP lsp = wrappedNsoLsp.getInstance();
             if (vpls.getSdp() == null || vpls.getSdp().isEmpty()) {
                 continue;
