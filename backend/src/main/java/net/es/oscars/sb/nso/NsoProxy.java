@@ -54,6 +54,14 @@ public class NsoProxy {
     private final NsoProperties props;
     private final StartupProperties startupProperties;
 
+    @Getter
+    @Setter
+    static NsoResponseErrorHandler restErrorHandler = new NsoResponseErrorHandler();
+
+    @Getter
+    @Setter
+    static NsoResponseErrorHandler patchErrorHandler = new NsoResponseErrorHandler();
+
     @Setter
     private RestTemplate restTemplate;
     private RestTemplate patchTemplate;
@@ -75,7 +83,7 @@ public class NsoProxy {
             SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
 
             this.restTemplate = builder.build();
-            restTemplate.setErrorHandler(new NsoResponseErrorHandler());
+            restTemplate.setErrorHandler(restErrorHandler);
             restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
             restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
             restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-data+json"));
@@ -86,7 +94,7 @@ public class NsoProxy {
             // different http client for yang patch
             this.patchTemplate = builder.build();
             patchTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
-            patchTemplate.setErrorHandler(new NsoResponseErrorHandler());
+            patchTemplate.setErrorHandler(patchErrorHandler);
             patchTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
             patchTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
             patchTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-patch+json"));

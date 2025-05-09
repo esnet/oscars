@@ -1,28 +1,24 @@
 package net.es.oscars.cuke;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
-import net.es.oscars.nso.NsoHttpServer;
 import net.es.oscars.sb.nso.NsoLspStateSyncer;
 import net.es.oscars.sb.nso.NsoProxy;
 import net.es.oscars.sb.nso.NsoStateSyncer;
-import net.es.oscars.sb.nso.NsoVplsStateSyncer;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.topo.common.dto.nso.NsoLSP;
-import net.es.topo.common.dto.nso.YangPatchWrapper;
 import net.es.topo.common.dto.nso.enums.NsoService;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 
-import java.io.BufferedReader;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
@@ -37,11 +33,15 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
 
     @Autowired
     NsoLspStateSyncer syncer;
-    @Autowired
-    NsoVplsStateSyncer vplsSyncer;
 
+
+    @Before("@NsoLspSyncSteps")
+    public void before() {
+        syncer.clear();
+    }
     @Given("The NSO LSP service state is loaded")
-    public void the_NSO_LSP_service_state_is_loaded() { assert syncer.isLoaded();
+    public void the_NSO_LSP_service_state_is_loaded() {
+        assert syncer.isLoaded();
     }
 
     @Given("The NSO LSP service state has {int} instances")
@@ -115,6 +115,7 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
                 new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, addLsp)
             );
         syncer.setLocalState(state);
+        syncer.setDirty(true);
 
         log.info("LSP list, was {}, expect {}, now {}", originalSize, originalSize + 1, syncer.getLocalState().size());
         assert syncer.getLocalState().size() == originalSize + 1;
@@ -217,6 +218,6 @@ public class NsoLspStateSyncerSteps extends CucumberSteps {
         state.put(newLsp.instanceKey().hashCode(), new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, newLsp));
 
         syncer.setLocalState(state);
-
+        syncer.setDirty(true);
     }
 }
