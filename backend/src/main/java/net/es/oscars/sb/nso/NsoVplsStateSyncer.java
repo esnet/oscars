@@ -212,7 +212,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                         nsoProxy.deleteServices(dismantle);
                     } catch (NsoCommitException nsoCommitException) {
                         gotCommitError = true;
-                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
                     }
                 }
                 // ...Delete END
@@ -227,7 +227,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                         nsoProxy.redeployServices(redeploy, connectionId);
                     } catch (NsoCommitException nsoCommitException) {
                         gotCommitError = true;
-                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
                     }
 
                 }
@@ -252,7 +252,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                         nsoProxy.buildServices(addThese, connectionId);
                     } catch (NsoCommitException nsoCommitException) {
                         gotCommitError = true;
-                        log.info(nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
                     }
 
 
@@ -270,6 +270,8 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                     this.setSynchronized(false);
                 }
 
+            } else {
+                log.info("VPLS State is not dirty. Nothing to synchronize.");
             }
         } catch (NsoStateSyncerException nse) {
             log.error(nse.getMessage(), nse);
@@ -344,7 +346,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 localState.put(id, remote);
                 state = State.REDEPLOY;
                 delete(id, description);
-                log.info(description);
+                log.info("description:" + description);
 
             } else if (local != null) {
 
@@ -352,7 +354,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 String description = "No state found remotely for VPLS " + id + ", mark for add.";
                 state = State.ADD;
                 add(id, description);
-                log.info(description);
+                log.info("description:" + description);
 
             } else {
                 // Doesn't exist in local OR remote. Throw exception
@@ -601,12 +603,10 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             getLocalState().remove(id);
             getLocalState().put(id, vplsWrapped);
 
-            log.info(description);
+            log.info("description: " + description);
 
 
-            if (!isDirty()) {
-                setDirty(true);
-            }
+            setDirty(true);
             marked = true;
         } catch (NsoStateSyncerException nse) {
             log.error(nse.getMessage(), nse);

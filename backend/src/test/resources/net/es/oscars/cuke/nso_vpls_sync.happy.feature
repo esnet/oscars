@@ -9,7 +9,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
   # Happy path
   Scenario: Read NSO VPLS service state, make decisions about add / delete / redeploy (Happy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 137 instances
 
@@ -47,7 +47,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
   # Happy path
   Scenario: Read NSO VPLS service state, make decisions about multiple add / delete / redeploys (Happy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 137 instances
 
@@ -83,7 +83,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
   # Happy path
   Scenario: Modify NSO VPLS service state with single adds (Happy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 137 instances
 
@@ -100,7 +100,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
   Scenario: Modify NSO VPLS service state with single deletes (Happy Path)
 
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 137 instances
 
@@ -117,7 +117,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
   # Happy path
   Scenario: Modify NSO VPLS service state with mismatch for single redeploys (Happy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active-with-mismatch.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
 
     # Redeploy the VPLS "CCCC"
@@ -131,7 +131,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
   # Happy path
   Scenario: Modify NSO VPLS service state without mismatch for single no-op (Happy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 137 instances
 
@@ -146,7 +146,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
   # Happy path
   Scenario: Batch modify NSO VPLS service state with a big patch that applies one add, one delete, one redeploy all together (Happy Path)
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 137 instances
 

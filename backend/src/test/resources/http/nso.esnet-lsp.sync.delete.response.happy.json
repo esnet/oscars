@@ -1,0 +1,9 @@
+{
+  "ietf-yang-patch:yang-patch-status": {
+    "patch-id": "replace LSP C7WG-PRT-sunn-cr6,wash-cr6",
+    "errors": [],
+    "edit-status": {
+      "edit": []
+    }
+  }
+}

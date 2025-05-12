@@ -1,6 +1,7 @@
 package net.es.oscars.cuke;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -33,13 +34,19 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     @Autowired
     private CucumberWorld world;
 
+    @Autowired
     NsoVplsStateSyncer syncer;
 
     @Autowired
     NsoProxy proxy;
 
-    @Given("The list of active OSCARS connections are loaded from {string}")
-    public void theListOfActiveOSCARSConnectionsAreLoadedFrom(String arg0) throws Throwable {
+    @Before("@NsoVplsSyncSteps")
+    public void before() {
+        syncer.clear();
+    }
+
+    @Given("The list of active OSCARS connections are loaded")
+    public void theListOfActiveOSCARSConnectionsAreLoadedFrom() throws Throwable {
         // Load the (mock) NSO response payload
         syncer = new NsoVplsStateSyncer(proxy);
         // Note: we don't actually use arg0, as we expect the NsoHttpServer to mock the API endpoint.

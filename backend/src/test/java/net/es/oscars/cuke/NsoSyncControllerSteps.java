@@ -16,7 +16,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
 import org.springframework.util.StreamUtils;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;

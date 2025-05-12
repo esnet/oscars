@@ -189,32 +189,64 @@ public class NsoHttpServer {
                     payload.append(line);
                 }
             }
+//            log.info("patch request received. request payload is:\n" + payload);
             YangPatchWrapper patch = new ObjectMapper().readValue(payload.toString(), YangPatchWrapper.class);
 
-            NsoEsnetVplsYangPatchDeleteResponseSpec[] vplsResponseSpecs = new ObjectMapper()
-                    .readValue(
-                            new ClassPathResource("http/nso.esnet-vpls.sync.delete.response-specs.json").getFile(),
-                            NsoEsnetVplsYangPatchDeleteResponseSpec[].class
-                    );
-
-
-            log.info("patch request received, with payload:\n" + patch.toString());
             response.setContentType("application/yang-data+json");
 
-            for( NsoEsnetVplsYangPatchDeleteResponseSpec responseSpec : vplsResponseSpecs) {
-                if (responseSpec.patchId().equals( patch.getPatch().getPatchId() )) {
-                    // read in the body from the file found in the path in the responseSpec...
-                    InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
-                    String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
-                    // ... then write it out as our response
-                    response.getWriter().write(body);
-                    response.setStatus(HttpServletResponse.SC_OK);
+            if (
+                patch.getPatch().getPatchId().startsWith("delete VPLS")
+                || patch.getPatch().getPatchId().startsWith("redeploy VPLS")
+            ) {
+                NsoEsnetVplsYangPatchDeleteResponseSpec[] vplsResponseSpecs = new ObjectMapper()
+                    .readValue(
+                        new ClassPathResource("http/nso.esnet-vpls.sync.delete.response-specs.json").getFile(),
+                        NsoEsnetVplsYangPatchDeleteResponseSpec[].class
+                    );
 
-                    return;
+                for( NsoEsnetVplsYangPatchDeleteResponseSpec responseSpec : vplsResponseSpecs) {
+                    log.info("Comparing mock HTTP Patch response entry for VPLS Patch ID " + responseSpec.patchId());
+                    if (responseSpec.patchId().equals( patch.getPatch().getPatchId() )) {
+                        // read in the body from the file found in the path in the responseSpec...
+                        InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
+                        String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
+                        // ... then write it out as our response
+                        response.getWriter().write(body);
+                        response.setStatus(responseSpec.status);
+                        log.info("Found mock HTTP Patch response entry for VPLS Patch ID " + responseSpec.patchId());
+                        return;
+                    }
                 }
+                log.warn("HTTP PATCH request received, but no mock HTTP PATCH response found for patch ID '{}' in http/nso.esnet-vpls.sync.delete.response-specs.json", patch.getPatch().getPatchId());
+            } else if (
+                patch.getPatch().getPatchId().startsWith("delete LSP")
+                || patch.getPatch().getPatchId().startsWith("replace LSP")
+            ) {
+                NsoEsnetLspYangPatchDeleteResponseSpec[] lspResponseSpecs = new ObjectMapper()
+                    .readValue(
+                        new ClassPathResource("http/nso.esnet-lsp.sync.delete.response-specs.json").getFile(),
+                        NsoEsnetLspYangPatchDeleteResponseSpec[].class
+                    );
+                for ( NsoEsnetLspYangPatchDeleteResponseSpec responseSpec : lspResponseSpecs) {
+                    log.info("Comparing mock HTTP Patch response entry for LSP Patch ID " + responseSpec.patchId());
+                    if (responseSpec.patchId().equals( patch.getPatch().getPatchId() )) {
+                        InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
+                        String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
+                        // ... then write it out as our response
+                        response.getWriter().write(body);
+                        response.setStatus(responseSpec.status);
+                        log.info("Found mock HTTP Patch response entry for LSP Patch ID " + responseSpec.patchId());
+                        return;
+                    }
+                }
+                log.warn("HTTP PATCH request received, but no mock HTTP PATCH response found for patch ID '{}' in http/nso.esnet-lsp.sync.delete.response-specs.json", patch.getPatch().getPatchId());
             }
 
             // @TODO return 404 if we get this far
+
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.getWriter().write("404 Not Found");
+            response.getWriter().flush();
         }
 
         @Override
@@ -228,6 +260,7 @@ public class NsoHttpServer {
                 mockPostTailfNcs(request, response);
             } else {
                 // Unknown.
+                log.info("POST request not handled yet " + uri + " with query: " + request.getQueryString());
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 response.getWriter().write("404 Not Found");
                 response.getWriter().flush();
@@ -273,18 +306,21 @@ public class NsoHttpServer {
                         }
                     }
                 }
+                log.warn("Did not find a corresponding mock POST response (VPLS endpoint) in http/nso.esnet-vpls.sync.response-specs.json");
             } else if (!nsoServicesWrapper.getLspInstances().isEmpty()) {
                 NsoEsnetLspYangPatchResponseSpec[] responseSpecs = new ObjectMapper()
                         .readValue(new ClassPathResource("http/nso.esnet-lsp.post.response-specs.json").getFile(), NsoEsnetLspYangPatchResponseSpec[].class);
 
-                for (NsoEsnetLspYangPatchResponseSpec responseSpec : responseSpecs) {
-                    // check by connectionId (VPLS name)
-                    String lspName = responseSpec.lspName;
-                    String lspDevice = responseSpec.lspDevice;
 
-                    for (NsoLSP lsp : nsoServicesWrapper.getLspInstances()) {
+                for (NsoLSP lsp : nsoServicesWrapper.getLspInstances()) {
+                    for (NsoEsnetLspYangPatchResponseSpec responseSpec : responseSpecs) {
+                        // check by connectionId (VPLS name)
+                        String lspName = responseSpec.lspName;
+                        String lspDevice = responseSpec.lspDevice;
+                        log.info("Checking mock POST response LSP with name " + lspName + " and device " + lspDevice);
                         // Currently only sending one VPLS per HTTP POST. :-/
                         // We only need to find the one VPLS in the list of VPLS instances
+                        log.info("...Does it equal our request LSP with name " + lsp.getName() + " and device " + lsp.getDevice() + "?");
                         if (lsp.getName().equals(lspName) && lsp.getDevice().equals(lspDevice)) {
                             // read in the body from the file found in the path in the responseSpec...
                             InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
@@ -292,14 +328,19 @@ public class NsoHttpServer {
                             // ... then write it out as our response
                             response.getWriter().write(body);
                             response.setStatus(responseSpec.status);
+                            log.info("Yes. Found mock POST response for LSP " + lspName + " and device " + lspDevice);
                             return;
                         }
                     }
+                    log.warn("Did not find a corresponding mock POST response for LSP instance key {} (LSP endpoint) in http/nso.esnet-lsp.post.response-specs.json", lsp.instanceKey());
                 }
+
             }
 
             // If we got this far, it means the requested mock payload was "404 Not found"... (we don't have it listed)
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+//            response.getWriter().write("404 Not Found");
+            response.getWriter().flush();
         }
 
         protected void mockPostNokiaShow(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -337,10 +378,12 @@ public class NsoHttpServer {
     }
 
     public record ResponseSpec(String device, String args, String body, Integer status) {}
+
     public record NsoEsnetVplsResponseSpec(String data, Integer status) {}
     public record NsoEsnetVplsYangPatchResponseSpec(String connectionId, Integer vcId, String data, Integer status) {}
     public record NsoEsnetVplsYangPatchDeleteResponseSpec(String patchId, String data, Integer status) {}
 
     public record NsoEsnetLspResponseSpec(String data, Integer status) {}
     public record NsoEsnetLspYangPatchResponseSpec(String lspName, String lspDevice, String data, Integer status) {}
+    public record NsoEsnetLspYangPatchDeleteResponseSpec(String patchId, String data, Integer status) {}
 }

@@ -4,7 +4,7 @@ Feature: scheduled task to synchronize VPLS and LSP to NSO state
 
   Scenario: Periodically synchronize VPLS and LSP state from OSCARS to NSO state as a scheduled task.
     Given I have initialized the world
-    Given The list of active OSCARS connections are loaded from "http/nso.esnet-vpls.connections-active.json"
+    Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 137 instances
 
