@@ -70,7 +70,7 @@ public class TransitionStates {
 
                 for (Connection c : heldConns) {
 
-                    if (c.getHeld().getExpiration().isBefore(Instant.now())) {
+                    if (c.getHeld() == null || c.getHeld().getExpiration().isBefore(Instant.now())) {
                         log.info("will un-hold a held connection that expired: " + c.getConnectionId());
                         Optional<NsiMapping> maybeMapping =  nsiMappingService.getMappingForOscarsId(c.getConnectionId());
                         maybeMapping.ifPresent(m -> {

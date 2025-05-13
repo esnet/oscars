@@ -63,6 +63,9 @@ public class ResvService {
             pipesByConnId.put(c.getConnectionId(), c.getHeld().getCmp().getPipes());
             scheduleMap.put(c.getConnectionId(), c.getHeld().getSchedule());
         }
+        fixturesByConnId.remove(connectionId);
+        pipesByConnId.remove(connectionId);
+        scheduleMap.remove(connectionId);
 
         for (String connId : scheduleMap.keySet()) {
             List<VlanFixture> fixtures = fixturesByConnId.get(connId);
@@ -142,6 +145,9 @@ public class ResvService {
             pipesByConnId.put(c.getConnectionId(), c.getHeld().getCmp().getPipes());
             scheduleMap.put(c.getConnectionId(), c.getHeld().getSchedule());
         }
+        fixturesByConnId.remove(connectionId);
+        pipesByConnId.remove(connectionId);
+        scheduleMap.remove(connectionId);
 
 
         for (String connId : scheduleMap.keySet()) {

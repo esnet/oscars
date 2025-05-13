@@ -13,6 +13,7 @@ import net.es.oscars.web.beans.ConnException;
 import net.es.oscars.web.beans.CurrentlyHeldEntry;
 import net.es.oscars.web.simple.SimpleConnection;
 import net.es.oscars.web.simple.Validity;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -141,7 +142,8 @@ public class HoldController {
             throw new StartupException("OSCARS shutting down");
         }
         in.setUsername(usernameGetter.username(authentication));
-        return connSvc.holdConnection(in).getLeft();
+        Pair<SimpleConnection, Connection> holdResult = connSvc.holdConnection(in);
+        return holdResult.getLeft();
     }
 
     // TODO: at 1.1 implement this

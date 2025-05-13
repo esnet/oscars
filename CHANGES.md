@@ -1,4 +1,10 @@
 # OSCARS Release Notes
+### 1.2.26
+> May 2025
+- NSI fixes
+- NSO VPLS / LSP state manager
+
+
 ### 1.2.25
 > May 2025
 - NSI rewrite
