@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.2.27
+> May 2025
+- OS-496 logevent error
+
 ### 1.2.26
 > May 2025
 - NSI fixes

@@ -27,7 +27,7 @@ public class EventLogController {
     @RequestMapping(value = "/api/log/conn/{connectionId:.+}", method = RequestMethod.GET)
     @ResponseBody
     public EventLog eventLog(@PathVariable String connectionId) {
-        if (connectionId == null || connectionId.equals("")) {
+        if (connectionId == null || connectionId.isEmpty()) {
             return null;
         }
 
