@@ -17,6 +17,8 @@ spec:
       labels:
         app: oscars-backend
     spec:
+      imagePullSecrets:
+        - name: wharfregcred
       containers:
         - name: oscars-backend
           image: wharf.es.net/oscars/oscars-backend:latest
