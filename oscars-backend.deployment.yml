@@ -1,0 +1,34 @@
+# A deployment can define what resources to setup
+# Point to image, config, secrets
+# Set up ports, and whatever this container needs
+# See https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oscars-backend-base-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oscars-backend
+  template:
+    metadata:
+      name: oscars-backend-pod
+      labels:
+        app: oscars-backend
+    spec:
+      containers:
+        - name: oscars-backend
+          image: wharf.es.net/oscars/oscars-backend:latest
+          ports:
+            - containerPort: 8201 # OSCARS backend service
+            - containerPort: 9201 # Java Debugger
+            - containerPort: 8200 # OTEL stardust
+          envFrom:
+            - secretRef:
+                name: oscars-db-secrets
+            - secretRef:
+                name: oscars-backend-secrets
+
+
+

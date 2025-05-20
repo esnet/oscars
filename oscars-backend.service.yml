@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # FQDN will be
+  # service-name.namespace.svc.cluster.local
+  # Full FQDN in this case:
+  # oscars-backend-service.aalbino.svc.cluster.local:5432
+  name: oscars-backend-service
+spec:
+  selector:
+    app: oscars-backend
+  ports:
+    - name: oscars-otel-stardust-port
+      protocol: TCP
+      port: 8200
+      targetPort: 8200
+
+    - name: oscars-backend-port
+      protocol: TCP
+      port: 8201
+      targetPort: 8201
+
+    - name: oscars-backend-debugger-port
+      protocol: TCP
+      port: 9201
+      targetPort: 9201

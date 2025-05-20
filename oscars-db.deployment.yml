@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oscars-db-base-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oscars-db
+  template:
+    metadata:
+      name: oscars-db-pod
+      labels:
+        app: oscars-db
+    spec:
+      containers:
+        - name: oscars-db
+          image: wharf.es.net/dockerhub-proxy/library/postgres:14.1-alpine
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: oscars-db-secrets

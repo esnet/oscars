@@ -1,0 +1,22 @@
+# A ConfigMap is used to store non-confidential data in key-value pairs.
+# This allows us to decouple environment-specific configuration from our container images.
+# Note, ConfigMap does NOT provide secrecy or encryption.
+# See https://kubernetes.io/docs/concepts/configuration/configmap/
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oscars-backend-base-config
+data:
+#  Include non-confidential configuration data here.
+#  Example:
+#  OSCARS_BACKEND_WEB_PORT: "8201"
+  OSCARS_BACKEND_WEB_PORT: "8201"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://oscars-db:5432/oscars"
+  TOPO_OSCARS_URL: "http://topo-oscars:8004/oscars-one/topology"
+  NSO_URI: "http://nso/restconf"
+  OAUTH_CLIENT_ID: "oscars-frontend"
+  OAUTH_AUTH_ENDPOINT: "https://sso.es.net/auth/realms/esnetldap/protocol/openid-connect/auth"
+  OAUTH_LOGIN_ENDPOINT: "https://sso.es.net/auth/realms/esnetldap/protocol/openid-connect/token"
+  OAUTH_LOGOUT_ENDPOINT: "https://sso.es.net/auth/realms/esnetldap/protocol/openid-connect/logout"
+  OAUTH_REDIRECT_URI: "https://oscars.es.net/"
+  OAUTH_SCOPE: "oidc"

@@ -1,0 +1,29 @@
+build:
+  oscars-backend:
+    context: ./
+    dockerfile: ./deploy/devel/backend.dockerfile
+    depends_on:
+      - oscars-db
+  oscars-db:
+    context: ./
+    dockerfile: ./postgresql/Dockerfile
+    args:
+      file: postgresql/values.yml
+
+forward:
+  - 5432:oscars-db:5432
+dev:
+  oscars-db:
+    autocreate: true
+    envFiles:
+      - .env
+#    volumes:
+#      - /root/.m2
+  oscars-backend:
+    autocreate: true
+    forward:
+      - 8201:8201
+      - 9201:9201
+      - 8200:8200
+
+

@@ -1,0 +1,8 @@
+auth:
+  username: ""
+  database: ""
+  password: ""
+
+primary:
+  persistence:
+    size: 1Gi
