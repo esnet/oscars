@@ -22,15 +22,68 @@ spec:
       containers:
         - name: oscars-backend
           image: wharf.es.net/oscars/oscars-backend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8201 # OSCARS backend service
             - containerPort: 9201 # Java Debugger
             - containerPort: 8200 # OTEL stardust
+          volumeMounts:
+            - mountPath: "/app/config/application.properties"
+              name: application-properties
+              readOnly: true
+              subPath: application.properties
+            - mountPath: "/app/config/logback.xml"
+              name: logback-xml
+              readOnly: true
+              subPath: logback.xml
+            - mountPath: "/app/config/stack-positions.json"
+              name: stack-positions-json
+              readOnly: true
+              subPath: stack-positions.json
+            - mountPath: "/app/config/nsi-filter.json"
+              name: nsi-filter-json
+              readOnly: true
+              subPath: nsi-filter.json
+            - mountPath: "/app/config/nsi-peerings.json"
+              name: nsi-peerings-json
+              readOnly: true
+              subPath: nsi-peerings.json
+            - mountPath: "/app/config/tag-categories.json"
+              name: tag-categories-json
+              readOnly: true
+              subPath: tag-categories.json
+            - mountPath: "/app/config/tag-categories-sites.json"
+              name: tag-categories-sites-json
+              readOnly: true
+              subPath: tag-categories-sites.json
           envFrom:
             - secretRef:
                 name: oscars-db-secrets
             - secretRef:
                 name: oscars-backend-secrets
-
+            - configMapRef:
+                name: oscars-backend-base-config
+      volumes:
+        - name: application-properties
+          secret:
+            secretName: application.properties
+        - name: logback-xml
+          secret:
+            secretName: logback.xml
+        - name: stack-positions-json
+          secret:
+            secretName: stack-positions.json
+        - name: nsi-filter-json
+          secret:
+            secretName: nsi-filter.json
+        - name: nsi-peerings-json
+          secret:
+            secretName: nsi-peerings.json
+        - name: tag-categories-json
+          secret:
+            secretName: tag-categories.json
+        - name: tag-categories-sites-json
+          secret:
+            secretName: tag-categories-sites.json
 
 

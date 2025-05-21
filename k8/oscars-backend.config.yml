@@ -11,8 +11,8 @@ data:
 #  Example:
 #  OSCARS_BACKEND_WEB_PORT: "8201"
   OSCARS_BACKEND_WEB_PORT: "8201"
-  SPRING_DATASOURCE_URL: "jdbc:postgresql://oscars-db:5432/oscars"
-  TOPO_OSCARS_URL: "http://topo-oscars:8004/oscars-one/topology"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://oscars-db-service.aalbino.svc.cluster.local:5432/oscars"
+  TOPO_OSCARS_URL: "http://topo-oscars-service.aalbino.svc.cluster.local:8004/oscars-one/topology"
   NSO_URI: "http://nso/restconf"
   OAUTH_CLIENT_ID: "oscars-frontend"
   OAUTH_AUTH_ENDPOINT: "https://sso.es.net/auth/realms/esnetldap/protocol/openid-connect/auth"

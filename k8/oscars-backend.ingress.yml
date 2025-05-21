@@ -1,0 +1,41 @@
+# An Ingress defines the kubernetes network setup (Ingress resource).
+# Requires an Ingress controller.
+#  - See Ingress Resource docs: https://kubernetes.io/docs/concepts/services-networking/ingress/
+#  - See Ingress Controller docs: https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/
+# We probably want to use an NGINX ingress controller
+#  - See https://github.com/kubernetes/ingress-nginx/blob/main/README.md#readme
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oscars-backend
+  annotations:
+    dev.okteto.com/generate-host: oscars-backend
+spec:
+  rules:
+    - http:
+        - paths:
+            - backend:
+                service:
+                  name: oscars-otel-stardust
+                  port:
+                    number: 8200
+              path: /
+              pathType: ImplementationSpecific
+    - http:
+        paths:
+          - backend:
+              service:
+                name: oscars-backend
+                port:
+                  number: 8201
+            path: /
+            pathType: ImplementationSpecific
+    - http:
+        - paths:
+            - backend:
+                service:
+                  name: oscars-backend-debug
+                  port:
+                    number: 9201
+              path: /
+              pathType: ImplementationSpecific

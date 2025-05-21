@@ -1,24 +1,28 @@
-build:
-  oscars-backend:
-    context: ./
-    dockerfile: ./deploy/devel/backend.dockerfile
-    depends_on:
-      - oscars-db
-  oscars-db:
-    context: ./
-    dockerfile: ./postgresql/Dockerfile
-    args:
-      file: postgresql/values.yml
-
-forward:
-  - 5432:oscars-db:5432
+deploy:
+  - kubectl apply -f k8/oscars-backend.config.yml
+  - kubectl apply -f k8/oscars-backend.external-secret.yml
+  - kubectl apply -f k8/oscars-backend.application.properties.secret.yml
+  - kubectl apply -f k8/oscars-backend.logback.xml.secret.yml
+  - kubectl apply -f k8/oscars-backend.nsi-filter.json.secret.yml
+  - kubectl apply -f k8/oscars-backend.nsi-peerings.json.secret.yml
+  - kubectl apply -f k8/oscars-backend.stack-positions.json.secret.yml
+  - kubectl apply -f k8/oscars-backend.tag-categories.json.secret.yml
+  - kubectl apply -f k8/oscars-backend.tag-categories-sites.json.secret.yml
+  - kubectl apply -f k8/oscars-backend.service.yml
+  - kubectl apply -f k8/oscars-backend.deployment.yml
+  - kubectl apply -f k8/oscars-db.external-secret.yml
+  - kubectl apply -f k8/oscars-db.service.yml
+  - kubectl apply -f k8/oscars-db.deployment.yml
+#forward:
+#  - 5432:oscars-db:5432
+#  - 8201:oscars-backend:8201
+#  - 9201:oscars-backend:9201
+#  - 8200:oscars-backend:8200
 dev:
   oscars-db:
     autocreate: true
-    envFiles:
-      - .env
-#    volumes:
-#      - /root/.m2
+    forward:
+      - 5432:5432
   oscars-backend:
     autocreate: true
     forward:
