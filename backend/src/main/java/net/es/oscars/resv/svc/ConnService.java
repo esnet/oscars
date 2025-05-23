@@ -32,6 +32,9 @@ import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.Errors;
+import org.springframework.validation.ValidationUtils;
+import org.springframework.validation.Validator;
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -744,136 +747,143 @@ public class ConnService {
     }
 
 
-    public Validity validate(SimpleConnection in, ConnectionMode mode)
+    public Validity validate(SimpleConnection inConn, ConnectionMode mode)
             throws ConnException {
 
-        DevelUtils.dumpDebug("validate conn", in);
+        DevelUtils.dumpDebug("validate conn", inConn);
 
         StringBuilder error = new StringBuilder();
         boolean valid = true;
-        if (in == null) {
+        if (inConn == null) {
             throw new ConnException("null connection");
         }
 
-        // validate global connection params
-        // check the connection ID:
-        String connectionId = in.getConnectionId();
-        if (connectionId == null) {
-            error.append("null connection id\n");
-            valid = false;
-        } else {
-            if (!connectionId.matches("^[a-zA-Z][a-zA-Z0-9_\\-]+$")) {
-                error.append("connection id invalid format \n");
+        // validate global connection params BEGIN
+            // check the connection ID BEGIN
+            String connectionId = inConn.getConnectionId();
+            if (connectionId == null) {
+                error.append("null connection id\n");
+                valid = false;
+            } else {
+                if (!connectionId.matches("^[a-zA-Z][a-zA-Z0-9_\\-]+$")) {
+                    error.append("connection id invalid format \n");
+                    valid = false;
+                }
+                if (connectionId.length() > 12) {
+                    error.append("connection id too long\n");
+                    valid = false;
+                } else if (connectionId.length() < 4) {
+                    error.append("connection id too short\n");
+                    valid = false;
+                }
+            }
+            // check the connection ID END
+
+            // check the connection MTU BEGIN
+            if (inConn.getConnection_mtu() != null) {
+                if (inConn.getConnection_mtu() < minMtu || inConn.getConnection_mtu() > maxMtu) {
+                    error.append("MTU must be between ").append(minMtu).append(" and ").append(maxMtu).append(" (inclusive)\n");
+                    valid = false;
+                }
+            } else {
+                inConn.setConnection_mtu(defaultMtu);
+            }
+            // check the connection MTU END
+
+            // check description BEGIN
+            if (inConn.getDescription() == null) {
+                error.append("null description\n");
                 valid = false;
             }
-            if (connectionId.length() > 12) {
-                error.append("connection id too long\n");
-                valid = false;
-            } else if (connectionId.length() < 4) {
-                error.append("connection id too short\n");
-                valid = false;
-            }
-        }
-        // check the connection MTU
-        if (in.getConnection_mtu() != null) {
-            if (in.getConnection_mtu() < minMtu || in.getConnection_mtu() > maxMtu) {
-                error.append("MTU must be between ").append(minMtu).append(" and ").append(maxMtu).append(" (inclusive)\n");
-                valid = false;
-            }
-        } else {
-            in.setConnection_mtu(defaultMtu);
-        }
+            // check description END
+        // validate global connection params END
 
-        // description:
-        if (in.getDescription() == null) {
-            error.append("null description\n");
-            valid = false;
-        }
-
-
-        // validate schedule
-        Instant begin;
-        boolean beginValid;
-        // check the schedule, begin time first:
-        if (in.getBegin() == null) {
-            beginValid = false;
-            begin = Instant.MAX;
-            error.append("null begin field\n");
-        } else {
-            begin = Instant.ofEpochSecond(in.getBegin());
-            Instant rejectBefore = Instant.now().minus(5, ChronoUnit.MINUTES);
-            if (begin.isBefore(rejectBefore) && !mode.equals(ConnectionMode.MODIFY)) {
+        // validate schedule BEGIN
+            Instant begin;
+            boolean beginValid;
+            // check the schedule, begin time first BEGIN
+            if (inConn.getBegin() == null) {
                 beginValid = false;
-                error.append("Begin time is more than 5 minutes in the past\n");
+                begin = Instant.MAX;
+                error.append("null begin field\n");
             } else {
-                // if we are set to start to up to +30 sec from now,
-                // we (silently) modify the begin timestamp and we
-                // set it to +30 secs from now()
-                beginValid = true;
-                Instant earliestPossible = Instant.now().plus(30, ChronoUnit.SECONDS);
-                if (!begin.isAfter(earliestPossible)) {
-                    begin = earliestPossible;
-                    in.setBegin(Long.valueOf(begin.getEpochSecond()).intValue());
-                }
-            }
-        }
-
-        Instant end;
-        boolean endValid;
-        // check the schedule, end time:
-        if (in.getEnd() == null) {
-            endValid = false;
-            end = Instant.MIN;
-            error.append("null end field\n");
-        } else {
-            end = Instant.ofEpochSecond(in.getEnd());
-            if (!end.isAfter(Instant.now())) {
-                endValid = false;
-                error.append("end date is in the past\n");
-            } else if (!end.isAfter(begin)) {
-                endValid = false;
-                error.append("end date not past begin()\n");
-            } else {
-                if (begin.plus(this.minDuration, ChronoUnit.MINUTES).isAfter(end)) {
-                    endValid = false;
-                    error.append("duration is too short (less than ").append(this.minDuration).append(" min)\n");
+                begin = Instant.ofEpochSecond(inConn.getBegin());
+                Instant rejectBefore = Instant.now().minus(5, ChronoUnit.MINUTES);
+                if (begin.isBefore(rejectBefore) && !mode.equals(ConnectionMode.MODIFY)) {
+                    beginValid = false;
+                    error.append("Begin time is more than 5 minutes in the past\n");
                 } else {
-                    endValid = true;
+                    // if we are set to start to up to +30 sec from now,
+                    // we (silently) modify the begin timestamp and we
+                    // set it to +30 secs from now()
+                    beginValid = true;
+                    Instant earliestPossible = Instant.now().plus(30, ChronoUnit.SECONDS);
+                    if (!begin.isAfter(earliestPossible)) {
+                        begin = earliestPossible;
+                        inConn.setBegin(Long.valueOf(begin.getEpochSecond()).intValue());
+                    }
                 }
             }
-        }
+            // check the schedule, begin time first END
 
-        boolean validInterval = beginValid && endValid;
-        if (!validInterval) {
-            valid = false;
-        }
+            Instant end;
+            boolean endValid;
+            // check the schedule, end time BEGIN
+            if (inConn.getEnd() == null) {
+                endValid = false;
+                end = Instant.MIN;
+                error.append("null end field\n");
+            } else {
+                end = Instant.ofEpochSecond(inConn.getEnd());
+                if (!end.isAfter(Instant.now())) {
+                    endValid = false;
+                    error.append("end date is in the past\n");
+                } else if (!end.isAfter(begin)) {
+                    endValid = false;
+                    error.append("end date not past begin()\n");
+                } else {
+                    if (begin.plus(this.minDuration, ChronoUnit.MINUTES).isAfter(end)) {
+                        endValid = false;
+                        error.append("duration is too short (less than ").append(this.minDuration).append(" min)\n");
+                    } else {
+                        endValid = true;
+                    }
+                }
+            }
+            // check the schedule, end time BEGIN
 
-        // we can only check resource availability if the schedule makes sense..
+            boolean validInterval = beginValid && endValid;
+            if (!validInterval) {
+                valid = false;
+            }
+        // validate schedule END
+
+        // we can only check resource availability if the schedule makes sense.
         if (validInterval) {
             Interval interval = Interval.builder()
                     .beginning(begin)
                     .ending(end)
                     .build();
 
-            if (in.getFixtures() == null) {
-                in.setFixtures(new ArrayList<>());
+            if (inConn.getFixtures() == null) {
+                inConn.setFixtures(new ArrayList<>());
             }
-            if (in.getPipes() == null) {
-                in.setPipes(new ArrayList<>());
+            if (inConn.getPipes() == null) {
+                inConn.setPipes(new ArrayList<>());
             }
-            if (in.getJunctions() == null) {
-                in.setJunctions(new ArrayList<>());
+            if (inConn.getJunctions() == null) {
+                inConn.setJunctions(new ArrayList<>());
 
             }
 
-            Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, held, in.getConnectionId());
+            Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, held, inConn.getConnectionId());
 
             // make maps: urn -> total of what we are requesting to reserve for VLANs and BW
             Map<String, ImmutablePair<Integer, Integer>> inBwMap = new HashMap<>();
             Map<String, Set<Integer>> inVlanMap = new HashMap<>();
 
-            // populate the maps with what we request thru fixtures
-            for (Fixture f : in.getFixtures()) {
+            // populate the maps with what we request thru fixtures BEGIN
+            for (Fixture f : inConn.getFixtures()) {
                 Integer inMbps = f.getInMbps();
                 Integer outMbps = f.getOutMbps();
                 if (f.getMbps() != null) {
@@ -901,9 +911,10 @@ public class ConnService {
                 }
                 inVlanMap.put(f.getPort(), vlans);
             }
+            // populate the maps with what we request thru fixtures END
 
-            // populate the maps with what we request thru pipes (bw only)
-            for (Pipe p : in.getPipes()) {
+            // populate the maps with what we request thru pipes (bw only) BEGIN
+            for (Pipe p : inConn.getPipes()) {
                 Integer azMbps = p.getAzMbps();
                 Integer zaMbps = p.getZaMbps();
                 if (p.getMbps() != null) {
@@ -938,9 +949,10 @@ public class ConnService {
                 }
 
             }
+            // populate the maps with what we request thru pipes (bw only) END
 
-            // compare VLAN maps to what is available
-            for (Fixture f : in.getFixtures()) {
+            // compare VLAN maps to what is available BEGIN
+            for (Fixture f : inConn.getFixtures()) {
                 Validity fv = Validity.builder()
                         .valid(true)
                         .message("")
@@ -980,11 +992,12 @@ public class ConnService {
                 }
                 f.setValidity(fv);
             }
+            // compare VLAN maps to what is available END
 
             Map<String, Validity> urnInBwValid = new HashMap<>();
             Map<String, Validity> urnEgBwValid = new HashMap<>();
-            // compare map to what is available for BW
 
+            // compare map to what is available for BW BEGIN
             for (String urn : inBwMap.keySet()) {
                 PortBwVlan avail = availBwVlanMap.get(urn);
 
@@ -1033,9 +1046,10 @@ public class ConnService {
                     urnEgBwValid.put(urn, egBwValid);
                 }
             }
+            // compare map to what is available for BW END
 
-            // populate Validity for fixtures
-            for (Fixture f : in.getFixtures()) {
+            // populate Validity for fixtures BEGIN
+            for (Fixture f : inConn.getFixtures()) {
                 Validity inBwValid = urnInBwValid.get(f.getPort());
 
                 if (!inBwValid.isValid()) {
@@ -1051,9 +1065,10 @@ public class ConnService {
                     valid = false;
                 }
             }
+            // populate Validity for fixtures END
 
-            // populate Validity for pipes & EROs
-            for (Pipe p : in.getPipes()) {
+            // populate Validity for pipes & EROs BEGIN
+            for (Pipe p : inConn.getPipes()) {
                 Validity pv = Validity.builder().valid(true).message("").build();
 
                 Map<String, Validity> eroValidity = new HashMap<>();
@@ -1096,6 +1111,7 @@ public class ConnService {
                 p.setValidity(pv);
                 p.setEroValidity(eroValidity);
             }
+            // populate Validity for pipes & EROs END
         } else {
             error.append("invalid interval! VLANs and bandwidths not checked\n");
         }
@@ -1104,17 +1120,6 @@ public class ConnService {
                 .message(error.toString())
                 .valid(valid)
                 .build();
-
-        /*
-        try {
-            String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(v);
-            // log.info(pretty);
-        } catch (JsonProcessingException e) {
-            log.error(e.getMessage(), e);
-        }
-         */
-
-
     }
 
 
@@ -1207,6 +1212,36 @@ public class ConnService {
         }
 
         log.info(context + "\n" + pretty);
+    }
+
+    static class ConnServiceValidator implements Validator {
+
+        /**
+         * @param clazz
+         * @return
+         */
+        @Override
+        public boolean supports(Class<?> clazz) {
+            return ConnServiceValidator.class.isAssignableFrom(clazz);
+        }
+
+        /**
+         * @param target
+         * @param errors
+         */
+        @Override
+        public void validate(Object target, Errors errors) {
+            ValidationUtils.rejectIfEmpty(errors, "connectionId", "connectionId.required");
+        }
+
+        /**
+         * @param target
+         * @return
+         */
+        @Override
+        public Errors validateObject(Object target) {
+            return Validator.super.validateObject(target);
+        }
     }
 
 }
