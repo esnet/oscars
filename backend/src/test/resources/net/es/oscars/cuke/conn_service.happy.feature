@@ -1,15 +1,15 @@
-@NsoProxySteps
+@ConnServiceSteps
 Feature: OSCARS NSI Connection Service, validation
 
   I want to validate a connection as either valid (true) or not valid (false).
 
   # Validate global connection params
   Scenario: Validate global connection params
-    Given The connection ID is set to "" and the connection mode is set to ""
+    Given The connection ID is set to "ABCD" and the connection mode is set to "NEW"
     # check the connection ID.
     When The connection ID is set to ""
     When The connection ID is validated
-    Then The Connection ID is valid
+    Then The connection ID is valid
 
     # check the connection MTU.
     When The MTU is set to ""
@@ -52,7 +52,7 @@ Feature: OSCARS NSI Connection Service, validation
     # ... populate the maps with what we request thru fixtures
     When The maps are populated with what we request through fixtures
     # ... populate the maps with what we request thru pipes (bw only)
-    When The maps are polulated with what we request through pipes (BW only)
+    When The maps are populated with what we request through pipes (BW only)
     # ... compare VLAN maps to what is available
     When The VLAN maps are compared to what is available
     Then The fixtures are valid
