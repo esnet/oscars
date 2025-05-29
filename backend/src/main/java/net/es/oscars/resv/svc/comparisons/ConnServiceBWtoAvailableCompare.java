@@ -1,4 +1,4 @@
-package net.es.oscars.resv.svc.comparators;
+package net.es.oscars.resv.svc.comparisons;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -13,7 +13,7 @@ import java.util.Map;
 
 @Getter
 @Setter
-public class ConnServiceBWtoAvailableCompare implements Comparator {
+public class ConnServiceBWtoAvailableCompare implements Comparison {
 
     Map<String, ImmutablePair<Integer, Integer>> inBwMap;
     Map<String, PortBwVlan> availBwVlanMap;

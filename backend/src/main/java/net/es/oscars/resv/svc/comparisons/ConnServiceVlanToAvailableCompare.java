@@ -1,6 +1,5 @@
-package net.es.oscars.resv.svc.comparators;
+package net.es.oscars.resv.svc.comparisons;
 
-import ch.qos.logback.core.spi.ErrorCodes;
 import lombok.Getter;
 import lombok.Setter;
 import net.es.oscars.topo.beans.PortBwVlan;
@@ -14,7 +13,7 @@ import java.util.*;
 
 @Getter
 @Setter
-public class ConnServiceVlanToAvailableCompare implements Comparator {
+public class ConnServiceVlanToAvailableCompare implements Comparison {
 
 
     Map<String, Errors> allErrors = new HashMap<>() ;
