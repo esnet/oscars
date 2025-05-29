@@ -1,19 +1,56 @@
 package net.es.oscars.cuke;
 
+import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.web.client.HttpServerErrorException;
+import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.ctg.UnitTests;
+import net.es.oscars.resv.enums.ConnectionMode;
+import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.web.simple.SimpleConnection;
+import org.junit.experimental.categories.Category;
+import org.springframework.beans.factory.annotation.Autowired;
 
-public class ConnServiceSteps {
+@Slf4j
+@Category({UnitTests.class})
+public class ConnServiceSteps extends CucumberSteps {
+
+    @Autowired
+    private CucumberWorld world;
+
+    @Autowired
+    private ConnService connService;
+
+    private SimpleConnection inConn;
+    private ConnectionMode connectionMode;
+
+    private String defaultConnectionId = "";
+
+    @Before("@ConnServiceStep")
+    public void before() {
+        this.connService = new ConnService();
+        this.inConn = new SimpleConnection();
+    }
     @Given("The connection ID is set to {string} and the connection mode is set to {string}")
-    public void theConnectionIDIsSetToAndTheConnectionModeIsSetTo(String connectionId, String connectionMode) {
-        //
+    public void theConnectionIDIsSetToAndTheConnectionModeIsSetTo(String connectionId, String connMode) {
+        this.inConn.setConnectionId(connectionId);
+        this.connectionMode = ConnectionMode.valueOf(connMode);
+    }
+    @Given("The connection mode is set to {string}")
+    public void theConnectionModeIsSetTo(String connectionMode) {
+        this.connectionMode = ConnectionMode.valueOf(connectionMode);
     }
 
     @Given("The global connection was set to valid parameters")
     public void theGlobalConnectionWasSetToValidParameters() {
-        
+        try {
+            this.inConn.setConnectionId(this.defaultConnectionId);
+            this.inConn.setConnection_mtu(this.connService.getDefaultMtu());
+
+        } catch (Exception e) {
+            world.add(e);
+        }
     }
 
     @Given("The scheduled begin time and end time make a valid interval")
