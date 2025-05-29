@@ -751,7 +751,17 @@ public class ConnService {
 
     }
 
-
+    /**
+     * Validates a SimpleConnection object against global connection parameters.
+     * Validation routine will validate:
+     *  - Global connection parameters
+     *  - Scheduled start and end times.
+     *  - Resource availability, assuming the schedule is valid.
+     * @param inConn SimpleConnection object.
+     * @param mode ConnectionMode enumeration value.
+     * @return net.es.oscars.web.simple.Validity object.
+     * @throws ConnException May throw an exception of type ConnException
+     */
     public Validity validate(SimpleConnection inConn, ConnectionMode mode)
             throws ConnException {
 
