@@ -953,7 +953,13 @@ public class ConnService {
                 .build();
     }
 
-    public StringBuilder ammendErrorStringBuilder(StringBuilder error, Map<String, Errors> allErrors) {
+    /**
+     * Internal helper method to build an error message string for the Validity message property.
+     * @param error StringBuilder error message string.
+     * @param allErrors A map of Errors objects to append.
+     * @return Returns the updated error StringBuilder string.
+     */
+    private StringBuilder ammendErrorStringBuilder(StringBuilder error, Map<String, Errors> allErrors) {
         for (String key : allErrors.keySet()) {
             Errors errors = allErrors.get(key);
             for (ObjectError objError : errors.getAllErrors()) {
