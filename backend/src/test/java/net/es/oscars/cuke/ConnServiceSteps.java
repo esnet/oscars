@@ -6,11 +6,19 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
+import net.es.oscars.resv.enums.BuildMode;
 import net.es.oscars.resv.enums.ConnectionMode;
+import net.es.oscars.resv.enums.Phase;
+import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.ConnService;
-import net.es.oscars.web.simple.SimpleConnection;
+import net.es.oscars.web.beans.ConnException;
+import net.es.oscars.web.simple.*;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Category({UnitTests.class})
@@ -25,154 +33,135 @@ public class ConnServiceSteps extends CucumberSteps {
     private SimpleConnection inConn;
     private ConnectionMode connectionMode;
 
-    private String defaultConnectionId = "";
+    private String userName;
+    private int beginTime;
+    private int endTime;
+    private String connectionId;
+    private String serviceId;
+    private List<SimpleTag> simpleTags;
+    private String description;
+    private BuildMode buildMode;
+    private Phase phase = Phase.DESIGN;
 
-    @Before("@ConnServiceStep")
+    private State state;
+    private List<Fixture> connectionFixtures;
+    private List<Junction> connectionJunctions;
+    private List<Pipe> connectionPipes;
+    private int connection_mtu;
+    private Validity validity;
+
+    @Before("@ConnServiceSteps")
     public void before() {
+        this.validity = null;
         this.connService = new ConnService();
-        this.inConn = new SimpleConnection();
+        try {
+            this.inConn = createValidSimpleConnection();
+        } catch (Exception e) {
+            world.add(e);
+            log.error("ConnServiceSteps.before() encountered an exception. Exception: {}", e.getLocalizedMessage());
+        }
     }
     @Given("The connection ID is set to {string} and the connection mode is set to {string}")
     public void theConnectionIDIsSetToAndTheConnectionModeIsSetTo(String connectionId, String connMode) {
+        this.connectionId = connectionId;
+        this.connectionMode = ConnectionMode.valueOf(connMode.toUpperCase());
         this.inConn.setConnectionId(connectionId);
-        this.connectionMode = ConnectionMode.valueOf(connMode);
     }
-    @Given("The connection mode is set to {string}")
-    public void theConnectionModeIsSetTo(String connectionMode) {
-        this.connectionMode = ConnectionMode.valueOf(connectionMode);
+    @Given("The connection ID is set to {string}")
+    public void theConnectionIdIsSetTo(String connectionId) {
+        this.connectionId = connectionId;
+        this.inConn.setConnectionId(connectionId);
     }
 
-    @Given("The global connection was set to valid parameters")
-    public void theGlobalConnectionWasSetToValidParameters() {
+    @Given("The build mode is set to {string}")
+    public void theModeIsSetTo(String mode) {
+        this.buildMode = BuildMode.valueOf(mode.toUpperCase());
+        this.inConn.setMode(this.buildMode);
+    }
+
+    @When("The MTU is set to {int}")
+    public void theMTUIsSetTo(int mtu) {
+        this.connection_mtu = mtu;
+        this.inConn.setConnection_mtu(mtu);
+    }
+
+    @Given("The description is set to {string}")
+    public void theDescriptionIsSetTo(String description) {
+        this.description = description;
+        this.inConn.setDescription(description);
+    }
+
+    @Given("The schedule is set to a valid time")
+    public void theScheduledBeginTimeIsSetTo(String arg0) {
+        this.createValidSchedule();
+        this.inConn.setBegin(this.beginTime);
+        this.inConn.setEnd(this.endTime);
+    }
+
+    @When("The connection is validated")
+    public void theConnectionIsValidated() {
         try {
-            this.inConn.setConnectionId(this.defaultConnectionId);
-            this.inConn.setConnection_mtu(this.connService.getDefaultMtu());
-
-        } catch (Exception e) {
-            world.add(e);
+            this.validity = this
+                .connService
+                .validate(
+                    this.inConn,
+                    this.connectionMode
+                );
+        } catch (ConnException e) {
+            throw new RuntimeException(e);
         }
     }
-
-    @Given("The scheduled begin time and end time make a valid interval")
-    public void theScheduledBeginTimeAndEndTimeMakeAValidInterval() {
-        
-    }
-
-    @When("The connection ID is set to {string}")
-    public void theConnectionIDIsSetTo(String arg0) {
-        
-    }
-
-    @When("The connection ID is validated")
-    public void theConnectionIDIsValidated() {
-        
-    }
-
-    @When("The MTU is set to {string}")
-    public void theMTUIsSetTo(String arg0) {
-        
-    }
-
-    @When("The MTU is validated")
-    public void theMTUIsValidated() {
-        
-    }
-
-    @When("The description is set to {string}")
-    public void theDescriptionIsSetTo(String arg0) {
-        
-    }
-
-    @When("The description is validated")
-    public void theDescriptionIsValidated() {
-        
-    }
-
-    @When("The scheduled begin time is set to {string}")
-    public void theScheduledBeginTimeIsSetTo(String arg0) {
-        
-    }
-
-    @When("The scheduled begin time is validated")
-    public void theScheduledBeginTimeIsValidated() {
-        
-    }
-
-    @When("The scheduled end time is set to {string}")
-    public void theScheduledEndTimeIsSetTo(String arg0) {
-        
-    }
-
-    @When("The scheduled end time is validated")
-    public void theScheduledEndTimeIsValidated() {
-        
-    }
-
-    @When("The maps are populated with what we request through fixtures")
-    public void theMapsArePopulatedWithWhatWeRequestThroughFixtures() {
-        
-    }
-
-    @When("The maps are populated with what we request through pipes \\(BW only)")
-    public void theMapsArePolulatedWithWhatWeRequestThroughPipesBWOnly() {
-        
-    }
-
-    @When("The VLAN maps are compared to what is available")
-    public void theVLANMapsAreComparedToWhatIsAvailable() {
-        
-    }
-
-    @When("The map is compared to what is available for BW")
-    public void theMapIsComparedToWhatIsAvailableForBW() {
-        
-    }
-
-    @When("The Validity for fixtures is populated")
-    public void theValidityForFixturesIsPopulated() {
-        
-    }
-
-    @When("The Validity for pipes and EROs is populated")
-    public void theValidityForPipesAndEROsIsPopulated() {
-    }
-
-    @Then("The connection ID is valid")
-    public void theConnectionIDIsValid() {
-
-    }
-
-    @Then("The MTU is valid")
-    public void theMTUIsValid() {
-
-    }
-
-    @Then("The description is valid")
-    public void theDescriptionIsValid() {
-
-    }
-
-    @Then("The global connection params are valid")
-    public void theGlobalConnectionParamsAreValid() {
-
-    }
-
-    @Then("The scheduled begin time is valid")
-    public void theScheduledBeginTimeIsValid() {
-        
-    }
-
-    @Then("The scheduled end time is valid")
-    public void theScheduledEndTimeIsValid() {
-        
-    }
-
-    @Then("The fixtures are valid")
-    public void theFixturesAreValid() {
-        
-    }
-
-    @Then("The connection is valid \\(true)")
+    @Then("The connection is valid")
     public void theConnectionIsValidTrue() {
+        assert validity != null;
+        assert validity.isValid();
+    }
+
+
+    private SimpleConnection createValidSimpleConnection() throws Exception {
+        // Create a valid SimpleConnection object
+        this.connectionId = "ABCD";
+        this.connection_mtu = 9000;
+        this.serviceId = "testservice";
+        this.simpleTags = new ArrayList<>();
+        this.description = "test description";
+        this.buildMode = BuildMode.AUTOMATIC;
+        this.phase = Phase.DESIGN;
+        this.userName = "testuser";
+        this.state = State.WAITING;
+        this.connectionFixtures = new ArrayList<>();
+        this.connectionJunctions = new ArrayList<>();
+        this.connectionPipes = new ArrayList<>();
+
+        this.createValidSchedule();
+
+        return SimpleConnection.builder()
+            .username(      this.userName )
+            .begin(         this.beginTime )
+            .end(           this.endTime )
+            .connectionId(  this.connectionId )
+            .connection_mtu(this.connection_mtu )
+            .serviceId(     this.serviceId )
+            .tags(          this.simpleTags )
+            .description(   this.description )
+            .mode(          this.buildMode )
+            .phase(         this.phase )
+            .username(      this.userName )
+            .state(         this.state )
+            .fixtures(      this.connectionFixtures)
+            .junctions(     this.connectionJunctions )
+            .pipes(         this.connectionPipes)
+            .build();
+    }
+
+    private void createValidSchedule() {
+        Instant now = Instant.now();
+
+        int duration = this.connService.getMinDuration() * 60;
+        int intBegin = Long.valueOf(now.getEpochSecond()).intValue();
+        int intEnd = intBegin + duration;
+
+        this.beginTime = intBegin;
+        this.endTime = intEnd;
     }
 }
