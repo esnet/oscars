@@ -892,39 +892,42 @@ public class ConnService {
             inConn.setPipes(connServicePipeAndEroValidityPopulate.getSourceList());
             // populate Validity for pipes & EROs END
 
-            // Check validity
+            // Check overall validity BEGIN
             valid = fixtures.isValid()
                 && pipes.isValid()
                 && compareVlanToAvailable.isValid()
                 && compareBWtoAvailable.isValid()
                 && fixturesValidPopulate.isValid()
                 && connServicePipeAndEroValidityPopulate.isValid();
+            // Check overall validity END
 
             // Build our error string BEGIN
+            // ... fixtures
             if (fixtures.hasErrors()) {
                 Map<String, Errors> allErrors = fixtures.getAllErrors();
                 error = ammendErrorStringBuilder(error, allErrors);
             }
+            // ... pipes
             if (pipes.hasErrors()) {
                 Map<String, Errors> allErrors = pipes.getAllErrors();
                 error = ammendErrorStringBuilder(error, allErrors);
             }
-
+            // ... compare VLANs to available
             if (compareVlanToAvailable.hasErrors()) {
                 Map<String, Errors> allErrors = compareVlanToAvailable.getAllErrors();
                 error = ammendErrorStringBuilder(error, allErrors);
             }
-
+            // ... compare BW to available
             if (compareBWtoAvailable.hasErrors()) {
                 Map<String, Errors> allErrors = compareBWtoAvailable.getAllErrors();
                 error = ammendErrorStringBuilder(error, allErrors);
             }
-
+            // ... populate with valid fixtures
             if (fixturesValidPopulate.hasErrors()) {
                 Map<String, Errors> allErrors = fixturesValidPopulate.getAllErrors();
                 error = ammendErrorStringBuilder(error, allErrors);
             }
-
+            // ... populate with valid pipe and ero
             if (connServicePipeAndEroValidityPopulate.hasErrors()) {
                 Map<String, Errors> allErrors = connServicePipeAndEroValidityPopulate.getAllErrors();
                 error = ammendErrorStringBuilder(error, allErrors);
