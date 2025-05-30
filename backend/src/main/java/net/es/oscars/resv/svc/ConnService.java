@@ -757,6 +757,8 @@ public class ConnService {
      *  - Global connection parameters
      *  - Scheduled start and end times.
      *  - Resource availability, assuming the schedule is valid.
+     * Depends on this.resvService.available() for a list of Map<String, PortBwVlan> availBwVlanMap items.
+     *
      * @param inConn SimpleConnection object.
      * @param mode ConnectionMode enumeration value.
      * @return net.es.oscars.web.simple.Validity object.
@@ -826,12 +828,13 @@ public class ConnService {
             if (inConn.getPipes() == null)      inConn.setPipes(new ArrayList<>());
             if (inConn.getJunctions() == null)  inConn.setJunctions(new ArrayList<>());
 
-            // Get the available BW VLAN map
+            // *INJECTABLE*: Get the available BW VLAN map BEGIN
             Map<String, PortBwVlan> availBwVlanMap = resvService.available(
                 interval,
                 held,
                 inConn.getConnectionId()
             );
+            // *INJECTABLE*: Get the available BW VLAN map END
 
             // make maps: urn -> total of what we are requesting to reserve for VLANs and BW
             Map<String, ImmutablePair<Integer, Integer>> inBwMap = new HashMap<>();
