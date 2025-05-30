@@ -57,6 +57,8 @@ public class ConnServiceBWtoAvailableCompare implements Comparison {
                 // error.append(err);
                 urnInBwValid.put(urn, bwValid);
                 urnEgBwValid.put(urn, bwValid);
+
+                errorsInBw.rejectValue("inBwMap", null, urn + " is not present anymore");
             } else {
                 // @TODO: Do we actually use this Validity object?
                 Validity inBwValid = Validity.builder()
