@@ -115,6 +115,8 @@ public class ConnService {
     @Value("${resv.timeout}")
     private Integer resvTimeout;
 
+    private Map<String, Connection> held = new HashMap<>();
+
 
     public ConnectionList filter(ConnectionFilter filter) {
 
@@ -327,8 +329,6 @@ public class ConnService {
         }
         return ConnectionSouthbound.RANCID;
     }
-
-    private Map<String, Connection> held = new HashMap<>();
 
     @Transactional
     public void modifySchedule(Connection c, Instant beginning, Instant ending) throws ModifyException {

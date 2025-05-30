@@ -50,8 +50,9 @@ public class ConnServiceVlanToAvailableCompare implements Comparison {
                 .build();
 
             Errors errors = new BeanPropertyBindingResult(f, "fixture");
+            boolean keyInAvailableBwVlan = availBwVlanMap.containsKey(f.getPort());
 
-            if (availBwVlanMap.containsKey(f.getPort())) {
+            if (keyInAvailableBwVlan) {
                 PortBwVlan avail = availBwVlanMap.get(f.getPort());
                 Set<Integer> vlans = inVlanMap.get(f.getPort());
                 if (vlans == null) {

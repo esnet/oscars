@@ -61,7 +61,7 @@ public class ConnServicePipeAndEroValidityPopulate implements Populator {
                         pv.setMessage(pv.getMessage() + inBwValid.getMessage());
                         pv.setValid(false);
 
-                        errors.rejectValue("urn", null, urn + " (Validity of inBwValid) is not valid");
+                        errors.rejectValue("ero", null, urn + " (Validity of inBwValid) is not valid");
                     }
 
                     Validity egBwValid = urnInBwValid.get(urn);
@@ -71,7 +71,7 @@ public class ConnServicePipeAndEroValidityPopulate implements Populator {
                         pv.setMessage(pv.getMessage() + inBwValid.getMessage());
                         pv.setValid(false);
 
-                        errors.rejectValue("urn", null, urn + " (Validity of egBwValid) is not valid");
+                        errors.rejectValue("ero", null, urn + " (Validity of egBwValid) is not valid");
                     }
                     eroValidity.put(urn, hopV);
                 }

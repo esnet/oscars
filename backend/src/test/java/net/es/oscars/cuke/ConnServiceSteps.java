@@ -14,16 +14,16 @@ import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.web.beans.ConnException;
 import net.es.oscars.web.simple.*;
+import net.es.topo.common.model.oscars1.IntRange;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import static org.mockito.ArgumentMatchers.any;
 
 @Slf4j
 @Category({UnitTests.class})
@@ -56,6 +56,7 @@ public class ConnServiceSteps extends CucumberSteps {
     private Validity validity;
 
     ResvService mockResvService;
+    Map<String, Connection> held = new HashMap<>();
     private Instant beginInstant;
     private Instant endInstant;
 
@@ -82,8 +83,8 @@ public class ConnServiceSteps extends CucumberSteps {
 
             // Mock held connections.
             // @TODO: Must be length zero or more for validation to pass?
-            Map<String, Connection> held = new HashMap<>();
-            // add mock held Connection entries.
+
+            // ...add mock held Connection entries.
             Connection mockConnection = Connection.builder()
                 .username(      this.userName )
                 .connectionId(  this.connectionId )
@@ -96,20 +97,95 @@ public class ConnServiceSteps extends CucumberSteps {
                 .username(      this.userName )
                 .state(         State.WAITING )
                 .deploymentState(DeploymentState.UNDEPLOYED)
-                .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
+                .deploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED)
                 .last_modified(this.beginTime)
                 .build();
-            held.put(mockConnection.getConnectionId(), mockConnection);
+            this.held.put(mockConnection.getConnectionId(), mockConnection);
+
+            // Build available BwVlanMap BEGIN
             Map<String, PortBwVlan> mockAvailBwVlanMap = new HashMap<>();
-            // @TODO: provide a mock avialableBwVlanMap list
-            // @TODO: Must be length zero or more for validation to pass?
+            // ... Provide a mock availableBwVlanMap list (length of zero or more)
+            // ... BwVlanMap includes fixtures and eros, but are not order dependent!
+
+            Set<IntRange> vlanRanges = new HashSet<>();
+            vlanRanges.add(
+                IntRange.builder()
+                    .floor(2)
+                    .ceiling(100)
+                    .build()
+            );
+
+            // Fixture port: ornl5600-cr6:1/1/c31/1
+            // Fixture port: star-cr6:1/1/c55/1
+            //
+            // EROs
+            //  ornl5600-cr6          // Start with A itself
+            //  ornl5600-cr6:1/2/c1/1 // (Needs BwVlanMap)
+            //  denv-cr6:2/1/c3/2     // A to M (Needs BwVlanMap)
+            //  denv-cr6              // Intermediate router M
+            //  denv-cr6:2/1/c4/2     // M to Z (Needs BwVlanMap)
+            //  star-cr6:1/1/2/1      // (Needs BwVlanMap)
+            //  star-cr6              // end with router Z
+
+            String[] portsToBwVlanMap = new String[] {
+                "ornl5600-cr6:1/2/c1/1",
+                "denv-cr6:2/1/c3/2",
+                "denv-cr6:2/1/c4/2",
+                "star-cr6:1/1/2/1"
+            };
+            // ... Fixture port on Router A
+            mockAvailBwVlanMap.put(
+                "ornl5600-cr6:1/1/c31/1",
+                PortBwVlan.builder()
+                    .egressBandwidth(1000)
+                    .ingressBandwidth(1000)
+                    // These are EROs, and don't care about VLAN stuff
+                    .vlanExpression("2:100") // we are asking for VLAN 5. Available VLANs are from 2 to 100, inclusive.
+                    .vlanRanges( vlanRanges ) // Floor: 2, Ceiling: 100
+                    .build()
+            );
+            for (String portToBwVlanMap : portsToBwVlanMap) {
+                mockAvailBwVlanMap.put(
+                    portToBwVlanMap,
+                    PortBwVlan.builder()
+                        .egressBandwidth(1000)
+                        .ingressBandwidth(1000)
+                        // These are EROs, and don't care about VLAN stuff
+                        .vlanExpression("") // we are asking for VLAN 5. Available VLANs are from 2 to 100, inclusive.
+                        .vlanRanges( new HashSet<>() ) // Floor: 2, Ceiling: 100
+                        .build()
+                );
+            }
+            // ... Fixture port on Router Z
+            mockAvailBwVlanMap.put(
+                "star-cr6:1/1/c55/1",
+                PortBwVlan.builder()
+                    .egressBandwidth(1000)
+                    .ingressBandwidth(1000)
+                    // These are EROs, and don't care about VLAN stuff
+                    .vlanExpression("2:100") // we are asking for VLAN 5. Available VLANs are from 2 to 100, inclusive.
+                    .vlanRanges( vlanRanges ) // Floor: 2, Ceiling: 100
+                    .build()
+            );
+            // Build available BwVlanMap END
+
             Interval interval = Interval.builder()
                 .beginning(this.beginInstant)
                 .ending(this.endInstant)
                 .build();
 
-            Mockito.when(mockResvService.available(interval, held, connectionId)).thenReturn(mockAvailBwVlanMap);
 
+            Mockito
+                .when(
+                    mockResvService.available(
+                        any(Interval.class),
+                        any(Map.class),
+                        any(String.class)
+                    )
+                )
+                .thenReturn(mockAvailBwVlanMap);
+            // Set the held list, too!
+            this.connService.setHeld(held);
             this.connService.setResvService( mockResvService );
 
         } catch (Exception e) {
@@ -191,8 +267,102 @@ public class ConnServiceSteps extends CucumberSteps {
 
         // @TODO: Need a mock list of fixtures, junctions, and pipes
         this.connectionFixtures = new ArrayList<>();
+
+        // Fixtures come in pairs
+        this.connectionFixtures.add(
+            Fixture.builder()
+                .port("ornl5600-cr6:1/1/c31/1")
+                .inMbps(1000)
+                .outMbps(1000)
+                .vlan(5)
+                .junction("ornl5600-cr6") // Name of the router
+                .mbps(1000)
+                .build()
+        );
+        this.connectionFixtures.add(
+            Fixture.builder()
+                .port("star-cr6:1/1/c55/1")
+                .inMbps(1000)
+                .outMbps(1000)
+                .vlan(5)
+                .junction("star-cr6") // Name of the router
+                .mbps(1000)
+                .build()
+        );
+
+        // Junctions pair one or more fixtures together.
+        // Junctions represent a single router.
+        //
+        // J <-------> F
+        //
+        // J <-|
+        //     |--> F
+        //     |--> F
+        //
+        // J <-|
+        //     |--> F
+        //     |--> F
+        //     |--> F
         this.connectionJunctions = new ArrayList<>();
+        this.connectionJunctions.add(
+            Junction.builder()
+                .device("ornl5600-cr6")
+                .build()
+        );
+        this.connectionJunctions.add(
+            Junction.builder()
+                .device("star-cr6")
+                .build()
+        );
+
+        // Pipes connection junctions together.
+        // Pipes represent one or more LSPs.
+        // Pipes represent the primary LSP. Implemented by at least two (2) directional LSPs (a to z).
+        //
+        //      (Pipe)
+        // J <---E - B - E-----> J
+        // |                     |
+        // F                     F
+        //
+        // Pipes have a list of EROs
+        // An ERO example. Pattern: Router-port-port-Router. Pattern repeats from A to Z.
+        //  ornl5600-cr6          // Start with A itself
+        //  ornl5600-cr6:1/2/c1/1 //
+        //  denv-cr6:2/1/c3/2     // A to M
+        //  denv-cr6              // Intermediate router M
+        //  denv-cr6:2/1/c4/2     // M to Z
+        //  star-cr6:1/1/2/1      //
+        //  star-cr6              // end with router Z
+        //
         this.connectionPipes = new ArrayList<>();
+
+        // ...Build Pipe EROs BEGIN
+        List<String> eros = new ArrayList<>();
+
+
+
+        // ...  Starts from a
+        eros.add("ornl5600-cr6");
+        // ...  Add backbone links here.
+        eros.add("ornl5600-cr6:1/2/c1/1");
+        eros.add("denv-cr6:2/1/c3/2"); // Port on intermediate router
+        eros.add("denv-cr6");          // Intermediate router
+        eros.add("denv-cr6:2/1/c4/2"); // Other port on intermediate router
+        eros.add("star-cr6:1/1/2/1");  // Different port(s) than those used for fixtures
+        // ...  Ends at z
+        eros.add("star-cr6"); // Router
+        // ... Build Pipe EROs END
+
+        this.connectionPipes.add(
+            Pipe.builder()
+                .a("ornl5600-cr6") // Router at a
+                .z("star-cr6") // Router at z
+                .mbps(1000)
+                .azMbps(1000)
+                .zaMbps(1000)
+                .ero(eros)
+                .build()
+        );
 
         this.createValidSchedule();
 
@@ -215,6 +385,7 @@ public class ConnServiceSteps extends CucumberSteps {
             .fixtures(      this.connectionFixtures)
             .junctions(     this.connectionJunctions )
             .pipes(         this.connectionPipes)
+            .last_modified( this.beginTime )
             .build();
     }
 

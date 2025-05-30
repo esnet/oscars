@@ -46,8 +46,8 @@ public class ConnServiceBWtoAvailableCompare implements Comparison {
 
         for (String urn : inBwMap.keySet()) {
             PortBwVlan avail = availBwVlanMap.get(urn);
-            Errors errorsInBw = new BeanPropertyBindingResult(inBwMap, "inBwMap");
-            Errors errorsEgBw = new BeanPropertyBindingResult(inBwMap, "inBwMap");
+            Errors errorsInBw = new BeanPropertyBindingResult(this, "ConnServiceBWtoAvailableCompare");
+            Errors errorsEgBw = new BeanPropertyBindingResult(this, "ConnServiceBWtoAvailableCompare");
 
             if (avail == null) {
                 Validity bwValid = Validity.builder()
@@ -72,7 +72,7 @@ public class ConnServiceBWtoAvailableCompare implements Comparison {
                     String errorMessage = "total port ingress bw exceeds available: " + urn + " " + inBw.getLeft() + "(req) / " + avail.getIngressBandwidth() + " (avail)";
                     String inErr = errorMessage + "\n";
 
-                    errorsInBw.rejectValue("urn", null, errorMessage);
+                    errorsInBw.rejectValue("inBwMap", null, errorMessage);
 
                     inBwValid.setMessage(inErr);
                     inBwValid.setValid(false);
@@ -92,7 +92,7 @@ public class ConnServiceBWtoAvailableCompare implements Comparison {
 
                     String egErr = errorMessage + "\n";
 
-                    errorsEgBw.rejectValue("urn", null, errorMessage);
+                    errorsEgBw.rejectValue("inBwMap", null, errorMessage);
                     setValid(false);
 
                     egBwValid.setMessage(egErr);
