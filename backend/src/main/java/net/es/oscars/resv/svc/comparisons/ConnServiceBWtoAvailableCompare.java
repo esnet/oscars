@@ -54,7 +54,7 @@ public class ConnServiceBWtoAvailableCompare implements Comparison {
                     .valid(false)
                     .message(urn + " is not present anymore")
                     .build();
-                // error.append(err);
+                
                 urnInBwValid.put(urn, bwValid);
                 urnEgBwValid.put(urn, bwValid);
 
