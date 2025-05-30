@@ -66,7 +66,7 @@ public class ConnServiceSteps extends CucumberSteps {
 
         try {
             this.connService = new ConnService();
-            // FIXME: Figure out why this isn't being automatically pulled in from testing.properties
+            // @FIXME: Figure out why this isn't being automatically pulled in from testing.properties
             this.connService.setDefaultMtu(9000);
             this.connService.setMinMtu(1500);
             this.connService.setMaxMtu(9000);
@@ -79,6 +79,9 @@ public class ConnServiceSteps extends CucumberSteps {
 
             // Mock ResvService, and have ResvService.available() return a mock availableBwVlanMap list.
             mockResvService = Mockito.mock(ResvService.class);
+
+            // Mock held connections.
+            // @TODO: Must be length zero or more for validation to pass?
             Map<String, Connection> held = new HashMap<>();
             // add mock held Connection entries.
             Connection mockConnection = Connection.builder()
@@ -99,7 +102,7 @@ public class ConnServiceSteps extends CucumberSteps {
             held.put(mockConnection.getConnectionId(), mockConnection);
             Map<String, PortBwVlan> mockAvailBwVlanMap = new HashMap<>();
             // @TODO: provide a mock avialableBwVlanMap list
-
+            // @TODO: Must be length zero or more for validation to pass?
             Interval interval = Interval.builder()
                 .beginning(this.beginInstant)
                 .ending(this.endInstant)
@@ -185,7 +188,7 @@ public class ConnServiceSteps extends CucumberSteps {
         this.phase = Phase.DESIGN;
         this.userName = "testuser";
         this.state = State.WAITING;
-        
+
         // @TODO: Need a mock list of fixtures, junctions, and pipes
         this.connectionFixtures = new ArrayList<>();
         this.connectionJunctions = new ArrayList<>();
