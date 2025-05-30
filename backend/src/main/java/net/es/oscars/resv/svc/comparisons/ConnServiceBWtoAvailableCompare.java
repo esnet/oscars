@@ -54,13 +54,14 @@ public class ConnServiceBWtoAvailableCompare implements Comparison {
                     .valid(false)
                     .message(urn + " is not present anymore")
                     .build();
-                
+
                 urnInBwValid.put(urn, bwValid);
                 urnEgBwValid.put(urn, bwValid);
 
                 errorsInBw.rejectValue("inBwMap", null, urn + " is not present anymore");
             } else {
                 // @TODO: Do we actually use this Validity object?
+                // We assume it's valid until we find out otherwise?
                 Validity inBwValid = Validity.builder()
                     .valid(true)
                     .message("")
