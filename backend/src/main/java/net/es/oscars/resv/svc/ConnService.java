@@ -775,7 +775,7 @@ public class ConnService {
         }
 
         Errors errorsConnection = new BeanPropertyBindingResult(inConn, "inConn");
-
+        Errors errorsSchedule = new BeanPropertyBindingResult(inConn, "inConn");
         // validate global connection params BEGIN
         ConnServiceGlobalConnectionValidate validateGlobalConnection = new ConnServiceGlobalConnectionValidate(
             minMtu,
@@ -783,6 +783,11 @@ public class ConnService {
         );
         validateGlobalConnection.validate(inConn, errorsConnection);
         boolean validGlobalConnection = validateGlobalConnection.valid() && !errorsConnection.hasErrors();
+        if (errorsConnection.hasErrors()) {
+            errorsConnection.getAllErrors().forEach((ObjectError oe) -> {
+                log.error(oe.getDefaultMessage());
+            });
+        }
         // validate global connection params END
 
 
@@ -794,8 +799,14 @@ public class ConnService {
         );
 
         if (validGlobalConnection) {
-            validateSchedule.validate(inConn, errorsConnection);
-            validInterval = validateSchedule.valid() && !errorsConnection.hasErrors();
+            validateSchedule.validate(inConn, errorsSchedule);
+            validInterval = validateSchedule.valid() && !errorsSchedule.hasErrors();
+
+            if (errorsSchedule.hasErrors()) {
+                errorsSchedule.getAllErrors().forEach((ObjectError oe) -> {
+                    log.error(oe.getDefaultMessage());
+                });
+            }
         }
         // validate schedule END
 
@@ -889,6 +900,7 @@ public class ConnService {
                 urnInBwValid,
                 urnEgBwValid
             );
+            fixturesValidPopulate.populate();
             inConn.setFixtures(fixturesValidPopulate.getSourceList());
             // populate Validity for fixtures END
 
@@ -903,12 +915,19 @@ public class ConnService {
             // populate Validity for pipes & EROs END
 
             // Check overall validity BEGIN
-            valid = fixtures.isValid()
-                && pipes.isValid()
-                && compareVlanToAvailable.isValid()
-                && compareBWtoAvailable.isValid()
-                && fixturesValidPopulate.isValid()
-                && connServicePipeAndEroValidityPopulate.isValid();
+            boolean isFixturesValid = fixtures.isValid();
+            boolean isPipesValid = pipes.isValid();
+            boolean isCompareVlanToAvailableValid = compareVlanToAvailable.isValid();
+            boolean isCompareBWtoAvailableValid = compareBWtoAvailable.isValid();
+            boolean isFixturesValidPopulateValid = fixturesValidPopulate.isValid();
+            boolean isConnServicePipeAndEroValidityPopulateValid = connServicePipeAndEroValidityPopulate.isValid();
+
+            valid = isFixturesValid
+                && isPipesValid
+                && isCompareVlanToAvailableValid
+                && isCompareBWtoAvailableValid
+                && isFixturesValidPopulateValid
+                && isConnServicePipeAndEroValidityPopulateValid;
             // Check overall validity END
 
             // Build our error string BEGIN

@@ -17,6 +17,8 @@ public class ConnServiceScheduleValidate implements Validator {
     private boolean isBeginTimeValid;
     private boolean isEndTimeValid;
 
+    private boolean isValid;
+
     private ConnectionMode connectionMode;
 
     private Instant checkedBeginTime;
@@ -55,10 +57,10 @@ public class ConnServiceScheduleValidate implements Validator {
 
         SimpleConnection inConn = (SimpleConnection) target;
 
-
-
         isBeginTimeValid = checkBeginTime(inConn, errors);
         isEndTimeValid = checkEndTime(inConn, errors);
+        isValid = isBeginTimeValid && isEndTimeValid;
+
     }
 
     public boolean checkBeginTime(SimpleConnection inConn, Errors errors) {
@@ -105,12 +107,13 @@ public class ConnServiceScheduleValidate implements Validator {
             end = Instant.ofEpochSecond(inConn.getEnd());
             if (!end.isAfter(Instant.now())) {
                 endValid = false;
-                errors.rejectValue("end", null, "end dae is in the past");
+                errors.rejectValue("end", null, "end date is in the past");
             } else if (!end.isAfter(checkedBeginTime)) {
                 endValid = false;
                 errors.rejectValue("end", null, "end date not past begin()");
             } else {
-                if (checkedBeginTime.plus(this.minDuration, ChronoUnit.MINUTES).isAfter(end)) {
+                Instant expectedEnd = checkedBeginTime.plus(this.minDuration, ChronoUnit.MINUTES);
+                if (expectedEnd.isAfter(end)) {
                     endValid = false;
                     errors.rejectValue("end", null, "duration is too short (less than " + this.minDuration + " min)");
                 } else {
@@ -124,12 +127,13 @@ public class ConnServiceScheduleValidate implements Validator {
     }
 
     public boolean valid() {
-        return isBeginTimeValid && isEndTimeValid;
+        return isValid;
     }
 
     public void clear() {
         isBeginTimeValid = false;
         isEndTimeValid = false;
+        isValid = false;
     }
 }
 

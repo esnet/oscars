@@ -6,19 +6,27 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
+import net.es.oscars.model.Interval;
+import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.BuildMode;
 import net.es.oscars.resv.enums.ConnectionMode;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.resv.svc.ResvService;
+import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.web.beans.ConnException;
 import net.es.oscars.web.simple.*;
 import org.junit.experimental.categories.Category;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Category({UnitTests.class})
@@ -50,12 +58,44 @@ public class ConnServiceSteps extends CucumberSteps {
     private int connection_mtu;
     private Validity validity;
 
+    ResvService mockResvService;
+    private Instant beginInstant;
+    private Instant endInstant;
+
     @Before("@ConnServiceSteps")
     public void before() {
         this.validity = null;
-        this.connService = new ConnService();
+
+
         try {
+            this.connService = new ConnService();
+            // FIXME: Figure out why this isn't being automatically pulled in from testing.properties
+            this.connService.setDefaultMtu(9000);
+            this.connService.setMinMtu(1500);
+            this.connService.setMaxMtu(9000);
+
+            this.connService.setMinDuration(15);
+
+            this.connService.setResvTimeout(900);
+
             this.inConn = createValidSimpleConnection();
+
+            // Mock ResvService
+            mockResvService = Mockito.mock(ResvService.class);
+            Map<String, Connection> held = new HashMap<>();
+            // @TODO: add mock held Connection entries.
+
+            Map<String, PortBwVlan> mockAvailBwVlanMap = new HashMap<>();
+
+            Interval interval = Interval.builder()
+                .beginning(this.beginInstant)
+                .ending(this.endInstant)
+                .build();
+
+            Mockito.when(mockResvService.available(interval, held, connectionId)).thenReturn(mockAvailBwVlanMap);
+
+            this.connService.setResvService( mockResvService );
+
         } catch (Exception e) {
             world.add(e);
             log.error("ConnServiceSteps.before() encountered an exception. Exception: {}", e.getLocalizedMessage());
@@ -92,7 +132,7 @@ public class ConnServiceSteps extends CucumberSteps {
     }
 
     @Given("The schedule is set to a valid time")
-    public void theScheduledBeginTimeIsSetTo(String arg0) {
+    public void theScheduledBeginTimeIsSetTo() {
         this.createValidSchedule();
         this.inConn.setBegin(this.beginTime);
         this.inConn.setEnd(this.endTime);
@@ -113,6 +153,9 @@ public class ConnServiceSteps extends CucumberSteps {
     }
     @Then("The connection is valid")
     public void theConnectionIsValidTrue() {
+        if (!validity.isValid()) {
+            log.error("The connection is not valid: {}", validity.getMessage());
+        }
         assert validity != null;
         assert validity.isValid();
     }
@@ -134,6 +177,9 @@ public class ConnServiceSteps extends CucumberSteps {
         this.connectionPipes = new ArrayList<>();
 
         this.createValidSchedule();
+
+        int minMtuDefault = this.connService.getMinMtu();
+        log.info("minMtuDefault: " + minMtuDefault);
 
         return SimpleConnection.builder()
             .username(      this.userName )
@@ -157,11 +203,19 @@ public class ConnServiceSteps extends CucumberSteps {
     private void createValidSchedule() {
         Instant now = Instant.now();
 
-        int duration = this.connService.getMinDuration() * 60;
-        int intBegin = Long.valueOf(now.getEpochSecond()).intValue();
-        int intEnd = intBegin + duration;
+        int duration = this.connService.getMinDuration(); // minDuration default is 15 min
+
+        int intBegin = Long.valueOf(now.getEpochSecond() ).intValue();
+        Instant iBegin = Instant.ofEpochSecond(intBegin);
+
+        // Expected end time cannot be <= minDuration, which is 15min.
+        // Set it to minDuration + 1.
+        Instant iEnd = iBegin.plus(duration + 1, ChronoUnit.MINUTES);
+        int intEnd = Long.valueOf(iEnd.getEpochSecond()).intValue();
 
         this.beginTime = intBegin;
         this.endTime = intEnd;
+        this.beginInstant = iBegin;
+        this.endInstant = iEnd;
     }
 }
