@@ -8,3 +8,7 @@
 **/*logs*/
 backend/*.log*
 backend/log
+.env
+.env.*
+**/.env
+**/.env.*
