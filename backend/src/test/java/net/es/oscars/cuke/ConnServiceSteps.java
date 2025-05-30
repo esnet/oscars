@@ -8,10 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.model.Interval;
 import net.es.oscars.resv.ent.Connection;
-import net.es.oscars.resv.enums.BuildMode;
-import net.es.oscars.resv.enums.ConnectionMode;
-import net.es.oscars.resv.enums.Phase;
-import net.es.oscars.resv.enums.State;
+import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.PortBwVlan;
@@ -80,12 +77,28 @@ public class ConnServiceSteps extends CucumberSteps {
 
             this.inConn = createValidSimpleConnection();
 
-            // Mock ResvService
+            // Mock ResvService, and have ResvService.available() return a mock availableBwVlanMap list.
             mockResvService = Mockito.mock(ResvService.class);
             Map<String, Connection> held = new HashMap<>();
-            // @TODO: add mock held Connection entries.
-
+            // add mock held Connection entries.
+            Connection mockConnection = Connection.builder()
+                .username(      this.userName )
+                .connectionId(  this.connectionId )
+                .connection_mtu(this.connection_mtu )
+                .serviceId(     this.serviceId )
+                .tags(          new ArrayList<>() )
+                .description(   this.description )
+                .mode(          BuildMode.AUTOMATIC )
+                .phase(         Phase.DESIGN )
+                .username(      this.userName )
+                .state(         State.WAITING )
+                .deploymentState(DeploymentState.UNDEPLOYED)
+                .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
+                .last_modified(this.beginTime)
+                .build();
+            held.put(mockConnection.getConnectionId(), mockConnection);
             Map<String, PortBwVlan> mockAvailBwVlanMap = new HashMap<>();
+            // @TODO: provide a mock avialableBwVlanMap list
 
             Interval interval = Interval.builder()
                 .beginning(this.beginInstant)
@@ -172,6 +185,8 @@ public class ConnServiceSteps extends CucumberSteps {
         this.phase = Phase.DESIGN;
         this.userName = "testuser";
         this.state = State.WAITING;
+        
+        // @TODO: Need a mock list of fixtures, junctions, and pipes
         this.connectionFixtures = new ArrayList<>();
         this.connectionJunctions = new ArrayList<>();
         this.connectionPipes = new ArrayList<>();
