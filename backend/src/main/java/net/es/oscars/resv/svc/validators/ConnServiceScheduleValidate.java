@@ -8,12 +8,16 @@ import org.springframework.validation.*;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
-public class ConnServiceScheduleValidate implements Validator {
+public class ConnServiceScheduleValidate implements Validator, ValidatorWithErrors {
 
+    Map<String, Errors> allErrors = new HashMap<>();
     private boolean isBeginTimeValid;
     private boolean isEndTimeValid;
 
@@ -73,6 +77,7 @@ public class ConnServiceScheduleValidate implements Validator {
             errors.rejectValue("begin", null, "null begin field");
         } else {
             begin = Instant.ofEpochSecond(inConn.getBegin());
+            // If the begin time is before now - 5 minutes, reject it.
             Instant rejectBefore = Instant.now().minus(5, ChronoUnit.MINUTES);
             if (begin.isBefore(rejectBefore) && !connectionMode.equals(ConnectionMode.MODIFY)) {
                 beginValid = false;
@@ -88,6 +93,9 @@ public class ConnServiceScheduleValidate implements Validator {
                     inConn.setBegin(Long.valueOf(begin.getEpochSecond()).intValue());
                 }
             }
+        }
+        if (errors.hasErrors()) {
+            allErrors.put("beginTime", errors);
         }
         checkedBeginTime = begin;
         // check the schedule, begin time first END
@@ -121,6 +129,10 @@ public class ConnServiceScheduleValidate implements Validator {
                 }
             }
         }
+
+        if (errors.hasErrors()) {
+            allErrors.put("endTime", errors);
+        }
         // check the schedule, end time BEGIN
         checkedEndTime = end;
         return endValid;
@@ -134,6 +146,12 @@ public class ConnServiceScheduleValidate implements Validator {
         isBeginTimeValid = false;
         isEndTimeValid = false;
         isValid = false;
+
+        allErrors.clear();
+    }
+
+    public boolean hasErrors() {
+        return !allErrors.isEmpty();
     }
 }
 

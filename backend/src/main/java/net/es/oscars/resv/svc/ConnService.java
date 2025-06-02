@@ -784,11 +784,10 @@ public class ConnService {
             maxMtu
         );
         validateGlobalConnection.validate(inConn, errorsConnection);
-        boolean validGlobalConnection = validateGlobalConnection.valid() && !errorsConnection.hasErrors();
-        if (errorsConnection.hasErrors()) {
-            errorsConnection.getAllErrors().forEach((ObjectError oe) -> {
-                log.error(oe.getDefaultMessage());
-            });
+        boolean validGlobalConnection = validateGlobalConnection.valid() && !validateGlobalConnection.hasErrors();
+        if (validateGlobalConnection.hasErrors()) {
+            Map<String, Errors> allErrors = validateGlobalConnection.getAllErrors();
+            error = ammendErrorStringBuilder(error, allErrors);
         }
         // validate global connection params END
 
@@ -802,12 +801,11 @@ public class ConnService {
 
         if (validGlobalConnection) {
             validateSchedule.validate(inConn, errorsSchedule);
-            validInterval = validateSchedule.valid() && !errorsSchedule.hasErrors();
+            validInterval = validateSchedule.valid() && !validateSchedule.hasErrors();
 
-            if (errorsSchedule.hasErrors()) {
-                errorsSchedule.getAllErrors().forEach((ObjectError oe) -> {
-                    log.error(oe.getDefaultMessage());
-                });
+            if (validateSchedule.hasErrors()) {
+                Map<String, Errors> allErrors = validateSchedule.getAllErrors();
+                error = ammendErrorStringBuilder(error, allErrors);
             }
         }
         // validate schedule END

@@ -96,7 +96,7 @@ public class ConnServiceSteps extends CucumberSteps {
     }
 
     @Given("The schedule is set to a valid time")
-    public void theScheduledBeginTimeIsSetTo() {
+    public void theScheduleIsSetToAValidTime() {
         // Set to at least one minute over the minium time required
         this.createValidSchedule();
         this.inConn.setBegin(this.beginTime);
@@ -106,6 +106,15 @@ public class ConnServiceSteps extends CucumberSteps {
     public void theScheduleIsSetToAnInvalidTime() {
         // Set to the minimum time required, minus one minute
         this.createInvalidSchedule();
+        this.inConn.setBegin(this.beginTime);
+        this.inConn.setEnd(this.endTime);
+    }
+
+    @Given("The schedule is set to a valid time with a {long} year interval")
+    public void theScheduleIsSetToAValidTimeWithAYearInterval(long durationYears) {
+        // Set to at least one minute over the minium time required
+        int durationMinutes = (int) (durationYears * 525600); // Years * Minutes per year
+        this.createValidSchedule(durationMinutes);
         this.inConn.setBegin(this.beginTime);
         this.inConn.setEnd(this.endTime);
     }
@@ -124,6 +133,10 @@ public class ConnServiceSteps extends CucumberSteps {
                     this.inConn,
                     this.connectionMode
                 );
+
+            if (!this.validity.isValid()) {
+               log.error(this.validity.getMessage());
+            }
         } catch (ConnException e) {
             throw new RuntimeException(e);
         }
@@ -292,16 +305,17 @@ public class ConnServiceSteps extends CucumberSteps {
     }
 
     private void createValidSchedule() {
+        this.createValidSchedule(this.connService.getMinDuration());
+    }
+    private void createValidSchedule(int durationMinutes) {
         Instant now = Instant.now();
-
-        int duration = this.connService.getMinDuration(); // minDuration default is 15 min
 
         int intBegin = Long.valueOf(now.getEpochSecond() ).intValue();
         Instant iBegin = Instant.ofEpochSecond(intBegin);
 
         // Expected end time cannot be <= minDuration, which is 15min.
-        // Set it to minDuration + 1.
-        Instant iEnd = iBegin.plus(duration + 1, ChronoUnit.MINUTES);
+        // CHANGED Behavior: Set it to minDuration + 1, instead of minDuration.
+        Instant iEnd = iBegin.plus(durationMinutes + 1, ChronoUnit.MINUTES);
         int intEnd = Long.valueOf(iEnd.getEpochSecond()).intValue();
 
         this.beginTime = intBegin;
