@@ -183,7 +183,6 @@ public class NsiQueries {
         Optional<Connection> mc = nsiMappingService.getMaybeOscarsConnection(mapping);
         QuerySummaryResultType qsrt = new QuerySummaryResultType();
         qsrt.setConnectionId(mapping.getNsiConnectionId());
-        QuerySummaryResultCriteriaType qsrct = new QuerySummaryResultCriteriaType();
         String description;
         ConnectionStatesType cst;
         if (mc.isEmpty()) {
@@ -194,7 +193,6 @@ public class NsiQueries {
                 return null;
             }
             log.info("returning a placeholder for "+mapping.getNsiConnectionId());
-            qsrct.setSchedule(request.getIncoming().getCriteria().getSchedule());
             description = request.getIncoming().getDescription();
             cst = new ConnectionStatesType();
             cst.setProvisionState(mapping.getProvisionState());
@@ -224,20 +222,19 @@ public class NsiQueries {
             }
             description = c.getDescription();
 
+            QuerySummaryResultCriteriaType qsrct = new QuerySummaryResultCriteriaType();
             qsrct.setSchedule(nsiMappingService.oscarsToNsiSchedule(sch));
             Components cmp = getComponents(c);
             P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping);
-
             net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory p2pof = new ObjectFactory();
             qsrct.getAny().add(p2pof.createP2Ps(p2p));
+            qsrct.setServiceType(NsiService.SERVICE_TYPE);
+            qsrct.setVersion(mapping.getDataplaneVersion());
+            qsrt.getCriteria().add(qsrct);
+
             cst = nsiMappingService.makeConnectionStates(mapping, c);
         }
 
-        qsrct.setServiceType(NsiService.SERVICE_TYPE);
-        qsrct.setVersion(mapping.getDataplaneVersion());
-
-
-        qsrt.getCriteria().add(qsrct);
 
         qsrt.setDescription(description);
         qsrt.setGlobalReservationId(mapping.getNsiGri());
