@@ -1,5 +1,6 @@
 @ConnServiceSteps
-Feature: OSCARS NSI Connection Service, validation
+@ConnServiceStepsHappy
+Feature: OSCARS NSI Connection Service, validation (Happy Path)
 
   I want to validate a connection as either valid (true) or not valid (false).
 

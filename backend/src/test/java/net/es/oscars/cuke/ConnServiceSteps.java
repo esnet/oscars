@@ -63,135 +63,7 @@ public class ConnServiceSteps extends CucumberSteps {
     @Before("@ConnServiceSteps")
     public void before() {
         this.validity = null;
-
-
-        try {
-            this.connService = new ConnService();
-            // @FIXME: Figure out why this isn't being automatically pulled in from testing.properties
-            this.connService.setDefaultMtu(9000);
-            this.connService.setMinMtu(1500);
-            this.connService.setMaxMtu(9000);
-
-            this.connService.setMinDuration(15);
-
-            this.connService.setResvTimeout(900);
-
-            this.inConn = createValidSimpleConnection();
-
-            // Mock ResvService, and have ResvService.available() return a mock availableBwVlanMap list.
-            mockResvService = Mockito.mock(ResvService.class);
-
-            // Mock held connections.
-            // @TODO: Must be length zero or more for validation to pass?
-
-            // ...add mock held Connection entries.
-            Connection mockConnection = Connection.builder()
-                .username(      this.userName )
-                .connectionId(  this.connectionId )
-                .connection_mtu(this.connection_mtu )
-                .serviceId(     this.serviceId )
-                .tags(          new ArrayList<>() )
-                .description(   this.description )
-                .mode(          BuildMode.AUTOMATIC )
-                .phase(         Phase.DESIGN )
-                .username(      this.userName )
-                .state(         State.WAITING )
-                .deploymentState(DeploymentState.UNDEPLOYED)
-                .deploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED)
-                .last_modified(this.beginTime)
-                .build();
-            this.held.put(mockConnection.getConnectionId(), mockConnection);
-
-            // Build available BwVlanMap BEGIN
-            Map<String, PortBwVlan> mockAvailBwVlanMap = new HashMap<>();
-            // ... Provide a mock availableBwVlanMap list (length of zero or more)
-            // ... BwVlanMap includes fixtures and eros, but are not order dependent!
-
-            Set<IntRange> vlanRanges = new HashSet<>();
-            vlanRanges.add(
-                IntRange.builder()
-                    .floor(2)
-                    .ceiling(100)
-                    .build()
-            );
-
-            // Fixture port: ornl5600-cr6:1/1/c31/1
-            // Fixture port: star-cr6:1/1/c55/1
-            //
-            // EROs
-            //  ornl5600-cr6          // Start with A itself
-            //  ornl5600-cr6:1/2/c1/1 // (Needs BwVlanMap)
-            //  denv-cr6:2/1/c3/2     // A to M (Needs BwVlanMap)
-            //  denv-cr6              // Intermediate router M
-            //  denv-cr6:2/1/c4/2     // M to Z (Needs BwVlanMap)
-            //  star-cr6:1/1/2/1      // (Needs BwVlanMap)
-            //  star-cr6              // end with router Z
-
-            String[] portsToBwVlanMap = new String[] {
-                "ornl5600-cr6:1/2/c1/1",
-                "denv-cr6:2/1/c3/2",
-                "denv-cr6:2/1/c4/2",
-                "star-cr6:1/1/2/1"
-            };
-            // ... Fixture port on Router A
-            mockAvailBwVlanMap.put(
-                "ornl5600-cr6:1/1/c31/1",
-                PortBwVlan.builder()
-                    .egressBandwidth(1000)
-                    .ingressBandwidth(1000)
-                    // These are EROs, and don't care about VLAN stuff
-                    .vlanExpression("2:100") // we are asking for VLAN 5. Available VLANs are from 2 to 100, inclusive.
-                    .vlanRanges( vlanRanges ) // Floor: 2, Ceiling: 100
-                    .build()
-            );
-            for (String portToBwVlanMap : portsToBwVlanMap) {
-                mockAvailBwVlanMap.put(
-                    portToBwVlanMap,
-                    PortBwVlan.builder()
-                        .egressBandwidth(1000)
-                        .ingressBandwidth(1000)
-                        // These are EROs, and don't care about VLAN stuff
-                        .vlanExpression("") // we are asking for VLAN 5. Available VLANs are from 2 to 100, inclusive.
-                        .vlanRanges( new HashSet<>() ) // Floor: 2, Ceiling: 100
-                        .build()
-                );
-            }
-            // ... Fixture port on Router Z
-            mockAvailBwVlanMap.put(
-                "star-cr6:1/1/c55/1",
-                PortBwVlan.builder()
-                    .egressBandwidth(1000)
-                    .ingressBandwidth(1000)
-                    // These are EROs, and don't care about VLAN stuff
-                    .vlanExpression("2:100") // we are asking for VLAN 5. Available VLANs are from 2 to 100, inclusive.
-                    .vlanRanges( vlanRanges ) // Floor: 2, Ceiling: 100
-                    .build()
-            );
-            // Build available BwVlanMap END
-
-            Interval interval = Interval.builder()
-                .beginning(this.beginInstant)
-                .ending(this.endInstant)
-                .build();
-
-
-            Mockito
-                .when(
-                    mockResvService.available(
-                        any(Interval.class),
-                        any(Map.class),
-                        any(String.class)
-                    )
-                )
-                .thenReturn(mockAvailBwVlanMap);
-            // Set the held list, too!
-            this.connService.setHeld(held);
-            this.connService.setResvService( mockResvService );
-
-        } catch (Exception e) {
-            world.add(e);
-            log.error("ConnServiceSteps.before() encountered an exception. Exception: {}", e.getLocalizedMessage());
-        }
+        createTestConnection();
     }
     @Given("The connection ID is set to {string} and the connection mode is set to {string}")
     public void theConnectionIDIsSetToAndTheConnectionModeIsSetTo(String connectionId, String connMode) {
@@ -225,9 +97,22 @@ public class ConnServiceSteps extends CucumberSteps {
 
     @Given("The schedule is set to a valid time")
     public void theScheduledBeginTimeIsSetTo() {
+        // Set to at least one minute over the minium time required
         this.createValidSchedule();
         this.inConn.setBegin(this.beginTime);
         this.inConn.setEnd(this.endTime);
+    }
+    @Given("The schedule is set to an invalid time")
+    public void theScheduleIsSetToAnInvalidTime() {
+        // Set to the minimum time required, minus one minute
+        this.createInvalidSchedule();
+        this.inConn.setBegin(this.beginTime);
+        this.inConn.setEnd(this.endTime);
+    }
+
+    @Given("The connection attempts to reserve {int} Mbps in, {int} Mbps out, {int} Mbps from a to z, {int} Mbps from z to a, {int} Mbps set")
+    public void theConnectionAttemptsToReserveMbps(int mbpsIn, int mbpsOut, int azMbps, int zaMbps, int mbps) throws Exception {
+        this.inConn = createSimpleConnection(mbpsIn, mbpsOut, azMbps, zaMbps, mbps);
     }
 
     @When("The connection is validated")
@@ -251,9 +136,26 @@ public class ConnServiceSteps extends CucumberSteps {
         assert validity != null;
         assert validity.isValid();
     }
+    @Then("The connection is not valid")
+    public void theConnectionIsNotValid() {
+        if (validity.isValid()) {
+            log.error("The connection was expected to be invalid.");
+            assert validity != null;
+            assert !validity.isValid();
+        }
+    }
 
 
     private SimpleConnection createValidSimpleConnection() throws Exception {
+        return  this.createSimpleConnection(
+            1000,
+            1000,
+            1000,
+            1000,
+            1000
+        );
+    }
+    private SimpleConnection createSimpleConnection(int inMbps, int outMpbs, int azMbps, int zaMbps, int mbps) throws Exception {
         // Create a valid SimpleConnection object
         this.connectionId = "ABCD";
         this.connection_mtu = 9000;
@@ -272,21 +174,21 @@ public class ConnServiceSteps extends CucumberSteps {
         this.connectionFixtures.add(
             Fixture.builder()
                 .port("ornl5600-cr6:1/1/c31/1")
-                .inMbps(1000)
-                .outMbps(1000)
+                .inMbps(inMbps)
+                .outMbps(outMpbs)
                 .vlan(5)
                 .junction("ornl5600-cr6") // Name of the router
-                .mbps(1000)
+                .mbps(mbps)
                 .build()
         );
         this.connectionFixtures.add(
             Fixture.builder()
                 .port("star-cr6:1/1/c55/1")
-                .inMbps(1000)
-                .outMbps(1000)
+                .inMbps(inMbps)
+                .outMbps(outMpbs)
                 .vlan(5)
                 .junction("star-cr6") // Name of the router
-                .mbps(1000)
+                .mbps(mbps)
                 .build()
         );
 
@@ -357,9 +259,9 @@ public class ConnServiceSteps extends CucumberSteps {
             Pipe.builder()
                 .a("ornl5600-cr6") // Router at a
                 .z("star-cr6") // Router at z
-                .mbps(1000)
-                .azMbps(1000)
-                .zaMbps(1000)
+                .mbps(mbps)
+                .azMbps(azMbps)
+                .zaMbps(zaMbps)
                 .ero(eros)
                 .build()
         );
@@ -406,5 +308,156 @@ public class ConnServiceSteps extends CucumberSteps {
         this.endTime = intEnd;
         this.beginInstant = iBegin;
         this.endInstant = iEnd;
+    }
+
+    private void createInvalidSchedule() {
+        Instant now = Instant.now();
+
+        int duration = this.connService.getMinDuration(); // minDuration default is 15 min
+
+        int intBegin = Long.valueOf(now.getEpochSecond() ).intValue();
+        Instant iBegin = Instant.ofEpochSecond(intBegin);
+
+        // Expected end time cannot be <= minDuration, which is 15min.
+        // Set it to minDuration - 1 to create an interval we would consider invalid.
+        Instant iEnd = iBegin.plus(duration - 1, ChronoUnit.MINUTES);
+        int intEnd = Long.valueOf(iEnd.getEpochSecond()).intValue();
+
+        this.beginTime = intBegin;
+        this.endTime = intEnd;
+        this.beginInstant = iBegin;
+        this.endInstant = iEnd;
+    }
+
+    private void createTestConnection() {
+        this.createTestConnection(1000, 1000);
+    }
+    private void createTestConnection(int ingressBandwidth, int egressBandwidth) {
+        try {
+            this.connService = new ConnService();
+            // @FIXME: Figure out why this isn't being automatically pulled in from testing.properties
+            this.connService.setDefaultMtu(9000);
+            this.connService.setMinMtu(1500);
+            this.connService.setMaxMtu(9000);
+
+            this.connService.setMinDuration(15);
+            this.connService.setResvTimeout(900);
+
+            this.inConn = createValidSimpleConnection();
+
+            // Mock ResvService, and have ResvService.available() return a mock availableBwVlanMap list.
+            mockResvService = Mockito.mock(ResvService.class);
+
+            // Mock held connections.
+            // @TODO: Must be length zero or more for validation to pass?
+
+            // ...add mock held Connection entries.
+            Connection mockConnection = Connection.builder()
+                .username(      this.userName )
+                .connectionId(  this.connectionId )
+                .connection_mtu(this.connection_mtu )
+                .serviceId(     this.serviceId )
+                .tags(          new ArrayList<>() )
+                .description(   this.description )
+                .mode(          BuildMode.AUTOMATIC )
+                .phase(         Phase.DESIGN )
+                .username(      this.userName )
+                .state(         State.WAITING )
+                .deploymentState(DeploymentState.UNDEPLOYED)
+                .deploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED)
+                .last_modified(this.beginTime)
+                .build();
+            this.held.put(mockConnection.getConnectionId(), mockConnection);
+
+            // Build available BwVlanMap BEGIN
+            Map<String, PortBwVlan> mockAvailBwVlanMap = new HashMap<>();
+            // ... Provide a mock availableBwVlanMap list (length of zero or more)
+            // ... BwVlanMap includes fixtures and eros, but are not order dependent!
+
+            Set<IntRange> vlanRanges = new HashSet<>();
+            vlanRanges.add(
+                IntRange.builder()
+                    .floor(2)
+                    .ceiling(100)
+                    .build()
+            );
+
+            // Fixture port: ornl5600-cr6:1/1/c31/1
+            // Fixture port: star-cr6:1/1/c55/1
+            //
+            // EROs
+            //  ornl5600-cr6          // Start with A itself
+            //  ornl5600-cr6:1/2/c1/1 // (Needs BwVlanMap)
+            //  denv-cr6:2/1/c3/2     // A to M (Needs BwVlanMap)
+            //  denv-cr6              // Intermediate router M
+            //  denv-cr6:2/1/c4/2     // M to Z (Needs BwVlanMap)
+            //  star-cr6:1/1/2/1      // (Needs BwVlanMap)
+            //  star-cr6              // end with router Z
+
+            String[] portsToBwVlanMap = new String[] {
+                "ornl5600-cr6:1/2/c1/1",
+                "denv-cr6:2/1/c3/2",
+                "denv-cr6:2/1/c4/2",
+                "star-cr6:1/1/2/1"
+            };
+            // ... Fixture port on Router A
+            mockAvailBwVlanMap.put(
+                "ornl5600-cr6:1/1/c31/1",
+                PortBwVlan.builder()
+                    .egressBandwidth(egressBandwidth)
+                    .ingressBandwidth(ingressBandwidth)
+                    // These are EROs, and don't care about VLAN stuff
+                    .vlanExpression("2:100") // we are asking for VLAN 5. Available VLANs are from 2 to 100, inclusive.
+                    .vlanRanges( vlanRanges ) // Floor: 2, Ceiling: 100
+                    .build()
+            );
+            for (String portToBwVlanMap : portsToBwVlanMap) {
+                mockAvailBwVlanMap.put(
+                    portToBwVlanMap,
+                    PortBwVlan.builder()
+                        .egressBandwidth(egressBandwidth)
+                        .ingressBandwidth(ingressBandwidth)
+                        // These are EROs, and don't care about VLAN stuff
+                        .vlanExpression("") // we are asking for VLAN 5. Available VLANs are from 2 to 100, inclusive.
+                        .vlanRanges( new HashSet<>() ) // Floor: 2, Ceiling: 100
+                        .build()
+                );
+            }
+            // ... Fixture port on Router Z
+            mockAvailBwVlanMap.put(
+                "star-cr6:1/1/c55/1",
+                PortBwVlan.builder()
+                    .egressBandwidth(egressBandwidth)
+                    .ingressBandwidth(ingressBandwidth)
+                    // These are EROs, and don't care about VLAN stuff
+                    .vlanExpression("2:100") // we are asking for VLAN 5. Available VLANs are from 2 to 100, inclusive.
+                    .vlanRanges( vlanRanges ) // Floor: 2, Ceiling: 100
+                    .build()
+            );
+            // Build available BwVlanMap END
+
+            Interval interval = Interval.builder()
+                .beginning(this.beginInstant)
+                .ending(this.endInstant)
+                .build();
+
+
+            Mockito
+                .when(
+                    mockResvService.available(
+                        any(Interval.class),
+                        any(Map.class),
+                        any(String.class)
+                    )
+                )
+                .thenReturn(mockAvailBwVlanMap);
+            // Set the held list, too!
+            this.connService.setHeld(held);
+            this.connService.setResvService( mockResvService );
+
+        } catch (Exception e) {
+            world.add(e);
+            log.error("ConnServiceSteps.before() encountered an exception. Exception: {}", e.getLocalizedMessage());
+        }
     }
 }
