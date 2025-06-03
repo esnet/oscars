@@ -844,6 +844,7 @@ public class NsiService {
                     .serviceId(null)
                     .pipes(pipes)
                     .tags(tags)
+                    .connection_mtu(9000)
                     .username("nsi")
                     .build();
             try {
