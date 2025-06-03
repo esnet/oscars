@@ -765,9 +765,18 @@ public class ConnService {
     public Validity validate(SimpleConnection inConn, ConnectionMode mode)
             throws ConnException {
 
+        log.info("ConnService.validate() called");
+        log.info("defaultMtu (pss.default-mtu) : {}", defaultMtu);
+        log.info("minMtu (pss.min-mtu): {}", minMtu);
+        log.info("maxMtu (pss.max-mtu): {}", maxMtu);
+        log.info("minDuration (resv.minimum-duration): {}", minDuration);
+        log.info("timeout (resv.timeout): {}", resvTimeout);
+
         DevelUtils.dumpDebug("validate conn", inConn);
+        log.info("mode: {}", mode);
 
         StringBuilder error = new StringBuilder();
+        
         boolean valid = false;
 
         if (inConn == null) {

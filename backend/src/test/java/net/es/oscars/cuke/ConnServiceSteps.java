@@ -95,6 +95,12 @@ public class ConnServiceSteps extends CucumberSteps {
         this.inConn.setDescription(description);
     }
 
+    @Given("The description is set to null")
+    public void theDescriptionIsSetToNull() {
+        this.description = null;
+        this.inConn.setDescription(description);
+    }
+
     @Given("The schedule is set to a valid time")
     public void theScheduleIsSetToAValidTime() {
         // Set to at least one minute over the minium time required

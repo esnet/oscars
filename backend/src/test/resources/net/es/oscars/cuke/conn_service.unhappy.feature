@@ -36,8 +36,8 @@ Feature: OSCARS NSI Connection Service, validation (Unhappy Path)
     Given The connection ID is set to "ABCD" and the connection mode is set to "NEW"
     Given The build mode is set to "AUTOMATIC"
     Given The MTU is set to 9000
-    # Should not allow an empty description
-    Given The description is set to ""
+    # Should not allow an null description field
+    Given The description is set to null
     Given The schedule is set to a valid time
 
     # Connection is not valid.

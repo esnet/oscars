@@ -104,6 +104,12 @@ public class ConnServiceGlobalConnectionValidate implements Validator, Validator
         return checkedMtu;
     }
 
+    /**
+     * SimpleConnection.description cannot be null. Must be a zero or more length string.
+     * @param inConn SimpleConnection object
+     * @param errors Errors
+     * @return True if valid.
+     */
     public boolean checkDescription(SimpleConnection inConn, Errors errors) {
         String description = inConn.getDescription();
         boolean checkedDescription = false;
