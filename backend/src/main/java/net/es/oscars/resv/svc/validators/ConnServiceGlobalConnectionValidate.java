@@ -1,15 +1,14 @@
 package net.es.oscars.resv.svc.validators;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import net.es.oscars.web.simple.SimpleConnection;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import org.springframework.validation.Validator;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Getter
@@ -44,7 +43,7 @@ public class ConnServiceGlobalConnectionValidate implements Validator, Validator
      * @param errors
      */
     @Override
-    public void validate(Object target, Errors errors) {
+    public void validate(@NonNull Object target, @NonNull Errors errors) {
 
         this.clear();
 
@@ -110,7 +109,7 @@ public class ConnServiceGlobalConnectionValidate implements Validator, Validator
         boolean checkedDescription = false;
 
         // check description BEGIN
-        if (!description.isEmpty()) {
+        if (description != null) {
             checkedDescription = true;
         } else {
             errors.rejectValue("description", null, "null description");

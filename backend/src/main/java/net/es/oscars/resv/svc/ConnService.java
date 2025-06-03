@@ -9,12 +9,10 @@ import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.util.DbAccess;
 import net.es.oscars.app.util.PrettyPrinter;
 import net.es.oscars.model.Interval;
+import net.es.oscars.resv.svc.comparisons.Comparison;
 import net.es.oscars.resv.svc.comparisons.ConnServiceBWtoAvailableCompare;
 import net.es.oscars.resv.svc.comparisons.ConnServiceVlanToAvailableCompare;
-import net.es.oscars.resv.svc.populators.ConnServiceFixtureRequestPopulate;
-import net.es.oscars.resv.svc.populators.ConnServiceFixtureValidityPopulate;
-import net.es.oscars.resv.svc.populators.ConnServicePipeAndEroValidityPopulate;
-import net.es.oscars.resv.svc.populators.ConnServicePipeRequestPopulate;
+import net.es.oscars.resv.svc.populators.*;
 import net.es.oscars.resv.svc.validators.ConnServiceGlobalConnectionValidate;
 import net.es.oscars.resv.svc.validators.ConnServiceScheduleValidate;
 import net.es.oscars.sb.db.RouterCommandsRepository;
@@ -783,189 +781,171 @@ public class ConnService {
             minMtu,
             maxMtu
         );
+
         validateGlobalConnection.validate(inConn, errorsConnection);
-        boolean validGlobalConnection = validateGlobalConnection.valid() && !validateGlobalConnection.hasErrors();
         if (validateGlobalConnection.hasErrors()) {
             Map<String, Errors> allErrors = validateGlobalConnection.getAllErrors();
-            error = ammendErrorStringBuilder(error, allErrors);
+            appendErrors(error, allErrors);
+            // early return if we found a global param error
+            return Validity.builder()
+                    .message(error.toString())
+                    .valid(valid)
+                    .build();
         }
         // validate global connection params END
 
-
         // validate schedule BEGIN
-        boolean validInterval = false;
         ConnServiceScheduleValidate validateSchedule = new ConnServiceScheduleValidate(
             mode,
             this.minDuration
         );
+        validateSchedule.validate(inConn, errorsSchedule);
+        if (validateSchedule.hasErrors()) {
+            Map<String, Errors> allErrors = validateSchedule.getAllErrors();
+            appendErrors(error, allErrors);
 
-        if (validGlobalConnection) {
-            validateSchedule.validate(inConn, errorsSchedule);
-            validInterval = validateSchedule.valid() && !validateSchedule.hasErrors();
+            // early return if we found a schedule error
+            return Validity.builder()
+                    .message(error.toString())
+                    .valid(valid)
+                    .build();
 
-            if (validateSchedule.hasErrors()) {
-                Map<String, Errors> allErrors = validateSchedule.getAllErrors();
-                error = ammendErrorStringBuilder(error, allErrors);
-            }
         }
         // validate schedule END
 
         // we can only check resource availability if the schedule makes sense.
-        if (validInterval) {
-            Instant begin = validateSchedule.getCheckedBeginTime();
-            Instant end = validateSchedule.getCheckedEndTime();
+        Instant begin = validateSchedule.getCheckedBeginTime();
+        Instant end = validateSchedule.getCheckedEndTime();
 
-            // Use the begin and end time to create an interval object.
-            Interval interval = Interval.builder()
-                    .beginning(begin)
-                    .ending(end)
-                    .build();
+        // Use the begin and end time to create an interval object.
+        Interval interval = Interval.builder()
+                .beginning(begin)
+                .ending(end)
+                .build();
 
-            // Assert we at least have an empty list of fixtures, pipes, and junctions
-            if (inConn.getFixtures() == null)   inConn.setFixtures(new ArrayList<>());
-            if (inConn.getPipes() == null)      inConn.setPipes(new ArrayList<>());
-            if (inConn.getJunctions() == null)  inConn.setJunctions(new ArrayList<>());
+        // Assert we at least have an empty list of fixtures, pipes, and junctions
+        if (inConn.getFixtures() == null)   inConn.setFixtures(new ArrayList<>());
+        if (inConn.getPipes() == null)      inConn.setPipes(new ArrayList<>());
+        if (inConn.getJunctions() == null)  inConn.setJunctions(new ArrayList<>());
 
-            // *INJECTABLE*: Get the available BW VLAN map BEGIN
-            Map<String, PortBwVlan> availBwVlanMap = resvService.available(
-                interval,
-                held,
-                inConn.getConnectionId()
-            );
-            // *INJECTABLE*: Get the available BW VLAN map END
+        // *INJECTABLE*: Get the available BW VLAN map BEGIN
+        Map<String, PortBwVlan> availBwVlanMap = resvService.available(
+            interval,
+            held,
+            inConn.getConnectionId()
+        );
+        // *INJECTABLE*: Get the available BW VLAN map END
 
-            // make maps: urn -> total of what we are requesting to reserve for VLANs and BW
-            Map<String, ImmutablePair<Integer, Integer>> inBwMap = new HashMap<>();
-            Map<String, Set<Integer>> inVlanMap = new HashMap<>();
+        // make maps: urn -> total of what we are requesting to reserve for VLANs and BW
+        Map<String, ImmutablePair<Integer, Integer>> inBwMap = new HashMap<>();
+        Map<String, Set<Integer>> inVlanMap = new HashMap<>();
 
 
-            // populate the maps with what we request through fixtures BEGIN
-            ConnServiceFixtureRequestPopulate fixtures = new ConnServiceFixtureRequestPopulate(
-                inConn.getFixtures(),
-                inBwMap,
-                inVlanMap
-            );
-            // ... Run the populate() method.
-            fixtures.populate();
+        // populate the maps with what we request through fixtures BEGIN
+        ConnServiceFixtureRequestPopulate fixtures = new ConnServiceFixtureRequestPopulate(
+            inConn.getFixtures(),
+            inBwMap,
+            inVlanMap
+        );
+        // ... Run the populate() method.
+        fixtures.populate();
 
-            // ... A feature may or may not have been valid, populate our maps with whatever is valid.
-            inBwMap = fixtures.getInBwMap();
-            inVlanMap = fixtures.getInVlanMap();
+        // ... A feature may or may not have been valid, populate our maps with whatever is valid.
+        inBwMap = fixtures.getInBwMap();
+        inVlanMap = fixtures.getInVlanMap();
 
-            // populate the maps with what we request through fixtures END
+        // populate the maps with what we request through fixtures END
 
-            // populate the maps with what we request through pipes (bw only) BEGIN
-            ConnServicePipeRequestPopulate pipes = new ConnServicePipeRequestPopulate(
-                inConn.getPipes(),
-                inBwMap
-            );
-            // ... Run the populate() method.
-            pipes.populate();
+        // populate the maps with what we request through pipes (bw only) BEGIN
+        ConnServicePipeRequestPopulate pipes = new ConnServicePipeRequestPopulate(
+            inConn.getPipes(),
+            inBwMap
+        );
+        // ... Run the populate() method.
+        pipes.populate();
 
-            // ... Our BW map should have been updated
-            inBwMap = fixtures.getInBwMap();
-            // populate the maps with what we request through pipes (bw only) END
+        // ... Our BW map should have been updated
+        inBwMap = fixtures.getInBwMap();
+        // populate the maps with what we request through pipes (bw only) END
 
-            // compare VLAN maps to what is available BEGIN
-            ConnServiceVlanToAvailableCompare compareVlanToAvailable = new ConnServiceVlanToAvailableCompare(
-                inConn.getFixtures(),
-                availBwVlanMap,
-                inVlanMap
-            );
-            // ... Run the compare() method.
-            compareVlanToAvailable.compare();
+        // compare VLAN maps to what is available BEGIN
+        ConnServiceVlanToAvailableCompare compareVlanToAvailable = new ConnServiceVlanToAvailableCompare(
+            inConn.getFixtures(),
+            availBwVlanMap,
+            inVlanMap
+        );
+        // ... Run the compare() method.
+        compareVlanToAvailable.compare();
 
-            inConn.setFixtures(compareVlanToAvailable.getSourceList());
-            // compare VLAN maps to what is available END
+        inConn.setFixtures(compareVlanToAvailable.getSourceList());
+        // compare VLAN maps to what is available END
 
-            Map<String, Validity> urnInBwValid = new HashMap<>();
-            Map<String, Validity> urnEgBwValid = new HashMap<>();
+        Map<String, Validity> urnInBwValid = new HashMap<>();
+        Map<String, Validity> urnEgBwValid = new HashMap<>();
 
-            // compare map to what is available for BW BEGIN
-            ConnServiceBWtoAvailableCompare compareBWtoAvailable = new ConnServiceBWtoAvailableCompare(
-                inBwMap,
-                availBwVlanMap,
-                urnInBwValid,
-                urnEgBwValid
-            );
-            // ... Run the compare() method.
-            compareBWtoAvailable.compare();
+        // compare map to what is available for BW BEGIN
+        ConnServiceBWtoAvailableCompare compareBWtoAvailable = new ConnServiceBWtoAvailableCompare(
+            inBwMap,
+            availBwVlanMap,
+            urnInBwValid,
+            urnEgBwValid
+        );
+        // ... Run the compare() method.
+        compareBWtoAvailable.compare();
 
-            urnInBwValid = compareBWtoAvailable.getUrnInBwValid();
-            urnEgBwValid = compareBWtoAvailable.getUrnEgBwValid();
-            // compare map to what is available for BW END
+        urnInBwValid = compareBWtoAvailable.getUrnInBwValid();
+        urnEgBwValid = compareBWtoAvailable.getUrnEgBwValid();
+        // compare map to what is available for BW END
 
-            // populate Validity for fixtures BEGIN
-            ConnServiceFixtureValidityPopulate fixturesValidPopulate = new ConnServiceFixtureValidityPopulate(
-                inConn.getFixtures(),
-                urnInBwValid,
-                urnEgBwValid
-            );
-            fixturesValidPopulate.populate();
-            inConn.setFixtures(fixturesValidPopulate.getSourceList());
-            // populate Validity for fixtures END
+        // populate Validity for fixtures BEGIN
+        ConnServiceFixtureValidityPopulate fixturesValidPopulate = new ConnServiceFixtureValidityPopulate(
+            inConn.getFixtures(),
+            urnInBwValid,
+            urnEgBwValid
+        );
+        fixturesValidPopulate.populate();
+        inConn.setFixtures(fixturesValidPopulate.getSourceList());
+        // populate Validity for fixtures END
 
-            // populate Validity for pipes & EROs BEGIN
-            ConnServicePipeAndEroValidityPopulate connServicePipeAndEroValidityPopulate = new ConnServicePipeAndEroValidityPopulate(
-              inConn.getPipes(),
-              urnInBwValid
-            );
+        // populate Validity for pipes & EROs BEGIN
+        ConnServicePipeAndEroValidityPopulate connServicePipeAndEroValidityPopulate = new ConnServicePipeAndEroValidityPopulate(
+          inConn.getPipes(),
+          urnInBwValid
+        );
 
-            connServicePipeAndEroValidityPopulate.populate();
-            inConn.setPipes(connServicePipeAndEroValidityPopulate.getSourceList());
-            // populate Validity for pipes & EROs END
+        connServicePipeAndEroValidityPopulate.populate();
+        inConn.setPipes(connServicePipeAndEroValidityPopulate.getSourceList());
 
-            // Check overall validity BEGIN
-            boolean isFixturesValid = fixtures.isValid();
-            boolean isPipesValid = pipes.isValid();
-            boolean isCompareVlanToAvailableValid = compareVlanToAvailable.isValid();
-            boolean isCompareBWtoAvailableValid = compareBWtoAvailable.isValid();
-            boolean isFixturesValidPopulateValid = fixturesValidPopulate.isValid();
-            boolean isConnServicePipeAndEroValidityPopulateValid = connServicePipeAndEroValidityPopulate.isValid();
 
-            valid = isFixturesValid
-                && isPipesValid
-                && isCompareVlanToAvailableValid
-                && isCompareBWtoAvailableValid
-                && isFixturesValidPopulateValid
-                && isConnServicePipeAndEroValidityPopulateValid;
-            // Check overall validity END
 
-            // Build our error string BEGIN
-            // ... fixtures
-            if (fixtures.hasErrors()) {
-                Map<String, Errors> allErrors = fixtures.getAllErrors();
-                error = ammendErrorStringBuilder(error, allErrors);
+        List<Populator> populators = new ArrayList<>();
+        populators.add(fixtures);
+        populators.add(pipes);
+        populators.add(connServicePipeAndEroValidityPopulate);
+
+        List<Comparison> comparisons = new ArrayList<>();
+        comparisons.add(compareVlanToAvailable);
+        comparisons.add(compareBWtoAvailable);
+        comparisons.add(compareBWtoAvailable);
+
+        boolean populatorsValid = true;
+        for (Populator populator : populators) {
+            if (populator.hasErrors()) {
+                populatorsValid = false;
+                Map<String, Errors> allErrors = populator.getAllErrors();
+                appendErrors(error, allErrors);
             }
-            // ... pipes
-            if (pipes.hasErrors()) {
-                Map<String, Errors> allErrors = pipes.getAllErrors();
-                error = ammendErrorStringBuilder(error, allErrors);
-            }
-            // ... compare VLANs to available
-            if (compareVlanToAvailable.hasErrors()) {
-                Map<String, Errors> allErrors = compareVlanToAvailable.getAllErrors();
-                error = ammendErrorStringBuilder(error, allErrors);
-            }
-            // ... compare BW to available
-            if (compareBWtoAvailable.hasErrors()) {
-                Map<String, Errors> allErrors = compareBWtoAvailable.getAllErrors();
-                error = ammendErrorStringBuilder(error, allErrors);
-            }
-            // ... populate with valid fixtures
-            if (fixturesValidPopulate.hasErrors()) {
-                Map<String, Errors> allErrors = fixturesValidPopulate.getAllErrors();
-                error = ammendErrorStringBuilder(error, allErrors);
-            }
-            // ... populate with valid pipe and ero
-            if (connServicePipeAndEroValidityPopulate.hasErrors()) {
-                Map<String, Errors> allErrors = connServicePipeAndEroValidityPopulate.getAllErrors();
-                error = ammendErrorStringBuilder(error, allErrors);
-            }
-            // Build our error string END
-        } else {
-            error.append("invalid interval! VLANs and bandwidths not checked\n");
         }
+        boolean comparisonsValid = true;
+        for (Comparison comparison : comparisons) {
+            if (comparison.hasErrors()) {
+                comparisonsValid = false;
+                Map<String, Errors> allErrors = comparison.getAllErrors();
+                appendErrors(error, allErrors);
+            }
+        }
+
+        valid = comparisonsValid && populatorsValid;
 
         return Validity.builder()
                 .message(error.toString())
@@ -979,11 +959,11 @@ public class ConnService {
      * @param allErrors A map of Errors objects to append.
      * @return Returns the updated error StringBuilder string.
      */
-    private StringBuilder ammendErrorStringBuilder(StringBuilder error, Map<String, Errors> allErrors) {
+    private StringBuilder appendErrors(StringBuilder error, Map<String, Errors> allErrors) {
         for (String key : allErrors.keySet()) {
             Errors errors = allErrors.get(key);
             for (ObjectError objError : errors.getAllErrors()) {
-                error.append(objError.getDefaultMessage() + "\n");
+                error.append(objError.getDefaultMessage()).append("\n");
             }
         }
         return error;

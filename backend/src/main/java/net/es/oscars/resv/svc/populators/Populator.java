@@ -7,4 +7,6 @@ import java.util.Map;
 public interface Populator {
     void populate();
     boolean hasErrors();
+    Map<String, Errors> getAllErrors();
+
 }
