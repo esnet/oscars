@@ -50,7 +50,7 @@ public class NsiProvider implements ConnectionProviderPort {
 
         try {
             // we process the header
-            nsiHeaderUtils.processHeader(header.value);
+            nsiHeaderUtils.processHeader(header.value, true);
         } catch (NsiException e) {
             String errMsg = e.getMessage();
             ServiceExceptionType sExcTpe = nsiHeaderUtils.makeSvcExcpType(e.getMessage(), e.getError(), new ArrayList<>(), reserve.getConnectionId());
@@ -119,7 +119,7 @@ public class NsiProvider implements ConnectionProviderPort {
             // then we check if it matches an NSI mapping; all our generic operations need to match
             nsiMappingService.getMapping(nsiConnectionId);
             // then we process the header
-            nsiHeaderUtils.processHeader(header.value);
+            nsiHeaderUtils.processHeader(header.value, true);
         } catch (NsiException e) {
             String errMsg = e.getMessage();
             ServiceExceptionType sExcTpe = nsiHeaderUtils.makeSvcExcpType(e.getMessage(), e.getError(), new ArrayList<>(), nsiConnectionId);
@@ -146,7 +146,9 @@ public class NsiProvider implements ConnectionProviderPort {
                                                       Holder<CommonHeaderType> header) throws Error {
         try {
             nsiQueries.validateQuery(query);
-            nsiHeaderUtils.processHeader(header.value);
+            // we do not want to update the requester callback URL when
+            // processing the header from this sync operation
+            nsiHeaderUtils.processHeader(header.value, false);
             log.info("starting sync QuerySummary");
             QuerySummaryConfirmedType qsct = nsiQueries.querySummary(query);
             nsiHeaderUtils.makeResponseHeader(header.value);
@@ -173,7 +175,7 @@ public class NsiProvider implements ConnectionProviderPort {
             // We validate the query
             nsiQueries.validateQuery(query);
             // then we process the header
-            nsiHeaderUtils.processHeader(header.value);
+            nsiHeaderUtils.processHeader(header.value, true);
         } catch (NsiException e) {
             String errMsg = e.getMessage();
             ServiceExceptionType sExcTpe = nsiHeaderUtils.makeSvcExcpType(e.getMessage(), e.getError(), new ArrayList<>(), "");

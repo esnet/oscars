@@ -6,7 +6,6 @@ import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.P2PServiceBaseType;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.NsiInternalException;
-import net.es.oscars.app.exc.NsiValidationException;
 import net.es.oscars.nsi.beans.NsiErrors;
 import net.es.oscars.nsi.beans.NsiRequest;
 import net.es.oscars.nsi.db.NsiMappingRepository;
@@ -112,11 +111,11 @@ public class NsiQueries {
             log.debug("added all mappings: " + mappings.size());
         } else {
             for (String connId : query.getConnectionId()) {
-                // log.debug("added mapping for nsi connId: "+connId);
+                log.info("finding by connId : {}", connId);
                 nsiRepo.findByNsiConnectionId(connId).ifPresent(mappings::add);
             }
             for (String gri : query.getGlobalReservationId()) {
-                // log.debug("added mapping for gri : "+gri);
+                log.info("finding by gri : {}", gri);
                 mappings.addAll(nsiRepo.findByNsiGri(gri));
             }
             log.debug("added by connection & gri: " + mappings.size());
@@ -186,14 +185,15 @@ public class NsiQueries {
         String description;
         ConnectionStatesType cst;
         if (mc.isEmpty()) {
-            // if an OSCARS connection is not present, we might be in RESV_CHECKING, in that case return something
-            // there should be an in-flight request so use that
+            // if an OSCARS connection is not present, we should be in RESV_CHECKING
             if (request == null || request.getIncoming() == null) {
-                log.error("NSI mapping without OSCARS connection has no in-flight request " + mapping.getNsiConnectionId());
-                return null;
+                description = "";
+            } else {
+                description = request.getIncoming().getDescription();
             }
+
+
             log.info("returning a placeholder for "+mapping.getNsiConnectionId());
-            description = request.getIncoming().getDescription();
             cst = new ConnectionStatesType();
             cst.setProvisionState(mapping.getProvisionState());
             cst.setLifecycleState(mapping.getLifecycleState());
@@ -215,22 +215,22 @@ public class NsiQueries {
                     return null;
                 }
             }
-            if (c.getPhase().equals(Phase.HELD)) {
-                sch = c.getHeld().getSchedule();
-            } else {
+            // if this is HELD, it is not committed yet & we should not return any criteria
+            if (!c.getPhase().equals(Phase.HELD)) {
                 sch = c.getArchived().getSchedule();
+                QuerySummaryResultCriteriaType qsrct = new QuerySummaryResultCriteriaType();
+                qsrct.setSchedule(nsiMappingService.oscarsToNsiSchedule(sch));
+                Components cmp = getComponents(c);
+                P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping);
+                net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory p2pof = new ObjectFactory();
+                qsrct.getAny().add(p2pof.createP2Ps(p2p));
+                qsrct.setServiceType(NsiService.SERVICE_TYPE);
+                qsrct.setVersion(mapping.getDataplaneVersion());
+                qsrt.getCriteria().add(qsrct);
             }
+
             description = c.getDescription();
 
-            QuerySummaryResultCriteriaType qsrct = new QuerySummaryResultCriteriaType();
-            qsrct.setSchedule(nsiMappingService.oscarsToNsiSchedule(sch));
-            Components cmp = getComponents(c);
-            P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping);
-            net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory p2pof = new ObjectFactory();
-            qsrct.getAny().add(p2pof.createP2Ps(p2p));
-            qsrct.setServiceType(NsiService.SERVICE_TYPE);
-            qsrct.setVersion(mapping.getDataplaneVersion());
-            qsrt.getCriteria().add(qsrct);
 
             cst = nsiMappingService.makeConnectionStates(mapping, c);
         }

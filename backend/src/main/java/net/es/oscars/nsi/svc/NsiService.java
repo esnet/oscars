@@ -516,6 +516,8 @@ public class NsiService {
             if (requesterNSA.getCallbackUrl().isEmpty()) {
                 log.info("empty callback url, unable to reserveTimeout");
                 return;
+            } else {
+                log.info("reserveTimeoutCallback, NSA {} url: {}", requesterNSA.getNsaId(), requesterNSA.getCallbackUrl());
             }
             ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
             String corrId = nsiHeaderUtils.newCorrelationId();
@@ -543,6 +545,8 @@ public class NsiService {
         if (requesterNSA.getCallbackUrl().isEmpty()) {
             log.info("empty callback url, unable to reserveConfirmCallback");
             return;
+        } else {
+            log.info("reserveConfirmCallback, NSA {} url: {}", requesterNSA.getNsaId(), requesterNSA.getCallbackUrl());
         }
 
         ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
@@ -604,7 +608,7 @@ public class NsiService {
     // used to notify when the dataplane version is updated
     public void dataplaneCallback(NsiMapping mapping, State st) {
         try {
-            log.info("dataplaneCallback ");
+            log.info("dataplaneCallback");
             String nsaId = mapping.getNsaId();
 
             int notificationId = nsiMappingService.nextNotificationId(mapping);
@@ -614,6 +618,8 @@ public class NsiService {
             if (requesterNSA.getCallbackUrl().isEmpty()) {
                 log.info("empty callback url, unable to dataplaneCallback");
                 return;
+            } else {
+                log.info("dataplaneCallback, NSA {} url: {}", requesterNSA.getNsaId(), requesterNSA.getCallbackUrl());
             }
 
             ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
@@ -653,6 +659,8 @@ public class NsiService {
             if (requesterNSA.getCallbackUrl().isEmpty()) {
                 log.info("empty callback url, unable to okCallback");
                 return;
+            } else {
+                log.info("okCallback, NSA {} url: {}", requesterNSA.getNsaId(), requesterNSA.getCallbackUrl());
             }
 
             ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
@@ -689,6 +697,8 @@ public class NsiService {
             if (requesterNSA.getCallbackUrl().isEmpty()) {
                 log.info("empty callback url, unable to errCallback");
                 return;
+            } else {
+                log.info("errCallback, NSA {} url: {}", requesterNSA.getNsaId(), requesterNSA.getCallbackUrl());
             }
 
             ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
@@ -834,6 +844,7 @@ public class NsiService {
                     .serviceId(null)
                     .pipes(pipes)
                     .tags(tags)
+                    .connection_mtu(9000)
                     .username("nsi")
                     .build();
             try {
