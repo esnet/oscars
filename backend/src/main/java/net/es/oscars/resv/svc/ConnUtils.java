@@ -455,6 +455,7 @@ public class ConnUtils {
         return (SimpleConnection.builder()
                 .begin((int) b)
                 .end((int) e)
+                .connection_mtu(c.getConnection_mtu())
                 .connectionId(c.getConnectionId())
                 .serviceId(c.getServiceId())
                 .tags(simpleTags)
