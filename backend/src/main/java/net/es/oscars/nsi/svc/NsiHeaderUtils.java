@@ -38,7 +38,7 @@ public class NsiHeaderUtils {
 
     /* header processing */
 
-    public void processHeader(CommonHeaderType inHeader) throws NsiValidationException, NsiInternalException {
+    public void processHeader(CommonHeaderType inHeader, boolean updateRequester) throws NsiValidationException, NsiInternalException {
         String error = "";
         boolean hasError = false;
         if (!inHeader.getProviderNSA().equals(providerNsa)) {
@@ -59,7 +59,9 @@ public class NsiHeaderUtils {
         if (hasError) {
             throw new NsiValidationException(error, NsiErrors.SEC_ERROR);
         }
-        this.updateRequester(inHeader.getReplyTo(), inHeader.getRequesterNSA());
+        if (updateRequester) {
+            this.updateRequester(inHeader.getReplyTo(), inHeader.getRequesterNSA());
+        }
     }
 
     public void updateRequester(String replyTo, String nsaId) throws NsiInternalException {
