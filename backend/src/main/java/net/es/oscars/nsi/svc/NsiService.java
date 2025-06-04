@@ -485,7 +485,6 @@ public class NsiService {
             if (performCallback) {
                 port.errorEvent(eet, outHeader);
             }
-
             String xml = marshalToXml(eet);
             NsiNotification nsiNotification = NsiNotification.builder()
                     .connectionId(mapping.getNsiConnectionId())
@@ -571,6 +570,7 @@ public class NsiService {
                     .type(NsiNotificationType.RESERVE_TIMEOUT)
                     .build();
             nsiNotifications.save(nsiNotification);
+            port.reserveTimeout(rrt, outHeader);
 
         } catch (Exception ex) {
             // maybe the callback worked, maybe not; we can't do anything
@@ -680,6 +680,17 @@ public class NsiService {
 
             dsrt.setDataPlaneStatus(dst);
             dsrt.setNotificationId(notificationId);
+
+            String xml = marshalToXml(dsrt);
+            NsiNotification nsiNotification = NsiNotification.builder()
+                    .connectionId(mapping.getNsiConnectionId())
+                    .notificationId((long) notificationId)
+                    .xml(xml)
+                    .type(NsiNotificationType.DATAPLANE_STATE_CHANGE)
+                    .build();
+            nsiNotifications.save(nsiNotification);
+
+
 
             String corrId = nsiHeaderUtils.newCorrelationId();
             Holder<CommonHeaderType> outHeader = nsiHeaderUtils.makeClientHeader(nsaId, corrId);

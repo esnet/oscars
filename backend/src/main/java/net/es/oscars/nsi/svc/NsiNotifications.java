@@ -54,7 +54,6 @@ public class NsiNotifications {
         }
 
         try {
-
             JAXBContext context = JAXBContext.newInstance(NotificationBaseType.class);
             Unmarshaller unm = context.createUnmarshaller();
 
