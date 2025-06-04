@@ -1,4 +1,12 @@
 # OSCARS Release Notes
+### 1.2.28
+> June 2025
+- OS-499 NSI queryNotification() implementation
+- OS-495 holdConnection() and validation refactor
+- OS-505 NSI syncQuery() should not return p2p criteria before initial commit()
+- OS-510 improve NSI syncQuery()
+- OS-516 speed up commit()
+
 ### 1.2.27
 > May 2025
 - OS-496 logevent error
