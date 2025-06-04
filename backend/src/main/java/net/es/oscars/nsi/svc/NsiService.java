@@ -482,9 +482,6 @@ public class NsiService {
             eet.setEvent(event);
             eet.setNotificationId(notificationId);
 
-            if (performCallback) {
-                port.errorEvent(eet, outHeader);
-            }
             String xml = marshalToXml(eet);
             NsiNotification nsiNotification = NsiNotification.builder()
                     .connectionId(mapping.getNsiConnectionId())
@@ -493,6 +490,11 @@ public class NsiService {
                     .type(NsiNotificationType.ERROR_EVENT)
                     .build();
             nsiNotifications.save(nsiNotification);
+
+            if (performCallback) {
+                port.errorEvent(eet, outHeader);
+            }
+
 
         } catch (Exception ex) {
             // maybe the notify worked, maybe not; we can't do anything
@@ -558,9 +560,6 @@ public class NsiService {
             rrt.setTimeStamp(nsiMappingService.getCalendar(Instant.now()));
             rrt.setTimeoutValue(resvTimeout);
             rrt.setNotificationId(notificationId);
-            if (performCallback) {
-                port.reserveTimeout(rrt, outHeader);
-            }
 
             String xml = marshalToXml(rrt);
             NsiNotification nsiNotification = NsiNotification.builder()
@@ -570,7 +569,9 @@ public class NsiService {
                     .type(NsiNotificationType.RESERVE_TIMEOUT)
                     .build();
             nsiNotifications.save(nsiNotification);
-            port.reserveTimeout(rrt, outHeader);
+            if (performCallback) {
+                port.reserveTimeout(rrt, outHeader);
+            }
 
         } catch (Exception ex) {
             // maybe the callback worked, maybe not; we can't do anything
@@ -690,22 +691,11 @@ public class NsiService {
                     .build();
             nsiNotifications.save(nsiNotification);
 
-
-
             String corrId = nsiHeaderUtils.newCorrelationId();
             Holder<CommonHeaderType> outHeader = nsiHeaderUtils.makeClientHeader(nsaId, corrId);
             if (performCallback) {
                 port.dataPlaneStateChange(dsrt, outHeader);
             }
-
-            String xml = marshalToXml(dsrt);
-            NsiNotification nsiNotification = NsiNotification.builder()
-                    .connectionId(mapping.getNsiConnectionId())
-                    .notificationId((long) notificationId)
-                    .xml(xml)
-                    .type(NsiNotificationType.DATAPLANE_STATE_CHANGE)
-                    .build();
-            nsiNotifications.save(nsiNotification);
 
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
