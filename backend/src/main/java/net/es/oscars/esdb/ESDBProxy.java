@@ -14,9 +14,11 @@ import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.graphql.client.HttpSyncGraphQlClient;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -60,6 +62,32 @@ public class ESDBProxy {
             return new ArrayList<>();
         }
         return wrapped.results;
+    }
+
+    public List<EsdbVlan> getAllEsdbVlansQuery(String query) {
+        List<EsdbVlan> results = new ArrayList<>();
+
+        String graphqlDocument =
+        """
+        {
+            ""
+        }
+        """;
+
+        RestClient restClient = RestClient.create(
+            esdbProperties.getUri() + "vlan/?limit=0"
+        );
+
+        HttpSyncGraphQlClient graphQlClient = HttpSyncGraphQlClient.builder(restClient)
+            .header("Authorization", "Token " + esdbProperties.getApiKey())
+            .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+            .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+            .build();
+
+        graphQlClient
+            .document(graphqlDocument).executeSync();
+
+        return results;
     }
 
     public void createVlan(EsdbVlanPayload payload) {
