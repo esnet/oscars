@@ -19,7 +19,7 @@ public class EsdbProperties {
     private String uri;
 
     @NonNull
-    private String graphQlUri;
+    private String graphqlUri = "http://esdb:8080/esdb_api/graphql";
 
     private boolean enabled;
 

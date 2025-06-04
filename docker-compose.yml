@@ -32,6 +32,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-secret}
       ESDB_API_KEY: ${ESDB_API_KEY}
       ESDB_URI: ${ESDB_URI}
+      ESDB_GRAPHQL_URI: ${ESDB_GRAPHQL_URI:-http://esdb:8000/esdb_api/graphql}
       TOPO_OSCARS_URL: ${TOPO_OSCARS_URL:-http://topo-oscars:8004/oscars-one/topology}
       NSO_USERNAME: ${NSO_USERNAME}
       NSO_PASSWORD: ${NSO_PASSWORD}

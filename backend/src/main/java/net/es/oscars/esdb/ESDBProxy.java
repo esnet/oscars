@@ -167,12 +167,14 @@ public class ESDBProxy {
                 count: totalRecords
                 list {
                     id,
-                    url,
-                    vlan_id,
+                    vlanId,
                     description,
-                    bridgeId,
-                    equipment,
-                    equipment_interface
+                    equipment {
+                        id
+                    },
+                    equipmentInterface {
+                        id
+                    }
                 }
             }
         }
@@ -181,7 +183,7 @@ public class ESDBProxy {
         );
 
         RestClient restClient = RestClient.create(
-            esdbProperties.getGraphQlUri() + "vlan/"
+            esdbProperties.getGraphqlUri() + "vlan/"
         );
 
         HttpSyncGraphQlClient graphQlClient = HttpSyncGraphQlClient.builder(restClient)
