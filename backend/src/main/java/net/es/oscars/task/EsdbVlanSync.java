@@ -53,7 +53,9 @@ public class EsdbVlanSync {
         }
         log.debug("starting VLAN sync");
         // fetch all ESDB vlans
-        List<EsdbVlan> currentEsdbVlans = esdbProxy.getAllEsdbVlans();
+//        List<EsdbVlan> currentEsdbVlans = esdbProxy.getAllEsdbVlans();
+        // ...Use GraphQL client.
+        List<EsdbVlan> currentEsdbVlans = esdbProxy.gqlVlanList();
 
         // generate all the EsdbVlanPayloads from our RESERVED connections
         Set<EsdbVlanPayload> fromReserved = new HashSet<>();

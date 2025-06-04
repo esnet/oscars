@@ -18,6 +18,9 @@ public class EsdbProperties {
     @NonNull
     private String uri;
 
+    @NonNull
+    private String graphQlUri;
+
     private boolean enabled;
 
     private String vlanSyncPeriod = "PT10M";
