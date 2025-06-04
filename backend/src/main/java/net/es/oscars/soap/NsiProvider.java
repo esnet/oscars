@@ -23,12 +23,14 @@ public class NsiProvider implements ConnectionProviderPort {
     private final NsiMappingService nsiMappingService;
     private final NsiHeaderUtils nsiHeaderUtils;
     private final NsiQueries nsiQueries;
+    private final NsiNotifications nsiNotifications;
 
-    public NsiProvider(NsiAsyncQueue queue, NsiMappingService nsiMappingService, NsiHeaderUtils nsiHeaderUtils, NsiQueries nsiQueries) {
+    public NsiProvider(NsiAsyncQueue queue, NsiMappingService nsiMappingService, NsiHeaderUtils nsiHeaderUtils, NsiQueries nsiQueries, NsiNotifications nsiNotifications) {
         this.queue = queue;
         this.nsiMappingService = nsiMappingService;
         this.nsiHeaderUtils = nsiHeaderUtils;
         this.nsiQueries = nsiQueries;
+        this.nsiNotifications = nsiNotifications;
     }
 
 /* ================================== RESERVE SECTION ==================================
@@ -189,7 +191,24 @@ public class NsiProvider implements ConnectionProviderPort {
                 .build();
         queue.add(asyncItem);
     }
+    /* ================================== NOTIFICATIONS ================================== */
+    @Override
+    public QueryNotificationConfirmedType queryNotificationSync(QueryNotificationType query,
+                                                                Holder<CommonHeaderType> header) throws Error {
+        try {
+            log.info("starting queryNotificationSync");
+            // we do not want to update the requester callback URL when
+            // processing the header from this sync operation
+            nsiHeaderUtils.processHeader(header.value, false);
+            QueryNotificationConfirmedType qnct = nsiNotifications.queryNotificationSync(query);
+            nsiHeaderUtils.makeResponseHeader(header.value);
+            return qnct;
 
+        } catch (NsiException ex) {
+            log.error(ex.getMessage(), ex);
+            throw new Error(ex.getMessage(), ex);
+        }
+    }
 
     /* ================================== UNIMPLEMENTED SECTION ================================== */
     @Override
@@ -217,11 +236,5 @@ public class NsiProvider implements ConnectionProviderPort {
     }
 
 
-    @Override
-    public QueryNotificationConfirmedType queryNotificationSync(QueryNotificationType queryNotificationSync,
-                                                                Holder<CommonHeaderType> header) throws Error {
-        throw new Error(NsiErrors.UNIMPLEMENTED + " - not implemented");
-
-    }
 
 }

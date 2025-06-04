@@ -2,6 +2,9 @@ package net.es.oscars.nsi.svc;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
 import jakarta.xml.ws.Holder;
 import jakarta.xml.ws.WebServiceException;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
@@ -32,6 +35,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.StringWriter;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -56,6 +60,7 @@ public class NsiService {
     final public static String NSI_TYPES = "http://schemas.ogf.org/nsi/2013/12/framework/types";
 
     private final ConnectionRepository connRepo;
+    private final NsiNotifications nsiNotifications;
     private final NsiRequestManager nsiRequestManager;
     private final NsiHeaderUtils nsiHeaderUtils;
     private final NsiStateEngine nsiStateEngine;
@@ -64,7 +69,7 @@ public class NsiService {
     private final NsiSoapClientUtil nsiSoapClientUtil;
     private final ObjectMapper jacksonObjectMapper;
 
-    public NsiService(ConnectionRepository connRepo, NsiRequestManager nsiRequestManager, NsiHeaderUtils nsiHeaderUtils, NsiStateEngine nsiStateEngine, ConnService connSvc, NsiMappingService nsiMappingService, NsiSoapClientUtil nsiSoapClientUtil, ObjectMapper jacksonObjectMapper, NsiQueries nsiQueries) {
+    public NsiService(ConnectionRepository connRepo, NsiRequestManager nsiRequestManager, NsiHeaderUtils nsiHeaderUtils, NsiStateEngine nsiStateEngine, ConnService connSvc, NsiMappingService nsiMappingService, NsiSoapClientUtil nsiSoapClientUtil, ObjectMapper jacksonObjectMapper, NsiQueries nsiQueries, NsiNotifications nsiNotifications) {
         this.connRepo = connRepo;
         this.nsiRequestManager = nsiRequestManager;
         this.nsiHeaderUtils = nsiHeaderUtils;
@@ -74,13 +79,14 @@ public class NsiService {
         this.nsiSoapClientUtil = nsiSoapClientUtil;
         this.jacksonObjectMapper = jacksonObjectMapper;
         this.nsiQueries = nsiQueries;
+        this.nsiNotifications = nsiNotifications;
     }
 
     /* async operations */
 
     public void reserve(CommonHeaderType header, NsiMapping mapping, ReserveType incomingRT)
             throws NsiInternalException, NsiStateException, NsiMappingException {
-        log.info("starting reserve for nsi connection id " + incomingRT.getConnectionId());
+        log.info("starting reserve for nsi connection id {}", incomingRT.getConnectionId());
 
         String nsaId = header.getRequesterNSA();
         String nsiConnectionId  = incomingRT.getConnectionId();
@@ -160,7 +166,7 @@ public class NsiService {
 
         } catch (NsiStateException | NsiMappingException ex) {
             nsiStateEngine.reserve(NsiEvent.RESV_FL, mapping);
-            log.error("Internal error: " + ex.getMessage(), ex);
+            log.error("Internal error: {}", ex.getMessage(), ex);
             this.errCallback(NsiEvent.RESV_FL, nsaId, nsiConnectionId, mapping,
                     "Internal error", NsiErrors.NRM_ERROR, new ArrayList<>(),
                     header.getCorrelationId());
@@ -168,7 +174,7 @@ public class NsiService {
     }
 
     public void commit(CommonHeaderType header, NsiMapping mapping) {
-        log.info("starting commit for " + mapping.getNsiConnectionId());
+        log.info("starting commit for {}", mapping.getNsiConnectionId());
         String nsaId = header.getRequesterNSA();
         String nsiConnectionId  = mapping.getNsiConnectionId();
 
@@ -198,7 +204,7 @@ public class NsiService {
                 mapping.setDataplaneVersion(nsiRequest.getIncoming().getCriteria().getVersion());
                 nsiMappingService.save(mapping);
 
-                log.info("new dataplane version " + mapping.getDataplaneVersion());
+                log.info("new dataplane version {}", mapping.getDataplaneVersion());
 
                 nsiRequestManager.remove(mapping.getNsiConnectionId());
                 this.okCallback(NsiEvent.COMMIT_CF, mapping, header);
@@ -206,11 +212,11 @@ public class NsiService {
                 return;
 
             } catch (PCEException | ConnException | NsoResvException ex) {
-                log.error("commit failed: " + ex.getMessage(), ex);
+                log.error("commit failed: {}", ex.getMessage(), ex);
                 errorCode = NsiErrors.RESV_ERROR;
                 errorMessage = ex.getMessage();
             } catch (NsiStateException | NsiMappingException  ex  ) {
-                log.error("commit failed: " + ex.getMessage(), ex);
+                log.error("commit failed: {}", ex.getMessage(), ex);
                 errorCode = NsiErrors.NRM_ERROR;
                 errorMessage = ex.getMessage();
             }
@@ -220,7 +226,7 @@ public class NsiService {
             // remove the failed request
 
             nsiRequestManager.remove(mapping.getNsiConnectionId());
-            log.info("un-holding " + mapping.getOscarsConnectionId());
+            log.info("un-holding {}", mapping.getOscarsConnectionId());
             connSvc.unhold(mapping.getOscarsConnectionId());
 
             nsiStateEngine.commit(NsiEvent.COMMIT_FL, mapping);
@@ -238,7 +244,7 @@ public class NsiService {
     }
 
     public void abort(CommonHeaderType header, NsiMapping mapping) {
-        log.info("starting abort task for " + mapping.getNsiConnectionId());
+        log.info("starting abort task for {}", mapping.getNsiConnectionId());
 
         NsiRequest nsiRequest = nsiRequestManager.getInFlightRequest(mapping.getNsiConnectionId());
         if (nsiRequest != null) {
@@ -265,7 +271,7 @@ public class NsiService {
     }
 
     public void provision(CommonHeaderType header, NsiMapping mapping) {
-        log.info("starting provision task for " + mapping.getNsiConnectionId());
+        log.info("starting provision task for {}", mapping.getNsiConnectionId());
 
         try {
             Connection c = nsiMappingService.getOscarsConnection(mapping);
@@ -291,7 +297,7 @@ public class NsiService {
     }
 
     public void release(CommonHeaderType header, NsiMapping mapping) {
-        log.info("starting release task for " + mapping.getNsiConnectionId());
+        log.info("starting release task for {}", mapping.getNsiConnectionId());
 
         try {
             Connection c = nsiMappingService.getOscarsConnection(mapping);
@@ -318,7 +324,7 @@ public class NsiService {
     }
 
     public void terminate(CommonHeaderType header, NsiMapping mapping) {
-        log.info("starting terminate task for " + mapping.getNsiConnectionId());
+        log.info("starting terminate task for {}", mapping.getNsiConnectionId());
 
         try {
             // go from CREATED | PASSED_END_TIME | FAILED to TERMINATING
@@ -348,7 +354,7 @@ public class NsiService {
     // triggered from ConnController.release(), called by the UI when the user
     // presses the "Release" button
     public void forcedEnd(NsiMapping mapping) {
-        log.info("starting forcedEnd task for " + mapping.getNsiConnectionId());
+        log.info("starting forcedEnd task for {}", mapping.getNsiConnectionId());
         try {
             // go from CREATED | FAILED directly to TERMINATED
             nsiStateEngine.forcedEnd(mapping);
@@ -381,7 +387,7 @@ public class NsiService {
                     port.querySummaryConfirmed(qsct, outHeader);
 
                 } catch (ServiceException | WebServiceException ex) {
-                    log.error("could not perform query callback");
+                    log.error("could not perform queryAsync callback");
                     log.error(ex.getMessage(), ex);
                 }
             } catch (RuntimeException ex) {
@@ -408,7 +414,7 @@ public class NsiService {
                     port.queryRecursiveConfirmed(qrct, outHeader);
 
                 } catch (ServiceException | WebServiceException ex) {
-                    log.error("could not perform query callback");
+                    log.error("could not perform queryRecursive callback");
                     log.error(ex.getMessage(), ex);
                 }
             } catch (RuntimeException ex) {
@@ -424,12 +430,12 @@ public class NsiService {
 
     // we call this when a reserve message timed outm
     public void resvTimedOut(NsiMapping mapping) {
-        log.info("resv timeout for " + mapping.getNsiConnectionId() + " " + mapping.getOscarsConnectionId());
+        log.info("resv timeout for {} {}", mapping.getNsiConnectionId(), mapping.getOscarsConnectionId());
         try {
             nsiStateEngine.resvTimedOut(mapping);
             this.nsiMappingService.save(mapping);
         } catch (NsiStateException ex) {
-            log.error("Internal error: " + ex.getMessage(), ex);
+            log.error("Internal error: {}", ex.getMessage(), ex);
         }
         this.reserveTimeoutCallback(mapping);
 
@@ -438,7 +444,7 @@ public class NsiService {
 
     // we call this when a L2VPN goes past its end time
     public void pastEndTime(NsiMapping mapping) {
-        log.info("past end time for " + mapping.getNsiConnectionId() + " " + mapping.getOscarsConnectionId());
+        log.info("past end time for {} {}", mapping.getNsiConnectionId(), mapping.getOscarsConnectionId());
         try {
             nsiStateEngine.pastEndTime(mapping);
             nsiMappingService.save(mapping);
@@ -467,6 +473,17 @@ public class NsiService {
             eet.setTimeStamp(nsiMappingService.getCalendar(Instant.now()));
             eet.setEvent(event);
             eet.setNotificationId(notificationId);
+
+            String xml = marshalToXml(eet);
+            NsiNotification nsiNotification = NsiNotification.builder()
+                    .connectionId(mapping.getNsiConnectionId())
+                    .notificationId((long) notificationId)
+                    .xml(xml)
+                    .type(NsiNotificationType.ERROR_EVENT)
+                    .build();
+            nsiNotifications.save(nsiNotification);
+
+
             port.errorEvent(eet, outHeader);
         } catch (Exception ex) {
             // maybe the notify worked, maybe not; we can't do anything
@@ -488,7 +505,7 @@ public class NsiService {
 
             if (transitionalStates.contains(mapping.getReservationState())) {
                 if (mapping.getLastModified().isBefore(Instant.now().minus(10, ChronoUnit.MINUTES))) {
-                    log.info("timing out a mapping stuck in transitional state " + mapping.getNsiConnectionId() + " "+mapping.getReservationState());
+                    log.info("timing out a mapping stuck in transitional state {} {}", mapping.getNsiConnectionId(), mapping.getReservationState());
                     // release holds if they have any
                     connSvc.releaseHold(mapping.getOscarsConnectionId());
                     this.resvTimedOut(mapping);
@@ -497,7 +514,7 @@ public class NsiService {
             Optional<Connection> mc = nsiMappingService.getMaybeOscarsConnection(mapping);
             if (mc.isEmpty()) {
                 if (mapping.getLastModified().isBefore(Instant.now().minus(10, ChronoUnit.MINUTES))) {
-                    log.info("deleting a mapping without OSCARS connection " + mapping.getNsiConnectionId() + " " + mapping.getOscarsConnectionId());
+                    log.info("deleting a mapping without OSCARS connection {} {}", mapping.getNsiConnectionId(), mapping.getOscarsConnectionId());
                     nsiMappingService.delete(mapping);
                 }
             }
@@ -531,6 +548,16 @@ public class NsiService {
             rrt.setTimeStamp(nsiMappingService.getCalendar(Instant.now()));
             rrt.setTimeoutValue(resvTimeout);
             rrt.setNotificationId(notificationId);
+
+            String xml = marshalToXml(rrt);
+            NsiNotification nsiNotification = NsiNotification.builder()
+                    .connectionId(mapping.getNsiConnectionId())
+                    .notificationId((long) notificationId)
+                    .xml(xml)
+                    .type(NsiNotificationType.RESERVE_TIMEOUT)
+                    .build();
+            nsiNotifications.save(nsiNotification);
+
 
             port.reserveTimeout(rrt, outHeader);
         } catch (Exception ex) {
@@ -641,6 +668,17 @@ public class NsiService {
             dsrt.setDataPlaneStatus(dst);
             dsrt.setNotificationId(notificationId);
 
+            String xml = marshalToXml(dsrt);
+            NsiNotification nsiNotification = NsiNotification.builder()
+                    .connectionId(mapping.getNsiConnectionId())
+                    .notificationId((long) notificationId)
+                    .xml(xml)
+                    .type(NsiNotificationType.DATAPLANE_STATE_CHANGE)
+                    .build();
+            nsiNotifications.save(nsiNotification);
+
+
+
             String corrId = nsiHeaderUtils.newCorrelationId();
             Holder<CommonHeaderType> outHeader = nsiHeaderUtils.makeClientHeader(nsaId, corrId);
             port.dataPlaneStateChange(dsrt, outHeader);
@@ -652,7 +690,7 @@ public class NsiService {
 
     public void okCallback(NsiEvent event, NsiMapping mapping, CommonHeaderType inHeader) {
         try {
-            log.info("OK callback for event " + event);
+            log.info("OK callback for event {}", event);
             String nsaId = mapping.getNsaId();
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
@@ -739,7 +777,7 @@ public class NsiService {
 
     /* submit hold */
     public NsiReserveResult hold(ReserveType incomingRT, NsiMapping mapping) throws NsiInternalException, NsiValidationException {
-        log.info("hold for "+mapping.getNsiConnectionId()+" "+mapping.getOscarsConnectionId());
+        log.info("hold for {} {}", mapping.getNsiConnectionId(), mapping.getOscarsConnectionId());
         String oscarsConnectionId = mapping.getOscarsConnectionId();
 
         //
@@ -756,10 +794,10 @@ public class NsiService {
 
         P2PServiceBaseType p2ps = op2ps.get();
         // we always get capacity (hopefully)
-        int mbps = (int) p2ps.getCapacity();;
+        int mbps = (int) p2ps.getCapacity();
         DevelUtils.dumpDebug("p2ps", p2ps);
 
-        log.info("capacity: " + mbps);
+        log.info("capacity: {}", mbps);
         long begin;
         long end;
         Interval interval;
@@ -849,7 +887,7 @@ public class NsiService {
                     .build();
             try {
                 String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(simpleConnection);
-                log.debug("simple conn: \n" + pretty);
+                log.debug("simple conn: \n{}", pretty);
 
             } catch (JsonProcessingException ex) {
                 log.error(ex.getMessage(), ex);
@@ -887,7 +925,7 @@ public class NsiService {
 
             try {
                 String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(c);
-                log.debug("full conn: \n" + pretty);
+                log.debug("full conn: \n{}", pretty);
 
             } catch (JsonProcessingException jpe) {
                 // do nothing, this is just for debugging
@@ -923,6 +961,11 @@ public class NsiService {
                 .build();
     }
 
-
-
+    public String marshalToXml(NotificationBaseType notification) throws JAXBException {
+        StringWriter sw = new StringWriter();
+        JAXBContext context=JAXBContext.newInstance(notification.getClass());
+        Marshaller marshaller = context.createMarshaller();
+        marshaller.marshal(notification, sw);
+        return sw.toString();
+    }
 }
