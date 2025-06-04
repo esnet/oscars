@@ -665,7 +665,10 @@ public class ConnService {
             c.setLast_modified((int) instant.getEpochSecond());
 
             connRepo.saveAndFlush(c);
+            nsoResourceService.release(c);
 
+        } catch (NsoResvException e) {
+            log.error("failed to release NSO resources " + c.getConnectionId(), e);
         } finally {
             // log.debug("unlocked connections");
             connLock.unlock();

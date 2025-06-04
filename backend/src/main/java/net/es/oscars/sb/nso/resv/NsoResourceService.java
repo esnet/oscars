@@ -76,16 +76,19 @@ public class NsoResourceService {
         nsoQosSapPolicyIdService.findAndReserveQosSapPolicyIds(conn, overlappingSchedules);
         nsoSdpIdService.findAndReserveNsoSdpIds(conn, overlappingSchedules);
         nsoSdpVcIdService.findAndReserveNsoSdpVcIds(conn, overlappingSchedules);
-        log.info("starting NSO resource reservation");
+        log.info("completed NSO resource reservation");
 
     }
 
 
     @Transactional
     public void release(Connection conn) throws NsoResvException {
-        log.info("releasing all NSO resources for "+conn.getConnectionId());
+        log.info("releasing NSO resources for "+conn.getConnectionId());
         nsoVcIdService.release(conn);
         nsoQosSapPolicyIdService.release(conn);
+        nsoSdpIdService.release(conn);
+        nsoSdpVcIdService.release(conn);
+        log.info("released NSO resources");
 
     }
 
