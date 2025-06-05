@@ -3,6 +3,7 @@ package net.es.oscars.nsi.svc;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import jakarta.xml.ws.Holder;
@@ -35,6 +36,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.xml.namespace.QName;
 import java.io.StringWriter;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -461,7 +463,13 @@ public class NsiService {
             int notificationId = nsiMappingService.nextNotificationId(mapping);
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
-
+            boolean performCallback = false;
+            if (requesterNSA.getCallbackUrl().isEmpty()) {
+                log.info("empty callback url, unable to errorNotify");
+            } else {
+                performCallback = true;
+                log.info("errorNotify, NSA {} url: {}", requesterNSA.getNsaId(), requesterNSA.getCallbackUrl());
+            }
             ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
             String corrId = nsiHeaderUtils.newCorrelationId();
             Holder<CommonHeaderType> outHeader = nsiHeaderUtils.makeClientHeader(nsaId, corrId);
@@ -483,8 +491,11 @@ public class NsiService {
                     .build();
             nsiNotifications.save(nsiNotification);
 
+            if (performCallback) {
+                port.errorEvent(eet, outHeader);
+            }
 
-            port.errorEvent(eet, outHeader);
+
         } catch (Exception ex) {
             // maybe the notify worked, maybe not; we can't do anything
             log.error(ex.getMessage(), ex);
@@ -530,10 +541,11 @@ public class NsiService {
             int notificationId = nsiMappingService.nextNotificationId(mapping);
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
+            boolean performCallback = false;
             if (requesterNSA.getCallbackUrl().isEmpty()) {
                 log.info("empty callback url, unable to reserveTimeout");
-                return;
             } else {
+                performCallback = true;
                 log.info("reserveTimeoutCallback, NSA {} url: {}", requesterNSA.getNsaId(), requesterNSA.getCallbackUrl());
             }
             ConnectionRequesterPort port = nsiSoapClientUtil.createRequesterClient(requesterNSA);
@@ -557,9 +569,10 @@ public class NsiService {
                     .type(NsiNotificationType.RESERVE_TIMEOUT)
                     .build();
             nsiNotifications.save(nsiNotification);
+            if (performCallback) {
+                port.reserveTimeout(rrt, outHeader);
+            }
 
-
-            port.reserveTimeout(rrt, outHeader);
         } catch (Exception ex) {
             // maybe the callback worked, maybe not; we can't do anything
             log.error(ex.getMessage(), ex);
@@ -641,11 +654,12 @@ public class NsiService {
             int notificationId = nsiMappingService.nextNotificationId(mapping);
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
+            boolean performCallback = false;
 
             if (requesterNSA.getCallbackUrl().isEmpty()) {
-                log.info("empty callback url, unable to dataplaneCallback");
-                return;
+                log.info("empty callback url, will not perform dataplaneCallback");
             } else {
+                performCallback = true;
                 log.info("dataplaneCallback, NSA {} url: {}", requesterNSA.getNsaId(), requesterNSA.getCallbackUrl());
             }
 
@@ -677,11 +691,12 @@ public class NsiService {
                     .build();
             nsiNotifications.save(nsiNotification);
 
-
-
             String corrId = nsiHeaderUtils.newCorrelationId();
             Holder<CommonHeaderType> outHeader = nsiHeaderUtils.makeClientHeader(nsaId, corrId);
-            port.dataPlaneStateChange(dsrt, outHeader);
+            if (performCallback) {
+                port.dataPlaneStateChange(dsrt, outHeader);
+            }
+
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
         }
@@ -732,10 +747,11 @@ public class NsiService {
         try {
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
+            boolean performCallback = false;
             if (requesterNSA.getCallbackUrl().isEmpty()) {
                 log.info("empty callback url, unable to errCallback");
-                return;
             } else {
+                performCallback = true;
                 log.info("errCallback, NSA {} url: {}", requesterNSA.getNsaId(), requesterNSA.getCallbackUrl());
             }
 
@@ -758,13 +774,13 @@ public class NsiService {
             }
 
             gft.setConnectionStates(cst);
+            if (performCallback) {
+                if (event.equals(NsiEvent.RESV_FL)) {
+                    port.reserveFailed(gft, outHeader);
 
-            if (event.equals(NsiEvent.RESV_FL)) {
-                port.reserveFailed(gft, outHeader);
-
-            } else if (event.equals(NsiEvent.COMMIT_FL)) {
-                port.reserveCommitFailed(gft, outHeader);
-
+                } else if (event.equals(NsiEvent.COMMIT_FL)) {
+                    port.reserveCommitFailed(gft, outHeader);
+                }
             }
         } catch (Exception ex) {
             // we do not care what happens to our callback, we let it fail
@@ -961,11 +977,37 @@ public class NsiService {
                 .build();
     }
 
-    public String marshalToXml(NotificationBaseType notification) throws JAXBException {
+    public String marshalToXml(ErrorEventType eet) throws JAXBException {
         StringWriter sw = new StringWriter();
-        JAXBContext context=JAXBContext.newInstance(notification.getClass());
+        JAXBContext context=JAXBContext.newInstance(ErrorEventType.class);
         Marshaller marshaller = context.createMarshaller();
-        marshaller.marshal(notification, sw);
+        JAXBElement<ErrorEventType> jaxbElement
+                = new JAXBElement<>( new QName("http://schemas.ogf.org/nsi/2013/12/connection/types", "errorEvent"), ErrorEventType.class, eet);
+
+        marshaller.marshal(jaxbElement, sw);
         return sw.toString();
     }
+
+    public String marshalToXml(ReserveTimeoutRequestType rtrt) throws JAXBException {
+        StringWriter sw = new StringWriter();
+        JAXBContext context=JAXBContext.newInstance(ReserveTimeoutRequestType.class);
+        Marshaller marshaller = context.createMarshaller();
+        JAXBElement<ReserveTimeoutRequestType> jaxbElement
+                = new JAXBElement<>( new QName("http://schemas.ogf.org/nsi/2013/12/connection/types", "reserveTimeout"), ReserveTimeoutRequestType.class, rtrt);
+
+        marshaller.marshal(jaxbElement, sw);
+        return sw.toString();
+    }
+
+    public String marshalToXml(DataPlaneStateChangeRequestType dpscrt) throws JAXBException {
+        StringWriter sw = new StringWriter();
+        JAXBContext context=JAXBContext.newInstance(DataPlaneStateChangeRequestType.class);
+        Marshaller marshaller = context.createMarshaller();
+        JAXBElement<DataPlaneStateChangeRequestType> jaxbElement
+                = new JAXBElement<>( new QName("http://schemas.ogf.org/nsi/2013/12/connection/types", "dataPlaneStateChange"), DataPlaneStateChangeRequestType.class, dpscrt);
+
+        marshaller.marshal(jaxbElement, sw);
+        return sw.toString();
+    }
+
 }

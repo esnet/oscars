@@ -32,6 +32,13 @@ public class NsoVcIdService {
         });
     }
 
+    @Transactional
+    public List<NsoVcId> allNsoVcIds() {
+        ArrayList<NsoVcId> result = new ArrayList<>();
+        nsoVcIdDAO.findAll().forEach(result::add);
+        return result;
+    }
+
 
     @Transactional
     public void findAndReserveVcId(Connection conn, List<Schedule> schedules) throws NsoResvException {
