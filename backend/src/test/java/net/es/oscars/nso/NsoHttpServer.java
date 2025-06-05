@@ -11,7 +11,6 @@ import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
-import net.es.topo.common.dto.nso.YangPatch;
 import net.es.topo.common.dto.nso.YangPatchWrapper;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -21,7 +20,6 @@ import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.HttpEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
@@ -48,7 +46,10 @@ public class NsoHttpServer {
                 "/restconf/data/tailf-ncs:services/esnet-vpls:vpls",
                 "/restconf/data/tailf-ncs:services/esnet-lsp:lsp",
                 "/restconf/data/tailf-ncs:services",
-                "/restconf/data/"
+                "/restconf/data/",
+
+                "/esdb_api/graphql",
+                "/esdb_api/v1/*"
         );
     }
 
@@ -101,6 +102,8 @@ public class NsoHttpServer {
                     loadEsnetVplsMockData(req, resp);
                 } else if (uri.startsWith("/restconf/data/tailf-ncs:services/esnet-lsp:lsp")) {
                     loadEsnetLspMockData(req, resp);
+                } else if (uri.startsWith("/esdb_api/graphql")) {
+                    loadEsdbGraphqlMockData(req, resp);
                 } else {
                     // Unknown.
                     resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -110,6 +113,29 @@ public class NsoHttpServer {
             } catch (Exception ex) {
                 log.error("Failed to load ESNet mock data", ex);
             }
+        }
+
+        private void loadEsdbGraphqlMockData(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+            log.info("ESNet GraphQL mock URI requested (" + req.getMethod() + "): " + req.getRequestURI());
+            EsdbGraphqlResponseSpec[] esdbGraphqlResponseSpecs = new ObjectMapper()
+                .readValue(
+                    new ClassPathResource("http/esdb.graphql.response-specs.json").getFile(),
+                    EsdbGraphqlResponseSpec[].class
+                );
+            for (EsdbGraphqlResponseSpec spec : esdbGraphqlResponseSpecs) {
+                if (spec.method.equals(req.getMethod())) {
+                    InputStream stream = new ClassPathResource(spec.data).getInputStream();
+                    String body = StreamUtils.copyToString(stream, Charset.defaultCharset());
+                    resp.getWriter().write(body);
+                    resp.setContentType("application/json");
+                    resp.setStatus(spec.status);
+                    resp.getWriter().flush();
+                    log.info("ESNet GraphQL mock response: " + body);
+                    return;
+                }
+            }
+            // No response found? HTTP 404
+            log.info("ESNet GraphQL mock response could not be found in response specs.");
         }
 
         private void loadEsnetVplsMockData(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -250,6 +276,14 @@ public class NsoHttpServer {
         }
 
         @Override
+        protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            log.info("HTTP DELETE request received, mocking " + req.getRequestURI());
+            resp.setStatus(HttpServletResponse.SC_OK);
+//            resp.getWriter().write("OK");
+            resp.getWriter().flush();
+        }
+
+        @Override
         protected void doPost(HttpServletRequest request, HttpServletResponse response)
                 throws ServletException, IOException {
             String uri = request.getRequestURI();
@@ -258,6 +292,8 @@ public class NsoHttpServer {
                 mockPostNokiaShow(request, response);
             } else if (uri.startsWith("/restconf/data/tailf-ncs:services")) {
                 mockPostTailfNcs(request, response);
+            } else if (uri.startsWith("/esdb_api/graphql")) {
+                loadEsdbGraphqlMockData(request, response);
             } else {
                 // Unknown.
                 log.info("POST request not handled yet " + uri + " with query: " + request.getQueryString());
@@ -386,4 +422,6 @@ public class NsoHttpServer {
     public record NsoEsnetLspResponseSpec(String data, Integer status) {}
     public record NsoEsnetLspYangPatchResponseSpec(String lspName, String lspDevice, String data, Integer status) {}
     public record NsoEsnetLspYangPatchDeleteResponseSpec(String patchId, String data, Integer status) {}
+
+    public record EsdbGraphqlResponseSpec(String method, String data, Integer status) {}
 }

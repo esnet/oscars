@@ -2,6 +2,7 @@ package net.es.oscars.esdb;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
@@ -11,11 +12,16 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.EsdbProperties;
 import net.es.oscars.app.util.HeaderRequestInterceptor;
+import net.es.topo.common.devel.DevelUtils;
+import net.es.topo.common.dto.esdb.EsdbEquip;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.client.ClientGraphQlResponse;
+import org.springframework.graphql.client.ClientResponseField;
+import org.springframework.graphql.client.GraphQlClient;
 import org.springframework.graphql.client.HttpSyncGraphQlClient;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -63,14 +69,15 @@ public class ESDBProxy {
      * @deprecated
      * @return List of EsdbVlan objects from the REST endpoint response.
      */
-    public List<EsdbVlan> getAllEsdbVlans() {
-        String vlanUrl = esdbProperties.getUri()+"vlan/?limit=0";
-
-        WrappedEsdbVlans wrapped = restTemplate.getForObject(vlanUrl, WrappedEsdbVlans.class);
-        if (wrapped == null) {
-            return new ArrayList<>();
-        }
-        return wrapped.results;
+    public List<EsdbVlan> getAllEsdbVlans() throws Exception {
+//        String vlanUrl = esdbProperties.getUri()+"vlan/?limit=0";
+//
+//        WrappedEsdbVlans wrapped = restTemplate.getForObject(vlanUrl, WrappedEsdbVlans.class);
+//        if (wrapped == null) {
+//            return new ArrayList<>();
+//        }
+//        return wrapped.getResults();
+        throw new Exception("Deprecated method.");
     }
 
     /**
@@ -135,7 +142,7 @@ public class ESDBProxy {
         @Null Integer skip,
         @Null List<String> uuids
     ) {
-        List<EsdbVlan> results = new ArrayList<>();
+        List<EsdbVlan> results;
 
         String gqlVlanListQuery = "vlanList";
         List<String> params = new ArrayList<>();
@@ -165,7 +172,7 @@ public class ESDBProxy {
         {
             %s {
                 count: totalRecords
-                list {
+                results : list {
                     id,
                     vlanId,
                     description,
@@ -182,15 +189,7 @@ public class ESDBProxy {
             gqlVlanListQuery
         );
 
-        RestClient restClient = RestClient.create(
-            esdbProperties.getGraphqlUri() + "vlan/"
-        );
-
-        HttpSyncGraphQlClient graphQlClient = HttpSyncGraphQlClient.builder(restClient)
-            .header("Authorization", "Token " + esdbProperties.getApiKey())
-            .header("Accept", MediaType.APPLICATION_JSON_VALUE)
-            .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-            .build();
+        HttpSyncGraphQlClient graphQlClient = createGraphqlClient();
 
         // Should return a List<EsdbVlan> in the "list" property
         // Example response payload:
@@ -198,7 +197,7 @@ public class ESDBProxy {
         //  "data": {
         //    "vlanList": {
         //      "count": 1646,
-        //      "list": [
+        //      "results": [
         //        {
         //          "id": "10943",
         //          "vlanId": 2188,
@@ -222,6 +221,7 @@ public class ESDBProxy {
         //            "id": "27686"
         //          }
         //        }
+        //      ]
         //    }
         //  }
         // }
@@ -229,17 +229,41 @@ public class ESDBProxy {
             .document(graphqlDocument)
             .executeSync();
 
-        WrappedEsdbVlans wrappedEsdbVlans = response.field("vlanList").toEntity(WrappedEsdbVlans.class);
-        if (wrappedEsdbVlans != null) {
-            log.info("ESDBProxy.gqlVlanList() called. Total records count: {}", wrappedEsdbVlans.count);
-            results = wrappedEsdbVlans.results;
+        List<GraphqlEsdbVlan> vlanList = response
+            .field("vlanList.results")
+            .toEntityList(GraphqlEsdbVlan.class);
+
+        results = new ArrayList<>(vlanList.size());
+        if (!vlanList.isEmpty()) {
+            log.info("ESDBProxy.gqlVlanList() called. List of VLANs has a size of {}", vlanList.size());
+            for (GraphqlEsdbVlan vlan : vlanList) {
+                EsdbVlan eV = EsdbVlan.builder()
+                    .id(vlan.getId())
+                    .vlanId(vlan.getVlanId())
+                    .description(vlan.getDescription())
+                    .equipment(vlan.getEquipment())
+                    .equipmentInterface(vlan.getEquipmentInterface())
+                    .build();
+                results.add(eV);
+            }
         } else {
             log.warn("ESDBProxy.gqlVlanList() called but no ESDBVlans found in ESDB GraphQL response. Returning empty list.");
-            results = new ArrayList<>();
         }
 
-
         return results;
+    }
+
+    public HttpSyncGraphQlClient createGraphqlClient() {
+        log.debug("creating GraphQlClient with RestClient URL {}", esdbProperties.getGraphqlUri());
+        RestClient restClient = RestClient.create(
+            esdbProperties.getGraphqlUri()
+        );
+
+        return HttpSyncGraphQlClient.builder(restClient)
+            .header("Authorization", "Token " + esdbProperties.getApiKey())
+            .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+            .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+            .build();
     }
 
     public void createVlan(EsdbVlanPayload payload) {
@@ -256,10 +280,44 @@ public class ESDBProxy {
         restTemplate.delete(restPath);
     }
 
-    @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
-    static class WrappedEsdbVlans {
-        int count;
-        private List<EsdbVlan> results;
+    @Data
+    public static class GraphqlEsdbVlan {
+        private String id;
+        private String url;
+        private Integer vlanId;
+        private String description;
+        @JsonProperty("bridgeId")
+        private String bridge_id;
+        private GraphqlEsdbEquipment equipment = new GraphqlEsdbEquipment();
+        private GraphqlEsdbEquipmentInterface equipmentInterface = new GraphqlEsdbEquipmentInterface();
+
+        public Integer getId() {
+            return Integer.parseInt(id);
+        }
+
+        public Integer getEquipment() {
+            return equipment.getId();
+        }
+
+        public Integer getEquipmentInterface() {
+            return equipmentInterface.getId();
+        }
+    }
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @Data
+    public static class GraphqlEsdbEquipment {
+        private String id;
+        public Integer getId() {
+            return Integer.parseInt(id);
+        }
+    }
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @Data
+    public static class GraphqlEsdbEquipmentInterface {
+        private String id;
+        public Integer getId() {
+            return Integer.parseInt(id);
+        }
     }
 }
