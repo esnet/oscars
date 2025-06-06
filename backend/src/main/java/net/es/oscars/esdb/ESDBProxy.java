@@ -1,26 +1,19 @@
 package net.es.oscars.esdb;
 
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import jakarta.validation.constraints.Null;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.EsdbProperties;
 import net.es.oscars.app.util.HeaderRequestInterceptor;
-import net.es.topo.common.devel.DevelUtils;
-import net.es.topo.common.dto.esdb.EsdbEquip;
+import net.es.oscars.dto.esdb.gql.GraphqlEsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.graphql.GraphQlResponse;
 import org.springframework.graphql.client.ClientGraphQlResponse;
-import org.springframework.graphql.client.ClientResponseField;
 import org.springframework.graphql.client.GraphQlClient;
 import org.springframework.graphql.client.HttpSyncGraphQlClient;
 import org.springframework.http.MediaType;
@@ -258,47 +251,5 @@ public class ESDBProxy {
         String restPath = esdbProperties.getUri()+"vlan/"+vlanPkId+"/";
         log.info("delete rest path: "+restPath);
         restTemplate.delete(restPath);
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @Data
-    public static class GraphqlEsdbVlan {
-        private String id;
-        private String url;
-        private String uuid;
-        private Integer vlanId;
-        private String description;
-        @JsonProperty("bridgeId")
-        private String bridge_id;
-        private GraphqlEsdbEquipment equipment = new GraphqlEsdbEquipment();
-        private GraphqlEsdbEquipmentInterface equipmentInterface = new GraphqlEsdbEquipmentInterface();
-
-        public Integer getId() {
-            return Integer.parseInt(id);
-        }
-
-        public Integer getEquipment() {
-            return equipment.getId();
-        }
-
-        public Integer getEquipmentInterface() {
-            return equipmentInterface.getId();
-        }
-    }
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @Data
-    public static class GraphqlEsdbEquipment {
-        private String id;
-        public Integer getId() {
-            return Integer.parseInt(id);
-        }
-    }
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @Data
-    public static class GraphqlEsdbEquipmentInterface {
-        private String id;
-        public Integer getId() {
-            return Integer.parseInt(id);
-        }
     }
 }
