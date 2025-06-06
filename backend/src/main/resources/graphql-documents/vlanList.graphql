@@ -1,0 +1,17 @@
+query ($search: String!, $sortProperty:Int, ) {
+    vlanList(search: $search, sortProperty: $sortProperty) {
+        count: totalRecords
+        results : list {
+            id,
+            uuid,
+            vlanId,
+            description,
+            equipment {
+                id
+            },
+            equipmentInterface {
+                id
+            }
+        }
+    }
+}

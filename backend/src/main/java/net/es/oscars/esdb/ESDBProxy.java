@@ -29,9 +29,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -128,7 +126,7 @@ public class ESDBProxy {
 
     /**
      * Get all ESDB VLANs from ESDB using GraphQL. Targets vlanList.
-     * @param searchQuery The searchQuery (string) parameter for vlanList.
+     * @param search The search (string) parameter for vlanList.
      * @param sortProperty The sortProperty (string) parameter for vlanList.
      * @param first The first (int) parameter for vlanList.
      * @param skip The skip (int) parameter for vlanList.
@@ -136,7 +134,7 @@ public class ESDBProxy {
      * @return Returns a list of EsdbVlan objects from the GraphQL response.
      */
     public List<EsdbVlan> gqlVlanList(
-        @Null String searchQuery,
+        @Null String search,
         @Null String sortProperty,
         @Null Integer first,
         @Null Integer skip,
@@ -144,50 +142,23 @@ public class ESDBProxy {
     ) {
         List<EsdbVlan> results;
 
-        String gqlVlanListQuery = "vlanList";
-        List<String> params = new ArrayList<>();
+        Map<String, Object> params = new HashMap<>();
 
-        if (searchQuery != null && !searchQuery.isEmpty()) {
-            params.add("search: \"%s\"".formatted(searchQuery));
+        if (search != null && !search.isEmpty()) {
+            params.put("search", search);
         }
         if (sortProperty != null && !sortProperty.isEmpty()) {
-            params.add("sortProperty: \"%s\"".formatted(sortProperty));
+            params.put("sortProperty", sortProperty);
         }
         if (first != null) {
-            params.add("first: %d".formatted(first));
+            params.put("first", first);
         }
         if (skip != null) {
-            params.add("skip: %d".formatted(skip));
+            params.put("skip", skip);
         }
         if (uuids != null && !uuids.isEmpty()) {
-            params.add("uuids: [\"%s\"]".formatted( String.join("\",\"", uuids ) ));
+            params.put("uuids", uuids);
         }
-
-        if (!params.isEmpty()) {
-            gqlVlanListQuery += "(" + String.join(",", params) + ")";
-        }
-        // GraphQL request document
-        String graphqlDocument =
-        """
-        {
-            %s {
-                count: totalRecords
-                results : list {
-                    id,
-                    vlanId,
-                    description,
-                    equipment {
-                        id
-                    },
-                    equipmentInterface {
-                        id
-                    }
-                }
-            }
-        }
-        """.formatted(
-            gqlVlanListQuery
-        );
 
         HttpSyncGraphQlClient graphQlClient = createGraphqlClient();
 
@@ -200,6 +171,7 @@ public class ESDBProxy {
         //      "results": [
         //        {
         //          "id": "10943",
+        //          "uuid": "",
         //          "vlanId": 2188,
         //          "description": "OSCARS DFYG (ORNL AzureGov Sec)",
         //          "equipment": {
@@ -212,6 +184,7 @@ public class ESDBProxy {
         //        ...,
         //        {
         //          "id": "2104",
+        //          "uuid": "",
         //          "vlanId": 4073,
         //          "description": null,
         //          "equipment": {
@@ -225,9 +198,16 @@ public class ESDBProxy {
         //    }
         //  }
         // }
-        ClientGraphQlResponse response = graphQlClient
-            .document(graphqlDocument)
-            .executeSync();
+
+        // See oscars/backend/src/main/resources/graphql-documents/vlanList.graphql
+        // Our GraphQL client can autoload by document name from the graphql-documents/ directory.
+        GraphQlClient.RequestSpec requestSpec = graphQlClient
+            .documentName("vlanList");
+
+        if (!params.isEmpty()) {
+            requestSpec.variables(params);
+        }
+        ClientGraphQlResponse response = requestSpec.executeSync();
 
         List<GraphqlEsdbVlan> vlanList = response
             .field("vlanList.results")
@@ -285,6 +265,7 @@ public class ESDBProxy {
     public static class GraphqlEsdbVlan {
         private String id;
         private String url;
+        private String uuid;
         private Integer vlanId;
         private String description;
         @JsonProperty("bridgeId")
