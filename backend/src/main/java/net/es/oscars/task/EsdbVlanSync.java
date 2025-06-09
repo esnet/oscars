@@ -1,5 +1,7 @@
 package net.es.oscars.task;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.props.EsdbProperties;
@@ -12,7 +14,6 @@ import net.es.oscars.resv.ent.VlanFixture;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.topo.beans.Port;
 import net.es.oscars.topo.svc.TopologyStore;
-import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.apache.commons.lang3.tuple.Pair;
@@ -24,6 +25,8 @@ import java.util.*;
 
 @Slf4j
 @Component
+@Getter
+@Setter
 public class EsdbVlanSync {
     public static String PREFIX = "OSCARS";
     private final Startup startup;
@@ -32,7 +35,7 @@ public class EsdbVlanSync {
     private final EsdbProperties esdbProperties;
     private final StartupProperties startupProperties;
     private final TopologyStore topologyStore;
-
+    private boolean isSynchronized = false;
     public EsdbVlanSync(Startup startup, ConnectionRepository cr, ESDBProxy esdbProxy, EsdbProperties esdbProperties, StartupProperties startupProperties, TopologyStore topologyStore) {
         this.startup = startup;
         this.cr = cr;
@@ -44,6 +47,7 @@ public class EsdbVlanSync {
 
     @Scheduled(initialDelay = 120000, fixedDelayString ="${esdb.vlan-sync-period}" )
     public void processingLoop() {
+        isSynchronized = false;
         if (!esdbProperties.isEnabled()) {
             return;
         } else if (startupProperties.getStandalone()) {
@@ -51,9 +55,10 @@ public class EsdbVlanSync {
         } else if (startup.isInStartup() || startup.isInShutdown()) {
             return;
         }
-        log.debug("starting VLAN sync");
+        log.info("starting VLAN sync");
         // fetch all ESDB vlans
-        List<EsdbVlan> currentEsdbVlans = esdbProxy.getAllEsdbVlans();
+        // ...Use GraphQL client.
+        List<EsdbVlan> currentEsdbVlans = esdbProxy.gqlVlanList();
 
         // generate all the EsdbVlanPayloads from our RESERVED connections
         Set<EsdbVlanPayload> fromReserved = new HashSet<>();
@@ -130,6 +135,9 @@ public class EsdbVlanSync {
 
             esdbProxy.createVlan(evp);
         }
+
+        isSynchronized = true;
+        log.info("ESDB VLAN synchronization complete!");
     }
 
     public static boolean vlanMatchesPayload(EsdbVlan esdbVlan, EsdbVlanPayload payload) {

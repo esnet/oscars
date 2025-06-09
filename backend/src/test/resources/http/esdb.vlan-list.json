@@ -1,0 +1,33 @@
+{
+  "data": {
+    "vlanList": {
+      "count": 2,
+      "results": [
+        {
+          "id": "10943",
+          "uuid": "c8e71a45-29c6-4930-bfb4-e6dd40f3bb75",
+          "vlanId": 2188,
+          "description": "OSCARS DFYG (ORNL AzureGov Sec)",
+          "equipment": {
+            "id": "1717"
+          },
+          "equipmentInterface": {
+            "id": "14117"
+          }
+        },
+        {
+          "id": "2104",
+          "uuid": "32de7efb-261e-402e-9354-9f5c84c88b4a",
+          "vlanId": 4073,
+          "description": null,
+          "equipment": {
+            "id": "2568"
+          },
+          "equipmentInterface": {
+            "id": "27686"
+          }
+        }
+      ]
+    }
+  }
+}

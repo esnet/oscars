@@ -18,6 +18,9 @@ public class EsdbProperties {
     @NonNull
     private String uri;
 
+    @NonNull
+    private String graphqlUri = "http://esdb:8080/esdb_api/graphql";
+
     private boolean enabled;
 
     private String vlanSyncPeriod = "PT10M";
