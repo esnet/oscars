@@ -1,0 +1,9 @@
+
+type OscarsConnection {
+    connectionId: ID
+    description: String
+}
+
+type OscarsQuery {
+    ConnectionById(connectionId: ID): OscarsConnection
+}

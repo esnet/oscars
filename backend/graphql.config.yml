@@ -1,0 +1,4 @@
+schema:
+  - https://esdb.es.net/esdb_api/graphql
+  - ./src/main/resources/graphql/schema.graphql
+documents: './src/main/resources/graphql-documents/*.graphql'

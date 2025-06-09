@@ -1,5 +1,5 @@
-query ($search: String!, $sortProperty:Int, ) {
-    vlanList(search: $search, sortProperty: $sortProperty) {
+query ($search: String!, $sortProperty:String, $first:Int!, $skip:Int!) {
+    vlanList(search: $search, sortProperty: $sortProperty, first: $first, skip: $skip) {
         count: totalRecords
         results : list {
             id,

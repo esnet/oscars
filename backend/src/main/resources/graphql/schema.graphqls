@@ -1,8 +1,0 @@
-type Query {
-    ConnectionById(connectionId: ID): Connection
-}
-
-type Connection {
-    connectionId: ID
-    description: String
-}

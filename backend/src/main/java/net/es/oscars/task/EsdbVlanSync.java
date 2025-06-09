@@ -14,7 +14,6 @@ import net.es.oscars.resv.ent.VlanFixture;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.topo.beans.Port;
 import net.es.oscars.topo.svc.TopologyStore;
-import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.apache.commons.lang3.tuple.Pair;
