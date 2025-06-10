@@ -22,7 +22,8 @@ import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.resv.db.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
-import net.es.oscars.topo.beans.PortBwVlan;
+import net.es.oscars.topo.beans.*;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
 import net.es.topo.common.devel.DevelUtils;
@@ -82,6 +83,8 @@ public class ConnService {
     @Autowired
     private ReservedRepository reservedRepo;
 
+    @Autowired
+    private TopologyStore topologyStore;
 
     @Autowired
     private FixtureRepository fixRepo;
@@ -114,7 +117,6 @@ public class ConnService {
     private Integer resvTimeout;
 
     private Map<String, Connection> held = new HashMap<>();
-
 
     public ConnectionList filter(ConnectionFilter filter) {
 
@@ -238,6 +240,7 @@ public class ConnService {
                 }
             }
         }
+
         List<Connection> intervalFiltered = vlanFiltered;
         if (filter.getInterval() != null) {
             Instant fBeginning = filter.getInterval().getBeginning();
@@ -281,7 +284,107 @@ public class ConnService {
             }
         }
 
-        List<Connection> finalFiltered = southboundFiltered;
+        List<Connection> termFiltered = southboundFiltered;
+        if (filter.getTerm() != null && !filter.getTerm().isEmpty()) {
+            // a set will help deduplicate
+            Set<Connection> matching = new HashSet<>();
+            String lowerTerm = filter.getTerm().toLowerCase();
+
+            // a set of urns to exact match against
+            Set<String> exactUrns = new HashSet<>();
+            Topology topo = topologyStore.getTopology();
+
+            // find all the ports in the topology that match the search term in either port URN or tag,
+            // add them to the exact match.
+            for (Port p : topo.getPorts().values()) {
+                if (p.getUrn().toLowerCase().contains(lowerTerm)) {
+                    exactUrns.add(p.getUrn());
+                }
+                for (String tag : p.getTags()) {
+                    if (tag != null && tag.toLowerCase().contains(lowerTerm)) {
+                        exactUrns.add(p.getUrn());
+                    }
+                }
+            }
+
+            // find all the devices in the topology that match the search term (in URN or IP address)
+            for (Device d : topo.getDevices().values()) {
+                if (d.getUrn().toLowerCase().contains(lowerTerm)) {
+                    exactUrns.add(d.getUrn());
+                }
+                if (d.getIpv4Address().toLowerCase().equals(lowerTerm)) {
+                    exactUrns.add(d.getUrn());
+                }
+                if (d.getIpv6Address() != null && d.getIpv6Address().toLowerCase().equals(lowerTerm)) {
+                    exactUrns.add(d.getUrn());
+                }
+            }
+
+            // find all the adjacencies in the topology that match the search term
+            for (Adjcy adjcy : topo.getAdjcies()) {
+                if (adjcy.getA().getAddr().toLowerCase().equals(lowerTerm)) {
+                    exactUrns.add(adjcy.getA().getPortUrn());
+                }
+                if (adjcy.getA().getIfce().toLowerCase().contains(lowerTerm)) {
+                    exactUrns.add(adjcy.getA().getPortUrn());
+                }
+
+                if (adjcy.getZ().getAddr().toLowerCase().equals(lowerTerm)) {
+                    exactUrns.add(adjcy.getZ().getPortUrn());
+                }
+                if (adjcy.getZ().getIfce().toLowerCase().contains(lowerTerm)) {
+                    exactUrns.add(adjcy.getZ().getPortUrn());
+                }
+
+            }
+            dumpDebug("exactUrns", exactUrns);
+
+
+            for (Connection c : southboundFiltered) {
+                // check if the connectionId matches
+                if (c.getConnectionId().toLowerCase().contains(lowerTerm)) {
+                    matching.add(c);
+                }
+                if (c.getDescription().toLowerCase().contains(lowerTerm)) {
+                    matching.add(c);
+                }
+                for (Tag t : c.getTags()) {
+                    if (t.getContents().toLowerCase().contains(lowerTerm)) {
+                        matching.add(c);
+                    }
+                }
+
+                // check if the vlanId or any of the edge ports or routers match
+                for (VlanFixture f : c.getArchived().getCmp().getFixtures()) {
+                    if (f.getVlan().getVlanId().toString().contains(lowerTerm)) {
+                        matching.add(c);
+                    }
+                    if (f.getJunction().getDeviceUrn().toLowerCase().contains(lowerTerm)) {
+                        matching.add(c);
+                    }
+                    if (f.getPortUrn().toLowerCase().contains(lowerTerm)) {
+                        matching.add(c);
+                    }
+                }
+                // check if any of the ports in the ERO either match the term, or are an exact match to the
+                // URNs we found earlier
+                for (VlanPipe vp : c.getArchived().getCmp().getPipes()) {
+                    for (EroHop hop : vp.getAzERO()) {
+                        if (hop.getUrn().toLowerCase().contains(lowerTerm)) {
+                            matching.add(c);
+                        }
+                        if (exactUrns.contains(hop.getUrn())) {
+                            matching.add(c);
+                        }
+                    }
+                }
+            }
+            // make a list out of the set
+            termFiltered = new ArrayList<>(matching);
+        }
+
+
+        List<Connection> finalFiltered = termFiltered;
         List<Connection> paged = new ArrayList<>();
         int totalSize = finalFiltered.size();
 
