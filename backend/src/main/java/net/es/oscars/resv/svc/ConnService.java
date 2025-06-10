@@ -356,7 +356,7 @@ public class ConnService {
 
                 // check if the vlanId or any of the edge ports or routers match
                 for (VlanFixture f : c.getArchived().getCmp().getFixtures()) {
-                    if (f.getVlan().getVlanId().toString().contains(lowerTerm)) {
+                    if (f.getVlan().getVlanId().toString().equals(lowerTerm)) {
                         matching.add(c);
                     }
                     if (f.getJunction().getDeviceUrn().toLowerCase().contains(lowerTerm)) {
