@@ -345,10 +345,10 @@ public class ConnService {
                 if (c.getConnectionId().toLowerCase().contains(lowerTerm)) {
                     matching.add(c);
                 }
-                if (c.getDescription().toLowerCase().contains(lowerTerm)) {
+                if (c.getDescription() != null &&  c.getDescription().toLowerCase().contains(lowerTerm)) {
                     matching.add(c);
                 }
-                if (c.getServiceId().toLowerCase().contains(lowerTerm)) {
+                if (c.getServiceId() != null && c.getServiceId().toLowerCase().contains(lowerTerm)) {
                     matching.add(c);
                 }
                 for (Tag t : c.getTags()) {
