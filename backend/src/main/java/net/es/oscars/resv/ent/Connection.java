@@ -60,6 +60,44 @@ public class Connection {
     @JsonIgnore
     private Long id;
 
+    @JsonProperty("bandwidth")
+    private int getBandwidth() {
+        Components cmp;
+        switch (this.phase) {
+            case HELD -> {
+                cmp = this.held.getCmp();
+            }
+            case RESERVED -> {
+                cmp = this.reserved.getCmp();
+
+            }
+            case ARCHIVED -> {
+                cmp = this.archived.getCmp();
+            }
+            default -> { return 0; }
+        }
+        // return the maximum of any of the fixture or pipe bandwidths
+        int result = 0;
+        for (VlanFixture fixture: cmp.getFixtures()) {
+            if (fixture.getEgressBandwidth() > result) {
+                result = fixture.getEgressBandwidth();
+            }
+            if (fixture.getIngressBandwidth() > result) {
+                result = fixture.getIngressBandwidth();
+            }
+        }
+        for (VlanPipe pipe: cmp.getPipes()) {
+            if (pipe.getAzBandwidth() > result) {
+                result = pipe.getAzBandwidth();
+            }
+            if (pipe.getZaBandwidth() > result) {
+                result = pipe.getZaBandwidth();
+            }
+        }
+        return result;
+
+    }
+
     @NonNull
     private String connectionId;
 
