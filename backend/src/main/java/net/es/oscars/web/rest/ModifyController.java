@@ -4,6 +4,7 @@ package net.es.oscars.web.rest;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
+import net.es.oscars.model.Interval;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.ConnectionSouthbound;
@@ -249,7 +250,11 @@ public class ModifyController {
             Connection c = connSvc.findConnection(request.getConnectionId()).orElseThrow(NoSuchElementException::new);
             if (c.getPhase() == Phase.RESERVED) {
                 allowed = true;
-                ceiling = connSvc.findAvailableMaxBandwidth(c);
+                Interval interval = Interval.builder()
+                        .beginning(c.getReserved().getSchedule().getBeginning())
+                        .ending(c.getReserved().getSchedule().getEnding())
+                        .build();
+                ceiling = connSvc.findAvailableMaxBandwidth(c, c.getReserved().getCmp(), interval);
 
             } else {
                 explanation = "connection " + request.getConnectionId() + " not in RESERVED phase";

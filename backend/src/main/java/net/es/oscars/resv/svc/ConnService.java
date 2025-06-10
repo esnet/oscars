@@ -456,7 +456,12 @@ public class ConnService {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
         }
-        int max = findAvailableMaxBandwidth(c);
+        Interval interval = Interval.builder()
+                .beginning(c.getReserved().getSchedule().getBeginning())
+                .ending(c.getReserved().getSchedule().getEnding())
+                .build();
+
+        int max = findAvailableMaxBandwidth(c, c.getReserved().getCmp(), interval);
         if (bandwidth > max) {
             throw new ModifyException("New bandwidth above available");
         }
@@ -490,20 +495,16 @@ public class ConnService {
         log.info("modify bandwidth completed");
     }
 
-    public int findAvailableMaxBandwidth(Connection c) {
-        Interval interval = Interval.builder()
-                .beginning(c.getReserved().getSchedule().getBeginning())
-                .ending(c.getReserved().getSchedule().getEnding())
-                .build();
+    public int findAvailableMaxBandwidth(Connection c, Components cmp, Interval interval) {
 
         Map<String, PortBwVlan> availBwVlanMap = resvService.available(interval, held, c.getConnectionId());
 
         Set<String> portUrns = new HashSet<>();
-        for (VlanFixture f : c.getReserved().getCmp().getFixtures()) {
+        for (VlanFixture f : cmp.getFixtures()) {
             portUrns.add(f.getPortUrn());
         }
 
-        for (VlanPipe p : c.getReserved().getCmp().getPipes()) {
+        for (VlanPipe p : cmp.getPipes()) {
             int i = 0;
             for (EroHop hop : p.getAzERO()) {
                 if (i % 3 != 0) {
@@ -1160,6 +1161,48 @@ public class ConnService {
 
         connLock.unlock();
         return Pair.of(in, c);
+
+    }
+
+    public BandwidthAvailabilityResponse bwAvailability(SimpleConnection in) throws ConnException {
+        Connection c = simpleToHeldConnection(in);
+        Interval interval = Interval.builder()
+                .beginning(c.getHeld().getSchedule().getBeginning())
+                .ending(c.getHeld().getSchedule().getEnding())
+                .build();
+
+        int available = this.findAvailableMaxBandwidth(c, c.getHeld().getCmp(), interval);
+        Map<String, TopoUrn> baselineTopology = topologyStore.getTopoUrnMap();
+
+        Set<String> portUrns = new HashSet<>();
+        for (VlanFixture f : c.getHeld().getCmp().getFixtures()) {
+            portUrns.add(f.getPortUrn());
+        }
+        for (VlanPipe p : c.getHeld().getCmp().getPipes()) {
+            for (EroHop hop : p.getAzERO()) {
+                // some of these might not be port urns; that's fine'
+                portUrns.add(hop.getUrn());
+            }
+        }
+        int baseline = Integer.MAX_VALUE;
+        for (String portUrn : portUrns) {
+            if (baselineTopology.containsKey(portUrn)) {
+                Port p = baselineTopology.get(portUrn).getPort();
+                if (p != null) {
+                    if (baseline > p.getReservableIngressBw()) {
+                        baseline = p.getReservableIngressBw();
+                    }
+                    if (baseline > p.getReservableEgressBw()) {
+                        baseline = p.getReservableEgressBw();
+                    }
+                }
+            }
+        }
+
+        return BandwidthAvailabilityResponse.builder()
+                .available(available)
+                .baseline(baseline)
+                .build();
 
     }
 
