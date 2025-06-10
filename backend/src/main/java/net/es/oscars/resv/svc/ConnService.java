@@ -348,6 +348,9 @@ public class ConnService {
                 if (c.getDescription().toLowerCase().contains(lowerTerm)) {
                     matching.add(c);
                 }
+                if (c.getServiceId().toLowerCase().contains(lowerTerm)) {
+                    matching.add(c);
+                }
                 for (Tag t : c.getTags()) {
                     if (t.getContents().toLowerCase().contains(lowerTerm)) {
                         matching.add(c);
