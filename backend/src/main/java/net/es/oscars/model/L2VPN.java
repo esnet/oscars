@@ -77,7 +77,7 @@ public class L2VPN {
         protected QosExcessAction excessAction = QosExcessAction.SCAVENGER;
 
 
-        @Schema(description = "Bandwidth in Mbps, only for QoS mode GUARANTEED", defaultValue="0", minimum = "0", maximum = "1000000000", example = "1000")
+        @Schema(description = "Bandwidth in Mbps; only for QoS mode GUARANTEED", defaultValue="0", minimum = "0", maximum = "1000000000", example = "1000")
         @Builder.Default
         protected int bandwidth = 0;
 //
