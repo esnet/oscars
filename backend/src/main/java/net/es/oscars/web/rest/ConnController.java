@@ -180,15 +180,6 @@ public class ConnController {
         return connSvc.filter(filter);
     }
 
-    @RequestMapping(value = "/api/conn/availability", method = RequestMethod.POST)
-    @ResponseBody
-    public BandwidthAvailabilityResponse bandwidthAvailability(@RequestBody SimpleConnection conn)
-            throws StartupException, ConnException {
-        this.checkStartup();
-
-        return connSvc.bwAvailability(conn);
-    }
-
 
     private void checkStartup() throws StartupException {
         if (startup.isInStartup()) {

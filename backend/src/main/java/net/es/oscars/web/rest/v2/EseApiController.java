@@ -4,12 +4,17 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.resv.db.ConnectionRepository;
+import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.resv.svc.L2VPNService;
 import net.es.oscars.resv.svc.ResvService;
 
 import net.es.oscars.topo.pop.ConsistencyException;
 
 import net.es.oscars.model.L2VPN;
+import net.es.oscars.web.beans.BandwidthAvailabilityResponse;
+import net.es.oscars.web.beans.ConnException;
 import net.es.oscars.web.beans.v2.ValidationResponse;
+import net.es.oscars.web.simple.SimpleConnection;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -19,14 +24,13 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class EseApiController {
     private final Startup startup;
-    private final ResvService resvService;
-    private final ConnectionRepository connRepo;
+    private final L2VPNService l2VPNService;
 
-    public EseApiController(Startup startup, ResvService resvService, ConnectionRepository connRepo) {
+    public EseApiController(Startup startup, L2VPNService l2VPNService) {
         this.startup = startup;
-        this.resvService = resvService;
-        this.connRepo = connRepo;
+        this.l2VPNService = l2VPNService;
     }
+
 
     @ExceptionHandler(ConsistencyException.class)
     @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
@@ -60,7 +64,7 @@ public class EseApiController {
         return null;
     }
 
-    @RequestMapping(value = "/api/l2vpn/modify", method = RequestMethod.PATCH)
+    @RequestMapping(value = "/api/l2vpn/modify", method = RequestMethod.PUT)
     @ResponseBody
     @Transactional
     public L2VPN updateL2VPN(@RequestBody L2VPN l2VPNRequest)
@@ -70,5 +74,13 @@ public class EseApiController {
         return null;
     }
 
+    @RequestMapping(value = "/api/conn/availability", method = RequestMethod.POST)
+    @ResponseBody
+    public BandwidthAvailabilityResponse bandwidthAvailability(@RequestBody L2VPN l2VPNRequest)
+            throws StartupException, ConnException {
+        startup.startupCheck();
+
+        return l2VPNService.bwAvailability(l2VPNRequest);
+    }
 
 }
