@@ -28,7 +28,7 @@ public class L2VPN {
     @JsonIgnore
     private Long id;
 
-    @Schema(description = "Human readable name, from '234679CDFGHJKMNPRTWXYZ'", minLength = 4, maxLength = 4, example = "LHCONE to FNAL primary")
+    @Schema(description = "Human readable name, from '234679CDFGHJKMNPRTWXYZ'", minLength = 4, maxLength = 4, example = "CXA5")
     @Column(unique = true)
     protected String name;
 
@@ -96,7 +96,7 @@ public class L2VPN {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Meta {
-        @Schema(description = "Human readable description", minLength = 0, maxLength = 80, example = "CAST01")
+        @Schema(description = "Human readable description", minLength = 0, maxLength = 80, example = "LHC primary")
         protected String description;
 
         @Schema(description = "Username of the last modifier", minLength = 0, maxLength = 32, example = "haniotak")
