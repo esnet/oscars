@@ -74,7 +74,7 @@ public class EseApiController {
         return null;
     }
 
-    @RequestMapping(value = "/api/conn/availability", method = RequestMethod.POST)
+    @RequestMapping(value = "/api/l2vpn/availability", method = RequestMethod.POST)
     @ResponseBody
     public BandwidthAvailabilityResponse bandwidthAvailability(@RequestBody L2VPN l2VPNRequest)
             throws StartupException, ConnException {
