@@ -79,7 +79,7 @@ public class L2VPNConversions {
                 path.add(vlanPipe.getZ().getDeviceUrn());
                 LSP loose = LSP.builder()
                         .path(path)
-                        .role(Role.PROTECT)
+                        .role(Role.SECONDARY)
                         .bundle(b)
                         .build();
                 lsps.add(loose);
@@ -252,8 +252,10 @@ public class L2VPNConversions {
         }
 
         return SimpleConnection.builder()
+                .username(l2VPNRequest.getMeta().getUsername())
                 .connection_mtu(l2VPNRequest.getTech().getMtu())
                 .connectionId(l2VPNRequest.getName())
+                .mode(l2VPNRequest.getTech().getMode())
                 .begin(begin)
                 .end(end)
                 .description(l2VPNRequest.getMeta().getDescription())

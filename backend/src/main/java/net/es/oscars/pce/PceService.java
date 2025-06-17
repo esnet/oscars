@@ -139,7 +139,7 @@ public class PceService {
 
             LSP protect = LSP.builder()
                     .path(protectPath)
-                    .role(Role.PROTECT)
+                    .role(Role.SECONDARY)
                     .build();
             responseBundle.getLsps().add(protect);
 

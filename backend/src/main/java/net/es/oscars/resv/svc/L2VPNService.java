@@ -4,13 +4,17 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.model.*;
 import net.es.oscars.resv.ent.Connection;
+import net.es.oscars.resv.enums.DeploymentIntent;
+import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.Phase;
+import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.conversions.L2VPNConversions;
 import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.web.beans.BandwidthAvailabilityResponse;
 import net.es.oscars.web.beans.ConnException;
 import net.es.oscars.web.simple.SimpleConnection;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Component;
 
 
@@ -22,9 +26,18 @@ public class L2VPNService {
     public L2VPNService(ConnService connSvc) {
         this.connSvc = connSvc;
     }
+    public L2VPN get(String connectionId) throws ConnException{
+        return L2VPNConversions.fromConnection(connSvc.findConnection(connectionId).orElseThrow());
+    }
 
     public BandwidthAvailabilityResponse bwAvailability(L2VPN l2VPN) throws ConnException {
-        l2VPN.getStatus().setPhase(Phase.HELD);
+        // we ignore whatever status we were sent
+        l2VPN.setStatus(L2VPN.Status.builder()
+                        .deploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED)
+                        .deploymentState(DeploymentState.UNDEPLOYED)
+                        .phase(Phase.HELD)
+                        .state(State.WAITING)
+                .build());
         SimpleConnection simpleConnection = L2VPNConversions.fromL2VPN(l2VPN);
         return connSvc.bwAvailability(simpleConnection);
     }
