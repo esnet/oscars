@@ -19,6 +19,7 @@ public class ConnectionFilter {
     private String username;
     private List<Integer> vlans;
     private List<String> ports;
+    private String term;
     private String description;
     private String southbound;
     private String phase;
