@@ -21,13 +21,12 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
-import net.es.oscars.web.beans.NsoStateResponse;
 import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 
+import net.es.topo.common.dto.nso.enums.NsoCheckSyncState;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
@@ -159,10 +158,44 @@ public class NsoProxy {
         }
     }
 
+    public NsoCheckSyncState checkSync(String device) {
+        if (startupProperties.getStandalone()) {
+            log.info("standalone mode - returning in-sync for {}", device);
+            return NsoCheckSyncState.IN_SYNC;
+        }
+        String path = "restconf/data/tailf-ncs:devices/device="+device+"/check-sync";
+        String restPath = props.getUri() + path;
+        log.info("checking sync "+restPath);
+        ResponseEntity<FromNsoCheckSync> response = restTemplate.postForEntity(restPath, null, FromNsoCheckSync.class);
+
+        if (response.getStatusCode().isError()) {
+            log.error("REST error during check-sync for {} : {}", device, response.getBody());
+            return NsoCheckSyncState.UNKNOWN;
+        } else {
+            if (response.getBody() == null) {
+                log.error("empty check-sync for {} : null body", device);
+                return NsoCheckSyncState.UNKNOWN;
+            } else if (response.getBody().getOutput() == null) {
+                log.error("empty check-sync for {} : null output", device);
+                return NsoCheckSyncState.UNKNOWN;
+            } else if (response.getBody().getOutput().getResult() == null) {
+                log.error("empty check-sync for {} : null result", device);
+                return NsoCheckSyncState.UNKNOWN;
+            } else {
+                if (response.getBody().getOutput().getResult().equals(NsoCheckSyncState.ERROR)) {
+                    log.error("NSO error during check-sync for {} : {}", device, response.getBody().getOutput().getInfo());
+                }
+                return response.getBody().getOutput().getResult();
+            }
+        }
+
+
+    }
+
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public void buildServices(NsoServicesWrapper wrapper, String connectionId) throws NsoCommitException {
         if (startupProperties.getStandalone()) {
-            log.info("standalone mode - skipping southbound");
+            log.info("standalone mode - skipping southbound for BUILD {}", connectionId);
             return;
         }
 
