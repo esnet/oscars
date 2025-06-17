@@ -23,6 +23,7 @@ public class Endpoint {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "l2vpn_id")
+    @JsonIgnore
     private L2VPN l2vpn;
 
 
