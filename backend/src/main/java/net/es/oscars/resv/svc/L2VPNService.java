@@ -12,10 +12,15 @@ import net.es.oscars.resv.svc.conversions.L2VPNConversions;
 import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.web.beans.BandwidthAvailabilityResponse;
 import net.es.oscars.web.beans.ConnException;
+import net.es.oscars.web.beans.ConnectionFilter;
+import net.es.oscars.web.beans.ConnectionList;
+import net.es.oscars.web.beans.v2.L2VPNList;
 import net.es.oscars.web.simple.SimpleConnection;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 @Component
@@ -28,6 +33,19 @@ public class L2VPNService {
     }
     public L2VPN get(String connectionId) throws ConnException{
         return L2VPNConversions.fromConnection(connSvc.findConnection(connectionId).orElseThrow());
+    }
+
+    public L2VPNList list(ConnectionFilter filter) {
+        ConnectionList connList = connSvc.filter(filter);
+        List<L2VPN> l2vpns = new ArrayList<>();
+        for (Connection conn : connList.getConnections()) {
+            l2vpns.add(L2VPNConversions.fromConnection(conn));
+        }
+        return L2VPNList.builder()
+                .page(connList.getPage())
+                .sizePerPage(connList.getSizePerPage())
+                .l2vpns(l2vpns)
+                .build();
     }
 
     public BandwidthAvailabilityResponse bwAvailability(L2VPN l2VPN) throws ConnException {

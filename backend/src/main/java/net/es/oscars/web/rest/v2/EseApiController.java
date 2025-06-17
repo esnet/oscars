@@ -14,6 +14,8 @@ import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.model.L2VPN;
 import net.es.oscars.web.beans.BandwidthAvailabilityResponse;
 import net.es.oscars.web.beans.ConnException;
+import net.es.oscars.web.beans.ConnectionFilter;
+import net.es.oscars.web.beans.v2.L2VPNList;
 import net.es.oscars.web.beans.v2.ValidationResponse;
 import net.es.oscars.web.simple.SimpleConnection;
 import org.springframework.http.HttpStatus;
@@ -49,12 +51,20 @@ public class EseApiController {
     }
 
 
-    @RequestMapping(value = "/api/l2vpn/get/{connectionId}", method = RequestMethod.POST)
+    @RequestMapping(value = "/api/l2vpn/get/{connectionId}", method = RequestMethod.GET)
     @ResponseBody
     @Transactional
     public L2VPN get(@RequestBody String connectionId) throws StartupException, ConnException {
         startup.startupCheck();
         return l2VPNService.get(connectionId);
+    }
+
+    @RequestMapping(value = "/api/l2vpn/list", method = RequestMethod.POST)
+    @ResponseBody
+    @Transactional
+    public L2VPNList list(@RequestBody ConnectionFilter filter) throws StartupException, ConnException {
+        startup.startupCheck();
+        return l2VPNService.list(filter);
     }
 
     @RequestMapping(value = "/api/l2vpn/validate", method = RequestMethod.POST)
