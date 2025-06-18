@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
+import net.es.topo.common.dto.nso.FromNsoCheckSync;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.YangPatchWrapper;
@@ -32,6 +33,10 @@ import java.nio.charset.Charset;
 @Slf4j
 public class NsoHttpServer {
 
+    public static FromNsoCheckSync nsoCheckSyncResult;
+
+    public static int statusCode;
+
     @Value(value = "${nso.mockPort}")
     private int port;
 
@@ -46,6 +51,7 @@ public class NsoHttpServer {
                 "/restconf/data/tailf-ncs:services/esnet-vpls:vpls",
                 "/restconf/data/tailf-ncs:services/esnet-lsp:lsp",
                 "/restconf/data/tailf-ncs:services",
+                "/restconf/data/tailf-ncs:devices/*",
                 "/restconf/data/",
 
                 "/esdb_api/graphql",
@@ -294,6 +300,20 @@ public class NsoHttpServer {
                 mockPostTailfNcs(request, response);
             } else if (uri.startsWith("/esdb_api/graphql")) {
                 loadEsdbGraphqlMockData(request, response);
+
+            } else if (uri.startsWith("/restconf/data/tailf-ncs:devices/device")) {
+                if (uri.endsWith("check-sync")) {
+                    log.info("status code: "+NsoHttpServer.statusCode);
+                    response.setStatus(NsoHttpServer.statusCode);
+                    response.setContentType("application/yang-data+json");
+
+                    if (NsoHttpServer.nsoCheckSyncResult != null) {
+                        log.info("writing body");
+                        response.getWriter().write(new ObjectMapper().writeValueAsString(NsoHttpServer.nsoCheckSyncResult));
+                    }
+                    response.getWriter().write("");
+                    response.getWriter().flush();
+                }
             } else {
                 // Unknown.
                 log.info("POST request not handled yet " + uri + " with query: " + request.getQueryString());

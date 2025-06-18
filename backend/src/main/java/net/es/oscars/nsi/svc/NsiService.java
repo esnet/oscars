@@ -88,7 +88,7 @@ public class NsiService {
 
     public void reserve(CommonHeaderType header, NsiMapping mapping, ReserveType incomingRT)
             throws NsiInternalException, NsiStateException, NsiMappingException {
-        log.info("starting reserve for nsi connection id {}", incomingRT.getConnectionId());
+        log.info("starting reserve for {}", incomingRT.getConnectionId());
 
         String nsaId = header.getRequesterNSA();
         String nsiConnectionId  = incomingRT.getConnectionId();
@@ -103,7 +103,7 @@ public class NsiService {
                 mapping = nsiMappingService.newMapping(nsiConnectionId, nsiGri, nsaId, incomingRT.getCriteria().getVersion());
                 nsiMappingService.save(mapping);
             } else {
-                log.info("transitioning NSI state: RESV_CHECK");
+                log.info("transitioning NSI state: RESV_CHECK {}", mapping.getNsiConnectionId());
                 nsiStateEngine.reserve(NsiEvent.RESV_CHECK, mapping);
                 nsiMappingService.save(mapping);
             }
@@ -114,16 +114,16 @@ public class NsiService {
             NsiReserveResult validationResult = this.validateRT(incomingRT);
 
             if (!validationResult.getSuccess()) {
-                log.error("bad validation, sending error callback");
+                log.error("bad validation, sending error callback for{}", mapping.getNsiConnectionId());
                 errorMessage = validationResult.getErrorMessage();
                 errorCode = validationResult.getErrorCode();
                 tvps = validationResult.getTvps();
             } else {
-                log.info("submitting hold");
+                log.info("submitting hold for {}", mapping.getNsiConnectionId());
                 try {
                     NsiReserveResult holdResult = this.hold(incomingRT, mapping);
                     if (holdResult.getSuccess()) {
-                        log.info("successful reserve, updating state");
+                        log.info("successful reserve, updating state for "+ mapping.getNsiConnectionId());
                         nsiStateEngine.reserve(NsiEvent.RESV_CF, mapping);
                         nsiMappingService.save(mapping);
                         Instant timeout = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
@@ -134,18 +134,18 @@ public class NsiService {
                                 .timeout(timeout)
                                 .build();
                         nsiRequestManager.addInFlightRequest(nsiRequest);
-                        log.info("sending reserveConfirmCallback");
+                        log.info("sending reserveConfirmCallback for {}", mapping.getNsiConnectionId());
                         this.reserveConfirmCallback(mapping, header);
                         return;
 
                     } else {
-                        log.error("unable to hold, sending error callback");
+                        log.error("unable to hold, sending error callback for {}", mapping.getNsiConnectionId());
                         errorMessage = holdResult.getErrorMessage();
                         errorCode = holdResult.getErrorCode();
                         tvps = holdResult.getTvps();
                     }
                 } catch (NsiInternalException | NsiValidationException ex) {
-                    log.error("error holding");
+                    log.error("error holding for {}", mapping.getNsiConnectionId(), ex);
                     errorMessage = ex.getMessage();
                     errorCode = ex.getError();
                     tvps = Collections.emptyList();
