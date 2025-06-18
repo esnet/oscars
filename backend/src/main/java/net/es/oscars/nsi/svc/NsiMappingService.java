@@ -1,6 +1,7 @@
 package net.es.oscars.nsi.svc;
 
 import jakarta.xml.bind.JAXBElement;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.P2PServiceBaseType;
@@ -34,7 +35,6 @@ import net.es.topo.common.model.oscars1.IntRange;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -73,6 +73,10 @@ public class NsiMappingService {
     private ConnUtils connUtils;
     @Autowired
     private ConnService connService;
+
+    @Getter
+    private final Map<String, NsiMapping> initialReserveMappings = new HashMap<>();
+
 
     public NsiMappingService(NsiMappingRepository nsiRepo, TopologyStore topologyStore, ResvService resvService, PceService pceService) {
         this.nsiRepo = nsiRepo;

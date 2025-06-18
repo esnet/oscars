@@ -15,8 +15,7 @@ import net.es.oscars.nsi.ent.NsiMapping;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 
 @Slf4j
@@ -35,6 +34,18 @@ public class NsiAsyncQueue {
     }
 
     public void add(AsyncItem item) {
+        if (item instanceof Reserve reserve) {
+            try {
+                NsiMapping tempMapping = nsiMappingService.newMapping(
+                        reserve.getReserve().getConnectionId(),
+                        reserve.getReserve().getGlobalReservationId(),
+                        reserve.getHeader().getRequesterNSA(),
+                        reserve.getReserve().getCriteria().getVersion());
+                nsiMappingService.getInitialReserveMappings().put(reserve.getReserve().getConnectionId(), tempMapping);
+            } catch (NsiMappingException e) {
+                log.error("could not create initial NSI mapping", e);
+            }
+        }
         queue.add(item);
     }
 
@@ -99,6 +110,8 @@ public class NsiAsyncQueue {
             // if there's no existing mapping, leave it null and it will be created
         }
         nsiService.reserve(item.header, mapping, item.getReserve());
+        // remove the reserve mapping
+        nsiMappingService.getInitialReserveMappings().remove(item.getReserve().getConnectionId());
     }
 
 
