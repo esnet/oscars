@@ -52,7 +52,7 @@ import static net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReservationStateE
 @Slf4j
 public class NsiService {
 
-    private final NsiQueries nsiQueries;
+    public NsiQueries nsiQueries;
     @Value("${resv.timeout}")
     private Integer resvTimeout;
 
@@ -62,16 +62,16 @@ public class NsiService {
     final public static String SERVICE_TYPE = "http://services.ogf.org/nsi/2013/12/descriptions/EVTS.A-GOLE";
     final public static String NSI_TYPES = "http://schemas.ogf.org/nsi/2013/12/framework/types";
 
-    private final ConnectionRepository connRepo;
-    private final NsiNotifications nsiNotifications;
-    private final NsiRequestManager nsiRequestManager;
-    private final NsiHeaderUtils nsiHeaderUtils;
-    private final NsiStateEngine nsiStateEngine;
-    private final ConnService connSvc;
-    private final NsiMappingService nsiMappingService;
-    private final NsiSoapClientUtil nsiSoapClientUtil;
-    private final ObjectMapper jacksonObjectMapper;
-    private final NsiConnectionEventService nsiConnectionEventService;
+    public ConnectionRepository connRepo;
+    public NsiNotifications nsiNotifications;
+    public NsiRequestManager nsiRequestManager;
+    public NsiHeaderUtils nsiHeaderUtils;
+    public NsiStateEngine nsiStateEngine;
+    public ConnService connSvc;
+    public NsiMappingService nsiMappingService;
+    public NsiSoapClientUtil nsiSoapClientUtil;
+    public ObjectMapper jacksonObjectMapper;
+    public NsiConnectionEventService nsiConnectionEventService;
 
     public NsiService(ConnectionRepository connRepo, NsiRequestManager nsiRequestManager, NsiHeaderUtils nsiHeaderUtils,
                       NsiStateEngine nsiStateEngine, ConnService connSvc, NsiMappingService nsiMappingService,
@@ -117,14 +117,16 @@ public class NsiService {
             String errorMessage;
             NsiErrors errorCode;
             List<TypeValuePairType> tvps;
-            NsiReserveResult validationResult = this.validateRT(incomingRT);
+            // @TODO This doesn't actually validate anything yet.
+//            NsiReserveResult validationResult = this.validateRT(incomingRT);
 
-            if (!validationResult.getSuccess()) {
-                log.error("bad validation, sending error callback for{}", mapping.getNsiConnectionId());
-                errorMessage = validationResult.getErrorMessage();
-                errorCode = validationResult.getErrorCode();
-                tvps = validationResult.getTvps();
-            } else {
+//            if (!validationResult.getSuccess()) {
+//                log.error("bad validation, sending error callback for{}", mapping.getNsiConnectionId());
+//                errorMessage = validationResult.getErrorMessage();
+//                errorCode = validationResult.getErrorCode();
+//                tvps = validationResult.getTvps();
+//            } else {
+
                 log.info("submitting hold for {}", mapping.getNsiConnectionId());
                 try {
                     NsiReserveResult holdResult = this.hold(incomingRT, mapping);
@@ -166,7 +168,7 @@ public class NsiService {
                     errorCode = ex.getError();
                     tvps = Collections.emptyList();
                 }
-            }
+//            }
 
             // we only ever reach this bit if we have had an error
             nsiConnectionEventService.save(NsiConnectionEvent.builder()
