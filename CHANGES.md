@@ -1,4 +1,10 @@
 # OSCARS Release Notes
+### 1.2.29
+> June 2025
+- OS-522 fuzzy connection search
+- OS-529 SENSE query improvements & event REST API
+- OS-489 GraphQL queries to ESDB
+
 ### 1.2.28
 > June 2025
 - OS-499 NSI queryNotification() implementation
