@@ -77,7 +77,7 @@ public class NsiQueries {
 
 
     @Transactional
-    public QuerySummaryConfirmedType querySummary(QueryType query) throws NsiInternalException {
+    public QuerySummaryConfirmedType querySummary(QueryType query, Map<String, NsiMapping> initialReserveMappings) throws NsiInternalException {
         log.info("querySummary");
 
         QuerySummaryConfirmedType qsct = new QuerySummaryConfirmedType();
@@ -91,6 +91,7 @@ public class NsiQueries {
             }
         });
 
+
         Set<NsiMapping> mappings = new HashSet<>();
         if (query.getConnectionId().isEmpty() && query.getGlobalReservationId().isEmpty()) {
             // empty query = find all
@@ -98,22 +99,36 @@ public class NsiQueries {
                     .stream()
                     .filter(m -> {
                         if (m.getLifecycleState().equals(LifecycleStateEnumType.TERMINATED) || m.getLifecycleState().equals(LifecycleStateEnumType.FAILED)) {
-
                             // filter out any in lifecycle TERMINATED or FAILED that haven't been modified in the last 1 hour
-                            if (m.getLastModified().isBefore(Instant.now().minus(1, ChronoUnit.HOURS))) {
-                                return false;
-                            }
+                            return !m.getLastModified().isBefore(Instant.now().minus(1, ChronoUnit.HOURS));
                         }
 
                         return true;
                     }).collect(Collectors.toSet())
             );
+            // if there happens to be a mapping in-memory for an nsiConnectionId that is found in nsiRepo,
+            // that means it has been processed so we will remove it from our map
+            for (NsiMapping m : mappings) {
+                initialReserveMappings.remove(m.getNsiConnectionId());
+            }
+            // we then add all the remaining reserve mappings
+            mappings.addAll(initialReserveMappings.values());
+
             log.debug("added all mappings: " + mappings.size());
         } else {
+
             for (String connId : query.getConnectionId()) {
                 log.info("finding by connId : {}", connId);
-                nsiRepo.findByNsiConnectionId(connId).ifPresent(mappings::add);
+                Optional<NsiMapping> m = nsiRepo.findByNsiConnectionId(connId);
+                if (m.isPresent()) {
+                    mappings.add(m.get());
+                } else {
+                    if (initialReserveMappings.containsKey(connId)) {
+                        mappings.add(initialReserveMappings.get(connId));
+                    }
+                }
             }
+
             for (String gri : query.getGlobalReservationId()) {
                 log.info("finding by gri : {}", gri);
                 mappings.addAll(nsiRepo.findByNsiGri(gri));

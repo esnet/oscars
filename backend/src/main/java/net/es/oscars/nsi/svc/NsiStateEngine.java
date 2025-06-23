@@ -120,6 +120,7 @@ public class NsiStateEngine {
     public void termConfirm(NsiMapping mapping) throws NsiStateException {
         Set<LifecycleStateEnumType> allowedStates = new HashSet<>();
         allowedStates.add(LifecycleStateEnumType.TERMINATING);
+        allowedStates.add(LifecycleStateEnumType.TERMINATED);
 
         if (!allowedStates.contains(mapping.getLifecycleState())) {
             throw new NsiStateException("Invalid lifecycle state " + mapping.getLifecycleState(), NsiErrors.TRANS_ERROR);

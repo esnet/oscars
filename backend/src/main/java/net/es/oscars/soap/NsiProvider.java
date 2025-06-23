@@ -9,10 +9,13 @@ import net.es.nsi.lib.soap.gen.nsi_2_0.connection.provider.ConnectionProviderPor
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.ServiceExceptionType;
 import net.es.oscars.app.exc.NsiException;
+import net.es.oscars.nsi.beans.NsiConnectionEventType;
 import net.es.oscars.nsi.beans.NsiErrors;
+import net.es.oscars.nsi.ent.NsiConnectionEvent;
 import net.es.oscars.nsi.svc.*;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -24,13 +27,16 @@ public class NsiProvider implements ConnectionProviderPort {
     private final NsiHeaderUtils nsiHeaderUtils;
     private final NsiQueries nsiQueries;
     private final NsiNotifications nsiNotifications;
+    private final NsiConnectionEventService nsiConnectionEventService;
 
-    public NsiProvider(NsiAsyncQueue queue, NsiMappingService nsiMappingService, NsiHeaderUtils nsiHeaderUtils, NsiQueries nsiQueries, NsiNotifications nsiNotifications) {
+    public NsiProvider(NsiAsyncQueue queue, NsiMappingService nsiMappingService, NsiHeaderUtils nsiHeaderUtils,
+                       NsiQueries nsiQueries, NsiNotifications nsiNotifications, NsiConnectionEventService nsiConnectionEventService) {
         this.queue = queue;
         this.nsiMappingService = nsiMappingService;
         this.nsiHeaderUtils = nsiHeaderUtils;
         this.nsiQueries = nsiQueries;
         this.nsiNotifications = nsiNotifications;
+        this.nsiConnectionEventService = nsiConnectionEventService;
     }
 
 /* ================================== RESERVE SECTION ==================================
@@ -49,6 +55,13 @@ public class NsiProvider implements ConnectionProviderPort {
 
         rrt.setConnectionId(nsiConnectionId);
         reserve.setConnectionId(nsiConnectionId);
+
+        nsiConnectionEventService.save(NsiConnectionEvent.builder()
+                .type(NsiConnectionEventType.RESERVE_RECEIVED)
+                .version(reserve.getCriteria().getVersion())
+                .nsiConnectionId(nsiConnectionId)
+                .timestamp(Instant.now())
+                .build());
 
         try {
             // we process the header
@@ -77,30 +90,59 @@ public class NsiProvider implements ConnectionProviderPort {
 
     @Override
     public GenericAcknowledgmentType provision(GenericRequestType parameters, Holder<CommonHeaderType> header) throws ServiceException {
+        nsiConnectionEventService.save(NsiConnectionEvent.builder()
+                .type(NsiConnectionEventType.PROVISION_RECEIVED)
+                .timestamp(Instant.now())
+                .nsiConnectionId(parameters.getConnectionId())
+                .build());
+
         this.asyncGeneric(parameters, header, NsiAsyncQueue.GenericOperation.PROVISION);
         return new GenericAcknowledgmentType();
     }
 
     @Override
     public GenericAcknowledgmentType release(GenericRequestType parameters, Holder<CommonHeaderType> header) throws ServiceException {
+        nsiConnectionEventService.save(NsiConnectionEvent.builder()
+                .type(NsiConnectionEventType.RELEASE_RECEIVED)
+                .timestamp(Instant.now())
+                .nsiConnectionId(parameters.getConnectionId())
+                .build());
+
         this.asyncGeneric(parameters, header, NsiAsyncQueue.GenericOperation.RELEASE);
         return new GenericAcknowledgmentType();
     }
 
     @Override
     public GenericAcknowledgmentType reserveCommit(GenericRequestType parameters, Holder<CommonHeaderType> header) throws ServiceException {
+        nsiConnectionEventService.save(NsiConnectionEvent.builder()
+                .type(NsiConnectionEventType.RESERVE_COMMIT_RECEIVED)
+                .timestamp(Instant.now())
+                .nsiConnectionId(parameters.getConnectionId())
+                .build());
+
         this.asyncGeneric(parameters, header, NsiAsyncQueue.GenericOperation.RESV_COMMIT);
         return new GenericAcknowledgmentType();
     }
 
     @Override
     public GenericAcknowledgmentType reserveAbort(GenericRequestType parameters, Holder<CommonHeaderType> header) throws ServiceException {
+        nsiConnectionEventService.save(NsiConnectionEvent.builder()
+                .type(NsiConnectionEventType.RESERVE_ABORT_RECEIVED)
+                .timestamp(Instant.now())
+                .nsiConnectionId(parameters.getConnectionId())
+                .build());
         this.asyncGeneric(parameters, header, NsiAsyncQueue.GenericOperation.RESV_ABORT);
         return new GenericAcknowledgmentType();
     }
 
     @Override
     public GenericAcknowledgmentType terminate(GenericRequestType parameters, Holder<CommonHeaderType> header) throws ServiceException {
+        nsiConnectionEventService.save(NsiConnectionEvent.builder()
+                .type(NsiConnectionEventType.TERMINATE_RECEIVED)
+                .timestamp(Instant.now())
+                .nsiConnectionId(parameters.getConnectionId())
+                .build());
+
         this.asyncGeneric(parameters, header, NsiAsyncQueue.GenericOperation.TERMINATE);
         return new GenericAcknowledgmentType();
     }
@@ -152,7 +194,7 @@ public class NsiProvider implements ConnectionProviderPort {
             // processing the header from this sync operation
             nsiHeaderUtils.processHeader(header.value, false);
             log.info("starting sync QuerySummary");
-            QuerySummaryConfirmedType qsct = nsiQueries.querySummary(query);
+            QuerySummaryConfirmedType qsct = nsiQueries.querySummary(query, nsiMappingService.getInitialReserveMappings());
             nsiHeaderUtils.makeResponseHeader(header.value);
             return qsct;
 
@@ -191,6 +233,7 @@ public class NsiProvider implements ConnectionProviderPort {
                 .build();
         queue.add(asyncItem);
     }
+
     /* ================================== NOTIFICATIONS ================================== */
     @Override
     public QueryNotificationConfirmedType queryNotificationSync(QueryNotificationType query,
@@ -234,7 +277,6 @@ public class NsiProvider implements ConnectionProviderPort {
                                                  Holder<CommonHeaderType> header) throws ServiceException {
         throw new ServiceException(NsiErrors.UNIMPLEMENTED + " - not implemented");
     }
-
 
 
 }
