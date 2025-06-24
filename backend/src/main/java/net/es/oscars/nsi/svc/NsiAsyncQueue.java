@@ -34,8 +34,8 @@ public class NsiAsyncQueue {
     }
 
     public void add(AsyncItem item) {
+        queue.add(item);
         if (item instanceof Reserve reserve) {
-            queue.add(item);
             String nsiConnectionId = reserve.getReserve().getConnectionId();
             // if there is no existing mapping we make a new one just for use by the query stuff until
             // the reserve gets fully processed
