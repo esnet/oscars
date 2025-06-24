@@ -156,9 +156,12 @@ public class NsiMappingService {
             return mapping.get();
         }
     }
+    @Transactional
+    public boolean hasMapping(String nsiConnectionId) {
+        return nsiRepo.findByNsiConnectionId(nsiConnectionId).isPresent();
+    }
 
-
-
+    @Transactional
     public NsiMapping newMapping(String nsiConnectionId, String nsiGri, String nsaId, Integer version) throws NsiMappingException {
         if (nsiConnectionId == null || nsiConnectionId.isEmpty()) {
             throw new NsiMappingException("null nsi connection id", NsiErrors.MSG_PAYLOAD_ERROR);
