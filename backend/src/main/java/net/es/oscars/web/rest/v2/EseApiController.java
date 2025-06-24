@@ -54,7 +54,7 @@ public class EseApiController {
     @RequestMapping(value = "/api/l2vpn/get/{connectionId}", method = RequestMethod.GET)
     @ResponseBody
     @Transactional
-    public L2VPN get(@RequestBody String connectionId) throws StartupException, ConnException {
+    public L2VPN get(@PathVariable String connectionId) throws StartupException, ConnException {
         startup.startupCheck();
         return l2VPNService.get(connectionId);
     }
