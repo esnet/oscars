@@ -45,7 +45,8 @@ public class NsiAsyncQueue {
                             nsiConnectionId,
                             reserve.getReserve().getGlobalReservationId(),
                             reserve.getHeader().getRequesterNSA(),
-                            reserve.getReserve().getCriteria().getVersion());
+                            reserve.getReserve().getCriteria().getVersion(),
+                            true);
 
                     nsiMappingService.getInitialReserveMappings().put(nsiConnectionId, tempMapping);
                 } catch (NsiMappingException e) {
