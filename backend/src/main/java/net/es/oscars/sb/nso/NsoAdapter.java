@@ -182,6 +182,7 @@ public class NsoAdapter {
                 historyRepo.save(rch);
             }
         }
+        log.info("completed NSO task {} {} {}; new states {}/{}", conn.getConnectionId(), commandType, intent, newState, newDepState);
 
         return SouthboundTaskResult.builder()
                 .connectionId(conn.getConnectionId())
