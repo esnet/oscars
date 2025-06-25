@@ -151,7 +151,7 @@ public class NsiServiceSteps extends CucumberSteps {
                 Mockito.anyString(),
                 Mockito.anyString(),
                 Mockito.anyInt(),
-                    false
+                Mockito.anyBoolean()
             );
 
             // Let's assert our mock NSI service picks up the
