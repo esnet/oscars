@@ -5,15 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 
 import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.nsi.svc.NsiService;
-import net.es.oscars.resv.ent.VlanJunction;
 import net.es.oscars.resv.enums.DeploymentIntent;
-import net.es.oscars.sb.ent.RouterCommands;
+import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.sb.nso.NsoAdapter;
 import net.es.oscars.sb.beans.QueueName;
 import net.es.oscars.resv.db.ConnectionRepository;
-import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
+import net.es.oscars.sb.nso.resv.NsoResourceService;
+import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.topo.common.devel.DevelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -29,6 +29,8 @@ public class SouthboundQueuer {
     @Autowired
     private NsoAdapter nsoAdapter;
 
+    @Autowired
+    private NsoResourceService nsoResourceService;
 
     @Autowired
     private ConnectionRepository cr;
@@ -109,6 +111,26 @@ public class SouthboundQueuer {
                                 cr.save(c);
                             }
                     );
+                }
+
+                // special case for DISMANTLE: once complete we release the NSO resources
+                // - if the resulting DeploymentState was UNDEPLOYED (instead of i.e. FAILED)
+                // AND
+                // - if the connection phase is now ARCHIVED
+                if (rct.equals(CommandType.DISMANTLE)) {
+                    if (result.getDeploymentState().equals(DeploymentState.UNDEPLOYED)) {
+                        cr.findByConnectionId(task.getConnectionId()).ifPresent(c -> {
+                            if (c.getPhase().equals(Phase.ARCHIVED)) {
+                                try {
+                                    nsoResourceService.release(c);
+                                } catch (NsoResvException e) {
+                                    log.error("failed to release NSO resources " + c.getConnectionId(), e);
+                                }
+                            }
+                        });
+                    }
+
+
                 }
                 log.info("completed : " + result.getConnectionId() + " " + result.getCommandType()+" "+result.getDeploymentState());
             }
