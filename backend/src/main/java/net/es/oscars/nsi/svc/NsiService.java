@@ -106,7 +106,7 @@ public class NsiService {
                 newReservation = true;
 
                 // this will throw an NsiMappingException if it fails and do an errCallback
-                mapping = nsiMappingService.newMapping(nsiConnectionId, nsiGri, nsaId, incomingRT.getCriteria().getVersion());
+                mapping = nsiMappingService.newMapping(nsiConnectionId, nsiGri, nsaId, incomingRT.getCriteria().getVersion(), false);
                 nsiMappingService.save(mapping);
             } else {
                 log.info("transitioning NSI state: RESV_CHECK {}", mapping.getNsiConnectionId());
@@ -1043,8 +1043,18 @@ public class NsiService {
                         .build();
             }
 
-            log.info("holding connection.. ");
-            Connection c = connSvc.holdConnection(simpleConnection).getRight();
+            Connection c;
+            Pair<SimpleConnection, Connection> results = connSvc.holdConnection(simpleConnection);
+            if (results.getLeft().getValidity().isValid()) {
+                 c = results.getRight();
+            } else {
+                return NsiReserveResult.builder()
+                        .errorCode(NsiErrors.RESV_ERROR)
+                        .success(false)
+                        .errorMessage(results.getLeft().getValidity().getMessage())
+                        .tvps(tvps)
+                        .build();
+            }
 
             try {
                 String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(c);

@@ -156,22 +156,29 @@ public class NsiMappingService {
             return mapping.get();
         }
     }
+    @Transactional
+    public boolean hasMapping(String nsiConnectionId) {
+        return nsiRepo.findByNsiConnectionId(nsiConnectionId).isPresent();
+    }
 
-
-
-    public NsiMapping newMapping(String nsiConnectionId, String nsiGri, String nsaId, Integer version) throws NsiMappingException {
+    @Transactional
+    public NsiMapping newMapping(String nsiConnectionId, String nsiGri, String nsaId, Integer version, boolean temporary) throws NsiMappingException {
         if (nsiConnectionId == null || nsiConnectionId.isEmpty()) {
             throw new NsiMappingException("null nsi connection id", NsiErrors.MSG_PAYLOAD_ERROR);
         }
         if (nsiGri == null) {
             nsiGri = "";
         }
-        if (nsiRepo.findByNsiConnectionId(nsiConnectionId).isPresent()) {
-            throw new NsiMappingException("previously used nsi connection id! " + nsiConnectionId, NsiErrors.MSG_PAYLOAD_ERROR);
+        String oscarsConnectionId = "";
+        if (!temporary) {
+            if (nsiRepo.findByNsiConnectionId(nsiConnectionId).isPresent()) {
+                throw new NsiMappingException("previously used nsi connection id! " + nsiConnectionId, NsiErrors.MSG_PAYLOAD_ERROR);
+            }
+            oscarsConnectionId = connUtils.genUniqueConnectionId();
+            log.info("added an NSI mapping: "+nsiConnectionId+" --> "+oscarsConnectionId);
         }
-        String oscarsConnectionId = connUtils.genUniqueConnectionId();
 
-        NsiMapping mapping = NsiMapping.builder()
+        return NsiMapping.builder()
                 .nsiConnectionId(nsiConnectionId)
                 .nsiGri(nsiGri)
                 .oscarsConnectionId(oscarsConnectionId)
@@ -183,8 +190,6 @@ public class NsiMappingService {
                 .reservationState(ReservationStateEnumType.RESERVE_CHECKING)
                 .lastModified(Instant.now())
                 .build();
-        log.info("added an NSI mapping: "+nsiConnectionId+" --> "+oscarsConnectionId);
-        return mapping;
     }
 
     public Optional<P2PServiceBaseType> getP2PService(ReserveType rt) {

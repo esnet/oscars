@@ -874,12 +874,12 @@ public class ConnService {
     public Validity validate(SimpleConnection inConn, ConnectionMode mode)
             throws ConnException {
 
-        log.info("ConnService.validate() called");
-        log.info("defaultMtu (pss.default-mtu) : {}", defaultMtu);
-        log.info("minMtu (pss.min-mtu): {}", minMtu);
-        log.info("maxMtu (pss.max-mtu): {}", maxMtu);
-        log.info("minDuration (resv.minimum-duration): {}", minDuration);
-        log.info("timeout (resv.timeout): {}", resvTimeout);
+//        log.info("ConnService.validate() called");
+//        log.info("defaultMtu (pss.default-mtu) : {}", defaultMtu);
+//        log.info("minMtu (pss.min-mtu): {}", minMtu);
+//        log.info("maxMtu (pss.max-mtu): {}", maxMtu);
+//        log.info("minDuration (resv.minimum-duration): {}", minDuration);
+//        log.info("timeout (resv.timeout): {}", resvTimeout);
 
         DevelUtils.dumpDebug("validate conn", inConn);
         log.info("mode: {}", mode);
@@ -1127,21 +1127,22 @@ public class ConnService {
     }
 
     public Pair<SimpleConnection, Connection> holdConnection(SimpleConnection in) throws ConnException {
+        log.info("holding connection {} ", in.getConnectionId());
 
         ReentrantLock connLock = dbAccess.getConnLock();
         if (connLock.isLocked()) {
-            log.debug("connection lock already locked; returning from hold");
-            return Pair.of(in, null);
+            log.debug("connection lock already locked by another thread; hold {} waiting", in.getConnectionId());
         }
         connLock.lock();
+        log.debug("got connection lock; hold {} resuming", in.getConnectionId());
 
         // maybe don't throw exception; populate all the Validity entries instead
         Validity v = this.validate(in, ConnectionMode.NEW);
         in.setValidity(v);
 
         if (!v.isValid()) {
-            log.info("could not hold connection " + in.getConnectionId());
-            log.info("reason: " + v.getMessage());
+            log.info("could not hold {}; releasing lock", in.getConnectionId());
+            log.info("reason: {}", v.getMessage());
             connLock.unlock();
             return Pair.of(in, null);
         }
@@ -1159,6 +1160,7 @@ public class ConnService {
         this.held.put(connectionId, c);
 
         connLock.unlock();
+        log.debug("{} releasing connection lock", in.getConnectionId());
         return Pair.of(in, c);
 
     }

@@ -34,19 +34,26 @@ public class NsiAsyncQueue {
     }
 
     public void add(AsyncItem item) {
+        queue.add(item);
         if (item instanceof Reserve reserve) {
-            try {
-                NsiMapping tempMapping = nsiMappingService.newMapping(
-                        reserve.getReserve().getConnectionId(),
-                        reserve.getReserve().getGlobalReservationId(),
-                        reserve.getHeader().getRequesterNSA(),
-                        reserve.getReserve().getCriteria().getVersion());
-                nsiMappingService.getInitialReserveMappings().put(reserve.getReserve().getConnectionId(), tempMapping);
-            } catch (NsiMappingException e) {
-                log.error("could not create initial NSI mapping", e);
+            String nsiConnectionId = reserve.getReserve().getConnectionId();
+            // if there is no existing mapping we make a new one just for use by the query stuff until
+            // the reserve gets fully processed
+            if (!nsiMappingService.hasMapping(nsiConnectionId)) {
+                try {
+                    NsiMapping tempMapping = nsiMappingService.newMapping(
+                            nsiConnectionId,
+                            reserve.getReserve().getGlobalReservationId(),
+                            reserve.getHeader().getRequesterNSA(),
+                            reserve.getReserve().getCriteria().getVersion(),
+                            true);
+
+                    nsiMappingService.getInitialReserveMappings().put(nsiConnectionId, tempMapping);
+                } catch (NsiMappingException e) {
+                    log.error("could not create initial NSI mapping", e);
+                }
             }
         }
-        queue.add(item);
     }
 
     @Scheduled(fixedDelayString = "${nsi.queue-interval-millisec}")
