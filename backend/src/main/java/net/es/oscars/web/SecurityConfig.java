@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.AuthProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -30,6 +31,7 @@ import static java.util.stream.Collectors.toSet;
 @Configuration
 @EnableWebSecurity
 @Slf4j
+@Profile("default")
 public class SecurityConfig {
     public static String ROLE_OSCARS_USER = "ROLE_OSCARS_USER";
     public static String ROLE_OSCARS_ADMIN = "ROLE_OSCARS_ADMIN";
