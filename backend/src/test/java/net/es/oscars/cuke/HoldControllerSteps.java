@@ -16,7 +16,6 @@ import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.web.beans.CurrentlyHeldEntry;
 import net.es.oscars.web.rest.HoldController;
 import org.junit.experimental.categories.Category;
-import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +24,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.sql.Time;
 import java.time.Instant;
 import java.util.*;
 
@@ -81,9 +81,12 @@ public class HoldControllerSteps {
     }
 
     private void setupDatasources() {
-        connRepo = Mockito.mock(ConnectionRepository.class);
-        connSvc = Mockito.mock(ConnService.class);
+        setupMockConnRepo();
+        setupMockConnSvc();
+    }
 
+    private void setupMockConnRepo() {
+        connRepo = Mockito.mock(ConnectionRepository.class);
         List<Connection> mockConnections = new ArrayList<>();
         mockConnections.add(
             Connection.builder()
@@ -107,9 +110,19 @@ public class HoldControllerSteps {
             mockConnections
         );
 
-        controller.getConnSvc().setConnRepo(connRepo);
         controller.setConnRepo(connRepo);
-
+    }
+    private void setupMockConnSvc() {
+        connSvc = Mockito.mock(ConnService.class);
+        Mockito
+            .when(
+                connSvc.extendHold(Mockito.anyString()
+            ))
+            .thenReturn(
+                Instant.now()
+            );
+        connSvc.setConnRepo(connRepo);
+        controller.setConnSvc(connSvc);
     }
 
     @Given("The client executes {string} on HoldController path {string}")
@@ -159,5 +172,17 @@ public class HoldControllerSteps {
 
         assertNotNull(list);
         assert !list.isEmpty();
+    }
+
+    @Then("The HoldController response is a valid Instant object")
+    public void theHoldControllerResponseIsAValidInstantObject() {
+        assertNotNull(response.getBody());
+        String payload = response.getBody();
+        double timestampDouble = Double.parseDouble(payload);
+        long seconds = (long) timestampDouble;
+        long nanos = (long) ((timestampDouble - seconds) * 1_000_000_000);
+        Instant instant = Instant.ofEpochSecond(seconds, nanos);
+
+        assertNotNull(instant);
     }
 }
