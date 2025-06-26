@@ -1,14 +1,17 @@
 package net.es.oscars.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.extern.jackson.Jacksonized;
 import net.es.oscars.model.enums.Flavor;
+import net.es.oscars.model.enums.QosExcessAction;
 import net.es.oscars.model.enums.QosMode;
 import net.es.oscars.resv.enums.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +30,7 @@ public class L2VPN {
     @JsonIgnore
     private Long id;
 
-    @Schema(description = "Human readable name, from '234679CDFGHJKMNPRTWXYZ'", minLength = 4, maxLength = 4, example = "LHCONE to FNAL primary")
+    @Schema(description = "Human readable name, from '234679CDFGHJKMNPRTWXYZ'", minLength = 4, maxLength = 4, example = "CXA5")
     @Column(unique = true)
     protected String name;
 
@@ -66,16 +69,23 @@ public class L2VPN {
         @Schema(description= "QoS Mode", defaultValue="GUARANTEED", allowableValues = { "GUARANTEED", "BEST_EFFORT", "SCAVENGER" })
         @Builder.Default
         @Enumerated(EnumType.STRING)
-        @Column(name = "qosmode")
+        @Column(name = "qos_mode")
         protected QosMode mode = QosMode.GUARANTEED;
 
-        @Schema(description = "Bandwidth in Mbps, only for QoS mode GUARANTEED", defaultValue="0", minimum = "0", maximum = "1000000000", example = "1000")
+        @Schema(description= "QoS Excess Packet action", defaultValue="SCAVENGER", allowableValues = { "SCAVENGER", "BEST_EFFORT", "DROP" })
+        @Builder.Default
+        @Enumerated(EnumType.STRING)
+        @Column(name = "qos_excess_action")
+        protected QosExcessAction excessAction = QosExcessAction.SCAVENGER;
+
+
+        @Schema(description = "Bandwidth in Mbps; only for QoS mode GUARANTEED", defaultValue="0", minimum = "0", maximum = "1000000000", example = "1000")
         @Builder.Default
         protected int bandwidth = 0;
-
-        @Schema(description = "Percent of bandwidth that will be broadcast type. Typically zero.", minimum = "0", maximum = "100", defaultValue="0", example = "0")
-        @Builder.Default
-        protected int broadcastPct = 0;
+//
+//        @Schema(description = "Percent of bandwidth that will be broadcast type. Typically zero.", minimum = "0", maximum = "100", defaultValue="0", example = "0")
+//        @Builder.Default
+//        protected int broadcastPct = 0;
 
     }
 
@@ -88,16 +98,21 @@ public class L2VPN {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Meta {
-        @Schema(description = "Human readable description", minLength = 0, maxLength = 80, example = "CAST01")
+        @Schema(description = "Human readable description", minLength = 0, maxLength = 80, example = "LHC primary")
         protected String description;
 
         @Schema(description = "Username of the last modifier", minLength = 0, maxLength = 32, example = "haniotak")
         protected String username;
 
-        @Schema(description = "Tracking identifier; used in LSP naming. 4-6 alphanumeric characters", minLength = 4, maxLength = 4, example = "CAST01")
+        @Schema(description = "Tracking identifier; used in LSP naming. 4-6 alphanumeric characters", minLength = 4, maxLength = 6, example = "CAST01")
         protected String trackingId;
 
+        @Schema(description = "The orchestrator id")
         protected String orchId;
+
+        @Schema(description = "When this was last modified")
+        @JsonFormat(shape = JsonFormat.Shape.NUMBER, timezone = "UTC")
+        private Instant lastModified = Instant.now();
 
     }
 
@@ -139,7 +154,7 @@ public class L2VPN {
         @Builder.Default
         @Schema(description = "Build mode", defaultValue="AUTOMATIC", allowableValues = { "AUTOMATIC", "MANUAL" })
         @Enumerated(EnumType.STRING)
-        @Column(name = "buildmode")
+        @Column(name = "build_mode")
         protected BuildMode mode = BuildMode.AUTOMATIC;
 
         @Builder.Default
