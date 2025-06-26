@@ -1,24 +1,44 @@
 package net.es.oscars.resv.svc.conversions;
 
+import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.model.*;
 import net.es.oscars.model.enums.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.Phase;
+import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.resv.svc.ResvService;
+import net.es.oscars.topo.TopoService;
+import net.es.oscars.topo.beans.Device;
+import net.es.oscars.topo.beans.PortBwVlan;
+import net.es.oscars.topo.beans.Topology;
+import net.es.oscars.topo.beans.v2.EdgePort;
+import net.es.oscars.topo.pop.ConsistencyException;
+import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.PceMode;
 import net.es.oscars.web.simple.Fixture;
 import net.es.oscars.web.simple.Junction;
 import net.es.oscars.web.simple.Pipe;
 import net.es.oscars.web.simple.SimpleConnection;
+import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+@Component
+@Slf4j
 public class L2VPNConversions {
+    private final ConnService connSvc;
+    private final ResvService resvService;
+    private final TopologyStore topologyStore;
 
-    public static L2VPN fromConnection(Connection c){
+    public L2VPNConversions(ConnService connSvc, ResvService resvService, TopologyStore topologyStore) {
+        this.connSvc = connSvc;
+        this.resvService = resvService;
+        this.topologyStore = topologyStore;
+    }
+
+
+    public L2VPN fromConnection(Connection c){
 
         L2VPN l2VPN = L2VPN.builder()
                 .schedule(getInterval(c))
@@ -39,17 +59,38 @@ public class L2VPNConversions {
         return l2VPN;
     }
 
-    public static List<Endpoint> getEndpoints(Connection c) {
+    public List<Endpoint> getEndpoints(Connection c) {
         List<Endpoint> endpoints = new ArrayList<>();
         Components cmp = getComponents(c);
+        Topology topology = null;
+
+        Map<String, PortBwVlan> available = resvService.available(getInterval(c), connSvc.getHeld(), c.getConnectionId());
+        Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(getInterval(c), connSvc.getHeld(), c.getConnectionId());
+
+
         for (VlanFixture f: cmp.getFixtures()) {
             boolean tagged = f.getVlan().getVlanId() == 0;
-
+            EdgePort ep = null;
+            try {
+                topology = topologyStore.getCurrentTopology();
+                if (topology != null) {
+                    for (Device d : topology.getDevices().values()) {
+                        for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
+                            if (p.getUrn().equals(f.getPortUrn())) {
+                                ep = TopoService.mapEdgePort(p, available, vlanUsageMap);
+                            }
+                        }
+                    }
+                }
+            } catch (ConsistencyException e) {
+                log.error("can't get edge ports, exception: ", e);
+            }
             Endpoint endpoint = Endpoint.builder()
                     .vlan(f.getVlan().getVlanId())
                     .port(f.getPortUrn())
                     .device(f.getJunction().getDeviceUrn())
                     .tagged(tagged)
+                    .edgePort(ep)
                     .build();
 
             endpoints.add(endpoint);
@@ -59,7 +100,7 @@ public class L2VPNConversions {
     }
 
 
-    public static List<Bundle> getBundles(Connection c) {
+    public List<Bundle> getBundles(Connection c) {
         List<Bundle> bundles = new ArrayList<>();
         Components cmp = getComponents(c);
 
@@ -96,13 +137,13 @@ public class L2VPNConversions {
         return bundles;
     }
 
-    public static List<String> eroAsStringList(List<EroHop> ero) {
+    public List<String> eroAsStringList(List<EroHop> ero) {
         List<String> list = new ArrayList<>();
         ero.forEach(e -> list.add(e.getUrn()));
         return list;
     }
 
-    public static L2VPN.Meta getMeta(Connection c) {
+    public L2VPN.Meta getMeta(Connection c) {
         return L2VPN.Meta.builder()
                 .description(c.getDescription())
                 .username(c.getUsername())
@@ -111,7 +152,7 @@ public class L2VPNConversions {
                 .build();
     }
 
-    public static L2VPN.Status getStatus(Connection c) {
+    public L2VPN.Status getStatus(Connection c) {
         return L2VPN.Status.builder()
                 .state(c.getState())
                 .phase(c.getPhase())
@@ -120,7 +161,7 @@ public class L2VPNConversions {
                 .build();
     }
 
-    public static L2VPN.Tech getTech(Connection c)  {
+    public L2VPN.Tech getTech(Connection c)  {
         return L2VPN.Tech.builder()
                 .flavor(Flavor.VPLS)
                 .mtu(c.getConnection_mtu())
@@ -129,7 +170,7 @@ public class L2VPNConversions {
                 .build();
     }
 
-    public static L2VPN.Qos getQos(Connection c) {
+    public L2VPN.Qos getQos(Connection c) {
 
         Components cmp = getComponents(c);
         QosMode qosMode = QosMode.GUARANTEED;
@@ -146,7 +187,7 @@ public class L2VPNConversions {
                 .build();
     }
 
-    public static QosExcessAction getExcessAction(Components cmp) {
+    public QosExcessAction getExcessAction(Components cmp) {
         for (VlanFixture f : cmp.getFixtures()) {
             if (f.getStrict()) {
                 return QosExcessAction.DROP;
@@ -155,7 +196,7 @@ public class L2VPNConversions {
         return QosExcessAction.SCAVENGER;
     }
 
-    public static int getBandwidth(Components cmp) {
+    public int getBandwidth(Components cmp) {
         int bandwidth = 0;
         for (VlanPipe p : cmp.getPipes()) {
             if (p.getAzBandwidth() > bandwidth) {
@@ -176,7 +217,7 @@ public class L2VPNConversions {
 
     }
 
-    public static Components getComponents(Connection c) {
+    public Components getComponents(Connection c) {
         if (c.getPhase().equals(Phase.HELD)) {
             return c.getHeld().getCmp();
         } else if (c.getPhase().equals(Phase.RESERVED)) {
@@ -187,7 +228,7 @@ public class L2VPNConversions {
 
     }
 
-    public static Interval getInterval(Connection c) {
+    public Interval getInterval(Connection c) {
         Schedule sch;
         if (c.getPhase().equals(Phase.HELD)) {
             sch = c.getHeld().getSchedule();
@@ -201,7 +242,7 @@ public class L2VPNConversions {
 
 
 
-    public static SimpleConnection fromL2VPN(L2VPN l2VPNRequest) {
+    public SimpleConnection fromL2VPN(L2VPN l2VPNRequest) {
         Integer begin  = Long.valueOf(l2VPNRequest.getSchedule().getBeginning().getEpochSecond()).intValue();
         Integer end  = Long.valueOf(l2VPNRequest.getSchedule().getEnding().getEpochSecond()).intValue();
         Integer heldUntil = Long.valueOf(Instant.now().getEpochSecond() + 60).intValue();
