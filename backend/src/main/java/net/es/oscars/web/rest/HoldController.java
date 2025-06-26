@@ -1,5 +1,6 @@
 package net.es.oscars.web.rest;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
@@ -9,7 +10,6 @@ import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.ConnectionMode;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.svc.ConnService;
-import net.es.oscars.web.beans.BandwidthAvailabilityResponse;
 import net.es.oscars.web.beans.ConnException;
 import net.es.oscars.web.beans.CurrentlyHeldEntry;
 import net.es.oscars.web.simple.SimpleConnection;
@@ -28,23 +28,25 @@ import java.util.*;
 
 @RestController
 @Slf4j
+@Data
 public class HoldController {
     private final Startup startup;
 
-    private final ConnectionRepository connRepo;
-
-    private final ConnService connSvc;
-
+    private ConnectionRepository connRepo;
+    private ConnService connSvc;
     private final UsernameGetter usernameGetter;
 
-    public HoldController(Startup startup, ConnectionRepository connRepo, ConnService connSvc,
-                          UsernameGetter usernameGetter) {
+    public HoldController(
+        Startup startup,
+        ConnectionRepository connRepo,
+        ConnService connSvc,
+        UsernameGetter usernameGetter
+    ) {
         this.startup = startup;
         this.connRepo = connRepo;
         this.connSvc = connSvc;
         this.usernameGetter = usernameGetter;
     }
-
 
     @ExceptionHandler(NoSuchElementException.class)
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
