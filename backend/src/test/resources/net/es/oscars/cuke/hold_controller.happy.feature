@@ -12,4 +12,16 @@ Feature: Test the HoldController endpoints (Happy)
     When The client receives a response from HoldController
     Then The client receives a HoldController response status code of 200
     And The HoldController response is a valid list of CurrentlyHeldEntry objects
+
+  Scenario: Clear a hold on a connection
+    Given The client executes "GET" on HoldController path "/protected/held/clear/ABCD"
+    When The client receives a response from HoldController
+    Then The client receives a HoldController response status code of 200
+    # No response body expected
+
+  Scenario:
+    Given The client executes POST with SimpleConnection payload on HoldController path "/protected/cloneable"
+    When The client receives a response from HoldController
+    Then The client receives a HoldController response status code of 200
+    And The HoldController response is a valid SimpleConnection
    

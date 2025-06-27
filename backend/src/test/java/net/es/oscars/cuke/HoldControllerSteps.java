@@ -15,6 +15,8 @@ import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.web.beans.CurrentlyHeldEntry;
 import net.es.oscars.web.rest.HoldController;
+import net.es.oscars.web.simple.SimpleConnection;
+import net.es.oscars.web.simple.Validity;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -24,7 +26,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.sql.Time;
 import java.time.Instant;
 import java.util.*;
 
@@ -50,6 +51,9 @@ public class HoldControllerSteps {
     private TestRestTemplate restTemplate;
 
     @Autowired
+    private MockSimpleConnectionHelper helper;
+
+    @Autowired
     private Startup startup;
 
     @MockitoBean
@@ -62,9 +66,11 @@ public class HoldControllerSteps {
     private HoldController controller;
 
     private ResponseEntity<String> response;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Before("@HoldControllerSteps")
-    public void before() {
+    public void before() throws Exception {
         // Reset stuff
         clear();
 
@@ -80,7 +86,7 @@ public class HoldControllerSteps {
         response = null;
     }
 
-    private void setupDatasources() {
+    private void setupDatasources() throws Exception {
         setupMockConnRepo();
         setupMockConnSvc();
     }
@@ -89,18 +95,7 @@ public class HoldControllerSteps {
         connRepo = Mockito.mock(ConnectionRepository.class);
         List<Connection> mockConnections = new ArrayList<>();
         mockConnections.add(
-            Connection.builder()
-                .connectionId("ABCD")
-                .phase(Phase.HELD)
-                .mode(BuildMode.AUTOMATIC)
-                .state(State.WAITING)
-                .deploymentState(DeploymentState.UNDEPLOYED)
-                .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
-                .username("test")
-                .description("test description")
-                .connection_mtu(10000)
-                .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
-                .build()
+            generateMockConnection()
         );
 
         Mockito.when(
@@ -112,7 +107,21 @@ public class HoldControllerSteps {
 
         controller.setConnRepo(connRepo);
     }
-    private void setupMockConnSvc() {
+    private Connection generateMockConnection() {
+        return Connection.builder()
+            .connectionId("ABCD")
+            .phase(Phase.HELD)
+            .mode(BuildMode.AUTOMATIC)
+            .state(State.WAITING)
+            .deploymentState(DeploymentState.UNDEPLOYED)
+            .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
+            .username("test")
+            .description("test description")
+            .connection_mtu(10000)
+            .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
+            .build();
+    }
+    private void setupMockConnSvc() throws Exception {
         connSvc = Mockito.mock(ConnService.class);
         Mockito
             .when(
@@ -120,6 +129,20 @@ public class HoldControllerSteps {
             ))
             .thenReturn(
                 Instant.now()
+            );
+
+        Mockito
+            .when(
+                connSvc.validate(
+                    Mockito.any(SimpleConnection.class),
+                    Mockito.any(ConnectionMode.class)
+                )
+            )
+            .thenReturn(
+                Validity.builder()
+                    .valid(true)
+                    .message("valid test message")
+                    .build()
             );
         connSvc.setConnRepo(connRepo);
         controller.setConnSvc(connSvc);
@@ -143,6 +166,36 @@ public class HoldControllerSteps {
             } else {
                 throw new Throwable("Unsupported HTTP method " + method);
             }
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+        } catch (Exception ex) {
+            world.add(ex);
+            log.error(ex.getLocalizedMessage(), ex);
+        }
+    }
+
+    @Given("The client executes POST with SimpleConnection payload on HoldController path {string}")
+    public void theClientExecutesWithSimpleConnectionPayloadOnHoldControllerPath(String httpPath) throws Throwable {
+        HttpMethod method = HttpMethod.POST;
+        try {
+            log.info("Executing " + method + " on HoldController path " + httpPath);
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+                ObjectMapper mapper = new ObjectMapper();
+                SimpleConnection simpleConnection = helper.createSimpleConnection(
+                    10000,
+                    10000,
+                    10000,
+                    10000,
+                    10000
+                );
+                String payload = mapper.writeValueAsString(simpleConnection);
+
+                HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+
+                response = restTemplate.exchange(httpPath, method, entity, String.class);
             assertEquals(HttpStatus.OK, response.getStatusCode());
         } catch (Exception ex) {
             world.add(ex);
@@ -184,5 +237,19 @@ public class HoldControllerSteps {
         Instant instant = Instant.ofEpochSecond(seconds, nanos);
 
         assertNotNull(instant);
+    }
+
+    @Then("The HoldController response is a valid SimpleConnection")
+    public void theHoldControllerResponseIsAValidSimpleConnection() {
+        assertNotNull(response.getBody());
+        String payload = response.getBody();
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            SimpleConnection simpleConnection = mapper.readValue(payload, SimpleConnection.class);
+            assertNotNull(simpleConnection);
+        } catch (Exception ex) {
+            world.add(ex);
+            log.error(ex.getLocalizedMessage(), ex);
+        }
     }
 }
