@@ -1,6 +1,7 @@
 package net.es.oscars.web.rest;
 
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -26,6 +28,7 @@ import java.util.*;
 
 @RestController
 @Slf4j
+@Data
 public class ModifyController {
     @Autowired
     private LogService logService;
@@ -277,15 +280,10 @@ public class ModifyController {
     }
 
     private void checkStartup() throws StartupException {
-
         if (startup.isInStartup()) {
             throw new StartupException("OSCARS starting up");
         } else if (startup.isInShutdown()) {
             throw new StartupException("OSCARS shutting down");
         }
-
-
     }
-
-
 }

@@ -67,8 +67,6 @@ public class HoldControllerSteps {
     private HoldController controller;
 
     private ResponseEntity<String> response;
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Before("@HoldControllerSteps")
     public void before() throws Exception {

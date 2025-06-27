@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.model.Interval;
 import net.es.oscars.resv.ent.Connection;
+import net.es.oscars.resv.ent.Schedule;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ResvService;
@@ -197,8 +198,16 @@ public class MockSimpleConnectionHelper {
             .build();
     }
 
-    void createValidSchedule() {
+    Schedule createValidSchedule() {
         this.createValidSchedule(this.connService.getMinDuration());
+        return Schedule.builder()
+            .id(1L)
+            .connectionId(this.connectionId)
+            .beginning(this.beginInstant)
+            .ending(this.endInstant)
+            .phase(this.phase)
+            .refId("abc123-cr6")
+            .build();
     }
     void createValidSchedule(int durationMinutes) {
         Instant now = Instant.now();
