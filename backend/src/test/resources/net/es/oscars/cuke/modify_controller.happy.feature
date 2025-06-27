@@ -21,5 +21,13 @@ Feature: Test the ModifyController endpoints (Happy)
     And The ModifyController response is a valid ModifyResponse object
 
   Scenario: Modify the bandwidth at endpoint "/protected/modify/bandwidth"
+    Given The client executes POST with a BandwidthModifyRequest payload on ModifyController path "/protected/modify/bandwidth"
+    When The client receives a response from ModifyController
+    Then The client receives a ModifyController response status code of 200
+    And The ModifyController response is a valid ModifyResponse object
 
   Scenario: Check to see if the requested bandwidth is valid at endpoint "/api/valid/bandwidth"
+    Given The client executes POST with a BandwidthRangeRequest payload on ModifyController path "/api/valid/bandwidth"
+    When The client receives a response from ModifyController
+    Then The client receives a ModifyController response status code of 200
+    And The ModifyController response is a valid BandwidthRangeResponse object

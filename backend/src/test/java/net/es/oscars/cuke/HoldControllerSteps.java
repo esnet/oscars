@@ -187,7 +187,6 @@ public class HoldControllerSteps {
             } else {
                 throw new Throwable("Unsupported HTTP method " + method);
             }
-            assertEquals(HttpStatus.OK, response.getStatusCode());
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -200,24 +199,23 @@ public class HoldControllerSteps {
         try {
             log.info("Executing " + method + " on HoldController path " + httpPath);
 
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-                headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-                ObjectMapper mapper = new ObjectMapper();
-                SimpleConnection simpleConnection = helper.createSimpleConnection(
-                    10000,
-                    10000,
-                    10000,
-                    10000,
-                    10000
-                );
-                String payload = mapper.writeValueAsString(simpleConnection);
+            ObjectMapper mapper = new ObjectMapper();
+            SimpleConnection simpleConnection = helper.createSimpleConnection(
+                10000,
+                10000,
+                10000,
+                10000,
+                10000
+            );
+            String payload = mapper.writeValueAsString(simpleConnection);
 
-                HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
 
-                response = restTemplate.exchange(httpPath, method, entity, String.class);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
+            response = restTemplate.exchange(httpPath, method, entity, String.class);
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);

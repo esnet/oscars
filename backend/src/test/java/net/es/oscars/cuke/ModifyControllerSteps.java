@@ -19,10 +19,7 @@ import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.Held;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.ConnService;
-import net.es.oscars.web.beans.DescriptionModifyRequest;
-import net.es.oscars.web.beans.ModifyResponse;
-import net.es.oscars.web.beans.ScheduleModifyType;
-import net.es.oscars.web.beans.ScheduleRangeRequest;
+import net.es.oscars.web.beans.*;
 import net.es.oscars.web.rest.HoldController;
 import net.es.oscars.web.rest.ModifyController;
 import net.es.oscars.web.simple.SimpleConnection;
@@ -215,7 +212,6 @@ public class ModifyControllerSteps extends CucumberSteps {
             HttpEntity<String> entity = new HttpEntity<>(payload, headers);
 
             response = restTemplate.exchange(httpPath, method, entity, String.class);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -242,7 +238,58 @@ public class ModifyControllerSteps extends CucumberSteps {
             HttpEntity<String> entity = new HttpEntity<>(payload, headers);
 
             response = restTemplate.exchange(httpPath, method, entity, String.class);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
+        } catch (Exception ex) {
+            world.add(ex);
+            log.error(ex.getLocalizedMessage(), ex);
+        }
+    }
+
+    @Given("The client executes POST with a BandwidthModifyRequest payload on ModifyController path {string}")
+    public void theClientExecutesPOSTWithABandwidthModifyRequestPayloadOnModifyControllerPath(String httpPath) throws Exception {
+        HttpMethod method = HttpMethod.POST;
+        try {
+            log.info("Executing " + method + " on ModifyController path " + httpPath);
+            ObjectMapper mapper = new ObjectMapper();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+            ScheduleModifyRequest scheduleModifyRequest = ScheduleModifyRequest.builder()
+                .connectionId("ABCD")
+                .type(ScheduleModifyType.BEGIN)
+                .timestamp(Instant.now().toEpochMilli())
+                .build();
+
+            String payload = mapper.writeValueAsString(scheduleModifyRequest);
+
+            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+
+            response = restTemplate.exchange(httpPath, method, entity, String.class);
+        } catch (Exception ex) {
+            world.add(ex);
+            log.error(ex.getLocalizedMessage(), ex);
+        }
+    }
+
+    @Given("The client executes POST with a BandwidthRangeRequest payload on ModifyController path {string}")
+    public void theClientExecutesPOSTWithABandwidthRangeRequestPayloadOnModifyControllerPath(String httpPath) throws Exception {
+        HttpMethod method = HttpMethod.POST;
+        try {
+            log.info("Executing " + method + " on ModifyController path " + httpPath);
+            ObjectMapper mapper = new ObjectMapper();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+            BandwidthRangeRequest bandwidthRangeRequest = BandwidthRangeRequest.builder()
+                .connectionId("ABCD")
+                .build();
+
+            String payload = mapper.writeValueAsString(bandwidthRangeRequest);
+
+            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+
+            response = restTemplate.exchange(httpPath, method, entity, String.class);
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -262,7 +309,6 @@ public class ModifyControllerSteps extends CucumberSteps {
 
     @Then("The ModifyController response is a valid ScheduleRangeResponse object")
     public void theModifyControllerResponseIsAValidScheduleRangeResponseObject() throws JsonProcessingException {
-        //
         assert response != null;
         ObjectMapper mapper = new ObjectMapper();
         String payload = response.getBody();
@@ -276,7 +322,6 @@ public class ModifyControllerSteps extends CucumberSteps {
 
     @Then("The ModifyController response is a valid ModifyResponse object")
     public void theModifyControllerResponseIsAValidModifyResponseObject() throws JsonProcessingException {
-        //
         assert response != null;
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
@@ -288,5 +333,20 @@ public class ModifyControllerSteps extends CucumberSteps {
             ModifyResponse.class
         );
         assert modifyResponse != null;
+    }
+
+    @Then("The ModifyController response is a valid BandwidthRangeResponse object")
+    public void theModifyControllerResponseIsAValidBandwidthRangeResponseObject() throws JsonProcessingException {
+        assert response != null;
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+
+        String payload = response.getBody();
+        log.info("response: " + payload);
+        BandwidthRangeResponse bandwidthRangeResponse = mapper.readValue(
+            payload,
+            BandwidthRangeResponse.class
+        );
+        assert bandwidthRangeResponse != null;
     }
 }
