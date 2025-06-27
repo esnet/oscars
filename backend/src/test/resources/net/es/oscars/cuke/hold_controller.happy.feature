@@ -19,9 +19,15 @@ Feature: Test the HoldController endpoints (Happy)
     Then The client receives a HoldController response status code of 200
     # No response body expected
 
-  Scenario:
+  Scenario: Sending an HTTP POST payload to /protected/cloneable
     Given The client executes POST with SimpleConnection payload on HoldController path "/protected/cloneable"
     When The client receives a response from HoldController
     Then The client receives a HoldController response status code of 200
     And The HoldController response is a valid SimpleConnection
-   
+
+  Scenario: Sending an HTTP POST payload to /protected/hold
+    # Note, /protected/pcehold just calls the function handler for /protected/hold
+    Given The client executes POST with SimpleConnection payload on HoldController path "/protected/hold"
+    When The client receives a response from HoldController
+    Then The client receives a HoldController response status code of 200
+    And The HoldController response is a valid SimpleConnection

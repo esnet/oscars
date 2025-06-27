@@ -17,6 +17,7 @@ import net.es.oscars.web.beans.CurrentlyHeldEntry;
 import net.es.oscars.web.rest.HoldController;
 import net.es.oscars.web.simple.SimpleConnection;
 import net.es.oscars.web.simple.Validity;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -123,6 +124,8 @@ public class HoldControllerSteps {
     }
     private void setupMockConnSvc() throws Exception {
         connSvc = Mockito.mock(ConnService.class);
+
+        // Mock ConnService.extendHold()
         Mockito
             .when(
                 connSvc.extendHold(Mockito.anyString()
@@ -130,7 +133,7 @@ public class HoldControllerSteps {
             .thenReturn(
                 Instant.now()
             );
-
+        // Mock ConnService.validate()
         Mockito
             .when(
                 connSvc.validate(
@@ -144,6 +147,26 @@ public class HoldControllerSteps {
                     .message("valid test message")
                     .build()
             );
+
+        // Mock ConnService.holdConnection(), returns Tuple <SimpleConnection, Connection>
+        Pair<SimpleConnection, Connection> mockHoldConnection = Pair.of(
+            helper.createSimpleConnection(
+                10000,
+                10000,
+                10000,
+                10000,
+                10000
+            ),
+            generateMockConnection()
+        );
+        Mockito
+            .when(
+                connSvc.holdConnection(Mockito.any(SimpleConnection.class))
+            )
+            .thenReturn(
+                mockHoldConnection
+            );
+
         connSvc.setConnRepo(connRepo);
         controller.setConnSvc(connSvc);
     }
