@@ -389,6 +389,31 @@ public class EseApiControllerSteps extends CucumberSteps {
         assert responseObject != null;
     }
 
+    @Then("The EseApiController response L2VPN object's meta username property matches {string}")
+    public void theEseApiControllerResponseMetaUsernamePropertyMatches(String expectedUsername) throws JsonProcessingException {
+        assert response != null;
+        ObjectMapper mapper = new ObjectMapper();
+        String payload = response.getBody();
+        L2VPN responseObject = mapper.readValue(
+            payload,
+            L2VPN.class
+        );
+        assert responseObject != null;
+        assert responseObject.getMeta().getUsername().equals(expectedUsername);
+    }
+
+    @Then("The EseApiController response is a valid BandwidthAvailabilityResponse object")
+    public void theEseApiControllerResponseIsAValidBandwidthAvailabilityResponseObject() throws JsonProcessingException {
+        assert response != null;
+        ObjectMapper mapper = new ObjectMapper();
+        String payload = response.getBody();
+        BandwidthAvailabilityResponse responseObject = mapper.readValue(
+            payload,
+            BandwidthAvailabilityResponse.class
+        );
+        assert responseObject != null;
+    }
+
     private Connection generateMockConnection() {
         return Connection.builder()
             .id(1L)
@@ -418,18 +443,5 @@ public class EseApiControllerSteps extends CucumberSteps {
             .connection_mtu(10000)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
             .build();
-    }
-
-    @Then("The EseApiController response L2VPN object's meta username property matches {string}")
-    public void theEseApiControllerResponseMetaUsernamePropertyMatches(String expectedUsername) throws JsonProcessingException {
-        assert response != null;
-        ObjectMapper mapper = new ObjectMapper();
-        String payload = response.getBody();
-        L2VPN responseObject = mapper.readValue(
-            payload,
-            L2VPN.class
-        );
-        assert responseObject != null;
-        assert responseObject.getMeta().getUsername().equals(expectedUsername);
     }
 }

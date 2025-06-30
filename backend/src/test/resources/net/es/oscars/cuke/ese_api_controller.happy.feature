@@ -31,3 +31,15 @@ Feature: EseApiController Endpoints for l2VPNs
     Then The client receives a EseApiController response status code of 200
     And The EseApiController response is a valid L2VPN object
     And The EseApiController response L2VPN object's meta username property matches "test-user"
+
+#  Scenario: Replace an L2VPN (Not implemented yet)
+#    Given The client executes PUT with a L2VPN payload on EseApiController path "/api/l2vpn/replace"
+#    When The client receives a response from EseApiController
+#    Then The client receives a EseApiController response status code of 200
+#    And The EseApiController response is a valid L2VPN object
+
+  Scenario: Check availability of an L2VPN
+    Given The client executes POST with a L2VPN payload on EseApiController path "/api/l2vpn/availability"
+    When The client receives a response from EseApiController
+    Then The client receives a EseApiController response status code of 200
+    And The EseApiController response is a valid BandwidthAvailabilityResponse object
