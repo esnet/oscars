@@ -12,6 +12,7 @@ import net.es.oscars.topo.beans.Device;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.beans.v2.EdgePort;
+import net.es.oscars.topo.enums.UrnType;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.PceMode;
@@ -19,6 +20,7 @@ import net.es.oscars.web.simple.Fixture;
 import net.es.oscars.web.simple.Junction;
 import net.es.oscars.web.simple.Pipe;
 import net.es.oscars.web.simple.SimpleConnection;
+import net.es.topo.common.model.oscars2.OscarsTopology;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -38,7 +40,7 @@ public class L2VPNConversions {
     }
 
 
-    public L2VPN fromConnection(Connection c){
+    public L2VPN fromConnection(Connection c) {
 
         L2VPN l2VPN = L2VPN.builder()
                 .schedule(getInterval(c))
@@ -137,10 +139,28 @@ public class L2VPNConversions {
         return bundles;
     }
 
-    public List<String> eroAsStringList(List<EroHop> ero) {
-        List<String> list = new ArrayList<>();
-        ero.forEach(e -> list.add(e.getUrn()));
-        return list;
+    public List<Bundle.Waypoint> eroAsStringList(List<EroHop> ero) {
+        List<Bundle.Waypoint> list = new ArrayList<>();
+        try {
+            Topology topology = topologyStore.getCurrentTopology();
+            ero.forEach(e -> {
+                UrnType urnType = UrnType.PORT;
+                if (topology.getDevices().containsKey(e.getUrn())) {
+                    urnType = UrnType.DEVICE;
+                }
+                Bundle.Waypoint waypoint = Bundle.Waypoint.builder()
+                        .urn(e.getUrn())
+                        .type(urnType)
+                        .build();
+                list.add(waypoint);
+            });
+            return list;
+
+        } catch (ConsistencyException e) {
+            log.error("can't get waypoints, exception: ", e);
+            throw new RuntimeException(e);
+        }
+
     }
 
     public L2VPN.Meta getMeta(Connection c) {
@@ -275,7 +295,7 @@ public class L2VPNConversions {
                 if (primary.getPath() != null && !primary.getPath().isEmpty()) {
                     ero = primary.getPath();
                 } else if (bundle.getConstraints().getInclude() != null && !bundle.getConstraints().getInclude().isEmpty()) {
-                    ero = bundle.getConstraints().getInclude();
+                    ero = bundle.getConstraints().includedUrns();
                 }
 
                 pipes.add(Pipe.builder()
@@ -285,7 +305,7 @@ public class L2VPNConversions {
                         .a(bundle.getA())
                         .z(bundle.getZ())
                         .ero(ero)
-                        .exclude(new ArrayList<>(bundle.getConstraints().getExclude()))
+                        .exclude(new ArrayList<>(bundle.getConstraints().excludedUrns()))
                         .pceMode(PceMode.BEST)
                         .build());
 
