@@ -1,5 +1,7 @@
 package net.es.oscars.cuke;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -13,7 +15,17 @@ import net.es.oscars.model.Bundle;
 import net.es.oscars.model.Endpoint;
 import net.es.oscars.model.Interval;
 import net.es.oscars.model.L2VPN;
+import net.es.oscars.resv.db.ConnectionRepository;
+import net.es.oscars.resv.ent.Components;
+import net.es.oscars.resv.ent.Connection;
+import net.es.oscars.resv.ent.Held;
+import net.es.oscars.resv.enums.*;
+import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.L2VPNService;
+import net.es.oscars.resv.svc.conversions.L2VPNConversions;
+import net.es.oscars.web.beans.ConnectionFilter;
+import net.es.oscars.web.beans.ScheduleRangeRequest;
+import net.es.oscars.web.beans.v2.L2VPNList;
 import net.es.oscars.web.rest.v2.EseApiController;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mockito;
@@ -24,9 +36,10 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.time.Instant;
+import java.util.*;
+
+import static org.junit.Assert.assertEquals;
 
 @Slf4j
 @Category({UnitTests.class})
@@ -35,6 +48,8 @@ import java.util.List;
     classes = {
         BackendTestConfiguration.class,
         Startup.class,
+        ConnectionRepository.class,
+        ConnService.class,
         L2VPNService.class,
         UsernameGetter.class,
         EseApiController.class,
@@ -50,6 +65,9 @@ public class EseApiControllerSteps extends CucumberSteps {
     @Autowired
     private Startup startup;
 
+    @Autowired
+    private MockSimpleConnectionHelper helper;
+
     private ResponseEntity<String> response;
 
     @MockitoBean
@@ -57,6 +75,9 @@ public class EseApiControllerSteps extends CucumberSteps {
 
     @MockitoBean
     UsernameGetter usernameGetter;
+
+    @MockitoBean
+    ConnService connSvc;
 
     @Autowired
     private EseApiController controller;
@@ -79,15 +100,84 @@ public class EseApiControllerSteps extends CucumberSteps {
     }
 
     private void setupDatasources() throws Exception {
+//        setupMockL2VPNConversions();
+        setupMockConnService();
         setupMockL2VPNService();
         setupMockUsernameGetter();
+    }
+
+    private void setupMockL2VPNConversions() throws Exception {
+
+        Mockito
+            .when(
+                L2VPNConversions.fromConnection(Mockito.any(Connection.class))
+            )
+            .thenReturn(
+                generateMockL2VPN()
+            );
+    }
+
+    private void setupMockConnService() throws Exception {
+        connSvc = Mockito.mock(ConnService.class);
+        Connection mockConn = generateMockConnection();
+        Optional<Connection> mockConnOpt = Optional.of(mockConn);
+
+        // Mock ConnService.findConnection()
+        // ...requires ConnService.held data property (Map<String, Connection>)
+        connSvc.setHeld(Map.of("ABCD", mockConn));
+        Mockito
+            .doReturn(mockConnOpt).when(
+            connSvc
+        ).findConnection(Mockito.anyString());
     }
 
     private void setupMockL2VPNService() throws Exception {
         l2VPNService = Mockito.mock(L2VPNService.class);
 
+        l2VPNService.setConnSvc(connSvc);
+
         // TODO: Setup mock handlers for L2VPNService class methods
         // Mock L2VPNService.get()
+        L2VPN mockL2VPN = generateMockL2VPN();
+
+        Mockito
+            .doReturn(
+                mockL2VPN
+            )
+            .when(
+                l2VPNService
+            ).get(
+                Mockito.anyString()
+            );
+
+        // Mock L2VPNService.list()
+        List<L2VPN> mockL2VPNs = new ArrayList<>();
+        mockL2VPNs.add(mockL2VPN);
+
+        L2VPNList mockL2VPNList = L2VPNList.builder()
+            .page(1)
+            .sizePerPage(1)
+            .totalSize(1)
+            .l2vpns(mockL2VPNs)
+            .build();
+
+        Mockito
+            .when(
+                l2VPNService.list(
+                    Mockito.any(ConnectionFilter.class)
+                )
+            )
+            .thenReturn(
+                mockL2VPNList
+            );
+
+        // Mock L2VPNService.create()
+        // Mock L2VPNService.bwAvailability()
+
+        controller.setL2VPNService(l2VPNService);
+    }
+
+    private L2VPN generateMockL2VPN() {
         List<Bundle> mockBundles = new ArrayList<>();
         List<Endpoint> mockEndpoints = new ArrayList<>();
 
@@ -122,8 +212,7 @@ public class EseApiControllerSteps extends CucumberSteps {
                 .tagged(false)
                 .build()
         );
-
-        L2VPN mockL2VPN = L2VPN.builder()
+        return L2VPN.builder()
             .id(1L)
             .name("TEST")
             .meta(
@@ -149,16 +238,6 @@ public class EseApiControllerSteps extends CucumberSteps {
             .bundles(mockBundles)
             .endpoints(mockEndpoints)
             .build();
-
-        Mockito
-            .when(
-                l2VPNService.get(
-                    Mockito.anyString()
-                )
-            )
-            .thenReturn(mockL2VPN);
-
-        controller.setL2VPNService(l2VPNService);
     }
 
     private void setupMockUsernameGetter() throws Exception {
@@ -199,12 +278,51 @@ public class EseApiControllerSteps extends CucumberSteps {
     }
 
     @Then("The client receives a EseApiController response status code of {int}")
-    public void theClientReceivesAEseApiControllerResponseStatusCodeOf(int httpStatusCode) {
-        //
+    public void theClientReceivesAEseApiControllerResponseStatusCodeOf(int statusCode) {
+        log.info("response status code: " + response.getStatusCode());
+        assertEquals(statusCode, response.getStatusCode().value());
     }
 
     @Then("The EseApiController response is a valid L2VPN object")
-    public void theEseApiControllerResponseIsAValidLVPNObject() {
-        //
+    public void theEseApiControllerResponseIsAValidLVPNObject() throws JsonProcessingException {
+        assert response != null;
+        ObjectMapper mapper = new ObjectMapper();
+        String payload = response.getBody();
+        L2VPN responseObject = mapper.readValue(
+            payload,
+            L2VPN.class
+        );
+        assert responseObject != null;
+    }
+
+    private Connection generateMockConnection() {
+        return Connection.builder()
+            .id(1L)
+            .held( // Required, or /protected/modify/description result will become an HTTP 500 Internal Server Error
+                Held.builder()
+                    .connectionId("ABCD")
+                    .cmp(
+                        Components.builder()
+                            .id(1L)
+                            .fixtures(new ArrayList<>())
+                            .junctions(new ArrayList<>())
+                            .pipes(new ArrayList<>())
+                            .build()
+                    )
+                    .expiration(Instant.now().plusSeconds(60 * 20)) // 20 minutes from now
+                    .schedule(helper.createValidSchedule())
+                    .build()
+            )
+            .connectionId("ABCD")
+            .phase(Phase.HELD)
+            .mode(BuildMode.AUTOMATIC)
+            .state(State.WAITING)
+            .deploymentState(DeploymentState.UNDEPLOYED)
+            .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
+            .username("test")
+            .description("test description")
+            .connection_mtu(10000)
+            .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
+            .build();
     }
 }
