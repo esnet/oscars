@@ -13,4 +13,7 @@
     <logger name="org.springframework.boot.autoconfigure" level="error" />
     <logger name="org.springframework.ui" level="error" />
     <logger name="org.hibernate" level="error" />
+    <logger name="net.es.oscars.cuke" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
 </configuration>

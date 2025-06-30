@@ -1,5 +1,6 @@
 package net.es.oscars.web.rest.v2;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
@@ -26,10 +27,11 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Slf4j
+@Data
 public class EseApiController {
     private final Startup startup;
-    private final L2VPNService l2VPNService;
-    private final UsernameGetter usernameGetter;
+    private L2VPNService l2VPNService;
+    private UsernameGetter usernameGetter;
 
     public EseApiController(Startup startup, L2VPNService l2VPNService, UsernameGetter usernameGetter) {
         this.startup = startup;
