@@ -3,6 +3,7 @@ package net.es.oscars.cuke;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.Before;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -24,6 +25,7 @@ import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.L2VPNService;
 import net.es.oscars.resv.svc.conversions.L2VPNConversions;
 import net.es.oscars.web.beans.ConnectionFilter;
+import net.es.oscars.web.beans.ScheduleModifyType;
 import net.es.oscars.web.beans.ScheduleRangeRequest;
 import net.es.oscars.web.beans.v2.L2VPNList;
 import net.es.oscars.web.rest.v2.EseApiController;
@@ -272,6 +274,33 @@ public class EseApiControllerSteps extends CucumberSteps {
         }
     }
 
+    @Given("The client executes POST with a ConnectionFilter payload on EseApiController path {string}")
+    public void theClientExecutesPOSTWithAConnectionFilterPayloadOnEseApiControllerPath(String httpPath) throws Throwable {
+        HttpMethod method = HttpMethod.POST;
+        try {
+            log.info("Executing " + method + " on EseApiController path " + httpPath);
+            ObjectMapper mapper = new ObjectMapper();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+            ConnectionFilter requestPayload = ConnectionFilter.builder()
+                .connectionId("ABCD")
+                .sizePerPage(1)
+                .page(1)
+                .build();
+
+            String payload = mapper.writeValueAsString(requestPayload);
+
+            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+
+            response = restTemplate.exchange(httpPath, method, entity, String.class);
+        } catch (Exception ex) {
+            world.add(ex);
+            log.error(ex.getLocalizedMessage(), ex);
+        }
+    }
+
     @When("The client receives a response from EseApiController")
     public void theClientReceivesAResponseFromEseApiController() {
         assert response != null;
@@ -284,13 +313,25 @@ public class EseApiControllerSteps extends CucumberSteps {
     }
 
     @Then("The EseApiController response is a valid L2VPN object")
-    public void theEseApiControllerResponseIsAValidLVPNObject() throws JsonProcessingException {
+    public void theEseApiControllerResponseIsAValidLVPNObject() throws Exception {
         assert response != null;
         ObjectMapper mapper = new ObjectMapper();
         String payload = response.getBody();
         L2VPN responseObject = mapper.readValue(
             payload,
             L2VPN.class
+        );
+        assert responseObject != null;
+    }
+
+    @Then("The EseApiController response is a valid L2VPNList object")
+    public void theEseApiControllerResponseIsAValidLVPNListObject() throws Exception {
+        assert response != null;
+        ObjectMapper mapper = new ObjectMapper();
+        String payload = response.getBody();
+        L2VPNList responseObject = mapper.readValue(
+            payload,
+            L2VPNList.class
         );
         assert responseObject != null;
     }
