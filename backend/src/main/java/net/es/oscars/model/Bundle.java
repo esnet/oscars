@@ -7,6 +7,7 @@ import lombok.extern.jackson.Jacksonized;
 import net.es.oscars.model.enums.Protection;
 import net.es.oscars.topo.enums.UrnType;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -82,7 +83,7 @@ public class Bundle {
     @AllArgsConstructor
     @Getter
     @Setter
-    public static class Waypoint {
+    public static class Waypoint implements Serializable {
         protected String urn;
         protected UrnType type;
     }

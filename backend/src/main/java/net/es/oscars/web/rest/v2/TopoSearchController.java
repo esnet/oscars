@@ -1,5 +1,6 @@
 package net.es.oscars.web.rest.v2;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
@@ -24,6 +25,7 @@ import net.es.oscars.web.beans.v2.PortSearchRequest;
 import net.es.oscars.web.beans.v2.ConnectionEdgePortRequest;
 import net.es.topo.common.model.oscars1.EthernetEncapsulation;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,12 +35,13 @@ import java.util.*;
 
 @RestController
 @Slf4j
+@Data
 public class TopoSearchController {
-    private final TopologyStore topologyStore;
+    private TopologyStore topologyStore;
     private final Startup startup;
-    private final ResvService resvService;
-    private final ConnectionRepository connRepo;
-    private final ConnService connService;
+    private ResvService resvService;
+    private ConnectionRepository connRepo;
+    private ConnService connService;
 
     public TopoSearchController(TopologyStore topologyStore, Startup startup, ResvService resvService, ConnectionRepository connRepo, ConnService connService) {
         this.topologyStore = topologyStore;

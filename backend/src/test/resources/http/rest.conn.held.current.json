@@ -1,0 +1,10 @@
+[
+  {
+    "connectionId": "ABC1",
+    "userName": "test"
+  },
+  {
+    "connectionId": "XYZ2",
+    "userName": "test"
+  }
+]

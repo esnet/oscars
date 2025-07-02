@@ -1,10 +1,12 @@
 package net.es.oscars.cuke;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.Startup;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.web.beans.NsoStateResponse;
 import net.es.topo.common.dto.nso.NsoVPLS;
@@ -32,7 +34,15 @@ public class NsoSyncControllerSteps extends CucumberSteps {
 
     @Autowired
     private TestRestTemplate restTemplate;
+    @Autowired
+    private Startup startup;
+
     private ResponseEntity<String> response;
+
+    @Before("@RestNsoSync")
+    public void before() {
+        startup.setInStartup(false);
+    }
 
     @Given("the client executes {string} on {string}")
     public void theClientExecutesOn(String arg0, String arg1) throws Throwable {
@@ -95,17 +105,12 @@ public class NsoSyncControllerSteps extends CucumberSteps {
 
     @Then("the client receives the status code of {int}")
     public void theClientReceivesTheStatusCodeOf(int statusCode) throws Throwable {
-        assertEquals(statusCode, response.getStatusCode().value());
+        assert response.getStatusCode() == HttpStatus.valueOf(statusCode);
     }
 
     @Then("the client receives the payload")
     public void theClientReceivesThePayload() throws Throwable {
         assertNotNull(response.getBody());
-    }
-
-    @Then("the client receives a status code of {int}")
-    public void theClientReceivesAStatusCodeOf(int arg0) {
-
     }
 
     @Then("the client receives the payload {string}")

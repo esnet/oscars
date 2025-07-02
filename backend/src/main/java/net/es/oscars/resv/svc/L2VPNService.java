@@ -1,5 +1,6 @@
 package net.es.oscars.resv.svc;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.model.*;
@@ -25,8 +26,9 @@ import java.util.List;
 
 @Component
 @Slf4j
+@Data
 public class L2VPNService {
-    private final ConnService connSvc;
+    private ConnService connSvc;
 
     private final L2VPNConversions l2VPNConversions;
 
