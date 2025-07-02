@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.extern.jackson.Jacksonized;
+import net.es.oscars.topo.beans.v2.EdgePort;
 
 @Jacksonized
 @Builder
@@ -37,4 +38,9 @@ public class Endpoint {
     public int vlan;
 
     public boolean tagged;
+
+    @Transient
+    public EdgePort edgePort;
+
+
 }

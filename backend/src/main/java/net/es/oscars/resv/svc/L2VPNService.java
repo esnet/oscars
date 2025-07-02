@@ -30,20 +30,22 @@ import java.util.List;
 public class L2VPNService {
     private ConnService connSvc;
 
-    public L2VPNService(ConnService connSvc) {
+    private final L2VPNConversions l2VPNConversions;
+
+    public L2VPNService(ConnService connSvc, L2VPNConversions l2VPNConversions) {
         this.connSvc = connSvc;
+        this.l2VPNConversions = l2VPNConversions;
     }
+
     public L2VPN get(String connectionId) throws ConnException {
-        return L2VPNConversions.fromConnection(
-            connSvc.findConnection(connectionId).orElseThrow()
-        );
+        return l2VPNConversions.fromConnection(connSvc.findConnection(connectionId).orElseThrow());
     }
 
     public L2VPNList list(ConnectionFilter filter) {
         ConnectionList connList = connSvc.filter(filter);
         List<L2VPN> l2vpns = new ArrayList<>();
         for (Connection conn : connList.getConnections()) {
-            l2vpns.add(L2VPNConversions.fromConnection(conn));
+            l2vpns.add(l2VPNConversions.fromConnection(conn));
         }
         return L2VPNList.builder()
                 .page(connList.getPage())
@@ -60,19 +62,19 @@ public class L2VPNService {
                         .phase(Phase.HELD)
                         .state(State.WAITING)
                 .build());
-        SimpleConnection simpleConnection = L2VPNConversions.fromL2VPN(l2VPN);
+        SimpleConnection simpleConnection = l2VPNConversions.fromL2VPN(l2VPN);
         return connSvc.bwAvailability(simpleConnection);
     }
 
     public L2VPN create(L2VPN l2VPN) throws ConnException {
-        SimpleConnection in = L2VPNConversions.fromL2VPN(l2VPN);
+        SimpleConnection in = l2VPNConversions.fromL2VPN(l2VPN);
         Pair<SimpleConnection, Connection> holdResult = connSvc.holdConnection(in);
         try {
             connSvc.commit(holdResult.getRight());
         } catch (NsoResvException | PCEException e) {
             throw new ConnException(e.getMessage());
         }
-        return L2VPNConversions.fromConnection(connSvc.findConnection(l2VPN.getName()).orElseThrow(
+        return l2VPNConversions.fromConnection(connSvc.findConnection(l2VPN.getName()).orElseThrow(
                 () -> new ConnException("No connection found for name: " + l2VPN.getName())
         ));
     }

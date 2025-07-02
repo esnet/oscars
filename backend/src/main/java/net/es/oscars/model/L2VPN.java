@@ -1,5 +1,6 @@
 package net.es.oscars.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,6 +11,7 @@ import net.es.oscars.model.enums.QosMode;
 import net.es.oscars.resv.enums.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -105,7 +107,12 @@ public class L2VPN {
         @Schema(description = "Tracking identifier; used in LSP naming. 4-6 alphanumeric characters", minLength = 4, maxLength = 6, example = "CAST01")
         protected String trackingId;
 
+        @Schema(description = "The orchestrator id")
         protected String orchId;
+
+        @Schema(description = "When this was last modified")
+        @JsonFormat(shape = JsonFormat.Shape.NUMBER, timezone = "UTC")
+        private Instant lastModified = Instant.now();
 
     }
 
