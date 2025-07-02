@@ -58,8 +58,8 @@ public class Bundle {
     public static class Constraints {
 
         @ElementCollection
-        @CollectionTable(name="include", joinColumns=@JoinColumn(name="bundle_id"))
-        @Column(name="include")
+        @CollectionTable(name="`include`", joinColumns=@JoinColumn(name="bundle_id"))
+        @Column(name="`include`")
         protected List<Waypoint> include;
 
         @ElementCollection
