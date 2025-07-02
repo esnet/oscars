@@ -63,8 +63,8 @@ public class Bundle {
         protected List<Waypoint> include;
 
         @ElementCollection
-        @CollectionTable(name="exclude", joinColumns=@JoinColumn(name="bundle_id"))
-        @Column(name="exclude")
+        @CollectionTable(name="`exclude`", joinColumns=@JoinColumn(name="bundle_id"))
+        @Column(name="`exclude`")
         protected Set<Waypoint> exclude;
 
         public List<String> includedUrns() {
