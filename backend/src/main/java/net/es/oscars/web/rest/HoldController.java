@@ -1,5 +1,6 @@
 package net.es.oscars.web.rest;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
@@ -27,20 +28,25 @@ import java.util.*;
 
 @RestController
 @Slf4j
+@Data
 public class HoldController {
-    @Autowired
-    private Startup startup;
+    private final Startup startup;
 
-    @Autowired
     private ConnectionRepository connRepo;
-
-    @Autowired
     private ConnService connSvc;
+    private final UsernameGetter usernameGetter;
 
-
-    @Autowired
-    private UsernameGetter usernameGetter;
-
+    public HoldController(
+        Startup startup,
+        ConnectionRepository connRepo,
+        ConnService connSvc,
+        UsernameGetter usernameGetter
+    ) {
+        this.startup = startup;
+        this.connRepo = connRepo;
+        this.connSvc = connSvc;
+        this.usernameGetter = usernameGetter;
+    }
 
     @ExceptionHandler(NoSuchElementException.class)
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
@@ -58,16 +64,10 @@ public class HoldController {
     @Transactional
     public Instant extendHold(@PathVariable String connectionId)
             throws StartupException, NoSuchElementException {
-
-        if (startup.isInStartup()) {
-            throw new StartupException("OSCARS starting up");
-        } else if (startup.isInShutdown()) {
-            throw new StartupException("OSCARS shutting down");
-        }
-        Instant expiration = connSvc.extendHold(connectionId);
+        this.checkStartup();
 
 
-        return expiration;
+        return connSvc.extendHold(connectionId);
     }
 
 
@@ -75,11 +75,8 @@ public class HoldController {
     @ResponseBody
     @Transactional
     public List<CurrentlyHeldEntry> currentlyHeld()  throws StartupException {
-        if (startup.isInStartup()) {
-            throw new StartupException("OSCARS starting up");
-        } else if (startup.isInShutdown()) {
-            throw new StartupException("OSCARS shutting down");
-        }
+        this.checkStartup();
+
         List<Connection> connections = connRepo.findByPhase(Phase.HELD);
         List<CurrentlyHeldEntry> result = new ArrayList<>();
         for (Connection c: connections) {
@@ -96,11 +93,8 @@ public class HoldController {
     @ResponseBody
     @Transactional
     public void clearHeld(@PathVariable String connectionId)  throws StartupException {
-        if (startup.isInStartup()) {
-            throw new StartupException("OSCARS starting up");
-        } else if (startup.isInShutdown()) {
-            throw new StartupException("OSCARS shutting down");
-        }
+        this.checkStartup();
+
         connSvc.releaseHold(connectionId);
     }
 
@@ -111,13 +105,14 @@ public class HoldController {
     @Transactional
     public SimpleConnection cloneable(Authentication authentication,
                                       @RequestBody SimpleConnection connection)
-            throws ConnException {
+            throws ConnException, StartupException {
+
+        this.checkStartup();
 
         int duration = connection.getEnd() - connection.getBegin();
 
         connection.setUsername(usernameGetter.username(authentication));
         // try to get starting now() with same duration
-
 
         Instant now = Instant.now();
 
@@ -135,12 +130,8 @@ public class HoldController {
     @Transactional
     public SimpleConnection hold(Authentication authentication, @RequestBody SimpleConnection in)
             throws StartupException, ConnException {
+        this.checkStartup();
 
-        if (startup.isInStartup()) {
-            throw new StartupException("OSCARS starting up");
-        } else if (startup.isInShutdown()) {
-            throw new StartupException("OSCARS shutting down");
-        }
         in.setUsername(usernameGetter.username(authentication));
         Pair<SimpleConnection, Connection> holdResult = connSvc.holdConnection(in);
         return holdResult.getLeft();
@@ -152,9 +143,15 @@ public class HoldController {
     @Transactional
     public SimpleConnection pceHold(Authentication authentication, @RequestBody SimpleConnection in)
             throws StartupException, ConnException {
-
         return this.hold(authentication, in);
     }
 
+    private void checkStartup() throws StartupException {
+        if (startup.isInStartup()) {
+            throw new StartupException("OSCARS starting up");
+        } else if (startup.isInShutdown()) {
+            throw new StartupException("OSCARS shutting down");
+        }
+    }
 
 }

@@ -1,5 +1,6 @@
 package net.es.oscars.web.rest.v2;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
@@ -7,6 +8,7 @@ import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ResvService;
+import net.es.oscars.topo.TopoService;
 import net.es.oscars.topo.beans.Device;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.beans.Topology;
@@ -23,6 +25,7 @@ import net.es.oscars.web.beans.v2.PortSearchRequest;
 import net.es.oscars.web.beans.v2.ConnectionEdgePortRequest;
 import net.es.topo.common.model.oscars1.EthernetEncapsulation;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,12 +35,13 @@ import java.util.*;
 
 @RestController
 @Slf4j
+@Data
 public class TopoSearchController {
-    private final TopologyStore topologyStore;
+    private TopologyStore topologyStore;
     private final Startup startup;
-    private final ResvService resvService;
-    private final ConnectionRepository connRepo;
-    private final ConnService connService;
+    private ResvService resvService;
+    private ConnectionRepository connRepo;
+    private ConnService connService;
 
     public TopoSearchController(TopologyStore topologyStore, Startup startup, ResvService resvService, ConnectionRepository connRepo, ConnService connService) {
         this.topologyStore = topologyStore;
@@ -138,7 +142,7 @@ public class TopoSearchController {
                 }
 
                 if (isResult) {
-                    results.add(mapEdgePort(p, available, vlanUsageMap));
+                    results.add(TopoService.mapEdgePort(p, available, vlanUsageMap));
                 }
             }
         }
@@ -208,7 +212,7 @@ public class TopoSearchController {
                     results.add(LspWaypoint.builder()
                             .waypointType(LspWaypoint.WaypointType.PORT)
                             .device(null)
-                            .port(mapBackbonePort(p, available))
+                            .port(TopoService.mapBackbonePort(p, available))
                             .build());
                 }
             }
@@ -246,7 +250,7 @@ public class TopoSearchController {
                 continue;
             }
             log.info(p.getUrn());
-            results.add(mapBackbonePort(p, null));
+            results.add(TopoService.mapBackbonePort(p, null));
         }
 
         return results;
@@ -294,7 +298,7 @@ public class TopoSearchController {
         for (Device d : topology.getDevices().values()) {
             for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
                 if (connectionEdgePorts.contains(p.getUrn())) {
-                    results.add(mapEdgePort(p, available, vlanUsageMap));
+                    results.add(TopoService.mapEdgePort(p, available, vlanUsageMap));
                 }
             }
         }
@@ -325,107 +329,13 @@ public class TopoSearchController {
 
         for (Device d : topology.getDevices().values()) {
             for (net.es.oscars.topo.beans.Port p : d.getPorts()) {
-                results.add(mapEdgePort(p, available, vlanUsageMap));
+                results.add(TopoService.mapEdgePort(p, available, vlanUsageMap));
             }
         }
         return results;
     }
 
 
-    private BackbonePort mapBackbonePort(net.es.oscars.topo.beans.Port p, Map<String, PortBwVlan> available) throws ConsistencyException {
 
-        String[] parts = p.getUrn().split(":");
-        if (parts.length != 2) {
-            throw new ConsistencyException("Invalid port URN format");
-        }
-
-        // get the least of ingress / egress available
-        int bwPhysical = p.getReservableIngressBw();
-        if (p.getReservableEgressBw() < bwPhysical) {
-            bwPhysical = p.getReservableEgressBw();
-        }
-
-        Bandwidth bw = Bandwidth.builder()
-                .unit(Bandwidth.Unit.MBPS)
-                .physical(bwPhysical)
-                .build();
-
-        if (available != null) {
-            if (!available.containsKey(p.getUrn())) {
-                throw new ConsistencyException("cannot get available bw for " + p.getUrn());
-            }
-            PortBwVlan pbw = available.get(p.getUrn());
-
-            int bwAvailable = pbw.getIngressBandwidth();
-            if (pbw.getEgressBandwidth() < bwAvailable) {
-                bwAvailable = pbw.getEgressBandwidth();
-            }
-            bw.setAvailable(bwAvailable);
-        }
-
-        return BackbonePort.builder()
-                .device(parts[0])
-                .name(parts[1])
-                .bandwidth(bw)
-                .description(p.getTags())
-                .esdbEquipmentInterfaceId(p.getEsdbEquipmentInterfaceId())
-                .build();
-    }
-
-    private EdgePort mapEdgePort(net.es.oscars.topo.beans.Port p,
-                                 Map<String, PortBwVlan> available,
-                                 Map<String, Map<Integer, Set<String>>> vlanUsageMap) throws ConsistencyException {
-
-        EthernetEncapsulation encapsulation = EthernetEncapsulation.DOT1Q;
-        if (p.getReservableVlans().size() <= 1) {
-            encapsulation = EthernetEncapsulation.NULL;
-        }
-
-        String[] parts = p.getUrn().split(":");
-        if (parts.length != 2) {
-            throw new ConsistencyException("Invalid port URN format");
-        }
-
-        if (!available.containsKey(p.getUrn())) {
-            throw new ConsistencyException("cannot get available bw and vlans for " + p.getUrn());
-        }
-        PortBwVlan pbw = available.get(p.getUrn());
-
-        VlanAvailability vlanAvailability = VlanAvailability.builder()
-                .ranges(pbw.getVlanRanges())
-                .build();
-
-        // get the least of ingress / egress available
-        int bwPhysical = p.getReservableIngressBw();
-        if (p.getReservableEgressBw() < bwPhysical) {
-            bwPhysical = p.getReservableEgressBw();
-        }
-        int bwAvailable = pbw.getIngressBandwidth();
-        if (pbw.getEgressBandwidth() < bwAvailable) {
-            bwAvailable = pbw.getEgressBandwidth();
-        }
-
-        Bandwidth bw = Bandwidth.builder()
-                .unit(Bandwidth.Unit.MBPS)
-                .available(bwAvailable)
-                .physical(bwPhysical)
-                .build();
-
-        Map<Integer, Set<String>> vlanUsage = new HashMap<>();
-        if (vlanUsageMap.containsKey(p.getUrn())) {
-            vlanUsage = vlanUsageMap.get(p.getUrn());
-        }
-
-        return EdgePort.builder()
-                .device(parts[0])
-                .name(parts[1])
-                .bandwidth(bw)
-                .encapsulation(encapsulation)
-                .availability(EdgePort.Availability.builder().vlan(vlanAvailability).build())
-                .description(p.getTags())
-                .esdbEquipmentInterfaceId(p.getEsdbEquipmentInterfaceId())
-                .usage(EdgePort.Usage.builder().vlan(vlanUsage).build())
-                .build();
-    }
 
 }

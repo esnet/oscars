@@ -23,10 +23,8 @@ import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ConnUtils;
-import net.es.oscars.web.beans.ConnChangeResult;
-import net.es.oscars.web.beans.ConnException;
-import net.es.oscars.web.beans.ConnectionFilter;
-import net.es.oscars.web.beans.ConnectionList;
+import net.es.oscars.web.beans.*;
+import net.es.oscars.web.simple.SimpleConnection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -39,30 +37,34 @@ import java.util.*;
 @RestController
 @Slf4j
 public class ConnController {
-    @Autowired
-    private Startup startup;
+    private final Startup startup;
 
-    @Autowired
-    private ConnectionRepository connRepo;
+    private final ConnectionRepository connRepo;
 
-    @Autowired
-    private CommandHistoryRepository historyRepo;
+    private final CommandHistoryRepository historyRepo;
 
-    @Autowired
-    private ConnService connSvc;
+    private final ConnService connSvc;
 
-    @Autowired
-    private ConnUtils connUtils;
+    private final ConnUtils connUtils;
 
-    @Autowired
-    private NsiService nsiSvc;
+    private final NsiService nsiSvc;
 
-    @Autowired
-    private NsiMappingService nsiMappingService;
+    private final NsiMappingService nsiMappingService;
 
+    private final UsernameGetter usernameGetter;
 
-    @Autowired
-    private UsernameGetter usernameGetter;
+    public ConnController(Startup startup, ConnectionRepository connRepo, CommandHistoryRepository historyRepo,
+                          ConnService connSvc, ConnUtils connUtils, NsiService nsiSvc,
+                          NsiMappingService nsiMappingService, UsernameGetter usernameGetter) {
+        this.startup = startup;
+        this.connRepo = connRepo;
+        this.historyRepo = historyRepo;
+        this.connSvc = connSvc;
+        this.connUtils = connUtils;
+        this.nsiSvc = nsiSvc;
+        this.nsiMappingService = nsiMappingService;
+        this.usernameGetter = usernameGetter;
+    }
 
     @ExceptionHandler(StartupException.class)
     @ResponseStatus(value = HttpStatus.SERVICE_UNAVAILABLE)
@@ -100,11 +102,10 @@ public class ConnController {
         Connection c = connSvc.findConnection(connectionId).orElseThrow();
         c.setUsername(usernameGetter.username(authentication));
 
-        log.debug("committing : \n"+connectionId);
+        log.debug("committing : \n" + connectionId);
 
         return connSvc.commit(c);
     }
-
 
 
     @RequestMapping(value = "/protected/conn/release", method = RequestMethod.POST)
@@ -178,6 +179,7 @@ public class ConnController {
 
         return connSvc.filter(filter);
     }
+
 
     private void checkStartup() throws StartupException {
         if (startup.isInStartup()) {

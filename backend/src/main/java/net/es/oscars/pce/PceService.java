@@ -90,8 +90,8 @@ public class PceService {
                     .azBandwidth(request.getBandwidth())
                     .zaBandwidth(request.getBandwidth()).build();
             PathConstraint constraint = PathConstraint.builder()
-                    .ero(bundle.getConstraints().getInclude())
-                    .exclude(bundle.getConstraints().getExclude())
+                    .ero(bundle.getConstraints().includedUrns())
+                    .exclude(bundle.getConstraints().excludedUrns())
                     .build();
             validateConstraints(constraint, bwPipe);
 
@@ -139,7 +139,7 @@ public class PceService {
 
             LSP protect = LSP.builder()
                     .path(protectPath)
-                    .role(Role.PROTECT)
+                    .role(Role.SECONDARY)
                     .build();
             responseBundle.getLsps().add(protect);
 

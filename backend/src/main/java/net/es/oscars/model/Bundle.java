@@ -5,10 +5,13 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.extern.jackson.Jacksonized;
 import net.es.oscars.model.enums.Protection;
+import net.es.oscars.topo.enums.UrnType;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Jacksonized
@@ -52,22 +55,37 @@ public class Bundle {
     @AllArgsConstructor
     @Getter
     @Setter
-
-    @Embeddable
-    @Table
     public static class Constraints {
 
         @ElementCollection
         @CollectionTable(name="include", joinColumns=@JoinColumn(name="bundle_id"))
         @Column(name="include")
-        protected List<String> include;
+        protected List<Waypoint> include;
 
         @ElementCollection
         @CollectionTable(name="exclude", joinColumns=@JoinColumn(name="bundle_id"))
         @Column(name="exclude")
-        protected Set<String> exclude;
+        protected Set<Waypoint> exclude;
+
+        public List<String> includedUrns() {
+            return include.stream().map(Waypoint::getUrn).collect(Collectors.toList());
+        }
+        public Set<String> excludedUrns() {
+            return include.stream().map(Waypoint::getUrn).collect(Collectors.toSet());
+        }
 
 
+    }
+
+    @Jacksonized
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Getter
+    @Setter
+    public static class Waypoint implements Serializable {
+        protected String urn;
+        protected UrnType type;
     }
 
 
