@@ -83,7 +83,12 @@ public class Bundle {
     @AllArgsConstructor
     @Getter
     @Setter
-    public static class Waypoint implements Serializable {
+    @Entity
+    public static class Waypoint {
+        @GeneratedValue
+        @JsonIgnore
+        @Id
+        private Long id;
         protected String urn;
         protected UrnType type;
     }
