@@ -262,18 +262,14 @@ public class NsiQueries {
 
 
     private static Components getComponents(Connection c) throws NsiInternalException {
-
-        if (c.getPhase().equals(Phase.RESERVED)) {
+        if (c.getReserved() != null) {
             return c.getReserved().getCmp();
-
-        } else if (c.getPhase().equals(Phase.ARCHIVED)) {
+        } else if (c.getArchived() != null) {
             return c.getArchived().getCmp();
-
-        } else if (c.getPhase().equals(Phase.HELD)) {
+        } else if (c.getHeld() != null) {
             return c.getHeld().getCmp();
         } else {
             throw new NsiInternalException("Internal error", NsiErrors.NRM_ERROR);
         }
-
     }
 }
