@@ -105,6 +105,7 @@ public class NsiServiceSteps extends CucumberSteps {
         assert nsiService != null;
     }
 
+    // * NSI Reserve steps BEGIN *
     @When("The NSI Service submits a reservation for NSA {string}, connection ID {string}, global reservation ID {string}, NSI connection ID {string}, OSCARS connection ID {string}")
     public void theNsiServiceSubmitsAReservationForConnectionID(String nsa, String connectionId, String globalReservationId, String nsiConnectionId, String oscarsConnectionId) {
 
@@ -208,7 +209,6 @@ public class NsiServiceSteps extends CucumberSteps {
             // ... If the main try-catch-block catches an exception
 
             // Mock the NsiService.hold() method, as it is called by reserve()
-//            Mockito.mock(nsiService).hold(Mockito.any(), Mockito.any());
             Mockito.doReturn(
                 NsiReserveResult.builder()
                     .success(true)
@@ -229,4 +229,36 @@ public class NsiServiceSteps extends CucumberSteps {
     public void theNsiServiceMadeTheReservationSuccessfully() {
         // @TODO Check the nsiService reservation results
     }
+    // * NSI Reserve steps END *
+
+    // * NSI Provision steps BEGIN *
+    @Given("The NSI Service has a reserved connection")
+    public void theNSIServiceHasAReservedConnection() {
+    }
+
+    @When("The NSI Service submits a provision request for a reserved connection")
+    public void theNSIServiceSubmitsAProvisionRequestForAReservedConnection() {
+        
+    }
+
+    @Then("The NSI Service made the provision request successfully.")
+    public void theNSIServiceMadeTheProvisionRequestSuccessfully() {
+
+    }
+    // * NSI Provision steps END *
+
+    // * NSI Release steps BEGIN *
+    @Given("The NSI Service class has a provisioned connection")
+    public void theNSIServiceClassHasAProvisionedConnection() {
+    }
+
+    @When("The NSI Service submits a release request for a provisioned connection")
+    public void theNSIServiceSubmitsAReleaseRequestForAProvisionedConnection() {
+    }
+
+
+    @Then("The NSI Service made the release request successfully.")
+    public void theNSIServiceMadeTheReleaseRequestSuccessfully() {
+    }
+    // * NSI Release steps END *
 }
