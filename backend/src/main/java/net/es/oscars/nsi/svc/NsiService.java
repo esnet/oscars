@@ -94,6 +94,7 @@ public class NsiService {
 
     public void reserve(CommonHeaderType header, NsiMapping mapping, ReserveType incomingRT)
             throws NsiInternalException, NsiStateException, NsiMappingException {
+        log.info("reserve");
         log.info("starting reserve for {}", incomingRT.getConnectionId());
 
         String nsaId = header.getRequesterNSA();
@@ -900,6 +901,7 @@ public class NsiService {
 
     /* submit hold */
     public NsiReserveResult hold(ReserveType incomingRT, NsiMapping mapping) throws NsiInternalException, NsiValidationException {
+        log.info("hold");
         log.info("hold for {} {}", mapping.getNsiConnectionId(), mapping.getOscarsConnectionId());
         String oscarsConnectionId = mapping.getOscarsConnectionId();
 

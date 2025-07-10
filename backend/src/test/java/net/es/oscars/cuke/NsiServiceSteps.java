@@ -7,6 +7,7 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import jakarta.xml.bind.JAXBElement;
 import lombok.extern.slf4j.Slf4j;
+import net.bytebuddy.implementation.bytecode.Throw;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
 import net.es.oscars.ctg.UnitTests;
@@ -74,26 +75,40 @@ public class NsiServiceSteps extends CucumberSteps {
     private NsiConnectionEventService mockNsiConnectionEventService;
 
     @Before("@NsiServiceSteps")
-    public void before() {
+    public void before() throws Throwable {
         setupMockNsiService();
     }
 
-    private void setupMockNsiService() {
-        // @TODO setup any mock data and adapters here.
-        // @TODO How do we handle NsiService.errCallback?
-        // @TODO How do we handle NsiService.okCallback?
-        nsiService = Mockito.mock(NsiService.class);
-        nsiService.connRepo = mockConnectionRepository;
-        nsiService.nsiRequestManager = mockNsiRequestManager;
-        nsiService.nsiHeaderUtils = mockNsiHeaderUtils;
-        nsiService.nsiStateEngine = mockNsiStateEngine;
-        nsiService.connSvc = mockConnService;
-        nsiService.nsiMappingService = mockNsiMappingService;
-        nsiService.nsiSoapClientUtil = mockNsiSoapClientUtil;
-        nsiService.jacksonObjectMapper = mockObjectMapper;
-        nsiService.nsiQueries = mockNsiQueries;
-        nsiService.nsiNotifications = mockNsiNotifications;
-        nsiService.nsiConnectionEventService = mockNsiConnectionEventService;
+    private void setupMockNsiService() throws Throwable {
+        try {
+            // @TODO setup any mock data and adapters here.
+            // @TODO How do we handle NsiService.errCallback?
+            // @TODO How do we handle NsiService.okCallback?
+            nsiService = Mockito.mock(NsiService.class);
+            nsiService.connRepo = mockConnectionRepository;
+            nsiService.nsiRequestManager = mockNsiRequestManager;
+            nsiService.nsiHeaderUtils = mockNsiHeaderUtils;
+            nsiService.nsiStateEngine = mockNsiStateEngine;
+            nsiService.connSvc = mockConnService;
+            nsiService.nsiMappingService = mockNsiMappingService;
+            nsiService.nsiSoapClientUtil = mockNsiSoapClientUtil;
+            nsiService.jacksonObjectMapper = mockObjectMapper;
+            nsiService.nsiQueries = mockNsiQueries;
+            nsiService.nsiNotifications = mockNsiNotifications;
+            nsiService.nsiConnectionEventService = mockNsiConnectionEventService;
+
+            Mockito.doCallRealMethod()
+                .when(nsiService)
+                .reserve(
+                    Mockito.any(),
+                    Mockito.any(),
+                    Mockito.any()
+                );
+
+        } catch (Exception ex) {
+            world.add(ex);
+            throw ex;
+        }
     }
 
     @Given("The NSI Service expects an exception")
@@ -107,18 +122,16 @@ public class NsiServiceSteps extends CucumberSteps {
 
     // * NSI Reserve steps BEGIN *
     @When("The NSI Service submits a reservation for NSA {string}, connection ID {string}, global reservation ID {string}, NSI connection ID {string}, OSCARS connection ID {string}")
-    public void theNsiServiceSubmitsAReservationForConnectionID(String nsa, String connectionId, String globalReservationId, String nsiConnectionId, String oscarsConnectionId) {
-
-        // @TODO Attempt to call nsiService.reserve() for connectionId
-        CommonHeaderType mockCommonHeaderType = Mockito.mock(CommonHeaderType.class);
-        NsiMapping mockNsiMapping = Mockito.mock(NsiMapping.class);
-        ReserveType mockReserveType = Mockito.mock(ReserveType.class);
-        ScheduleType mockScheduleType = Mockito.mock(ScheduleType.class);
-        ReservationRequestCriteriaType mockReservationRequestCriteriaType = Mockito.mock(ReservationRequestCriteriaType.class);
-
-        mockNsiMappingService = Mockito.mock(NsiMappingService.class);
-
+    public void theNsiServiceSubmitsAReservationForConnectionID(String nsa, String connectionId, String globalReservationId, String nsiConnectionId, String oscarsConnectionId) throws Throwable {
         try {
+            // @TODO Attempt to call nsiService.reserve() for connectionId
+            CommonHeaderType mockCommonHeaderType = Mockito.mock(CommonHeaderType.class);
+            NsiMapping mockNsiMapping = Mockito.mock(NsiMapping.class);
+            ReserveType mockReserveType = Mockito.mock(ReserveType.class);
+            ScheduleType mockScheduleType = Mockito.mock(ScheduleType.class);
+            ReservationRequestCriteriaType mockReservationRequestCriteriaType = Mockito.mock(ReservationRequestCriteriaType.class);
+
+            mockNsiMappingService = Mockito.mock(NsiMappingService.class);
 
             Mockito.when(mockReservationRequestCriteriaType.getVersion()).thenReturn(1);
             Mockito.when(mockReservationRequestCriteriaType.getSchedule()).thenReturn(mockScheduleType);
@@ -221,13 +234,16 @@ public class NsiServiceSteps extends CucumberSteps {
                 mockReserveType
             );
         } catch (Exception ex) {
+
             world.add(ex);
+            throw ex;
         }
     }
 
     @Then("The NSI Service made the reservation successfully.")
     public void theNsiServiceMadeTheReservationSuccessfully() {
         // @TODO Check the nsiService reservation results
+
     }
     // * NSI Reserve steps END *
 
