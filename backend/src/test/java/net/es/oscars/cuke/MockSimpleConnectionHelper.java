@@ -3,7 +3,9 @@ package net.es.oscars.cuke;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.model.Interval;
+import net.es.oscars.resv.ent.Components;
 import net.es.oscars.resv.ent.Connection;
+import net.es.oscars.resv.ent.Held;
 import net.es.oscars.resv.ent.Schedule;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.ConnService;
@@ -53,7 +55,7 @@ public class MockSimpleConnectionHelper {
     private Instant beginInstant;
     private Instant endInstant;
 
-    private SimpleConnection createValidSimpleConnection() throws Exception {
+    public SimpleConnection createValidSimpleConnection() throws Exception {
         return  this.createSimpleConnection(
             1000,
             1000,
@@ -62,9 +64,106 @@ public class MockSimpleConnectionHelper {
             1000
         );
     }
-    SimpleConnection createSimpleConnection(int inMbps, int outMpbs, int azMbps, int zaMbps, int mbps) throws Exception {
+
+    public List<Fixture> createFixtures(int inMbps, int outMpbs, int mbps) throws Exception {
+        List<Fixture> connectionFixtures = new ArrayList<>();
+
+        // Fixtures come in pairs
+        connectionFixtures.add(
+            Fixture.builder()
+                .port("ornl5600-cr6:1/1/c31/1")
+                .inMbps(inMbps)
+                .outMbps(outMpbs)
+                .vlan(5)
+                .junction("ornl5600-cr6") // Name of the router
+                .mbps(mbps)
+                .build()
+        );
+        connectionFixtures.add(
+            Fixture.builder()
+                .port("star-cr6:1/1/c55/1")
+                .inMbps(inMbps)
+                .outMbps(outMpbs)
+                .vlan(5)
+                .junction("star-cr6") // Name of the router
+                .mbps(mbps)
+                .build()
+        );
+
+        return connectionFixtures;
+    }
+    List<Junction> createJunctions() throws Exception {
+        List<Junction> connectionJunctions = new ArrayList<>();
+        // Junctions pair one or more fixtures together.
+        // Junctions represent a single router.
+        //
+        // J <-------> F
+        //
+        // J <-|
+        //     |--> F
+        //     |--> F
+        //
+        // J <-|
+        //     |--> F
+        //     |--> F
+        //     |--> F
+        connectionJunctions = new ArrayList<>();
+        connectionJunctions.add(
+            Junction.builder()
+                .device("ornl5600-cr6")
+                .build()
+        );
+        connectionJunctions.add(
+            Junction.builder()
+                .device("star-cr6")
+                .build()
+        );
+
+        return connectionJunctions;
+    }
+
+    public List<Pipe> createPipes(int azMbps, int zaMbps, int mbps, List<String> eros) throws Exception {
+        List<Pipe> connectionPipes = new ArrayList<>();
+        // Pipes connection junctions together.
+        // Pipes represent one or more LSPs.
+        // Pipes represent the primary LSP. Implemented by at least two (2) directional LSPs (a to z).
+        //
+        //      (Pipe)
+        // J <---E - B - E-----> J
+        // |                     |
+        // F                     F
+        //
+        // Pipes have a list of EROs
+        // An ERO example. Pattern: Router-port-port-Router. Pattern repeats from A to Z.
+        //  ornl5600-cr6          // Start with A itself
+        //  ornl5600-cr6:1/2/c1/1 //
+        //  denv-cr6:2/1/c3/2     // A to M
+        //  denv-cr6              // Intermediate router M
+        //  denv-cr6:2/1/c4/2     // M to Z
+        //  star-cr6:1/1/2/1      //
+        //  star-cr6              // end with router Z
+        //
+
+        connectionPipes.add(
+            Pipe.builder()
+                .a("ornl5600-cr6") // Router at a
+                .z("star-cr6") // Router at z
+                .mbps(mbps)
+                .azMbps(azMbps)
+                .zaMbps(zaMbps)
+                .ero(eros)
+                .build()
+        );
+
+        return connectionPipes;
+    }
+
+    public SimpleConnection createSimpleConnection(int inMbps, int outMpbs, int azMbps, int zaMbps, int mbps) throws Exception {
+        return createSimpleConnection("ABCD", inMbps, outMpbs, azMbps, zaMbps, mbps);
+    }
+    public SimpleConnection createSimpleConnection(String connectionId, int inMbps, int outMpbs, int azMbps, int zaMbps, int mbps) throws Exception {
         // Create a valid SimpleConnection object
-        this.connectionId = "ABCD";
+        this.connectionId = connectionId;
         this.connection_mtu = 9000;
         this.serviceId = "testservice";
         this.simpleTags = new ArrayList<>();
@@ -75,29 +174,8 @@ public class MockSimpleConnectionHelper {
         this.state = State.WAITING;
 
         // @TODO: Need a mock list of fixtures, junctions, and pipes
-        this.connectionFixtures = new ArrayList<>();
+        this.connectionFixtures = createFixtures(inMbps, outMpbs, mbps);
 
-        // Fixtures come in pairs
-        this.connectionFixtures.add(
-            Fixture.builder()
-                .port("ornl5600-cr6:1/1/c31/1")
-                .inMbps(inMbps)
-                .outMbps(outMpbs)
-                .vlan(5)
-                .junction("ornl5600-cr6") // Name of the router
-                .mbps(mbps)
-                .build()
-        );
-        this.connectionFixtures.add(
-            Fixture.builder()
-                .port("star-cr6:1/1/c55/1")
-                .inMbps(inMbps)
-                .outMbps(outMpbs)
-                .vlan(5)
-                .junction("star-cr6") // Name of the router
-                .mbps(mbps)
-                .build()
-        );
 
         // Junctions pair one or more fixtures together.
         // Junctions represent a single router.
@@ -112,17 +190,7 @@ public class MockSimpleConnectionHelper {
         //     |--> F
         //     |--> F
         //     |--> F
-        this.connectionJunctions = new ArrayList<>();
-        this.connectionJunctions.add(
-            Junction.builder()
-                .device("ornl5600-cr6")
-                .build()
-        );
-        this.connectionJunctions.add(
-            Junction.builder()
-                .device("star-cr6")
-                .build()
-        );
+        this.connectionJunctions = createJunctions();
 
         // Pipes connection junctions together.
         // Pipes represent one or more LSPs.
@@ -143,35 +211,13 @@ public class MockSimpleConnectionHelper {
         //  star-cr6:1/1/2/1      //
         //  star-cr6              // end with router Z
         //
-        this.connectionPipes = new ArrayList<>();
 
+        // Will need EROs to create pipes
         // ...Build Pipe EROs BEGIN
-        List<String> eros = new ArrayList<>();
-
-
-
-        // ...  Starts from a
-        eros.add("ornl5600-cr6");
-        // ...  Add backbone links here.
-        eros.add("ornl5600-cr6:1/2/c1/1");
-        eros.add("denv-cr6:2/1/c3/2"); // Port on intermediate router
-        eros.add("denv-cr6");          // Intermediate router
-        eros.add("denv-cr6:2/1/c4/2"); // Other port on intermediate router
-        eros.add("star-cr6:1/1/2/1");  // Different port(s) than those used for fixtures
-        // ...  Ends at z
-        eros.add("star-cr6"); // Router
+        List<String> eros = createEro();
         // ... Build Pipe EROs END
+        this.connectionPipes = createPipes(azMbps, zaMbps, mbps, eros);
 
-        this.connectionPipes.add(
-            Pipe.builder()
-                .a("ornl5600-cr6") // Router at a
-                .z("star-cr6") // Router at z
-                .mbps(mbps)
-                .azMbps(azMbps)
-                .zaMbps(zaMbps)
-                .ero(eros)
-                .build()
-        );
 
         this.createValidSchedule();
 
@@ -195,10 +241,42 @@ public class MockSimpleConnectionHelper {
             .junctions(     this.connectionJunctions )
             .pipes(         this.connectionPipes)
             .last_modified( this.beginTime )
+            .validity( this.createTrueValidity() )
             .build();
     }
 
-    Schedule createValidSchedule() {
+    public Validity createTrueValidity() {
+        return Validity.builder()
+            .valid(true)
+            .message("valid test message")
+            .build();
+    }
+
+    public Validity createFalseValidity() {
+        return Validity.builder()
+            .valid(false)
+            .message("invalid test message")
+            .build();
+    }
+
+    public List<String> createEro() {
+        List<String> eros = new ArrayList<>();
+
+        // ...  Starts from a
+        eros.add("ornl5600-cr6");
+        // ...  Add backbone links here.
+        eros.add("ornl5600-cr6:1/2/c1/1");
+        eros.add("denv-cr6:2/1/c3/2"); // Port on intermediate router
+        eros.add("denv-cr6");          // Intermediate router
+        eros.add("denv-cr6:2/1/c4/2"); // Other port on intermediate router
+        eros.add("star-cr6:1/1/2/1");  // Different port(s) than those used for fixtures
+        // ...  Ends at z
+        eros.add("star-cr6"); // Router
+
+        return eros;
+    }
+
+    public Schedule createValidSchedule() {
         this.createValidSchedule(this.connService.getMinDuration());
         return Schedule.builder()
             .id(1L)
@@ -209,7 +287,7 @@ public class MockSimpleConnectionHelper {
             .refId("abc123-cr6")
             .build();
     }
-    void createValidSchedule(int durationMinutes) {
+    public void createValidSchedule(int durationMinutes) {
         Instant now = Instant.now();
 
         int intBegin = Long.valueOf(now.getEpochSecond() ).intValue();
@@ -226,7 +304,7 @@ public class MockSimpleConnectionHelper {
         this.endInstant = iEnd;
     }
 
-    void createInvalidSchedule() {
+    public void createInvalidSchedule() {
         Instant now = Instant.now();
 
         int duration = this.connService.getMinDuration(); // minDuration default is 15 min
@@ -245,10 +323,10 @@ public class MockSimpleConnectionHelper {
         this.endInstant = iEnd;
     }
 
-    void createTestConnection() throws Exception {
+    public void createTestConnection() throws Exception {
         this.createTestConnection(1000, 1000);
     }
-    private void createTestConnection(int ingressBandwidth, int egressBandwidth) throws Exception {
+    public void createTestConnection(int ingressBandwidth, int egressBandwidth) throws Exception {
 
         this.connService = new ConnService();
         // @FIXME: Figure out why this isn't being automatically pulled in from testing.properties
@@ -370,5 +448,39 @@ public class MockSimpleConnectionHelper {
         // Set the held list, too!
         this.connService.setHeld(held);
         this.connService.setResvService( mockResvService );
+    }
+
+    public Connection generateMockConnection() {
+        return generateMockConnection("ABCD");
+    }
+    public Connection generateMockConnection(String mockConnectionId) {
+        return Connection.builder()
+            .id(1L)
+            .held( // Required, or /protected/modify/description result will become an HTTP 500 Internal Server Error
+                Held.builder()
+                    .connectionId(mockConnectionId)
+                    .cmp(
+                        Components.builder()
+                            .id(1L)
+                            .fixtures(new ArrayList<>())
+                            .junctions(new ArrayList<>())
+                            .pipes(new ArrayList<>())
+                            .build()
+                    )
+                    .expiration(Instant.now().plusSeconds(60 * 20)) // 20 minutes from now
+                    .schedule(createValidSchedule())
+                    .build()
+            )
+            .connectionId(mockConnectionId)
+            .phase(Phase.HELD)
+            .mode(BuildMode.AUTOMATIC)
+            .state(State.WAITING)
+            .deploymentState(DeploymentState.UNDEPLOYED)
+            .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
+            .username("test")
+            .description("test description")
+            .connection_mtu(10000)
+            .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
+            .build();
     }
 }

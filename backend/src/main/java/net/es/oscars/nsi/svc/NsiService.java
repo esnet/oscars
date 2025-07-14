@@ -8,6 +8,7 @@ import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import jakarta.xml.ws.Holder;
 import jakarta.xml.ws.WebServiceException;
+import lombok.Data;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +51,7 @@ import static net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReservationStateE
 
 @Component
 @Slf4j
+@Data
 public class NsiService {
 
     public NsiQueries nsiQueries;

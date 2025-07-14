@@ -78,7 +78,7 @@ public class ModifyControllerSteps extends CucumberSteps {
     }
     private void setupMockConnRepo() {
         connRepo = Mockito.mock(ConnectionRepository.class);
-        Connection mockConnection = generateMockConnection();
+        Connection mockConnection = helper.generateMockConnection();
         Mockito
             .when(
                 connRepo.save(Mockito.any(Connection.class))
@@ -92,39 +92,10 @@ public class ModifyControllerSteps extends CucumberSteps {
     private void clear() {
         response = null;
     }
-    private Connection generateMockConnection() {
-        return Connection.builder()
-            .id(1L)
-            .held( // Required, or /protected/modify/description result will become an HTTP 500 Internal Server Error
-                Held.builder()
-                    .connectionId("ABCD")
-                    .cmp(
-                        Components.builder()
-                            .id(1L)
-                            .fixtures(new ArrayList<>())
-                            .junctions(new ArrayList<>())
-                            .pipes(new ArrayList<>())
-                            .build()
-                    )
-                    .expiration(Instant.now().plusSeconds(60 * 20)) // 20 minutes from now
-                    .schedule(helper.createValidSchedule())
-                    .build()
-            )
-            .connectionId("ABCD")
-            .phase(Phase.HELD)
-            .mode(BuildMode.AUTOMATIC)
-            .state(State.WAITING)
-            .deploymentState(DeploymentState.UNDEPLOYED)
-            .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
-            .username("test")
-            .description("test description")
-            .connection_mtu(10000)
-            .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
-            .build();
-    }
+
     private void setupMockConnSvc() throws Exception {
         connSvc = Mockito.mock(ConnService.class);
-        Connection mockConn = generateMockConnection();
+        Connection mockConn = helper.generateMockConnection();
         Optional<Connection> mockConnOpt = Optional.of(mockConn);
         // Mock ConnService.findConnection()
         Mockito.when(
