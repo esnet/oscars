@@ -20,7 +20,6 @@ import net.es.oscars.web.simple.Fixture;
 import net.es.oscars.web.simple.Junction;
 import net.es.oscars.web.simple.Pipe;
 import net.es.oscars.web.simple.SimpleConnection;
-import net.es.topo.common.model.oscars2.OscarsTopology;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -127,19 +126,32 @@ public class L2VPNConversions {
                         .build();
                 lsps.add(loose);
             }
+            lsps.add(LSP.builder()
+                    .role(Role.PRIMARY)
+                    .bundle(b)
+                    .path(eroAsStringList(vlanPipe.getAzERO()))
+                    .build());
 
             b.setProtection(protection);
             b.setLsps(lsps);
             b.setConstraints(Bundle.Constraints.builder()
                     .exclude(new HashSet<>())
-                    .include(eroAsStringList(vlanPipe.getAzERO()))
+                    .include(eroAsWaypointList(vlanPipe.getAzERO()))
                     .build());
             bundles.add(b);
         }
         return bundles;
     }
+    public List<String> eroAsStringList(List<EroHop> ero) {
+        List<String> result = new ArrayList<>();
 
-    public List<Bundle.Waypoint> eroAsStringList(List<EroHop> ero) {
+        ero.forEach(e -> {
+            result.add(e.getUrn());
+        });
+        return result;
+    }
+
+    public List<Bundle.Waypoint> eroAsWaypointList(List<EroHop> ero) {
         List<Bundle.Waypoint> list = new ArrayList<>();
         try {
             Topology topology = topologyStore.getCurrentTopology();

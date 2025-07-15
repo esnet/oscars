@@ -322,17 +322,17 @@ public class ConnService {
 
             // find all the adjacencies in the topology that match the search term
             for (Adjcy adjcy : topo.getAdjcies()) {
-                if (adjcy.getA().getAddr().toLowerCase().equals(lowerTerm)) {
+                if (adjcy.getA().getAddr() != null && adjcy.getA().getAddr().toLowerCase().equals(lowerTerm)) {
                     exactUrns.add(adjcy.getA().getPortUrn());
                 }
-                if (adjcy.getA().getIfce().toLowerCase().contains(lowerTerm)) {
+                if (adjcy.getA().getIfce() != null && adjcy.getA().getIfce().toLowerCase().contains(lowerTerm)) {
                     exactUrns.add(adjcy.getA().getPortUrn());
                 }
 
-                if (adjcy.getZ().getAddr().toLowerCase().equals(lowerTerm)) {
+                if (adjcy.getZ().getAddr() != null && adjcy.getZ().getAddr().toLowerCase().equals(lowerTerm)) {
                     exactUrns.add(adjcy.getZ().getPortUrn());
                 }
-                if (adjcy.getZ().getIfce().toLowerCase().contains(lowerTerm)) {
+                if (adjcy.getZ().getIfce() != null && adjcy.getZ().getIfce().toLowerCase().contains(lowerTerm)) {
                     exactUrns.add(adjcy.getZ().getPortUrn());
                 }
 
@@ -882,7 +882,7 @@ public class ConnService {
         log.info("mode: {}", mode);
 
         StringBuilder error = new StringBuilder();
-        
+
         boolean valid = false;
 
         if (inConn == null) {
