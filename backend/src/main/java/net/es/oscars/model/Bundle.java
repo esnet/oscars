@@ -71,7 +71,7 @@ public class Bundle {
             return include.stream().map(Waypoint::getUrn).collect(Collectors.toList());
         }
         public Set<String> excludedUrns() {
-            return include.stream().map(Waypoint::getUrn).collect(Collectors.toSet());
+            return exclude.stream().map(Waypoint::getUrn).collect(Collectors.toSet());
         }
 
 
