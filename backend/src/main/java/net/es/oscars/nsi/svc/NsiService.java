@@ -94,8 +94,10 @@ public class NsiService {
 
     /* async operations */
 
-    public void reserve(CommonHeaderType header, NsiMapping mapping, ReserveType incomingRT)
+    public boolean reserve(CommonHeaderType header, NsiMapping mapping, ReserveType incomingRT)
             throws NsiInternalException, NsiStateException, NsiMappingException {
+
+        boolean succeeded = false;
         log.info("reserve");
         log.info("starting reserve for {}", incomingRT.getConnectionId());
 
@@ -155,7 +157,8 @@ public class NsiService {
 
 
                         this.reserveConfirmCallback(mapping, header);
-                        return;
+                        succeeded = true;
+                        return succeeded;
 
                     } else {
 
@@ -208,9 +211,12 @@ public class NsiService {
                     "Internal error", NsiErrors.NRM_ERROR, new ArrayList<>(),
                     header.getCorrelationId());
         }
+
+        return succeeded;
     }
 
-    public void commit(CommonHeaderType header, NsiMapping mapping) {
+    public boolean commit(CommonHeaderType header, NsiMapping mapping) {
+        boolean succeeded = false;
         log.info("starting commit for {}", mapping.getNsiConnectionId());
         String nsaId = header.getRequesterNSA();
         String nsiConnectionId  = mapping.getNsiConnectionId();
@@ -253,7 +259,8 @@ public class NsiService {
                 nsiRequestManager.remove(mapping.getNsiConnectionId());
                 this.okCallback(NsiEvent.COMMIT_CF, mapping, header);
                 log.info("ending commit");
-                return;
+                succeeded = true;
+                return succeeded;
 
             } catch (PCEException | ConnException | NsoResvException ex) {
                 log.error("commit failed: {}", ex.getMessage(), ex);
@@ -292,6 +299,7 @@ public class NsiService {
                 errorMessage, errorCode, new ArrayList<>(),
                 header.getCorrelationId());
 
+        return succeeded;
     }
 
     public void abort(CommonHeaderType header, NsiMapping mapping) {
@@ -330,16 +338,19 @@ public class NsiService {
         this.okCallback(NsiEvent.ABORT_CF, mapping, header);
     }
 
-    public void provision(CommonHeaderType header, NsiMapping mapping) {
+    public boolean provision(CommonHeaderType header, NsiMapping mapping) {
         log.info("starting provision task for {}", mapping.getNsiConnectionId());
-
+        boolean requireRollback = false;
+        boolean succeeded = false;
         try {
             Connection c = nsiMappingService.getOscarsConnection(mapping);
             if (!c.getPhase().equals(Phase.RESERVED)) {
-                log.error("cannot provision unless RESERVED");
-                return;
+                // log.error("Cannot provision unless RESERVED");
+                // trigger an error callback.
+                NsiErrors error = NsiErrors.TRANS_ERROR;
+                throw new NsiStateException("Cannot provision unless RESERVED", error);
             }
-
+            requireRollback = true;
             nsiStateEngine.provision(NsiEvent.PROV_START, mapping);
             nsiMappingService.save(mapping);
 
@@ -358,27 +369,51 @@ public class NsiService {
 
             this.okCallback(NsiEvent.PROV_CF, mapping, header);
 
+            succeeded = true;
+
         } catch (NsiMappingException | NsiStateException e) {
-            nsiConnectionEventService.save(NsiConnectionEvent.builder()
+            log.error(e.getMessage(), e);
+            if (requireRollback) {
+                nsiConnectionEventService.save(NsiConnectionEvent.builder()
                     .type(NsiConnectionEventType.PROVISION_FAILED)
                     .timestamp(Instant.now())
                     .version(mapping.getDataplaneVersion())
                     .nsiConnectionId(mapping.getNsiConnectionId())
                     .build());
+            }
 
-            log.error(e.getMessage(), e);
+            // For reasons beyond us, it was decided that we would not add
+            // error callbacks here (not designed in the specs).
+            // That said, we still need to know if this method failed or not during testing.
+            // We have opted to make it return a boolean value instead.
+
+            // Trigger an error callback here
+//            this.errCallback(
+//                NsiEvent.PROV_FL, // No spec for PROVISION FAILED
+//                mapping.getNsaId(),
+//                mapping.getNsiConnectionId(),
+//                mapping,
+//                e.getLocalizedMessage(),
+//                e.getError(),
+//                // TVP?
+//                new ArrayList<>(),
+//                header.getCorrelationId()
+//            );
         }
-
+        return succeeded;
     }
 
-    public void release(CommonHeaderType header, NsiMapping mapping) {
+    public boolean release(CommonHeaderType header, NsiMapping mapping) {
         log.info("starting release task for {}", mapping.getNsiConnectionId());
-
+        boolean requireRollback = false;
+        boolean succeeded = false;
         try {
             Connection c = nsiMappingService.getOscarsConnection(mapping);
             if (!c.getPhase().equals(Phase.RESERVED)) {
-                log.error("cannot release unless RESERVED");
-                return;
+                log.error("Cannot release unless RESERVED");
+                requireRollback = true;
+                NsiErrors error = NsiErrors.TRANS_ERROR;
+                throw new NsiStateException("Cannot release unless RESERVED", error);
             }
 
             nsiStateEngine.release(NsiEvent.REL_START, mapping);
@@ -403,20 +438,42 @@ public class NsiService {
             log.info("completed release");
 
         } catch (NsiMappingException | NsiStateException ex) {
-            nsiConnectionEventService.save(NsiConnectionEvent.builder()
+            log.error("release internal error", ex);
+            if (requireRollback) {
+                nsiConnectionEventService.save(NsiConnectionEvent.builder()
                     .type(NsiConnectionEventType.RELEASE_FAILED)
                     .timestamp(Instant.now())
                     .version(mapping.getDataplaneVersion())
                     .nsiConnectionId(mapping.getNsiConnectionId())
                     .message(ex.getMessage())
                     .build());
+            }
+            // For reasons beyond us, it was decided that we would not add
+            // error callbacks here (not designed in the specs).
+            // That said, we still need to know if this method failed or not during testing.
+            // We have opted to make it return a boolean value instead.
 
-            log.error("release internal error", ex);
+            // Trigger an error callback here
+//            this.errCallback(
+//                NsiEvent.REL_FL, // No spec for RELEASE FAILED
+//                mapping.getNsaId(),
+//                mapping.getNsiConnectionId(),
+//                mapping,
+//                e.getLocalizedMessage(),
+//                e.getError(),
+//                // TVP?
+//                new ArrayList<>(),
+//                header.getCorrelationId()
+//            );
         }
+
+        return succeeded;
     }
 
-    public void terminate(CommonHeaderType header, NsiMapping mapping) {
+    public boolean terminate(CommonHeaderType header, NsiMapping mapping) {
         log.info("starting terminate task for {}", mapping.getNsiConnectionId());
+
+        boolean succeeded = false;
 
         try {
             // go from CREATED | PASSED_END_TIME | FAILED to TERMINATING
@@ -440,12 +497,31 @@ public class NsiService {
             log.info("completed terminate");
             this.okCallback(NsiEvent.TERM_CF, mapping, header);
 
-
+            succeeded = true;
         } catch (NsiStateException ex) {
             log.error("failed terminate, internal error");
             log.error(ex.getMessage(), ex);
+
+            // For reasons beyond us, it was decided that we would not add
+            // error callbacks here (not designed in the specs).
+            // That said, we still need to know if this method failed or not during testing.
+            // We have opted to make it return a boolean value instead.
+
+            // Trigger an error callback here
+//            this.errCallback(
+//                NsiEvent.TERM_FL, // No spec for TERMINATE FAILED
+//                mapping.getNsaId(),
+//                mapping.getNsiConnectionId(),
+//                mapping,
+//                e.getLocalizedMessage(),
+//                e.getError(),
+//                // TVP?
+//                new ArrayList<>(),
+//                header.getCorrelationId()
+//            );
         }
 
+        return succeeded;
     }
 
 

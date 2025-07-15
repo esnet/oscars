@@ -1,13 +1,10 @@
 package net.es.oscars.cuke;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import jakarta.xml.bind.JAXBElement;
 import lombok.extern.slf4j.Slf4j;
-import net.bytebuddy.implementation.bytecode.Throw;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.requester.ConnectionRequesterPort;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.*;
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
@@ -18,23 +15,17 @@ import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.StpListType;
 import net.es.oscars.BackendTestConfiguration;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.model.Interval;
-import net.es.oscars.nsi.beans.NsiReserveResult;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.ent.NsiRequesterNSA;
 import net.es.oscars.nsi.svc.*;
 import net.es.oscars.resv.db.ConnectionRepository;
-import net.es.oscars.resv.ent.Components;
-import net.es.oscars.resv.ent.Connection;
-import net.es.oscars.resv.ent.Held;
-import net.es.oscars.resv.ent.Schedule;
+import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.soap.NsiSoapClientUtil;
-import net.es.oscars.web.rest.ModifyController;
 import net.es.oscars.web.simple.Fixture;
 import net.es.oscars.web.simple.Junction;
 import net.es.oscars.web.simple.SimpleConnection;
-import net.es.oscars.web.simple.Validity;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mock;
@@ -43,12 +34,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import javax.xml.datatype.DatatypeFactory;
-import javax.xml.datatype.XMLGregorianCalendar;
-import javax.xml.namespace.QName;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -96,9 +83,9 @@ public class NsiServiceSteps extends CucumberSteps {
     @Mock
     ConnectionRequesterPort mockConnectionRequesterPort;
 
-//    @Mock
-//    @Autowired
-//    private ObjectMapper mockObjectMapper;
+    CommonHeaderType mockCommonHeaderType;
+    NsiMapping mockNsiMapping;
+
     @Mock
     @Autowired
     private NsiQueries mockNsiQueries;
@@ -124,6 +111,10 @@ public class NsiServiceSteps extends CucumberSteps {
 
     String nsaId = "RES1";
     String connectionId = "OSCARS";
+    String globalReservationId = "GLOBALID";
+    String nsiConnectionId = "RES1";
+    String oscarsConnectionId = "OSCARS";
+
     int inMbps = 10000;
     int outMbps = 10000;
     int azMbps = 10000;
@@ -131,6 +122,7 @@ public class NsiServiceSteps extends CucumberSteps {
     int mbps = 10000;
 
     boolean reserved = false;
+    boolean provisioned = false;
 
     @Autowired
     private NsiMappingService nsiMappingService;
@@ -138,340 +130,296 @@ public class NsiServiceSteps extends CucumberSteps {
     @Before("@NsiServiceSteps")
     public void before() throws Throwable {
         setupDatasources();
+        setupMockCommonHeaderType();
+        setupMockNsiMapping();
         setupMockNsiService();
     }
 
-    private void setupMockNsiService() throws Throwable {
-        try {
-            // @TODO setup any mock data and adapters here.
-            // @TODO How do we handle NsiService.errCallback?
-            // @TODO How do we handle NsiService.okCallback?
-//            nsiService = Mockito.mock(NsiService.class);
-            nsiService.setResvTimeout(900);
-            nsiService.setProviderNsa("urn:ogf:network:es.net:2013:nsa");
+    private void setupMocks(Connection mockConn) throws Exception {
+        reserved = false;
+        Instant now = Instant.now();
+        Instant endingTime = now.plusSeconds(20 * 60); // 20 minutes
 
-            nsiService.connRepo = connRepo;
-            nsiService.connSvc = connSvc;
+        Schedule mockSchedule = Schedule.builder()
+            .connectionId(connectionId)
+            .beginning(now)
+            .ending(endingTime) // 20 min
+            .refId(globalReservationId)
+            .build();
 
-            nsiService.nsiRequestManager = mockNsiRequestManager;
-            nsiService.nsiHeaderUtils = mockNsiHeaderUtils;
-            nsiService.nsiStateEngine = mockNsiStateEngine;
+        // Attempt to call nsiService.reserve() for connectionId
 
-            nsiService.nsiMappingService = mockNsiMappingService;
-            nsiService.nsiQueries = mockNsiQueries;
-            nsiService.nsiNotifications = mockNsiNotifications;
-            nsiService.nsiConnectionEventService = mockNsiConnectionEventService;
+        ScheduleType mockScheduleType = nsiMappingService.oscarsToNsiSchedule(mockSchedule);
 
-            nsiService.setNsiSoapClientUtil(mockNsiSoapClientUtil);
+        mockScheduleType.setStartTime(mockScheduleType.getStartTime());
+        mockScheduleType.setEndTime(mockScheduleType.getEndTime());
 
-        } catch (Exception ex) {
-            world.add(ex);
-            throw ex;
-        }
-    }
+        ReserveType mockReserveType = new ReserveType();
+        ReservationRequestCriteriaType mockCriteriaType = new ReservationRequestCriteriaType();
 
-    @Given("The NSI Service expects an exception")
-    public void theNsiServiceExpectAnException() {
-        world.expectException();
-    }
-    @Given("The NSI Service class is instantiated")
-    public void theNsiServiceClassIsInstantiated() {
-        assert nsiService != null;
-    }
+        mockCriteriaType.setSchedule(mockScheduleType);
+        mockCriteriaType.setServiceType("");
+        mockCriteriaType.setVersion(1);
 
-    // * NSI Reserve steps BEGIN *
-    @When("The NSI Service submits a reservation for NSA {string}, connection ID {string}, global reservation ID {string}, NSI connection ID {string}, OSCARS connection ID {string}")
-    public void theNsiServiceSubmitsAReservationForConnectionID(String nsa, String connectionId, String globalReservationId, String nsiConnectionId, String oscarsConnectionId) throws Throwable {
-        try {
-            reserved = false;
-            Instant now = Instant.now();
-            Instant endingTime = now.plusSeconds(20 * 60); // 20 minutes
+        mockReserveType.setConnectionId(connectionId);
+        mockReserveType.setGlobalReservationId(globalReservationId);
+        mockReserveType.setDescription("Test reservation");
+        mockReserveType.setCriteria(mockCriteriaType);
 
-            Schedule mockSchedule = Schedule.builder()
-                .connectionId(connectionId)
-                .beginning(now)
-                .ending(endingTime) // 20 min
-                .refId(globalReservationId)
-                .build();
+        ReservationRequestCriteriaType mockReservationRequestCriteriaType = Mockito.mock(ReservationRequestCriteriaType.class);
 
-            // @TODO Attempt to call nsiService.reserve() for connectionId
-            CommonHeaderType mockCommonHeaderType = new CommonHeaderType();
+        mockNsiMappingService = Mockito.mock(NsiMappingService.class);
 
-            mockCommonHeaderType.setProtocolVersion("1.0");
-            mockCommonHeaderType.setCorrelationId("CORRID");
-            mockCommonHeaderType.setRequesterNSA(nsaId);
-            mockCommonHeaderType.setProviderNSA(nsaId);
-            mockCommonHeaderType.setReplyTo("test@localhost");
-
-            this.connectionId = connectionId;
-            this.nsaId = nsa;
-
-            NsiMapping mockNsiMapping = NsiMapping.builder()
-                .nsiGri("MOCKGRI")
-                .dataplaneVersion(1)
-                .deployedDataplaneVersion(1)
-                .lifecycleState(LifecycleStateEnumType.CREATED)
-                .provisionState(ProvisionStateEnumType.PROVISIONING)
-                .nsiConnectionId(nsiConnectionId)
-                .oscarsConnectionId(oscarsConnectionId)
-                .nsaId(nsaId)
-                .reservationState(ReservationStateEnumType.RESERVE_START)
-                .build();
-
-            ScheduleType mockScheduleType = nsiMappingService.oscarsToNsiSchedule(mockSchedule);
-
-            mockScheduleType.setStartTime(mockScheduleType.getStartTime());
-            mockScheduleType.setEndTime(mockScheduleType.getEndTime());
-
-            ReserveType mockReserveType = new ReserveType();
-            ReservationRequestCriteriaType mockCriteriaType = new ReservationRequestCriteriaType();
-
-            mockCriteriaType.setSchedule(mockScheduleType);
-            mockCriteriaType.setServiceType("");
-            mockCriteriaType.setVersion(1);
-
-            mockReserveType.setConnectionId(connectionId);
-            mockReserveType.setGlobalReservationId(globalReservationId);
-            mockReserveType.setDescription("Test reservation");
-            mockReserveType.setCriteria(mockCriteriaType);
-
-            ReservationRequestCriteriaType mockReservationRequestCriteriaType = Mockito.mock(ReservationRequestCriteriaType.class);
-
-            mockNsiMappingService = Mockito.mock(NsiMappingService.class);
-
-            Mockito.when(mockReservationRequestCriteriaType.getVersion()).thenReturn(1);
-            Mockito.when(mockReservationRequestCriteriaType.getSchedule()).thenReturn(mockScheduleType);
-
-//            Mockito.when(mockCommonHeaderType.getRequesterNSA()).thenReturn(nsa);
-
-            // a.k.a incomingRT
-//            Mockito.when(mockReserveType.getConnectionId()).thenReturn(connectionId);
-//            Mockito.when(mockReserveType.getGlobalReservationId()).thenReturn(globalReservationId);
-//            Mockito.when(mockReserveType.getCriteria()).thenReturn(mockReservationRequestCriteriaType);
-
-//            Mockito.when(mockNsiMapping.getNsiConnectionId()).thenReturn(nsiConnectionId);
-//            Mockito.when(mockNsiMapping.getOscarsConnectionId()).thenReturn(oscarsConnectionId);
-//            Mockito.when(mockNsiMapping.getReservationState()).thenReturn(ReservationStateEnumType.RESERVE_START);
-
-            // Set the mock data for NSI Service reserve()
-            Mockito.doReturn(
-                // @TODO Set mock NsiMapping result object
-                mockNsiMapping
-            ).when(mockNsiMappingService).newMapping(
-                Mockito.anyString(),
-                Mockito.anyString(),
-                Mockito.anyString(),
-                Mockito.anyInt(),
-                Mockito.anyBoolean()
-            );
-
-            Interval mockInterval = Interval.builder()
-                .beginning(now)
-                .ending(endingTime) // 20 minutes from now
-                .build();
-            Mockito.doReturn(
-                mockInterval
-            ).when(
-                mockNsiMappingService
-            ).nsiToOscarsSchedule(
-                Mockito.any()
-            );
-
-            Mockito.doReturn(
-                helper.generateMockConnection(connectionId)
-            ).when(
-                mockNsiMappingService
-            ).getOscarsConnection(Mockito.any());
-
-            // @TODO mocking internals of nsiService.hold(). See MockSimpleConnectionHelper for mock fixtures and junctions
-            // ... Fill in mock fixtures and junctions
-            List<Fixture> mockFixtures = helper.createFixtures(inMbps, outMbps, mbps);
-            List<Junction> mockJunctions = helper.createJunctions();
-
-            Pair<List<Fixture>, List<Junction>> mockFixturesAndJunctions = Pair.of(
-                mockFixtures,
-                mockJunctions
-            );
-
-            Mockito.doReturn(
-                mockFixturesAndJunctions
-            ).when(
-                mockNsiMappingService
-            ).simpleComponents(Mockito.any(), Mockito.anyInt());
-
-            Mockito.doReturn(
-                mockFixturesAndJunctions
-            ).when(
-                mockNsiMappingService
-            ).fixturesAndJunctionsFor(
-                Mockito.any(),
-                Mockito.any(),
-                Mockito.any()
-            );
+        Mockito.when(mockReservationRequestCriteriaType.getVersion()).thenReturn(1);
+        Mockito.when(mockReservationRequestCriteriaType.getSchedule()).thenReturn(mockScheduleType);
 
 
-            P2PServiceBaseType mockP2P = new P2PServiceBaseType();
-            mockP2P.setSourceSTP("ornl5600-cr6");
-            mockP2P.setDestSTP("star-cr6");
-            mockP2P.setCapacity(mbps);
+        // Set the mock data for NSI Service reserve()
+        Mockito.doReturn(
+            // @TODO Set mock NsiMapping result object
+            mockNsiMapping
+        ).when(mockNsiMappingService).newMapping(
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyInt(),
+            Mockito.anyBoolean()
+        );
 
-            mockP2P.setDirectionality(DirectionalityType.BIDIRECTIONAL);
+        Interval mockInterval = Interval.builder()
+            .beginning(now)
+            .ending(endingTime) // 20 minutes from now
+            .build();
+        Mockito.doReturn(
+            mockInterval
+        ).when(
+            mockNsiMappingService
+        ).nsiToOscarsSchedule(
+            Mockito.any()
+        );
 
-            class MockStpListType extends StpListType {
-                @Override
-                public List<OrderedStpType> getOrderedSTP() {
-                    List<OrderedStpType> orderedStpList = new ArrayList<>();
+        Mockito.doReturn(
+            mockConn
+        ).when(
+            mockNsiMappingService
+        ).getOscarsConnection(Mockito.any());
 
-                    OrderedStpType oStp = new OrderedStpType();
-                    oStp.setStp("urn:ogf:network:es.net:2013:nsa");
-                    oStp.setOrder(0);
+        // @TODO mocking internals of nsiService.hold(). See MockSimpleConnectionHelper for mock fixtures and junctions
+        // ... Fill in mock fixtures and junctions
+        List<Fixture> mockFixtures = helper.createFixtures(inMbps, outMbps, mbps);
+        List<Junction> mockJunctions = helper.createJunctions();
 
-                    orderedStpList.add(oStp);
+        Pair<List<Fixture>, List<Junction>> mockFixturesAndJunctions = Pair.of(
+            mockFixtures,
+            mockJunctions
+        );
 
-                    return orderedStpList;
-                }
-            }
-            MockStpListType mockEros = new MockStpListType();
+        Mockito.doReturn(
+            mockFixturesAndJunctions
+        ).when(
+            mockNsiMappingService
+        ).simpleComponents(Mockito.any(), Mockito.anyInt());
 
-            mockP2P.setEro(mockEros);
-            // mockP2P.setSymmetricPath();
+        Mockito.doReturn(
+            mockFixturesAndJunctions
+        ).when(
+            mockNsiMappingService
+        ).fixturesAndJunctionsFor(
+            Mockito.any(),
+            Mockito.any(),
+            Mockito.any()
+        );
 
-            Optional<P2PServiceBaseType> mockP2PService = Optional.of(mockP2P);
-            Mockito.doReturn(
-                mockP2PService
-            ).when(mockNsiMappingService).getP2PService(
-                Mockito.any()
-            );
+
+        P2PServiceBaseType mockP2P = new P2PServiceBaseType();
+        mockP2P.setSourceSTP("ornl5600-cr6");
+        mockP2P.setDestSTP("star-cr6");
+        mockP2P.setCapacity(mbps);
+
+        mockP2P.setDirectionality(DirectionalityType.BIDIRECTIONAL);
+
+        MockStpListType mockEros = new MockStpListType();
+
+        mockP2P.setEro(mockEros);
+        // mockP2P.setSymmetricPath();
+
+        Optional<P2PServiceBaseType> mockP2PService = Optional.of(mockP2P);
+        Mockito.doReturn(
+            mockP2PService
+        ).when(mockNsiMappingService).getP2PService(
+            Mockito.any()
+        );
 
 //            mockNsiMapping.setReservationState(ReservationStateEnumType.RESERVE_COMMITTING);
-            Mockito.doReturn(
-                mockNsiMapping
-            ).when(mockNsiMappingService).save(Mockito.any(NsiMapping.class));
+        Mockito.doReturn(
+            mockNsiMapping
+        ).when(mockNsiMappingService).save(Mockito.any(NsiMapping.class));
 
-            // Mock NsiHeaderUtils, used by the NsiService.reserve() method
-            // Mock NsiHeaderUtils.getRequesterNsa()
-            NsiRequesterNSA mockRequesterNSA = NsiRequesterNSA
-                .builder()
-                .id(1L)
-                .nsaId(nsaId)
-                .callbackUrl("http://localhost:8080/callback")
-                .build();
+        // Mock NsiHeaderUtils, used by the NsiService.reserve() method
+        // Mock NsiHeaderUtils.getRequesterNsa()
+        NsiRequesterNSA mockRequesterNSA = NsiRequesterNSA
+            .builder()
+            .id(1L)
+            .nsaId(nsaId)
+            .callbackUrl("http://localhost:8080/callback")
+            .build();
 
-            mockNsiHeaderUtils = Mockito.mock(NsiHeaderUtils.class);
+        mockNsiHeaderUtils = Mockito.mock(NsiHeaderUtils.class);
 
-            Mockito
-                .doReturn(mockRequesterNSA)
-                .when(mockNsiHeaderUtils)
-                .getRequesterNsa(Mockito.anyString());
+        Mockito
+            .doReturn(mockRequesterNSA)
+            .when(mockNsiHeaderUtils)
+            .getRequesterNsa(Mockito.anyString());
 
-            mockConnectionRequesterPort = Mockito.mock(ConnectionRequesterPort.class);
-            GenericAcknowledgmentType mockAcknowledgment = Mockito.mock(GenericAcknowledgmentType.class);
-            Mockito
-                .doReturn(mockAcknowledgment)
-                .when(
-                    mockConnectionRequesterPort
-                )
-                .reserveConfirmed(Mockito.any(), Mockito.any());
+        mockConnectionRequesterPort = Mockito.mock(ConnectionRequesterPort.class);
+        GenericAcknowledgmentType mockAcknowledgment = Mockito.mock(GenericAcknowledgmentType.class);
+        Mockito
+            .doReturn(mockAcknowledgment)
+            .when(
+                mockConnectionRequesterPort
+            )
+            .reserveConfirmed(Mockito.any(), Mockito.any());
 
-            mockNsiSoapClientUtil = Mockito.mock(NsiSoapClientUtil.class);
+        mockNsiSoapClientUtil = Mockito.mock(NsiSoapClientUtil.class);
 
-            Mockito
-                .doReturn(mockConnectionRequesterPort)
-                .when(mockNsiSoapClientUtil)
-                .createRequesterClient(Mockito.any());
+        Mockito
+            .doReturn(mockConnectionRequesterPort)
+            .when(mockNsiSoapClientUtil)
+            .createRequesterClient(Mockito.any());
 
-            // Let's assert our mock NSI service picks up the
-            // mock handlers
-            setupMockNsiService();
+        // Let's assert our mock NSI service picks up the
+        // mock handlers
+        setupMockNsiService();
 
-            // Call the NSI Service reserve() method!
-            // Start of the main try-catch block.
-            // ... If NsiMapping mapping is null, it will attempt to create
-            //     a new NsiMapping object before calling nsiMappingService.save(),
-            //     and newReservation = true.
-            //
-            // ... If NsiMapping mapping is NOT null,
-            //     it calls nsiStateEngine.reserve(NsiEvent.RESV_CHECK, mapping)
-            //     then calls nsiMappingService.save()
-            //
-            // ... Start of the inner try-catch block.
-            // ... Then it calls holdResult = this.hold(mockReserveType incomingRT, NsiMapping mapping),
-            //     which should be mocked for this test. It can throw an exception.
-            //
-            // ... If holdResult.getSuccess() is true,
-            //     nsiStateEngine.reserve(NsiEvent.RESV_CF, mapping) called
-            //     and nsiMappingService.save(mapping) is called.
-            //     NsiRequest is built, and nsiRequestManager.addInFlightRequest(nsiRequest) is called.
-            //     nsiConnectionEventService.save( NsiConnectionEvent ) is called.
-            //     this.reserveConfirmCallback() is called.
-            //
-            //     The reserve() function should return at this point.
-            //     An exception may be thrown.
-            //
-            //     If the reserve() function did not return, an exception was thrown.
-            //     Execution continues.
-            //
-            // ... If holdResult.getSuccess() is false,
-            //     holdResult.getErrorMessage() is called,
-            //     holdResult.getErrorCode() is called,
-            //     holdResult.getTvps() is called.
-            // ... End of the inner try-catch block.
-            //
-            // ... Execution continues.
-            //
-            // ... If execution continues, an exception occurred, and
-            //     nsiConnectionEventService.save( NsiConnectionEvent ) is called.
-            //     nsiStateEngine.reserve(NsiEvent.RESV_FL, mapping) is called.
-            //     nsiMappingService.save(mapping) is called.
-            //
-            // ... If a NEW reservation was true, nsiMappingService.delete(mapping) is called.
-            //
-            // ... this.errCallback(NsiEvent.RESV_FL, nsaId, nsiConnectionId, mapping,
-            //         errorMessage, errorCode, tvps, header.getCorrelationId())  is called.
-            //
-            // ... The function returns.
-            //
-            // ... If the main try-catch-block catches an exception
+        // Call the NSI Service reserve() method!
+        // Start of the main try-catch block.
+        // ... If NsiMapping mapping is null, it will attempt to create
+        //     a new NsiMapping object before calling nsiMappingService.save(),
+        //     and newReservation = true.
+        //
+        // ... If NsiMapping mapping is NOT null,
+        //     it calls nsiStateEngine.reserve(NsiEvent.RESV_CHECK, mapping)
+        //     then calls nsiMappingService.save()
+        //
+        // ... Start of the inner try-catch block.
+        // ... Then it calls holdResult = this.hold(mockReserveType incomingRT, NsiMapping mapping),
+        //     which should be mocked for this test. It can throw an exception.
+        //
+        // ... If holdResult.getSuccess() is true,
+        //     nsiStateEngine.reserve(NsiEvent.RESV_CF, mapping) called
+        //     and nsiMappingService.save(mapping) is called.
+        //     NsiRequest is built, and nsiRequestManager.addInFlightRequest(nsiRequest) is called.
+        //     nsiConnectionEventService.save( NsiConnectionEvent ) is called.
+        //     this.reserveConfirmCallback() is called.
+        //
+        //     The reserve() function should return at this point.
+        //     An exception may be thrown.
+        //
+        //     If the reserve() function did not return, an exception was thrown.
+        //     Execution continues.
+        //
+        // ... If holdResult.getSuccess() is false,
+        //     holdResult.getErrorMessage() is called,
+        //     holdResult.getErrorCode() is called,
+        //     holdResult.getTvps() is called.
+        // ... End of the inner try-catch block.
+        //
+        // ... Execution continues.
+        //
+        // ... If execution continues, an exception occurred, and
+        //     nsiConnectionEventService.save( NsiConnectionEvent ) is called.
+        //     nsiStateEngine.reserve(NsiEvent.RESV_FL, mapping) is called.
+        //     nsiMappingService.save(mapping) is called.
+        //
+        // ... If a NEW reservation was true, nsiMappingService.delete(mapping) is called.
+        //
+        // ... this.errCallback(NsiEvent.RESV_FL, nsaId, nsiConnectionId, mapping,
+        //         errorMessage, errorCode, tvps, header.getCorrelationId())  is called.
+        //
+        // ... The function returns.
+        //
+        // ... If the main try-catch-block catches an exception
 
-            // Mock the NsiService.hold() method, as it is called by reserve()
+        // Mock the NsiService.hold() method, as it is called by reserve()
 //            Mockito.doReturn(
 //                NsiReserveResult.builder()
 //                    .success(true)
 //                    .build()
 //            ).when(nsiService).hold(Mockito.any(), Mockito.any());
 
-            nsiService.reserve(
-                mockCommonHeaderType,
-                mockNsiMapping,
-                mockReserveType
-            );
-            reserved = true;
-        } catch (Exception ex) {
+        reserved = nsiService.reserve(
+            mockCommonHeaderType,
+            mockNsiMapping,
+            mockReserveType
+        );
+    }
 
-            world.add(ex);
-            throw ex;
-        }
+    private void setupMockCommonHeaderType() {
+        mockCommonHeaderType = new CommonHeaderType();
+
+        mockCommonHeaderType.setProtocolVersion("1.0");
+        mockCommonHeaderType.setCorrelationId("CORRID");
+        mockCommonHeaderType.setRequesterNSA(nsaId);
+        mockCommonHeaderType.setProviderNSA(nsaId);
+        mockCommonHeaderType.setReplyTo("test@localhost");
+    }
+
+    private void setupMockNsiMapping() {
+        setupMockNsiMapping(
+            LifecycleStateEnumType.CREATED,
+            ProvisionStateEnumType.PROVISIONING,
+            ReservationStateEnumType.RESERVE_START
+        );
+    }
+    private void setupMockNsiMapping(
+        LifecycleStateEnumType lifecycleState,
+        ProvisionStateEnumType provisionState,
+        ReservationStateEnumType reservationState
+    ) {
+        mockNsiMapping = NsiMapping.builder()
+            .nsiGri("MOCKGRI")
+            .nsiConnectionId(nsaId)
+            .dataplaneVersion(1)
+            .deployedDataplaneVersion(1)
+            .lifecycleState(lifecycleState)
+            .provisionState(provisionState)
+            .nsiConnectionId(nsiConnectionId)
+            .oscarsConnectionId(oscarsConnectionId)
+            .nsaId(nsaId)
+            .reservationState(reservationState)
+            .build();
     }
 
     private void setupDatasources() throws Exception {
-        setupMockConnRepo();
-        setupMockConnSvc();
+        Connection mockConn = helper.generateMockConnection();
+        setupDatasources(mockConn);
     }
-    private void setupMockConnRepo() {
-        connRepo = Mockito.mock(ConnectionRepository.class);
+    private void setupDatasources(Connection mockConn) throws Exception {
+        setupMockConnRepo(mockConn);
+        setupMockConnSvc(mockConn);
+    }
+    private void setupMockConnRepo() throws Exception {
         Connection mockConnection = helper.generateMockConnection();
+        setupMockConnRepo(mockConnection);
+    }
+    private void setupMockConnRepo(Connection mockConn) {
+        connRepo = Mockito.mock(ConnectionRepository.class);
         Mockito
             .when(
                 connRepo.save(Mockito.any(Connection.class))
             )
             .thenReturn(
-                mockConnection
+                mockConn
             );
     }
 
     private void setupMockConnSvc() throws Exception {
-        connSvc = Mockito.mock(ConnService.class);
         Connection mockConn = helper.generateMockConnection(connectionId);
+        setupMockConnSvc(mockConn);
+    }
+    private void setupMockConnSvc(Connection mockConn) throws Exception {
+        connSvc = Mockito.mock(ConnService.class);
+
         Optional<Connection> mockConnOpt = Optional.of(mockConn);
         Mockito.when(
             connSvc.findConnection(Mockito.anyString())
@@ -539,7 +487,7 @@ public class NsiServiceSteps extends CucumberSteps {
                 zaMbps,
                 mbps
             ),
-            helper.generateMockConnection(connectionId)
+            mockConn
         );
         Mockito
             .when(
@@ -552,6 +500,216 @@ public class NsiServiceSteps extends CucumberSteps {
         connSvc.setConnRepo(connRepo);
     }
 
+    private void setupMockNsiService() throws Exception {
+        try {
+            // @TODO setup any mock data and adapters here.
+            // @TODO How do we handle NsiService.errCallback?
+            // @TODO How do we handle NsiService.okCallback?
+//            nsiService = Mockito.mock(NsiService.class);
+            nsiService.setResvTimeout(900);
+            nsiService.setProviderNsa("urn:ogf:network:es.net:2013:nsa");
+
+            nsiService.connRepo = connRepo;
+            nsiService.connSvc = connSvc;
+
+            nsiService.nsiRequestManager = mockNsiRequestManager;
+            nsiService.nsiHeaderUtils = mockNsiHeaderUtils;
+            nsiService.nsiStateEngine = mockNsiStateEngine;
+
+            nsiService.nsiMappingService = mockNsiMappingService;
+            nsiService.nsiQueries = mockNsiQueries;
+            nsiService.nsiNotifications = mockNsiNotifications;
+            nsiService.nsiConnectionEventService = mockNsiConnectionEventService;
+
+            nsiService.setNsiSoapClientUtil(mockNsiSoapClientUtil);
+
+        } catch (Exception ex) {
+            world.add(ex);
+            throw ex;
+        }
+    }
+
+    private void setupForProvision() throws Exception {
+        provisioned = false;
+
+        Connection mockConn = helper.generateMockConnection(
+            connectionId,
+            Phase.RESERVED,
+            BuildMode.AUTOMATIC,
+            State.WAITING,
+            DeploymentState.UNDEPLOYED,
+            DeploymentIntent.SHOULD_BE_DEPLOYED,
+            mbps
+        );
+
+        // @TODO pass in Schedule object
+        Schedule schedule = helper.createValidSchedule();
+
+        // @TODO create a Vlan object
+        Vlan vlan1 = Vlan.builder()
+            .id(1L)
+            .connectionId(connectionId)
+            .schedule(schedule)
+            .urn("ornl5600-cr6:1/1/c31/1")
+            .vlanId(2188)
+            .build();
+
+        Vlan vlan2 = Vlan.builder()
+            .id(2L)
+            .connectionId(connectionId)
+            .schedule(schedule)
+            .urn("star-cr6:1/1/c55/1")
+            .vlanId(4073)
+            .build();
+
+        // @TODO fill in fixtures, junctions, pipes
+        List<VlanFixture> vlanFixtures = new ArrayList<>();
+        List<VlanJunction> vlanJunctions = new ArrayList<>();
+        List<VlanPipe> vlanPipes = new ArrayList<>();
+
+        VlanJunction junctionA = VlanJunction.builder()
+            .id(1L)
+            .refId("ornl5600-cr6")
+            .connectionId(connectionId)
+            .deviceUrn("ornl5600-cr6")
+            .vlan(vlan1)
+            .build();
+        VlanJunction junctionZ = VlanJunction.builder()
+            .id(2L)
+            .refId("star-cr6")
+            .connectionId(connectionId)
+            .deviceUrn("star-cr6")
+            .vlan(vlan2)
+            .build();
+
+        VlanFixture fixture1 = VlanFixture.builder()
+            .connectionId(connectionId)
+            .junction(junctionA)
+            .portUrn("ornl5600-cr6:1/1/c31/1")
+            .ingressBandwidth(inMbps)
+            .egressBandwidth(outMbps)
+            .vlan(vlan1)
+            .strict(false)
+            .schedule(schedule)
+//            .commandParams()
+            .build();
+
+        VlanFixture fixture2 = VlanFixture.builder()
+            .connectionId(connectionId)
+            .junction(junctionZ)
+            .portUrn("star-cr6:1/1/c55/1")
+            .ingressBandwidth(outMbps)
+            .egressBandwidth(inMbps)
+            .vlan(vlan2)
+            .strict(false)
+            .schedule(schedule)
+//            .commandParams()
+            .build();
+
+        List<EroHop> azERO = new ArrayList<>();
+        List<EroHop> zaEro = new ArrayList<>();
+
+        EroHop eroHopA = EroHop.builder()
+            .id(1L)
+            .urn("ornl5600-cr6:1/1/c31/1")
+            .build();
+
+        EroHop eroHopZ = EroHop.builder()
+            .id(2L)
+            .urn("star-cr6:1/1/c55/1")
+            .build();
+
+        azERO.add(
+            eroHopA
+        ); // Start
+        azERO.add(
+            eroHopZ
+        ); // End
+
+        zaEro.add(
+            eroHopZ
+        ); // End
+        zaEro.add(
+            eroHopA
+        ); // Start
+
+        vlanPipes.add(
+            VlanPipe.builder()
+                .connectionId(connectionId)
+                .protect(false)
+                .a(junctionA)
+                .z(junctionZ)
+                .azERO(azERO)
+                .zaERO(zaEro)
+                .azBandwidth(mbps)
+                .zaBandwidth(mbps)
+                .schedule(schedule)
+                .build()
+        );
+
+        Archived mockArchived = Archived.builder()
+            .connectionId(connectionId)
+            .cmp(
+                Components.builder()
+                    .pipes(vlanPipes)
+                    .fixtures(vlanFixtures)
+                    .junctions(vlanJunctions)
+                    .build()
+            )
+            .schedule(
+                schedule
+            )
+            .build();
+        mockConn.setArchived(mockArchived);
+
+        setupDatasources(mockConn);
+        setupMockCommonHeaderType();
+        setupMockNsiMapping(
+            LifecycleStateEnumType.CREATED,
+            ProvisionStateEnumType.RELEASED,
+            ReservationStateEnumType.RESERVE_START
+        );
+        setupMockNsiService();
+
+        setupMocks(mockConn);
+    }
+
+    private void mockProvision() throws Exception {
+        provisioned = nsiService.provision(
+            mockCommonHeaderType,
+            mockNsiMapping
+        );
+    }
+
+    @Given("The NSI Service expects an exception")
+    public void theNsiServiceExpectAnException() {
+        world.expectException();
+    }
+    @Given("The NSI Service class is instantiated")
+    public void theNsiServiceClassIsInstantiated() {
+        assert nsiService != null;
+    }
+
+    // * NSI Reserve steps BEGIN *
+    @When("The NSI Service submits a reservation for NSA {string}, connection ID {string}, global reservation ID {string}, NSI connection ID {string}, OSCARS connection ID {string}")
+    public void theNsiServiceSubmitsAReservationForConnectionID(String nsa, String connectionId, String globalReservationId, String nsiConnectionId, String oscarsConnectionId) throws Throwable {
+        try {
+            this.nsaId = nsa;
+            this.connectionId = connectionId;
+            this.globalReservationId = globalReservationId;
+            this.nsiConnectionId = nsiConnectionId;
+            this.oscarsConnectionId = oscarsConnectionId;
+
+            Connection mockConn = helper.generateMockConnection(this.connectionId);
+
+            setupMocks(mockConn);
+        } catch (Exception ex) {
+
+            world.add(ex);
+            throw ex;
+        }
+    }
+
     @Then("The NSI Service made the reservation successfully.")
     public void theNsiServiceMadeTheReservationSuccessfully() {
         assert reserved;
@@ -561,18 +719,34 @@ public class NsiServiceSteps extends CucumberSteps {
 
     // * NSI Provision steps BEGIN *
     @Given("The NSI Service has a reserved connection")
-    public void theNSIServiceHasAReservedConnection() {
-//        assert reserved;
+    public void theNSIServiceHasAReservedConnection() throws Throwable {
+        try {
+            this.nsaId = "RES1";
+            this.connectionId = "OSCARS";
+            this.globalReservationId = "GLOBALID";
+            this.nsiConnectionId = "RES1";
+            this.oscarsConnectionId = "OSCARS";
+
+            setupForProvision();
+        } catch (Exception ex) {
+            world.add(ex);
+            throw ex;
+        }
     }
 
     @When("The NSI Service submits a provision request for a reserved connection")
-    public void theNSIServiceSubmitsAProvisionRequestForAReservedConnection() {
-        
+    public void theNSIServiceSubmitsAProvisionRequestForAReservedConnection() throws Throwable {
+        try {
+             mockProvision();
+        } catch (Exception ex) {
+            world.add(ex);
+            throw ex;
+        }
     }
 
     @Then("The NSI Service made the provision request successfully.")
     public void theNSIServiceMadeTheProvisionRequestSuccessfully() {
-
+        assert provisioned;
     }
     // * NSI Provision steps END *
 
@@ -590,4 +764,19 @@ public class NsiServiceSteps extends CucumberSteps {
     public void theNSIServiceMadeTheReleaseRequestSuccessfully() {
     }
     // * NSI Release steps END *
+}
+
+class MockStpListType extends StpListType {
+    @Override
+    public List<OrderedStpType> getOrderedSTP() {
+        List<OrderedStpType> orderedStpList = new ArrayList<>();
+
+        OrderedStpType oStp = new OrderedStpType();
+        oStp.setStp("urn:ogf:network:es.net:2013:nsa");
+        oStp.setOrder(0);
+
+        orderedStpList.add(oStp);
+
+        return orderedStpList;
+    }
 }

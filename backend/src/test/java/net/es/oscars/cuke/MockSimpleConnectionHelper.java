@@ -3,10 +3,7 @@ package net.es.oscars.cuke;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.model.Interval;
-import net.es.oscars.resv.ent.Components;
-import net.es.oscars.resv.ent.Connection;
-import net.es.oscars.resv.ent.Held;
-import net.es.oscars.resv.ent.Schedule;
+import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ResvService;
@@ -451,9 +448,28 @@ public class MockSimpleConnectionHelper {
     }
 
     public Connection generateMockConnection() {
-        return generateMockConnection("ABCD");
+        return generateMockConnection(
+            "ABCD",
+            Phase.HELD,
+            BuildMode.AUTOMATIC,
+            State.WAITING,
+            DeploymentState.UNDEPLOYED,
+            DeploymentIntent.SHOULD_BE_DEPLOYED,
+            10000
+        );
     }
-    public Connection generateMockConnection(String mockConnectionId) {
+    public Connection generateMockConnection(String connectionId) {
+        return generateMockConnection(
+            connectionId,
+            Phase.HELD,
+            BuildMode.AUTOMATIC,
+            State.WAITING,
+            DeploymentState.UNDEPLOYED,
+            DeploymentIntent.SHOULD_BE_DEPLOYED,
+            10000
+        );
+    }
+    public Connection generateMockConnection(String mockConnectionId, Phase phase, BuildMode buildMode, State state, DeploymentState deploymentState, DeploymentIntent deploymentIntent, int connection_mtu) {
         return Connection.builder()
             .id(1L)
             .held( // Required, or /protected/modify/description result will become an HTTP 500 Internal Server Error
@@ -472,14 +488,14 @@ public class MockSimpleConnectionHelper {
                     .build()
             )
             .connectionId(mockConnectionId)
-            .phase(Phase.HELD)
-            .mode(BuildMode.AUTOMATIC)
-            .state(State.WAITING)
-            .deploymentState(DeploymentState.UNDEPLOYED)
-            .deploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED)
+            .phase(phase)
+            .mode(buildMode)
+            .state(state)
+            .deploymentState(deploymentState)
+            .deploymentIntent(deploymentIntent)
             .username("test")
             .description("test description")
-            .connection_mtu(10000)
+            .connection_mtu(connection_mtu)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
             .build();
     }
