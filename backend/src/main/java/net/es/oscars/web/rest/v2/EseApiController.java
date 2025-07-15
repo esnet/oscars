@@ -6,6 +6,7 @@ import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.util.UsernameGetter;
 import net.es.oscars.resv.db.ConnectionRepository;
+import net.es.oscars.resv.enums.ConnectionMode;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.L2VPNService;
 import net.es.oscars.resv.svc.ResvService;
@@ -74,7 +75,8 @@ public class EseApiController {
     @Transactional
     public ValidationResponse validateNew(@RequestBody L2VPN l2VPNRequest) throws StartupException {
         startup.startupCheck();
-        return ValidationResponse.builder().valid(false).message("not implemented yet").build();
+
+        return l2VPNService.validate(l2VPNRequest, ConnectionMode.NEW);
     }
 
     @RequestMapping(value = "/api/l2vpn/validate", method = RequestMethod.PUT)
@@ -82,7 +84,7 @@ public class EseApiController {
     @Transactional
     public ValidationResponse validateModify(@RequestBody L2VPN l2VPNRequest) throws StartupException {
         startup.startupCheck();
-        return ValidationResponse.builder().valid(false).message("not implemented yet").build();
+        return l2VPNService.validate(l2VPNRequest, ConnectionMode.MODIFY);
     }
 
 

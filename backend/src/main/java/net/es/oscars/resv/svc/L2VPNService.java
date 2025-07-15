@@ -5,10 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.model.*;
 import net.es.oscars.resv.ent.Connection;
-import net.es.oscars.resv.enums.DeploymentIntent;
-import net.es.oscars.resv.enums.DeploymentState;
-import net.es.oscars.resv.enums.Phase;
-import net.es.oscars.resv.enums.State;
+import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.conversions.L2VPNConversions;
 import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.web.beans.BandwidthAvailabilityResponse;
@@ -16,7 +13,9 @@ import net.es.oscars.web.beans.ConnException;
 import net.es.oscars.web.beans.ConnectionFilter;
 import net.es.oscars.web.beans.ConnectionList;
 import net.es.oscars.web.beans.v2.L2VPNList;
+import net.es.oscars.web.beans.v2.ValidationResponse;
 import net.es.oscars.web.simple.SimpleConnection;
+import net.es.oscars.web.simple.Validity;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Component;
 
@@ -77,6 +76,22 @@ public class L2VPNService {
         return l2VPNConversions.fromConnection(connSvc.findConnection(l2VPN.getName()).orElseThrow(
                 () -> new ConnException("No connection found for name: " + l2VPN.getName())
         ));
+    }
+
+    public ValidationResponse validate(L2VPN l2VPN, ConnectionMode mode) {
+        SimpleConnection simpleConnection = l2VPNConversions.fromL2VPN(l2VPN);
+        try {
+            Validity v = connSvc.validate(simpleConnection, mode);
+            return ValidationResponse.builder()
+                    .valid(v.isValid())
+                    .message(v.getMessage())
+                    .build();
+        } catch (ConnException ex) {
+            return ValidationResponse.builder()
+                    .valid(false)
+                    .message(ex.getMessage())
+                    .build();
+        }
     }
 
 
