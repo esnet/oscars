@@ -347,7 +347,6 @@ public class NsiService {
      */
     public boolean provision(CommonHeaderType header, NsiMapping mapping) {
         log.info("starting provision task for {}", mapping.getNsiConnectionId());
-        boolean requireRollback = false;
         boolean succeeded = false;
         try {
             Connection c = nsiMappingService.getOscarsConnection(mapping);
@@ -357,7 +356,6 @@ public class NsiService {
                 NsiErrors error = NsiErrors.TRANS_ERROR;
                 throw new NsiStateException("Cannot provision unless RESERVED", error);
             }
-            requireRollback = true;
             nsiStateEngine.provision(NsiEvent.PROV_START, mapping);
             nsiMappingService.save(mapping);
 
@@ -382,14 +380,12 @@ public class NsiService {
 
             // State Machine: Section 5.3.2 says, if provision fails, the specs say it stays in "scheduled"
             log.error(e.getMessage(), e);
-            if (requireRollback) {
-                nsiConnectionEventService.save(NsiConnectionEvent.builder()
-                    .type(NsiConnectionEventType.PROVISION_FAILED)
-                    .timestamp(Instant.now())
-                    .version(mapping.getDataplaneVersion())
-                    .nsiConnectionId(mapping.getNsiConnectionId())
-                    .build());
-            }
+            nsiConnectionEventService.save(NsiConnectionEvent.builder()
+                .type(NsiConnectionEventType.PROVISION_FAILED)
+                .timestamp(Instant.now())
+                .version(mapping.getDataplaneVersion())
+                .nsiConnectionId(mapping.getNsiConnectionId())
+                .build());
 
             // For reasons beyond us, it was decided that we would not add
             // error callbacks here (not designed in the specs).
