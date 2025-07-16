@@ -39,7 +39,7 @@ public class L2VPNConversions {
     }
 
 
-    public L2VPN fromConnection(Connection c) {
+    public L2VPN fromConnection(Connection c) throws ConsistencyException{
 
         L2VPN l2VPN = L2VPN.builder()
                 .schedule(getInterval(c))
@@ -101,9 +101,10 @@ public class L2VPNConversions {
     }
 
 
-    public List<Bundle> getBundles(Connection c) {
+    public List<Bundle> getBundles(Connection c) throws ConsistencyException {
         List<Bundle> bundles = new ArrayList<>();
         Components cmp = getComponents(c);
+        Topology topology = topologyStore.getCurrentTopology();
 
         for (VlanPipe vlanPipe : cmp.getPipes()) {
             Bundle b = Bundle.builder()
@@ -116,9 +117,9 @@ public class L2VPNConversions {
             Protection protection = Protection.NONE;
             if (vlanPipe.getProtect()) {
                 protection = Protection.LOOSE;
-                List<String> path = new ArrayList<>();
-                path.add(vlanPipe.getA().getDeviceUrn());
-                path.add(vlanPipe.getZ().getDeviceUrn());
+                List<Waypoint> path = new ArrayList<>();
+                path.add(Waypoint.builder().urn(vlanPipe.getA().getDeviceUrn()).type(UrnType.DEVICE).build());
+                path.add(Waypoint.builder().urn(vlanPipe.getZ().getDeviceUrn()).type(UrnType.DEVICE).build());
                 LSP loose = LSP.builder()
                         .path(path)
                         .role(Role.SECONDARY)
@@ -129,14 +130,14 @@ public class L2VPNConversions {
             lsps.add(LSP.builder()
                     .role(Role.PRIMARY)
                     .bundle(b)
-                    .path(eroAsStringList(vlanPipe.getAzERO()))
+                    .path(eroAsWaypointList(vlanPipe.getAzERO(), topology))
                     .build());
 
             b.setProtection(protection);
             b.setLsps(lsps);
             b.setConstraints(Bundle.Constraints.builder()
                     .exclude(new HashSet<>())
-                    .include(eroAsWaypointList(vlanPipe.getAzERO()))
+                    .include(eroAsWaypointList(vlanPipe.getAzERO(), topology))
                     .build());
             bundles.add(b);
         }
@@ -151,27 +152,24 @@ public class L2VPNConversions {
         return result;
     }
 
-    public List<Bundle.Waypoint> eroAsWaypointList(List<EroHop> ero) {
-        List<Bundle.Waypoint> list = new ArrayList<>();
-        try {
-            Topology topology = topologyStore.getCurrentTopology();
-            ero.forEach(e -> {
-                UrnType urnType = UrnType.PORT;
-                if (topology.getDevices().containsKey(e.getUrn())) {
-                    urnType = UrnType.DEVICE;
-                }
-                Bundle.Waypoint waypoint = Bundle.Waypoint.builder()
-                        .urn(e.getUrn())
-                        .type(urnType)
-                        .build();
-                list.add(waypoint);
-            });
-            return list;
+    public static List<Waypoint> eroAsWaypointList(List<EroHop> ero, Topology topology) {
+        List<Waypoint> list = new ArrayList<>();
+        ero.forEach(e -> {
+            UrnType urnType = UrnType.UNKNOWN;
+            if (topology.getDevices().containsKey(e.getUrn())) {
+                urnType = UrnType.DEVICE;
+            }
+            if (topology.getPorts().containsKey(e.getUrn())) {
+                urnType = UrnType.PORT;
+            }
+            Waypoint waypoint = Waypoint.builder()
+                    .urn(e.getUrn())
+                    .type(urnType)
+                    .build();
+            list.add(waypoint);
+        });
+        return list;
 
-        } catch (ConsistencyException e) {
-            log.error("can't get waypoints, exception: ", e);
-            throw new RuntimeException(e);
-        }
 
     }
 
@@ -305,7 +303,7 @@ public class L2VPNConversions {
             if (primary != null) {
                 List<String> ero = new ArrayList<>();
                 if (primary.getPath() != null && !primary.getPath().isEmpty()) {
-                    ero = primary.getPath();
+                    ero = primary.pathUrns();
                 } else if (bundle.getConstraints().getInclude() != null && !bundle.getConstraints().getInclude().isEmpty()) {
                     ero = bundle.getConstraints().includedUrns();
                 }

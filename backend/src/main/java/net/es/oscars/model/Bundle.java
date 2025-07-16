@@ -57,14 +57,10 @@ public class Bundle {
     @Setter
     public static class Constraints {
 
-        @ElementCollection
-        @CollectionTable(name="`include`", joinColumns=@JoinColumn(name="bundle_id"))
-        @Column(name="`include`")
+        @OneToMany
         protected List<Waypoint> include;
 
-        @ElementCollection
-        @CollectionTable(name="`exclude`", joinColumns=@JoinColumn(name="bundle_id"))
-        @Column(name="`exclude`")
+        @OneToMany
         protected Set<Waypoint> exclude;
 
         public List<String> includedUrns() {
@@ -75,22 +71,6 @@ public class Bundle {
         }
 
 
-    }
-
-    @Jacksonized
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Getter
-    @Setter
-    @Entity
-    public static class Waypoint {
-        @GeneratedValue
-        @JsonIgnore
-        @Id
-        private Long id;
-        protected String urn;
-        protected UrnType type;
     }
 
 

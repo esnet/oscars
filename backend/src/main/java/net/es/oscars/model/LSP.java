@@ -8,6 +8,7 @@ import lombok.extern.jackson.Jacksonized;
 import net.es.oscars.model.enums.Role;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Jacksonized
 @Builder
@@ -30,11 +31,12 @@ public class LSP {
     private Bundle bundle;
 
 
-    @ElementCollection
-    @CollectionTable(name="path", joinColumns=@JoinColumn(name="lsp_id"))
-    @Column(name="path")
-    public List<String> path;
+    @OneToMany
+    public List<Waypoint> path;
 
+    public List<String> pathUrns() {
+        return path.stream().map(Waypoint::getUrn).collect(Collectors.toList());
+    }
 
     @Schema(description= "The role the LSP plays", defaultValue="PRIMARY", allowableValues = { "PRIMARY", "PROTECT", "TERTIARY" })
     @Enumerated(EnumType.STRING)

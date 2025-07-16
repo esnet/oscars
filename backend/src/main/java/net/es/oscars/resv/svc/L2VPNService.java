@@ -8,6 +8,7 @@ import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.conversions.L2VPNConversions;
 import net.es.oscars.sb.nso.resv.NsoResvException;
+import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.web.beans.BandwidthAvailabilityResponse;
 import net.es.oscars.web.beans.ConnException;
 import net.es.oscars.web.beans.ConnectionFilter;
@@ -36,11 +37,11 @@ public class L2VPNService {
         this.l2VPNConversions = l2VPNConversions;
     }
 
-    public L2VPN get(String connectionId) throws ConnException {
+    public L2VPN get(String connectionId) throws ConnException, ConsistencyException {
         return l2VPNConversions.fromConnection(connSvc.findConnection(connectionId).orElseThrow());
     }
 
-    public L2VPNList list(ConnectionFilter filter) {
+    public L2VPNList list(ConnectionFilter filter) throws ConnException, ConsistencyException {
         ConnectionList connList = connSvc.filter(filter);
         List<L2VPN> l2vpns = new ArrayList<>();
         for (Connection conn : connList.getConnections()) {
@@ -65,7 +66,7 @@ public class L2VPNService {
         return connSvc.bwAvailability(simpleConnection);
     }
 
-    public L2VPN create(L2VPN l2VPN) throws ConnException {
+    public L2VPN create(L2VPN l2VPN) throws ConnException, ConsistencyException {
         SimpleConnection in = l2VPNConversions.fromL2VPN(l2VPN);
         Pair<SimpleConnection, Connection> holdResult = connSvc.holdConnection(in);
         try {

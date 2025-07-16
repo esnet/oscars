@@ -57,7 +57,7 @@ public class EseApiController {
     @RequestMapping(value = "/api/l2vpn/get/{connectionId}", method = RequestMethod.GET)
     @ResponseBody
     @Transactional
-    public L2VPN get(@PathVariable String connectionId) throws StartupException, ConnException {
+    public L2VPN get(@PathVariable String connectionId) throws StartupException, ConnException, ConsistencyException {
         startup.startupCheck();
         return l2VPNService.get(connectionId);
     }
@@ -65,7 +65,7 @@ public class EseApiController {
     @RequestMapping(value = "/api/l2vpn/list", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public L2VPNList list(@RequestBody ConnectionFilter filter) throws StartupException, ConnException {
+    public L2VPNList list(@RequestBody ConnectionFilter filter) throws StartupException, ConnException, ConsistencyException {
         startup.startupCheck();
         return l2VPNService.list(filter);
     }
@@ -91,7 +91,7 @@ public class EseApiController {
     @RequestMapping(value = "/api/l2vpn/new", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public L2VPN newL2VPN(Authentication authentication, @RequestBody L2VPN l2vpn) throws StartupException, ConnException {
+    public L2VPN newL2VPN(Authentication authentication, @RequestBody L2VPN l2vpn) throws StartupException, ConnException, ConsistencyException {
         startup.startupCheck();
         l2vpn.getMeta().setUsername(usernameGetter.username(authentication));
 
