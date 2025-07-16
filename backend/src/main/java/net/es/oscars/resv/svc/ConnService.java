@@ -1133,17 +1133,6 @@ public class ConnService {
         connLock.lock();
         log.debug("got connection lock; hold {} resuming", in.getConnectionId());
 
-        // maybe don't throw exception; populate all the Validity entries instead
-        Validity v = this.validate(in, ConnectionMode.NEW);
-        in.setValidity(v);
-
-        if (!v.isValid()) {
-            log.info("could not hold {}; releasing lock", in.getConnectionId());
-            log.info("reason: {}", v.getMessage());
-            connLock.unlock();
-            return Pair.of(in, null);
-        }
-
         // we can hold it, so we do
         Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
         long secs = exp.toEpochMilli() / 1000L;

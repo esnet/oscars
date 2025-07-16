@@ -131,10 +131,16 @@ public class HoldController {
     public SimpleConnection hold(Authentication authentication, @RequestBody SimpleConnection in)
             throws StartupException, ConnException {
         this.checkStartup();
+        Validity v = connSvc.validate(in, ConnectionMode.NEW);
+        if (v.isValid()) {
+            in.setUsername(usernameGetter.username(authentication));
+            Pair<SimpleConnection, Connection> holdResult = connSvc.holdConnection(in);
+            return holdResult.getLeft();
 
-        in.setUsername(usernameGetter.username(authentication));
-        Pair<SimpleConnection, Connection> holdResult = connSvc.holdConnection(in);
-        return holdResult.getLeft();
+        } else {
+            throw new ConnException(v.getMessage());
+        }
+
     }
 
     // TODO: at 1.1 implement this

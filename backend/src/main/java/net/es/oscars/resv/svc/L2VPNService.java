@@ -66,14 +66,21 @@ public class L2VPNService {
         return connSvc.bwAvailability(simpleConnection);
     }
 
-    public L2VPN create(L2VPN l2VPN) throws ConnException, ConsistencyException {
+
+
+    public L2VPN createOrReplace(L2VPN l2VPN) throws ConnException, ConsistencyException {
         SimpleConnection in = l2VPNConversions.fromL2VPN(l2VPN);
-        Pair<SimpleConnection, Connection> holdResult = connSvc.holdConnection(in);
-        try {
-            connSvc.commit(holdResult.getRight());
-        } catch (NsoResvException | PCEException e) {
-            throw new ConnException(e.getMessage());
+
+        Validity v = connSvc.validate(in, ConnectionMode.MODIFY);
+        if (v.isValid()) {
+            Pair<SimpleConnection, Connection> holdResult = connSvc.holdConnection(in);
+            try {
+                connSvc.commit(holdResult.getRight());
+            } catch (NsoResvException | PCEException e) {
+                throw new ConnException(e.getMessage());
+            }
         }
+
         return l2VPNConversions.fromConnection(connSvc.findConnection(l2VPN.getName()).orElseThrow(
                 () -> new ConnException("No connection found for name: " + l2VPN.getName())
         ));
