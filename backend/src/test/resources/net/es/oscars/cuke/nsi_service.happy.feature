@@ -1,6 +1,6 @@
 @NsiServiceSteps
 @NsiServiceStepsHappy
-Feature: Run NSI Service (NsiService) class methods
+Feature: Run NsiService class methods (Happy)
 
   I want to verify NsiService can make a reservation
 
@@ -14,7 +14,7 @@ Feature: Run NSI Service (NsiService) class methods
     When The NSI Service submits a provision request for a reserved connection
     Then The NSI Service made the provision request successfully.
 
-#  Scenario: NSI Service releases a connection
-#    Given The NSI Service class has a provisioned connection
-#    When The NSI Service submits a release request for a provisioned connection
-#    Then The NSI Service made the release request successfully.
+  Scenario: NSI Service releases a connection
+    Given The NSI Service class has a provisioned connection
+    When The NSI Service submits a release request for a provisioned connection
+    Then The NSI Service made the release request successfully.

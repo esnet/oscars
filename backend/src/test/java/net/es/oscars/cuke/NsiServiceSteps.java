@@ -129,6 +129,7 @@ public class NsiServiceSteps extends CucumberSteps {
 
     boolean reserved = false;
     boolean provisioned = false;
+    boolean released = false;
 
     @Autowired
     private NsiMappingService nsiMappingService;
@@ -547,13 +548,29 @@ public class NsiServiceSteps extends CucumberSteps {
             mbps
         );
 
-        // @TODO pass in Schedule object
+        // Pass in Schedule object
         Schedule schedule = helper.createValidSchedule();
 
+        Archived mockArchived = generateMockArchived(oscarsConnectionId, inMbps, outMbps, mbps, mbps, schedule);
+        mockConn.setArchived(mockArchived);
+
+        setupDatasources(mockConn);
+        setupMockCommonHeaderType();
+        setupMockNsiMapping(
+            LifecycleStateEnumType.CREATED,
+            ProvisionStateEnumType.RELEASED,
+            ReservationStateEnumType.RESERVE_START
+        );
+        setupMockNsiService();
+
+        setupMocks(mockConn);
+    }
+
+    private Archived generateMockArchived(String connectionId, int ingressMbps, int egressMbps, int azBandwidthMbps, int zaBandwidthMbps, Schedule schedule) {
         // @TODO create a Vlan object
         Vlan vlan1 = Vlan.builder()
             .id(1L)
-            .connectionId(oscarsConnectionId)
+            .connectionId(connectionId)
             .schedule(schedule)
             .urn("ornl5600-cr6:1/1/c31/1")
             .vlanId(2188)
@@ -561,7 +578,7 @@ public class NsiServiceSteps extends CucumberSteps {
 
         Vlan vlan2 = Vlan.builder()
             .id(2L)
-            .connectionId(oscarsConnectionId)
+            .connectionId(connectionId)
             .schedule(schedule)
             .urn("star-cr6:1/1/c55/1")
             .vlanId(4073)
@@ -575,24 +592,24 @@ public class NsiServiceSteps extends CucumberSteps {
         VlanJunction junctionA = VlanJunction.builder()
             .id(1L)
             .refId("ornl5600-cr6")
-            .connectionId(oscarsConnectionId)
+            .connectionId(connectionId)
             .deviceUrn("ornl5600-cr6")
             .vlan(vlan1)
             .build();
         VlanJunction junctionZ = VlanJunction.builder()
             .id(2L)
             .refId("star-cr6")
-            .connectionId(oscarsConnectionId)
+            .connectionId(connectionId)
             .deviceUrn("star-cr6")
             .vlan(vlan2)
             .build();
 
         VlanFixture fixture1 = VlanFixture.builder()
-            .connectionId(oscarsConnectionId)
+            .connectionId(connectionId)
             .junction(junctionA)
             .portUrn("ornl5600-cr6:1/1/c31/1")
-            .ingressBandwidth(inMbps)
-            .egressBandwidth(outMbps)
+            .ingressBandwidth(ingressMbps)
+            .egressBandwidth(egressMbps)
             .vlan(vlan1)
             .strict(false)
             .schedule(schedule)
@@ -600,11 +617,11 @@ public class NsiServiceSteps extends CucumberSteps {
             .build();
 
         VlanFixture fixture2 = VlanFixture.builder()
-            .connectionId(oscarsConnectionId)
+            .connectionId(connectionId)
             .junction(junctionZ)
             .portUrn("star-cr6:1/1/c55/1")
-            .ingressBandwidth(outMbps)
-            .egressBandwidth(inMbps)
+            .ingressBandwidth(egressMbps)
+            .egressBandwidth(ingressMbps)
             .vlan(vlan2)
             .strict(false)
             .schedule(schedule)
@@ -640,20 +657,20 @@ public class NsiServiceSteps extends CucumberSteps {
 
         vlanPipes.add(
             VlanPipe.builder()
-                .connectionId(oscarsConnectionId)
+                .connectionId(connectionId)
                 .protect(false)
                 .a(junctionA)
                 .z(junctionZ)
                 .azERO(azERO)
                 .zaERO(zaEro)
-                .azBandwidth(mbps)
-                .zaBandwidth(mbps)
+                .azBandwidth(azBandwidthMbps)
+                .zaBandwidth(zaBandwidthMbps)
                 .schedule(schedule)
                 .build()
         );
 
-        Archived mockArchived = Archived.builder()
-            .connectionId(oscarsConnectionId)
+        return Archived.builder()
+            .connectionId(connectionId)
             .cmp(
                 Components.builder()
                     .pipes(vlanPipes)
@@ -665,13 +682,33 @@ public class NsiServiceSteps extends CucumberSteps {
                 schedule
             )
             .build();
+    }
+
+    private void setupForRelease() throws Exception {
+        released = false;
+
+        // Before provision, the connection stuff needs to be Phase.RESERVED
+        Connection mockConn = helper.generateMockConnection(
+            oscarsConnectionId,
+            Phase.RESERVED,
+            BuildMode.AUTOMATIC,
+            State.ACTIVE,
+            DeploymentState.DEPLOYED,
+            DeploymentIntent.SHOULD_BE_UNDEPLOYED,
+            mbps
+        );
+
+        // Pass in Schedule object
+        Schedule schedule = helper.createValidSchedule();
+
+        Archived mockArchived = generateMockArchived(oscarsConnectionId, inMbps, outMbps, mbps, mbps, schedule);
         mockConn.setArchived(mockArchived);
 
         setupDatasources(mockConn);
         setupMockCommonHeaderType();
         setupMockNsiMapping(
             LifecycleStateEnumType.CREATED,
-            ProvisionStateEnumType.RELEASED,
+            ProvisionStateEnumType.PROVISIONED,
             ReservationStateEnumType.RESERVE_START
         );
         setupMockNsiService();
@@ -681,6 +718,13 @@ public class NsiServiceSteps extends CucumberSteps {
 
     private void mockProvision() throws Exception {
         provisioned = nsiService.provision(
+            mockCommonHeaderType,
+            mockNsiMapping
+        );
+    }
+
+    private void mockRelease() throws Exception {
+        released = nsiService.release(
             mockCommonHeaderType,
             mockNsiMapping
         );
@@ -762,11 +806,28 @@ public class NsiServiceSteps extends CucumberSteps {
 
     // * NSI Release steps BEGIN *
     @Given("The NSI Service class has a provisioned connection")
-    public void theNSIServiceClassHasAProvisionedConnection() {
+    public void theNSIServiceClassHasAProvisionedConnection() throws Throwable {
+        try {
+
+            this.globalReservationId = "GLOBALID";
+            this.nsiConnectionId = "RES1";
+            this.oscarsConnectionId = "ABCD";
+
+            setupForRelease();
+        } catch (Exception ex) {
+            world.add(ex);
+            throw ex;
+        }
     }
 
     @When("The NSI Service submits a release request for a provisioned connection")
-    public void theNSIServiceSubmitsAReleaseRequestForAProvisionedConnection() {
+    public void theNSIServiceSubmitsAReleaseRequestForAProvisionedConnection() throws Throwable {
+        try {
+            mockRelease();
+        } catch (Exception ex) {
+            world.add(ex);
+            throw ex;
+        }
     }
 
 
