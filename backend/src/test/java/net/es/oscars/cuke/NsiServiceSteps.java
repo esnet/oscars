@@ -39,6 +39,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Test steps for NsiService class.
+ *  - See draft-nsi-cs-protocol-2dot1-v13.pdf, page 12.
+ */
 @Slf4j
 @Category({UnitTests.class})
 @SpringBootTest(
@@ -109,11 +113,13 @@ public class NsiServiceSteps extends CucumberSteps {
     @Autowired
     private NsiService nsiService;
 
-    String nsaId = "RES1";
-    String connectionId = "OSCARS";
+    // NSA identifier. Identifies the customer (whoever is calling). Customers such as SENSE, etc
+    // "localstackv"
+    String nsaId = "localstackv";
+
     String globalReservationId = "GLOBALID";
     String nsiConnectionId = "RES1";
-    String oscarsConnectionId = "OSCARS";
+    String oscarsConnectionId = "ABCD";
 
     int inMbps = 10000;
     int outMbps = 10000;
@@ -141,13 +147,13 @@ public class NsiServiceSteps extends CucumberSteps {
         Instant endingTime = now.plusSeconds(20 * 60); // 20 minutes
 
         Schedule mockSchedule = Schedule.builder()
-            .connectionId(connectionId)
+            .connectionId(oscarsConnectionId)
             .beginning(now)
             .ending(endingTime) // 20 min
             .refId(globalReservationId)
             .build();
 
-        // Attempt to call nsiService.reserve() for connectionId
+        // Attempt to call nsiService.reserve() for oscarsConnectionId
 
         ScheduleType mockScheduleType = nsiMappingService.oscarsToNsiSchedule(mockSchedule);
 
@@ -161,7 +167,7 @@ public class NsiServiceSteps extends CucumberSteps {
         mockCriteriaType.setServiceType("");
         mockCriteriaType.setVersion(1);
 
-        mockReserveType.setConnectionId(connectionId);
+        mockReserveType.setConnectionId(oscarsConnectionId);
         mockReserveType.setGlobalReservationId(globalReservationId);
         mockReserveType.setDescription("Test reservation");
         mockReserveType.setCriteria(mockCriteriaType);
@@ -174,9 +180,9 @@ public class NsiServiceSteps extends CucumberSteps {
         Mockito.when(mockReservationRequestCriteriaType.getSchedule()).thenReturn(mockScheduleType);
 
 
-        // Set the mock data for NSI Service reserve()
+        // Set the mock data for NsiService.reserve()
+        // An NsiMapping object is used
         Mockito.doReturn(
-            // @TODO Set mock NsiMapping result object
             mockNsiMapping
         ).when(mockNsiMappingService).newMapping(
             Mockito.anyString(),
@@ -186,6 +192,7 @@ public class NsiServiceSteps extends CucumberSteps {
             Mockito.anyBoolean()
         );
 
+        // Mock NsiMappingService.nsiToOscarsSchedule()
         Interval mockInterval = Interval.builder()
             .beginning(now)
             .ending(endingTime) // 20 minutes from now
@@ -198,13 +205,13 @@ public class NsiServiceSteps extends CucumberSteps {
             Mockito.any()
         );
 
+        // Mock NsiMappingService.getOscarsConnection()
         Mockito.doReturn(
             mockConn
         ).when(
             mockNsiMappingService
         ).getOscarsConnection(Mockito.any());
 
-        // @TODO mocking internals of nsiService.hold(). See MockSimpleConnectionHelper for mock fixtures and junctions
         // ... Fill in mock fixtures and junctions
         List<Fixture> mockFixtures = helper.createFixtures(inMbps, outMbps, mbps);
         List<Junction> mockJunctions = helper.createJunctions();
@@ -230,7 +237,8 @@ public class NsiServiceSteps extends CucumberSteps {
             Mockito.any()
         );
 
-
+        // Mock the NsiMappingService.getP2PService() method.
+        // Point to Point Service (P2P)
         P2PServiceBaseType mockP2P = new P2PServiceBaseType();
         mockP2P.setSourceSTP("ornl5600-cr6");
         mockP2P.setDestSTP("star-cr6");
@@ -250,7 +258,7 @@ public class NsiServiceSteps extends CucumberSteps {
             Mockito.any()
         );
 
-//            mockNsiMapping.setReservationState(ReservationStateEnumType.RESERVE_COMMITTING);
+        // Mock the NsiMappingService.save() method
         Mockito.doReturn(
             mockNsiMapping
         ).when(mockNsiMappingService).save(Mockito.any(NsiMapping.class));
@@ -264,6 +272,8 @@ public class NsiServiceSteps extends CucumberSteps {
             .callbackUrl("http://localhost:8080/callback")
             .build();
 
+
+        // Mock the NsiHeaderUtils.getRequesterNsa() method
         mockNsiHeaderUtils = Mockito.mock(NsiHeaderUtils.class);
 
         Mockito
@@ -271,6 +281,7 @@ public class NsiServiceSteps extends CucumberSteps {
             .when(mockNsiHeaderUtils)
             .getRequesterNsa(Mockito.anyString());
 
+        // Mock the ConnectionRequesterPort.reserveConfirmed() method
         mockConnectionRequesterPort = Mockito.mock(ConnectionRequesterPort.class);
         GenericAcknowledgmentType mockAcknowledgment = Mockito.mock(GenericAcknowledgmentType.class);
         Mockito
@@ -280,8 +291,8 @@ public class NsiServiceSteps extends CucumberSteps {
             )
             .reserveConfirmed(Mockito.any(), Mockito.any());
 
+        // Mock the NsiSoapClientUtil.createRequesterClient() method
         mockNsiSoapClientUtil = Mockito.mock(NsiSoapClientUtil.class);
-
         Mockito
             .doReturn(mockConnectionRequesterPort)
             .when(mockNsiSoapClientUtil)
@@ -340,12 +351,6 @@ public class NsiServiceSteps extends CucumberSteps {
         //
         // ... If the main try-catch-block catches an exception
 
-        // Mock the NsiService.hold() method, as it is called by reserve()
-//            Mockito.doReturn(
-//                NsiReserveResult.builder()
-//                    .success(true)
-//                    .build()
-//            ).when(nsiService).hold(Mockito.any(), Mockito.any());
 
         reserved = nsiService.reserve(
             mockCommonHeaderType,
@@ -378,7 +383,6 @@ public class NsiServiceSteps extends CucumberSteps {
     ) {
         mockNsiMapping = NsiMapping.builder()
             .nsiGri("MOCKGRI")
-            .nsiConnectionId(nsaId)
             .dataplaneVersion(1)
             .deployedDataplaneVersion(1)
             .lifecycleState(lifecycleState)
@@ -414,7 +418,7 @@ public class NsiServiceSteps extends CucumberSteps {
     }
 
     private void setupMockConnSvc() throws Exception {
-        Connection mockConn = helper.generateMockConnection(connectionId);
+        Connection mockConn = helper.generateMockConnection(oscarsConnectionId);
         setupMockConnSvc(mockConn);
     }
     private void setupMockConnSvc(Connection mockConn) throws Exception {
@@ -480,7 +484,7 @@ public class NsiServiceSteps extends CucumberSteps {
         // Mock ConnService.holdConnection(), returns Tuple <SimpleConnection, Connection>
         Pair<SimpleConnection, Connection> mockHoldConnection = Pair.of(
             helper.createSimpleConnection(
-                connectionId,
+                oscarsConnectionId,
                 inMbps,
                 outMbps,
                 azMbps,
@@ -532,8 +536,9 @@ public class NsiServiceSteps extends CucumberSteps {
     private void setupForProvision() throws Exception {
         provisioned = false;
 
+        // Before provision, the connection stuff needs to be Phase.RESERVED
         Connection mockConn = helper.generateMockConnection(
-            connectionId,
+            oscarsConnectionId,
             Phase.RESERVED,
             BuildMode.AUTOMATIC,
             State.WAITING,
@@ -548,7 +553,7 @@ public class NsiServiceSteps extends CucumberSteps {
         // @TODO create a Vlan object
         Vlan vlan1 = Vlan.builder()
             .id(1L)
-            .connectionId(connectionId)
+            .connectionId(oscarsConnectionId)
             .schedule(schedule)
             .urn("ornl5600-cr6:1/1/c31/1")
             .vlanId(2188)
@@ -556,7 +561,7 @@ public class NsiServiceSteps extends CucumberSteps {
 
         Vlan vlan2 = Vlan.builder()
             .id(2L)
-            .connectionId(connectionId)
+            .connectionId(oscarsConnectionId)
             .schedule(schedule)
             .urn("star-cr6:1/1/c55/1")
             .vlanId(4073)
@@ -570,20 +575,20 @@ public class NsiServiceSteps extends CucumberSteps {
         VlanJunction junctionA = VlanJunction.builder()
             .id(1L)
             .refId("ornl5600-cr6")
-            .connectionId(connectionId)
+            .connectionId(oscarsConnectionId)
             .deviceUrn("ornl5600-cr6")
             .vlan(vlan1)
             .build();
         VlanJunction junctionZ = VlanJunction.builder()
             .id(2L)
             .refId("star-cr6")
-            .connectionId(connectionId)
+            .connectionId(oscarsConnectionId)
             .deviceUrn("star-cr6")
             .vlan(vlan2)
             .build();
 
         VlanFixture fixture1 = VlanFixture.builder()
-            .connectionId(connectionId)
+            .connectionId(oscarsConnectionId)
             .junction(junctionA)
             .portUrn("ornl5600-cr6:1/1/c31/1")
             .ingressBandwidth(inMbps)
@@ -595,7 +600,7 @@ public class NsiServiceSteps extends CucumberSteps {
             .build();
 
         VlanFixture fixture2 = VlanFixture.builder()
-            .connectionId(connectionId)
+            .connectionId(oscarsConnectionId)
             .junction(junctionZ)
             .portUrn("star-cr6:1/1/c55/1")
             .ingressBandwidth(outMbps)
@@ -635,7 +640,7 @@ public class NsiServiceSteps extends CucumberSteps {
 
         vlanPipes.add(
             VlanPipe.builder()
-                .connectionId(connectionId)
+                .connectionId(oscarsConnectionId)
                 .protect(false)
                 .a(junctionA)
                 .z(junctionZ)
@@ -648,7 +653,7 @@ public class NsiServiceSteps extends CucumberSteps {
         );
 
         Archived mockArchived = Archived.builder()
-            .connectionId(connectionId)
+            .connectionId(oscarsConnectionId)
             .cmp(
                 Components.builder()
                     .pipes(vlanPipes)
@@ -691,16 +696,23 @@ public class NsiServiceSteps extends CucumberSteps {
     }
 
     // * NSI Reserve steps BEGIN *
-    @When("The NSI Service submits a reservation for NSA {string}, connection ID {string}, global reservation ID {string}, NSI connection ID {string}, OSCARS connection ID {string}")
-    public void theNsiServiceSubmitsAReservationForConnectionID(String nsa, String connectionId, String globalReservationId, String nsiConnectionId, String oscarsConnectionId) throws Throwable {
+    @When("The NSI Service submits a reservation for OSCARS connection ID {string}, global reservation ID {string}, NSI connection ID {string}")
+    public void theNsiServiceSubmitsAReservationForConnectionID(String oscarsConnectionId, String globalReservationId, String nsiConnectionId) throws Throwable {
         try {
-            this.nsaId = nsa;
-            this.connectionId = connectionId;
+
+            // Part of the NSA protocol. An L2VPN identifier that may be on more than one NSI provider ("Fabric", etc).
+            // We keep it, but don't actually use it for any tracking. Not guaranteed to be unique.
+            // This must be a UUID.
             this.globalReservationId = globalReservationId;
+
+            // Generated in OSCARS. Should be unique for that L2VPN instance.
+            // It may be a UUID.
             this.nsiConnectionId = nsiConnectionId;
+
+            // The OSCARS connection ID
             this.oscarsConnectionId = oscarsConnectionId;
 
-            Connection mockConn = helper.generateMockConnection(this.connectionId);
+            Connection mockConn = helper.generateMockConnection(this.oscarsConnectionId);
 
             setupMocks(mockConn);
         } catch (Exception ex) {
@@ -721,11 +733,9 @@ public class NsiServiceSteps extends CucumberSteps {
     @Given("The NSI Service has a reserved connection")
     public void theNSIServiceHasAReservedConnection() throws Throwable {
         try {
-            this.nsaId = "RES1";
-            this.connectionId = "OSCARS";
             this.globalReservationId = "GLOBALID";
             this.nsiConnectionId = "RES1";
-            this.oscarsConnectionId = "OSCARS";
+            this.oscarsConnectionId = "ABCD";
 
             setupForProvision();
         } catch (Exception ex) {

@@ -338,6 +338,13 @@ public class NsiService {
         this.okCallback(NsiEvent.ABORT_CF, mapping, header);
     }
 
+    /**
+     * Provision means, after the start time, try to deploy onto the network.
+     * This method will attempt to transition from reserved to provisioned.
+     * @param header
+     * @param mapping
+     * @return
+     */
     public boolean provision(CommonHeaderType header, NsiMapping mapping) {
         log.info("starting provision task for {}", mapping.getNsiConnectionId());
         boolean requireRollback = false;
@@ -372,6 +379,8 @@ public class NsiService {
             succeeded = true;
 
         } catch (NsiMappingException | NsiStateException e) {
+
+            // State Machine: Section 5.3.2 says, if provision fails, the specs say it stays in "scheduled"
             log.error(e.getMessage(), e);
             if (requireRollback) {
                 nsiConnectionEventService.save(NsiConnectionEvent.builder()
@@ -403,6 +412,14 @@ public class NsiService {
         return succeeded;
     }
 
+    /**
+     * Release means "don't have it on the network"
+     * This method will attempt to transition from provisioned to released.
+     *
+     * @param header
+     * @param mapping
+     * @return
+     */
     public boolean release(CommonHeaderType header, NsiMapping mapping) {
         log.info("starting release task for {}", mapping.getNsiConnectionId());
         boolean requireRollback = false;
@@ -434,7 +451,7 @@ public class NsiService {
 
 
             this.okCallback(NsiEvent.REL_CF, mapping, header);
-
+            succeeded = true;
             log.info("completed release");
 
         } catch (NsiMappingException | NsiStateException ex) {
@@ -470,6 +487,15 @@ public class NsiService {
         return succeeded;
     }
 
+    /**
+     * Terminate means a few different things. It means release all the resources, un-provision (go through release).
+     * It means this reservation is done forever, it is finished and cannot go back to reserved. This connection is
+     * shutdown. See lifecycle state on page 14 (5.3)
+     *
+     * @param header
+     * @param mapping
+     * @return
+     */
     public boolean terminate(CommonHeaderType header, NsiMapping mapping) {
         log.info("starting terminate task for {}", mapping.getNsiConnectionId());
 
