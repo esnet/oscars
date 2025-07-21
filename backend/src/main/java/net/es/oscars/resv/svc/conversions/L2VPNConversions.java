@@ -42,6 +42,7 @@ public class L2VPNConversions {
     public L2VPN fromConnection(Connection c) throws ConsistencyException{
 
         L2VPN l2VPN = L2VPN.builder()
+                .name(c.getConnectionId())
                 .schedule(getInterval(c))
                 .qos(getQos(c))
                 .tech(getTech(c))
