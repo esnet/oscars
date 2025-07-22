@@ -52,17 +52,17 @@ public class NsoStateManagerSteps extends CucumberSteps {
         assert stateManager.load();
     }
 
-    @Given("The invalid VPLS instances don't exist")
-    public void theInvalidVplsInstancesDontExists() {
-        List<String> knownInvalidVpls = new ArrayList<>() {};
+    @Given("The unmanaged VPLS instances don't exist")
+    public void theUnmanagedVplsInstancesDontExists() {
+        List<String> knownUnmanagedVpls = new ArrayList<>() {};
 
-        knownInvalidVpls.add("DOE-IN");
-        knownInvalidVpls.add("DOE-IN-FNE");
-        knownInvalidVpls.add("SPaRC-NMS");
-        knownInvalidVpls.add("SPaRC");
+        knownUnmanagedVpls.add("DOE-IN");
+        knownUnmanagedVpls.add("DOE-IN-FNE");
+        knownUnmanagedVpls.add("SPaRC-NMS");
+        knownUnmanagedVpls.add("SPaRC");
 
-        // make sure that unmanaged / invalid VPLSes have been skipped
-        for (String vplsName : knownInvalidVpls) {
+        // make sure that unmanaged VPLSes have been skipped
+        for (String vplsName : knownUnmanagedVpls) {
             Assert.assertNull(stateManager.getNsoVplsStateSyncer().findLocalEntryByName(vplsName));
             Assert.assertNull(stateManager.getNsoVplsStateSyncer().findRemoteEntryByName(vplsName));
         }
