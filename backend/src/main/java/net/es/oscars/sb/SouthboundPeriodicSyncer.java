@@ -146,23 +146,23 @@ public class SouthboundPeriodicSyncer {
                 switch (syncState) {
                     case DELETE -> {
                         if (success) {
-                            ds = DeploymentState.UNDEPLOY_FAILED;
-                        } else {
                             ds = DeploymentState.UNDEPLOYED;
+                        } else {
+                            ds = DeploymentState.UNDEPLOY_FAILED;
                         }
                     }
                     case ADD -> {
                         if (success) {
-                            ds = DeploymentState.DEPLOY_FAILED;
-                        } else {
                             ds = DeploymentState.DEPLOYED;
+                        } else {
+                            ds = DeploymentState.DEPLOY_FAILED;
                         }
                     }
                     case REDEPLOY -> {
                         if (success) {
-                            ds = DeploymentState.REDEPLOY_FAILED;
-                        } else {
                             ds = DeploymentState.DEPLOYED;
+                        } else {
+                            ds = DeploymentState.REDEPLOY_FAILED;
                         }
                     }
                 }

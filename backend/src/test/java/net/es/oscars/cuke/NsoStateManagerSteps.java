@@ -61,7 +61,7 @@ public class NsoStateManagerSteps extends CucumberSteps {
         knownInvalidVpls.add("SPaRC-NMS");
         knownInvalidVpls.add("SPaRC");
 
-        // make sure to skip unmanaged / invalid VPLS
+        // make sure that unmanaged / invalid VPLSes have been skipped
         for (String vplsName : knownInvalidVpls) {
             Assert.assertNull(stateManager.getNsoVplsStateSyncer().findLocalEntryByName(vplsName));
             Assert.assertNull(stateManager.getNsoVplsStateSyncer().findRemoteEntryByName(vplsName));

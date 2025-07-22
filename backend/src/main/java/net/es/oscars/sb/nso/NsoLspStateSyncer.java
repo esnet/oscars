@@ -229,7 +229,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                 for (NsoStateWrapper<NsoLSP> wrapper : toRedeploy) {
                     NsoLSP lsp = wrapper.getInstance();
                     if (!this.isOscarsManaged(lsp)) {
-                        log.error("attempted to redeploy unmanaged LSP " + lsp.getName() + "/" + lsp.getDevice());
+                        log.warn("attempted to redeploy unmanaged LSP {}/{}", lsp.getName(), lsp.getDevice());
                         continue;
                     }
 
@@ -258,7 +258,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                     List<NsoLSP> addList = new ArrayList<>();
                     NsoLSP lsp = wrapper.getInstance();
                     if (!this.isOscarsManaged(lsp)) {
-                        log.error("attempted to add an unmanaged LSP " + lsp.getName() + "/" + lsp.getDevice());
+                        log.warn("attempted to add an unmanaged LSP {}/{}", lsp.getName(), lsp.getDevice());
                         continue;
                     }
 
