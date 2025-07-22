@@ -2,11 +2,13 @@ package net.es.oscars.sb.nso;
 
 import com.google.common.collect.Lists;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.resv.NsoVcIdService;
+import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.enums.NsoService;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.stereotype.Component;
@@ -82,6 +84,11 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
     @Getter
     private final NsoProxy nsoProxy;
+
+    @Getter
+    @Setter
+    public Dictionary<Integer, List<NsoLSP>> desiredLsps = new Hashtable<>();
+
 
     public NsoVplsStateSyncer(NsoProxy proxy, NsoProperties nsoProperties) {
         super();
@@ -251,15 +258,23 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                         log.warn("Wanted to redeploy a VPLS with unmanaged vc-id: {}", wrapper.getInstance().getVcId());
                         continue;
                     }
-
                     NsoVPLS redeploy = wrapper.getInstance();
                     String connectionId = this.findConnectionId(redeploy);
+                    List<NsoVPLS> redeployVplses = new ArrayList<>();
+                    redeployVplses.add(wrapper.getInstance());
+
+                    List<NsoLSP> redeployLsps = this.desiredLsps.get(wrapper.getInstance().getVcId());
+
+                    NsoServicesWrapper svcWrapper = NsoServicesWrapper.builder()
+                            .vplsInstances(redeployVplses)
+                            .lspInstances(redeployLsps)
+                            .build();
 
                     try {
                         if (dryRun) {
-                            nsoProxy.redeployDryRun(redeploy, connectionId);
+                            nsoProxy.redeployDryRun(svcWrapper, connectionId);
                         } else {
-                            nsoProxy.redeployServices(redeploy, connectionId);
+                            nsoProxy.redeployServices(svcWrapper, connectionId);
                         }
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.REDEPLOY, true));
                     } catch (NsoCommitException nsoCommitException) {
@@ -280,22 +295,23 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                         continue;
                     }
 
-                    NsoServicesWrapper.NsoServicesWrapperBuilder addBuilder = NsoServicesWrapper.builder();
                     String connectionId = this.findConnectionId(wrapper.getInstance());
 
-                    List<NsoVPLS> addList = new ArrayList<>();
-                    addList.add(wrapper.getInstance());
+                    List<NsoVPLS> addVplses = new ArrayList<>();
+                    addVplses.add(wrapper.getInstance());
 
-                    NsoServicesWrapper addThese = addBuilder
-                            .lspInstances(new ArrayList<>())
-                            .vplsInstances(addList)
+                    List<NsoLSP> addLsps = this.desiredLsps.get(wrapper.getInstance().getVcId());
+
+                    NsoServicesWrapper svcWrapper = NsoServicesWrapper.builder()
+                            .vplsInstances(addVplses)
+                            .lspInstances(addLsps)
                             .build();
 
                     try {
                         if (dryRun) {
-                            nsoProxy.buildServices(addThese, connectionId);
+                            nsoProxy.buildServices(svcWrapper, connectionId);
                         } else {
-                            nsoProxy.buildDryRun(addThese);
+                            nsoProxy.buildDryRun(svcWrapper);
                         }
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.ADD, true));
                     } catch (NsoCommitException nsoCommitException) {

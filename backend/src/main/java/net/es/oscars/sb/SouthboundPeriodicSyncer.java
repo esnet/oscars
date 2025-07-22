@@ -92,6 +92,8 @@ public class SouthboundPeriodicSyncer {
             log.info("VPLS sync");
             nsoVplsStateSyncer.load(vplsPath);
             nsoVplsStateSyncer.setLocalState(desiredState.getVplsState());
+            nsoVplsStateSyncer.setDesiredLsps(desiredState.getVplsLsps());
+
             nsoVplsStateSyncer.sync(vplsPath, dryRynOnly);
             Dictionary<Integer, Triple<String, NsoStateSyncer.State, Boolean>> vplsSyncResults = nsoVplsStateSyncer.getSyncResults();
 
@@ -128,7 +130,7 @@ public class SouthboundPeriodicSyncer {
     public static class DesiredStateResult {
         Dictionary<Integer, NsoStateWrapper<NsoVPLS>> vplsState;
         Dictionary<Integer, NsoStateWrapper<NsoLSP>> lspState;
-
+        Dictionary<Integer, List<NsoLSP>> vplsLsps;
     }
 
     public void updateConnectionStates(Dictionary<Integer, Triple<String, NsoStateSyncer.State, Boolean>> vplsSyncResults,
@@ -179,6 +181,7 @@ public class SouthboundPeriodicSyncer {
 
         Dictionary<Integer, NsoStateWrapper<NsoVPLS>> desiredVpls = new Hashtable<>();
         Dictionary<Integer, NsoStateWrapper<NsoLSP>> desiredLsp = new Hashtable<>();
+        Dictionary<Integer, List<NsoLSP>> desiredVplsLsps = new Hashtable<>();
 
         for (Connection c : connections) {
 
@@ -189,11 +192,13 @@ public class SouthboundPeriodicSyncer {
                 for (NsoVPLS vpls : wrapped.getVplsInstances()) {
                     NsoStateWrapper<NsoVPLS> sw = new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, vpls);
                     desiredVpls.put(vpls.getVcId(), sw);
-                }
-                for (NsoLSP lsp : wrapped.getLspInstances()) {
-                    NsoStateWrapper<NsoLSP> sw = new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, lsp);
-                    desiredLsp.put(hashKey(lsp), sw);
+                    desiredVplsLsps.put(vpls.getVcId(), new ArrayList<>());
 
+                    for (NsoLSP lsp : wrapped.getLspInstances()) {
+                        NsoStateWrapper<NsoLSP> lspSw = new NsoStateWrapper<>(NsoStateSyncer.State.NOOP, lsp);
+                        desiredLsp.put(hashKey(lsp), lspSw);
+                        desiredVplsLsps.get(vpls.getVcId()).add(lsp);
+                    }
                 }
             } catch (NsoGenException ex) {
                 log.error(ex.getMessage(), ex);
@@ -202,6 +207,7 @@ public class SouthboundPeriodicSyncer {
         return DesiredStateResult.builder()
                 .vplsState(desiredVpls)
                 .lspState(desiredLsp)
+                .vplsLsps(desiredVplsLsps)
                 .build();
     }
 
