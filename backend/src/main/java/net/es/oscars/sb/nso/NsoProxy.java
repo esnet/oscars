@@ -289,6 +289,21 @@ public class NsoProxy {
         }
 
         YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
+        return this.yangPatchDryRun(wrapped);
+    }
+
+
+    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
+    public String redeployDryRun(NsoVPLS vpls, String connectionId) throws NsoDryrunException {
+        if (startupProperties.getStandalone()) {
+            log.info("standalone mode - skipping southbound");
+            return "standalone dry run";
+        }
+        YangPatchWrapper wrapped = makeRedeployYangPatch(vpls, connectionId);
+        return this.yangPatchDryRun(wrapped);
+    }
+
+    private String yangPatchDryRun(YangPatchWrapper wrapped) throws NsoDryrunException {
 
         String path = "restconf/data?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
@@ -310,7 +325,6 @@ public class NsoProxy {
             throw new NsoDryrunException(ex.getMessage());
         }
     }
-
 
     public static YangPatchWrapper makeDismantleYangPatch(NsoAdapter.NsoOscarsDismantle dismantle) {
         List<YangPatch.YangEdit> edits = new ArrayList<>();

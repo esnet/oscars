@@ -6,6 +6,7 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.sb.nso.NsoProxy;
 import net.es.oscars.sb.nso.NsoStateSyncer;
@@ -33,6 +34,9 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     NsoVplsStateSyncer syncer;
 
     @Autowired
+    NsoProperties nsoProperties;
+
+    @Autowired
     NsoProxy proxy;
 
     @Before("@NsoVplsSyncSteps")
@@ -43,7 +47,7 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
     @Given("The list of active OSCARS connections are loaded")
     public void theListOfActiveOSCARSConnectionsAreLoadedFrom() throws Throwable {
         // Load the (mock) NSO response payload
-        syncer = new NsoVplsStateSyncer(proxy);
+        syncer = new NsoVplsStateSyncer(proxy, nsoProperties);
         // Note: we don't actually use arg0, as we expect the NsoHttpServer to mock the API endpoint.
         // Make sure the file content you expect is mocked in NsoHttpServer!
         syncer.load();

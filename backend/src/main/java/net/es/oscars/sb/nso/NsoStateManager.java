@@ -3,6 +3,7 @@ package net.es.oscars.sb.nso;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.exc.NsoStateManagerException;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
@@ -45,6 +46,8 @@ public class NsoStateManager {
     private NsoVplsStateSyncer nsoVplsStateSyncer;
     @Autowired
     private NsoLspStateSyncer nsoLspStateSyncer;
+    @Autowired
+    NsoProperties nsoProperties;
 
     private boolean isLoaded = false;
     private boolean isValid = false;
@@ -54,7 +57,7 @@ public class NsoStateManager {
     private boolean validationIgnoreOrphanedLsps = false;
 
     public NsoStateManager() {
-        nsoVplsStateSyncer = new NsoVplsStateSyncer(proxy);
+        nsoVplsStateSyncer = new NsoVplsStateSyncer(proxy, nsoProperties);
         nsoLspStateSyncer = new NsoLspStateSyncer(proxy);
     }
 

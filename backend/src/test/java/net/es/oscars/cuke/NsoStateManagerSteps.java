@@ -13,6 +13,7 @@ import net.es.oscars.sb.nso.exc.NsoStateManagerException;
 import net.es.oscars.sb.nso.rest.NsoResponseErrorHandler;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
+import org.junit.Assert;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -45,7 +46,6 @@ public class NsoStateManagerSteps extends CucumberSteps {
 
     @Given("The NSO state manager loads VPLS and LSP states")
     public void the_state_manager_loads_VPLS_and_LSP_states() throws NsoStateManagerException {
-
         NsoProxy.setRestErrorHandler(mockErrorHandler);
         NsoProxy.setPatchErrorHandler(mockErrorHandler);
         stateManager.clear();
@@ -54,29 +54,18 @@ public class NsoStateManagerSteps extends CucumberSteps {
 
     @Given("The invalid VPLS instances don't exist")
     public void theInvalidVplsInstancesDontExists() {
-        // Clean out known invalid VPLS entries
-        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> localVplsState = stateManager.getNsoVplsStateSyncer().getLocalState();
-        Dictionary<Integer, NsoStateWrapper<NsoVPLS>> remoteVplsState = stateManager.getNsoVplsStateSyncer().getRemoteState();
-
         List<String> knownInvalidVpls = new ArrayList<>() {};
 
-        knownInvalidVpls.add("BBB2");
         knownInvalidVpls.add("DOE-IN");
         knownInvalidVpls.add("DOE-IN-FNE");
         knownInvalidVpls.add("SPaRC-NMS");
         knownInvalidVpls.add("SPaRC");
-        knownInvalidVpls.add("OSCARS-XYFK");
 
+        // make sure to skip unmanaged / invalid VPLS
         for (String vplsName : knownInvalidVpls) {
-            NsoStateWrapper<NsoVPLS> localVpls = stateManager.getNsoVplsStateSyncer().findLocalEntryByName(vplsName);
-            NsoStateWrapper<NsoVPLS> remoteVpls = stateManager.getNsoVplsStateSyncer().findRemoteEntryByName(vplsName);
-
-            localVplsState.remove(localVpls.getInstance().getVcId());
-            remoteVplsState.remove(remoteVpls.getInstance().getVcId());
+            Assert.assertNull(stateManager.getNsoVplsStateSyncer().findLocalEntryByName(vplsName));
+            Assert.assertNull(stateManager.getNsoVplsStateSyncer().findRemoteEntryByName(vplsName));
         }
-
-        stateManager.getNsoVplsStateSyncer().setLocalState(localVplsState);
-        stateManager.getNsoVplsStateSyncer().setRemoteState(remoteVplsState);
     }
 
     @Given("The NSO VPLS service state is loaded into the state manager")
@@ -86,6 +75,8 @@ public class NsoStateManagerSteps extends CucumberSteps {
 
     @Given("The NSO VPLS service state has {int} instances in the state manager")
     public void theNSOVPLSServiceStateHasInstancesInTheStateManager(int arg0) {
+        System.out.println("vpls instances: "+stateManager.getNsoVplsStateSyncer().getLocalState().size());
+
         assert stateManager.getNsoVplsStateSyncer().getLocalState().size() == arg0;
     }
 
@@ -96,6 +87,7 @@ public class NsoStateManagerSteps extends CucumberSteps {
 
     @Given("The NSO LSP service state has {int} instances in the state manager")
     public void theNSOLSPServiceStateHasInstancesInTheStateManager(int arg0) {
+        System.out.println("lsp instances: "+stateManager.getNsoLspStateSyncer().getLocalState().size());
         assert stateManager.getNsoLspStateSyncer().getLocalState().size() == arg0;
     }
 

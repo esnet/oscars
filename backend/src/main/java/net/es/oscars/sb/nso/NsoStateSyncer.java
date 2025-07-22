@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.topo.common.dto.nso.NsoVPLS;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -25,6 +27,7 @@ public abstract class NsoStateSyncer<T> {
     private boolean isLoaded = false;
     private boolean isDirty = false;
     private boolean isSynchronized = false;
+    public Dictionary<Integer, Triple<String, State, Boolean>> syncResults = new Hashtable<>();
 
     public Dictionary<Integer, T> localState = new Hashtable<>();
     private Dictionary<Integer, T> remoteState = new Hashtable<>();

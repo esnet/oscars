@@ -47,6 +47,7 @@ public class NsoAdapter {
     public static String WORK_LSP_NAME_PIECE = "WRK";
     public static String PROTECT_LSP_NAME_PIECE = "PRT";
     public static String LSP_NAME_DELIMITER = "-";
+    public static String VPLS_NAME_PREFIX = "OSCARS-";
 
     private final NsoProperties nsoProperties;
 
@@ -537,7 +538,7 @@ public class NsoAdapter {
 
         NsoVPLS vpls = NsoVPLS.builder()
                 .description(nsoDescription)
-                .name("OSCARS-"+conn.getConnectionId())
+                .name(VPLS_NAME_PREFIX+conn.getConnectionId())
                 .qosMode(NsoVplsQosMode.GUARANTEED)
                 .routingDomain(nsoProperties.getRoutingDomain())
                 .vcId(vcid)

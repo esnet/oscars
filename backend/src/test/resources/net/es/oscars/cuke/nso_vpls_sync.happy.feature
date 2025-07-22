@@ -11,7 +11,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Given I have initialized the world
     Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
-    Given The NSO VPLS service state has 137 instances
+    Given The NSO VPLS service state has 133 instances
 
 
     # All the various evaluation functions live in NsoVplsStateSyncer
@@ -41,7 +41,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     # DDDD should exist and IS in sync with NSO state, mark for no-op
     Given The VPLS instance "DDDD" is present in the NSO VPLS service state
     When I evaluate VPLS "DDDD"
-    Then The list of VPLS service instances marked "no-op" has a count of 135
+    Then The list of VPLS service instances marked "no-op" has a count of 131
     Then VPLS "DDDD" is marked as "no-op"
 
   # Happy path
@@ -49,7 +49,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Given I have initialized the world
     Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
-    Given The NSO VPLS service state has 137 instances
+    Given The NSO VPLS service state has 133 instances
 
     # Evaluate AAAA and AAA2, sync should add both.
     Given I had added VPLS instance "AAAA" from "http/nso.esnet-vpls.aaaa.json"
@@ -77,7 +77,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     # Evaluate DDDD and DDD2, sync should no-op both
     When I evaluate VPLS "DDDD"
     When I evaluate VPLS "DDD2"
-    Then The list of VPLS service instances marked "no-op" has a count of 133
+    Then The list of VPLS service instances marked "no-op" has a count of 129
 
 
   # Happy path
@@ -85,7 +85,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Given I have initialized the world
     Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
-    Given The NSO VPLS service state has 137 instances
+    Given The NSO VPLS service state has 133 instances
 
     # Add the VPLS "AAAA" to service state without it, should be an "add" operation
     Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
@@ -102,7 +102,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Given I have initialized the world
     Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
-    Given The NSO VPLS service state has 137 instances
+    Given The NSO VPLS service state has 133 instances
 
     # Delete the VPLS "BBBB"
     Given The VPLS instance "BBBB" is present in the NSO VPLS service state
@@ -133,14 +133,14 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Given I have initialized the world
     Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
-    Given The NSO VPLS service state has 137 instances
+    Given The NSO VPLS service state has 133 instances
 
     # No-op the VPLS "DDDD"
     Given The VPLS instance "DDDD" is present in the NSO VPLS service state
     Given I had marked "DDDD" with "no-op"
     When I perform a synchronization
     Then The NSO VPLS service is synchronized
-    Then The list of VPLS service instances marked "no-op" has a count of 137
+    Then The list of VPLS service instances marked "no-op" has a count of 133
 
 
   # Happy path
@@ -148,7 +148,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Given I have initialized the world
     Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
-    Given The NSO VPLS service state has 137 instances
+    Given The NSO VPLS service state has 133 instances
 
     # Apply batch operations as a patch.
 #    When I apply VPLS service patch from "http/nso.esnet-vpls.vpls-patch.json"
@@ -168,5 +168,5 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Then The list of VPLS service instances marked "redeploy" has a count of 1
 
     Then The NSO VPLS service is synchronized
-    Then The list of VPLS service instances marked "no-op" has a count of 135
+    Then The list of VPLS service instances marked "no-op" has a count of 131
 

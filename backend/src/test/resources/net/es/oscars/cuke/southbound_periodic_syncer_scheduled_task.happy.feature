@@ -6,7 +6,7 @@ Feature: scheduled task to synchronize VPLS and LSP to NSO state
     Given I have initialized the world
     Given The list of active OSCARS connections are loaded
     Given The NSO VPLS service state is loaded
-    Given The NSO VPLS service state has 137 instances
+    Given The NSO VPLS service state has 133 instances
 
     # AAAA should NOT exist, mark as add
     Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
