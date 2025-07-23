@@ -1,9 +1,16 @@
 package net.es.oscars.sb.nso;
 
+import com.google.common.collect.Lists;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
+import net.es.oscars.sb.nso.resv.NsoVcIdService;
+import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.enums.NsoService;
+import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.stereotype.Component;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.dto.NsoVplsResponse;
@@ -12,13 +19,15 @@ import net.es.topo.common.dto.nso.NsoVPLS;
 
 import java.util.*;
 
+import static net.es.oscars.sb.nso.NsoAdapter.VPLS_NAME_PREFIX;
+
 /**
  * NSO VPLS State Synchronizer.
  * We create a List of Dictionary objects where
- *  - The dictionary key is the NsoVPLS vc-id value
- *  - The value is an NsoVPLS object wrapped in NsoStateWrapper that lets us know what State enum operation is expected
- *    with the NsoVPLS object.
- *
+ * - The dictionary key is the NsoVPLS vc-id value
+ * - The value is an NsoVPLS object wrapped in NsoStateWrapper that lets us know what State enum operation is expected
+ * with the NsoVPLS object.
+ * <p>
  * Usage examples:
  *
  * <pre>
@@ -64,20 +73,26 @@ import java.util.*;
  * vplsStateSyncer.redeploy(newNsoVPLS.getVcId());
  *
  * </pre>
+ *
  * @author aalbino
  * @since 1.2.23
  */
 @Slf4j
 @Component
 public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>> {
+    private final NsoProperties nsoProperties;
 
+    @Getter
     private final NsoProxy nsoProxy;
 
-    public NsoProxy getNsoProxy() {
-        return nsoProxy;
-    }
-    public NsoVplsStateSyncer(NsoProxy proxy) {
+    @Getter
+    @Setter
+    public Dictionary<Integer, List<NsoLSP>> desiredLsps = new Hashtable<>();
+
+
+    public NsoVplsStateSyncer(NsoProxy proxy, NsoProperties nsoProperties) {
         super();
+        this.nsoProperties = nsoProperties;
         nsoProxy = proxy;
         // Local state, composed of the NSO VPLS object, and the state we are marking it as.
         // Default mark for each state should be NsoStateSyncer.State.NOOP
@@ -102,12 +117,12 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             String path = nsoProxy.getNsoServiceConfigRestPath(NsoService.VPLS);
             success = load(path);
         } catch (Exception e) {
-            log.error("NsoVplsStateSyncer.load() - error while loading nso services", e);
             throw new NsoStateSyncerException(e.getLocalizedMessage());
         }
 
         return success;
     }
+
     /**
      * Loads the NSO service state data from the specified path.
      *
@@ -131,13 +146,18 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 }
 
                 if (vplsResponse != null) {
-
                     // Get the VPLS, wrap each VPLS in NsoStateWrapper, and populate our
                     // copy of local and remote state.
                     for (NsoVPLS vpls : vplsResponse.getNsoVpls()) {
-                        // As the local VPLS matches the Remote VPLS state, state should be NOOP
-                        getLocalState().put(vpls.getVcId(), new NsoStateWrapper<>(State.NOOP, vpls));
-                        getRemoteState().put(vpls.getVcId(), new NsoStateWrapper<>(State.NOOP, vpls));
+                        if (this.isOscarsManaged(vpls)) {
+                            log.debug("NsoVplsStateSyncer.load() - Managed by OSCARS. Collect VPLS " + vpls.getName());
+                            // As the local VPLS matches the Remote VPLS state, state should be NOOP
+                            getLocalState().put(vpls.getVcId(), new NsoStateWrapper<>(State.NOOP, vpls));
+                            getRemoteState().put(vpls.getVcId(), new NsoStateWrapper<>(State.NOOP, vpls));
+                        } else {
+                            log.debug("NsoVplsStateSyncer.load() - Not managed by OSCARS. Skip VPLS " + vpls.getName());
+                        }
+
                     }
 
                     // Mark local state as loaded = true
@@ -169,10 +189,11 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     public boolean sync(String path) throws NsoStateSyncerException {
         return this.sync(path, false);
     }
+
     /**
      * Synchronize current service state to the specified API endpoint.
      *
-     * @param path The URI path to the API endpoint.
+     * @param path   The URI path to the API endpoint.
      * @param dryRun If true, this will perform a dry run. If false, this will attempt an actual synchronization.
      * @return True if successful, False otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
@@ -181,14 +202,13 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     public boolean sync(String path, boolean dryRun) throws NsoStateSyncerException {
         try {
             this.setSynchronized(false);
+            this.syncResults = new Hashtable<>();
             if (!this.isLoaded()) {
                 throw new NsoStateSyncerException("No state loaded yet.");
             }
 
             // First, evaluate all local VPLS states
-            Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = getLocalState().elements();
-            while (enumeration.hasMoreElements()) {
-                NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+            for (NsoStateWrapper<NsoVPLS> wrappedNsoVPLS : Collections.list(getLocalState().elements())) {
                 // This should automatically mark this VPLS as "noop", "add", "delete", or "redeploy"
                 evaluate(wrappedNsoVPLS.getInstance().getVcId());
             }
@@ -204,14 +224,27 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 List<NsoStateWrapper<NsoVPLS>> toAdd = filterLocalState(State.ADD); // One Yang Patch (1 HTTP call)
                 List<NsoStateWrapper<NsoVPLS>> toRedeploy = filterLocalState(State.REDEPLOY); // One Yang Patch (1 HTTP call)
 
+
                 // ...Delete BEGIN
                 // this for loop could be parallelized
                 for (NsoStateWrapper<NsoVPLS> wrapper : toDelete) {
+                    if (!isOscarsManaged(wrapper.getInstance())) {
+                        // we skip touching anything related to VPLSs with vc-ids outside our managed range
+                        continue;
+                    }
+                    String connectionId = this.findConnectionId(wrapper.getInstance());
+
                     NsoAdapter.NsoOscarsDismantle dismantle = getNsoOscarsDismantle(wrapper);
                     try {
-                        nsoProxy.deleteServices(dismantle);
+                        if (dryRun) {
+                            nsoProxy.dismantleDryRun(dismantle);
+                        } else {
+                            nsoProxy.deleteServices(dismantle);
+                        }
+                        this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.DELETE, true));
                     } catch (NsoCommitException nsoCommitException) {
                         gotCommitError = true;
+                        this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.DELETE, false));
                         log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
                     }
                 }
@@ -219,43 +252,73 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
                 // ...Redeploy BEGIN
                 // the redeploys MIGHT need to be ordered in a certain way if there are
-                // resource dependencies
+                // resource dependencies; needs investigation
                 for (NsoStateWrapper<NsoVPLS> wrapper : toRedeploy) {
+                    if (!isOscarsManaged(wrapper.getInstance())) {
+                        log.warn("Wanted to redeploy a VPLS with unmanaged vc-id: {}", wrapper.getInstance().getVcId());
+                        continue;
+                    }
                     NsoVPLS redeploy = wrapper.getInstance();
-                    String connectionId = redeploy.getName();
+                    String connectionId = this.findConnectionId(redeploy);
+                    List<NsoVPLS> redeployVplses = new ArrayList<>();
+                    redeployVplses.add(wrapper.getInstance());
+
+                    List<NsoLSP> redeployLsps = this.desiredLsps.get(wrapper.getInstance().getVcId());
+
+                    NsoServicesWrapper svcWrapper = NsoServicesWrapper.builder()
+                            .vplsInstances(redeployVplses)
+                            .lspInstances(redeployLsps)
+                            .build();
+
                     try {
-                        nsoProxy.redeployServices(redeploy, connectionId);
+                        if (dryRun) {
+                            nsoProxy.redeployDryRun(svcWrapper, connectionId);
+                        } else {
+                            nsoProxy.redeployServices(svcWrapper, connectionId);
+                        }
+                        this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.REDEPLOY, true));
                     } catch (NsoCommitException nsoCommitException) {
                         gotCommitError = true;
+                        this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.REDEPLOY, false));
                         log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
                     }
 
                 }
                 // ...Redeploy END
 
+
                 // ...Add BEGIN
                 // this for loop could also be parallelized (but must run after the delete)
                 for (NsoStateWrapper<NsoVPLS> wrapper : toAdd) {
-
-                    NsoServicesWrapper.NsoServicesWrapperBuilder addBuilder = NsoServicesWrapper.builder();
-                    String connectionId = wrapper.getInstance().getName();
-
-                    List<NsoVPLS> addList = new ArrayList<>();
-                    addList.add(wrapper.getInstance());
-
-                    NsoServicesWrapper addThese = addBuilder
-                        .lspInstances(new ArrayList<>())
-                        .vplsInstances(addList)
-                        .build();
-
-                    try {
-                        nsoProxy.buildServices(addThese, connectionId);
-                    } catch (NsoCommitException nsoCommitException) {
-                        gotCommitError = true;
-                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                    if (!isOscarsManaged(wrapper.getInstance())) {
+                        log.warn("Wanted to add a VPLS with unmanaged vc-id: {}", wrapper.getInstance().getVcId());
+                        continue;
                     }
 
+                    String connectionId = this.findConnectionId(wrapper.getInstance());
 
+                    List<NsoVPLS> addVplses = new ArrayList<>();
+                    addVplses.add(wrapper.getInstance());
+
+                    List<NsoLSP> addLsps = this.desiredLsps.get(wrapper.getInstance().getVcId());
+
+                    NsoServicesWrapper svcWrapper = NsoServicesWrapper.builder()
+                            .vplsInstances(addVplses)
+                            .lspInstances(addLsps)
+                            .build();
+
+                    try {
+                        if (dryRun) {
+                            nsoProxy.buildServices(svcWrapper, connectionId);
+                        } else {
+                            nsoProxy.buildDryRun(svcWrapper);
+                        }
+                        this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.ADD, true));
+                    } catch (NsoCommitException nsoCommitException) {
+                        gotCommitError = true;
+                        this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.ADD, false));
+                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                    }
                 }
                 // ...Add END
 
@@ -302,12 +365,11 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     /**
      * Evaluate the current state of the specified ID against the loaded NSO state data.
      * Should automatically mark the ID as one of "add", "delete", "redeploy", or "no-op".
-     *
+     * <p>
      * How do we handle interim changes from remote?
-     *  - VPLS in remote state added between now and last sync? Mark as "delete", local state takes precedence.
-     *  - VPLS in remote state removed between now and last sync? Mark as "add", local state takes precedence.
-     *  - VPLS in remote state redeployed (changed) between now and last sync? Mark as "redeploy", local state takes precedence.
-     *
+     * - VPLS in remote state added between now and last sync? Mark as "delete", local state takes precedence.
+     * - VPLS in remote state removed between now and last sync? Mark as "add", local state takes precedence.
+     * - VPLS in remote state redeployed (changed) between now and last sync? Mark as "redeploy", local state takes precedence.
      *
      * @param id The ID to evaluate against the loaded NSO service state.
      * @return NsoStateSyncer.State Return the NsoStateSyncer.State enum result.
@@ -317,6 +379,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     public NsoStateSyncer.State evaluate(Integer id) throws NsoStateSyncerException {
         NsoStateSyncer.State state = State.NOOP;
 
+        log.info("evaluate " + id);
         // Only evaluate if we actually have an NSO service state to compare against.
         if (!this.isLoaded()) {
             throw new NsoStateSyncerException("No state loaded yet.");
@@ -384,10 +447,11 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
         return add(id);
     }
+
     /**
      * Mark the specified ID as "add".
      *
-     * @param id The ID to mark as "add".
+     * @param id          The ID to mark as "add".
      * @param description Optional. The description for this action.
      * @return True if successful, False if add was effectively a no-op.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
@@ -408,10 +472,11 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     public boolean delete(Integer id) throws NsoStateSyncerException {
         return marked(id, State.DELETE);
     }
+
     /**
      * Mark the specified ID as "delete".
      *
-     * @param id The ID to mark as "delete".
+     * @param id          The ID to mark as "delete".
      * @param description Optional. The description for this action.
      * @return True if successful, False if delete was effectively a no-op.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
@@ -432,10 +497,11 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     public boolean redeploy(Integer id) throws NsoStateSyncerException {
         return marked(id, State.REDEPLOY);
     }
+
     /**
      * Mark the specified ID as "redeploy".
      *
-     * @param id The ID to mark as "redeploy".
+     * @param id          The ID to mark as "redeploy".
      * @param description Optional. The description for this action.
      * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
@@ -460,7 +526,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     /**
      * Mark the specified ID as "no-op".
      *
-     * @param id The ID to mark as "redeploy".
+     * @param id          The ID to mark as "redeploy".
      * @param description Optional description for this operation.
      * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
@@ -513,6 +579,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
     /**
      * Find a local state entry by ID.
+     *
      * @param id The entry ID to look for.
      * @return The entry found within the local NSO state list.
      */
@@ -539,9 +606,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     @Override
     public NsoStateWrapper<NsoVPLS> findRemoteEntryByName(String name) {
         NsoStateWrapper<NsoVPLS> found = null;
-        Enumeration<NsoStateWrapper<NsoVPLS>> enumeration = getRemoteState().elements();
-        while (enumeration.hasMoreElements()) {
-            NsoStateWrapper<NsoVPLS> wrappedNsoVPLS = enumeration.nextElement();
+        for (NsoStateWrapper<NsoVPLS> wrappedNsoVPLS : Collections.list(getRemoteState().elements())) {
             if (wrappedNsoVPLS.getInstance().getName().equals(name)) {
                 found = wrappedNsoVPLS;
                 break;
@@ -552,6 +617,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
     /**
      * Find a remote state entry by ID.
+     *
      * @param id The entry ID to look for.
      * @return The entry found within the remote NSO state list.
      */
@@ -571,7 +637,8 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
     /**
      * Mark a VPLS with state.
-     * @param id The VPLS ID to mark.
+     *
+     * @param id    The VPLS ID to mark.
      * @param state From NsoStateSyncer states: State.ADD, State.DELETE, State.REDEPLOY, State.NOOP
      * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException May throw an exception.
@@ -579,10 +646,12 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     private boolean marked(Integer id, State state) throws NsoStateSyncerException {
         return marked(id, state, "");
     }
+
     /**
      * Mark a VPLS with state.
-     * @param id The VPLS ID to mark.
-     * @param state From NsoStateSyncer states: State.ADD, State.DELETE, State.REDEPLOY, State.NOOP
+     *
+     * @param id          The VPLS ID to mark.
+     * @param state       From NsoStateSyncer states: State.ADD, State.DELETE, State.REDEPLOY, State.NOOP
      * @param description Optional. Description for this action.
      * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException May throw an exception.
@@ -603,9 +672,6 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             getLocalState().remove(id);
             getLocalState().put(id, vplsWrapped);
 
-            log.info("description: " + description);
-
-
             setDirty(true);
             marked = true;
         } catch (NsoStateSyncerException nse) {
@@ -621,6 +687,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
     /**
      * Return the local VPLS ID according to its name.
+     *
      * @param name The VPLS name string.
      * @return Returns 0 if not found.
      */
@@ -630,6 +697,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
     /**
      * Return the remote VPLS ID according to its name.
+     *
      * @param name The VPLS name string.
      * @return Returns 0 if not found.
      */
@@ -650,5 +718,21 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
         }
 
         return id;
+    }
+
+    public String findConnectionId(NsoVPLS vpls) {
+        String connectionId = "";
+
+        // if this is null
+        if (vpls.getUseLegacyNaming() != null && vpls.getUseLegacyNaming()) {
+            return vpls.getName();
+        } else {
+            return connectionId.replace(VPLS_NAME_PREFIX, "");
+        }
+    }
+
+    public boolean isOscarsManaged(NsoVPLS vpls) {
+        Set<Integer> managedVcIds = NsoVcIdService.singleSetFromExpr(nsoProperties.getVcIdRange());
+        return managedVcIds.contains(vpls.getVcId());
     }
 }

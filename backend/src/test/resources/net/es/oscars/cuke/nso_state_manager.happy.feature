@@ -11,13 +11,14 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Given I have initialized the world
 
     Given The NSO state manager loads VPLS and LSP states
-    Given The invalid VPLS instances don't exist
 
     Given The NSO VPLS service state is loaded into the state manager
-    Given The NSO VPLS service state has 131 instances in the state manager
+    Given The NSO VPLS service state has 133 instances in the state manager
 
     Given The NSO LSP service state is loaded by the state manager
     Given The NSO LSP service state has 536 instances in the state manager
+
+    Then The unmanaged VPLS instances don't exist
 
     Given The VPLS instance "OSCARS-C2KR" is present in the state manager NSO VPLS service state
 
@@ -40,10 +41,10 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Given I have initialized the world
 
     Given The NSO state manager loads VPLS and LSP states
-    Given The invalid VPLS instances don't exist
+    Then The unmanaged VPLS instances don't exist
 
     Given The NSO VPLS service state is loaded into the state manager
-    Given The NSO VPLS service state has 131 instances in the state manager
+    Given The NSO VPLS service state has 133 instances in the state manager
 
     Given The NSO LSP service state is loaded by the state manager
     Given The NSO LSP service state has 536 instances in the state manager
@@ -67,10 +68,10 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Given I have initialized the world
 
     Given The NSO state manager loads VPLS and LSP states
-    Given The invalid VPLS instances don't exist
+    Then The unmanaged VPLS instances don't exist
 
     Given The NSO VPLS service state is loaded into the state manager
-    Given The NSO VPLS service state has 131 instances in the state manager
+    Given The NSO VPLS service state has 133 instances in the state manager
 
     Given The NSO LSP service state is loaded by the state manager
     Given The NSO LSP service state has 536 instances in the state manager
@@ -97,10 +98,10 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Given I have initialized the world
 
     Given The NSO state manager loads VPLS and LSP states
-    Given The invalid VPLS instances don't exist
+    Then The unmanaged VPLS instances don't exist
 
     Given The NSO VPLS service state is loaded into the state manager
-    Given The NSO VPLS service state has 131 instances in the state manager
+    Given The NSO VPLS service state has 133 instances in the state manager
 
     Given The NSO LSP service state is loaded by the state manager
     Given The NSO LSP service state has 536 instances in the state manager

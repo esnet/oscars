@@ -337,7 +337,6 @@ public class ConnService {
                 }
 
             }
-            dumpDebug("exactUrns", exactUrns);
 
 
             for (Connection c : southboundFiltered) {
@@ -1204,19 +1203,4 @@ public class ConnService {
 
     }
 
-
-    private void dumpDebug(String context, Object o) {
-        String pretty = null;
-
-        try {
-            pretty = (new ObjectMapper())
-                    .registerModule(new JavaTimeModule())
-                    .writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(o);
-        } catch (JsonProcessingException ex) {
-            log.error(ex.getMessage());
-        }
-
-        log.info(context + "\n" + pretty);
-    }
 }

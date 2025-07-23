@@ -9,15 +9,19 @@ import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.topo.common.dto.nso.NsoLSP;
-import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.YangPatchWrapper;
 import net.es.topo.common.dto.nso.enums.NsoService;
+import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static net.es.oscars.sb.nso.NsoAdapter.WORK_LSP_NAME_PIECE;
+import static net.es.oscars.sb.nso.NsoAdapter.PROTECT_LSP_NAME_PIECE;
+import static net.es.oscars.sb.nso.NsoAdapter.LSP_NAME_DELIMITER;
 
 /**
  * NSO LSP State synchronizer.
@@ -32,7 +36,8 @@ import java.util.regex.Pattern;
 public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
 
     private final NsoProxy nsoProxy;
-    private final String regexPatternOscarsManagedLsp = "(.*)-(PRT|WRK)-(.*)";
+    // this regex should look like this: "(.*)-(WRK|PRT)-(.*)"
+    private final String regexPatternOscarsManagedLsp = "(.*)" + LSP_NAME_DELIMITER + "(" + WORK_LSP_NAME_PIECE + "|" + PROTECT_LSP_NAME_PIECE + ")" + LSP_NAME_DELIMITER + "(.*)";
     private Hashtable<Integer, Integer> mapLspToVcId = new Hashtable<>();
 
     @Autowired
@@ -54,8 +59,8 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
     /**
      * Loads the NSO (LSP) service state data from the specified path.
      * A note about LSP name strings. They have the following two (2) patterns:
-     *  - `(\w+)-(PRT|WRK)-(.*)` OSCARS managed LSP. Example: `C2KR-PRT-losa-cr6`. The first group is the connection ID, followed by either PRT or WRK, and finally, the device string. PRT is "protected", WRK is "work". See NsoAdapter.lspName()
-     *  - `(\d+)---(.*)` NOT OSCARS managed. A vcId integer (VPLS ID), and the device name. Example: `6999---star-cr6`.
+     * - `(\w+)-(PRT|WRK)-(.*)` OSCARS managed LSP. Example: `C2KR-PRT-losa-cr6`. The first group is the connection ID, followed by either PRT or WRK, and finally, the device string. PRT is "protected", WRK is "work". See NsoAdapter.lspName()
+     * - `(\d+)---(.*)` NOT OSCARS managed. A vcId integer (VPLS ID), and the device name. Example: `6999---star-cr6`.
      *
      * @return True if successful, False otherwise.
      * @throws NsoStateSyncerException Will throw an exception if an error occurs.
@@ -77,8 +82,8 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
     /**
      * Loads the NSO (LSP) service state data from the specified path.
      * A note about LSP name strings. They have the following two (2) patterns:
-     *  - `(.*)-(PRT|WRK)-(.*)` OSCARS managed LSP. Example: `C2KR-PRT-losa-cr6`. The first group is the connection ID, followed by either PRT or WRK, and finally, the device string. PRT is "protected", WRK is "work". See NsoAdapter.lspName()
-     *  - `(\d+)---(.*)` NOT OSCARS managed. A vcId integer (VPLS ID), and the device name. Example: `6999---star-cr6`.
+     * - `(.*)-(PRT|WRK)-(.*)` OSCARS managed LSP. Example: `C2KR-PRT-losa-cr6`. The first group is the connection ID, followed by either PRT or WRK, and finally, the device string. PRT is "protected", WRK is "work". See NsoAdapter.lspName()
+     * - `(\d+)---(.*)` NOT OSCARS managed. A vcId integer (VPLS ID), and the device name. Example: `6999---star-cr6`.
      *
      * @param path The URI path string to the API endpoint to load.
      * @return True if successful, False otherwise.
@@ -101,30 +106,23 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
 
                 if (lspResponse != null) {
 
-                    // Get the VPLS, wrap each VPLS in NsoStateWrapper, and populate our
+                    // Get the LSP, wrap each LSP in NsoStateWrapper, and populate our
                     // copy of local and remote state.
                     for (NsoLSP lsp : lspResponse.getNsoLSPs()) {
                         // Generate an integer using name and device strings
                         Integer key = hashKey(lsp);
-
-                        // Does OSCARS manage this LSP? Check against regex pattern.
-                        Pattern pattern = Pattern.compile(regexPatternOscarsManagedLsp);
-                        Matcher matcher = pattern.matcher(lsp.getName());
-
-                        if (matcher.find()) {
+                        if (this.isOscarsManaged(lsp)) {
                             log.debug("NsoLspStateSyncer.load() - Managed by OSCARS. Collect LSP " + lsp.getName() + "/" + lsp.getDevice() + " (" + key + ")");
-
                             getLocalState()
-                                .put(
-                                        key,
-                                        new NsoStateWrapper<>(State.NOOP, lsp)
-                                );
-
+                                    .put(
+                                            key,
+                                            new NsoStateWrapper<>(State.NOOP, lsp)
+                                    );
                             getRemoteState()
-                                .put(
-                                        key,
-                                        new NsoStateWrapper<>(State.NOOP, lsp)
-                                );
+                                    .put(
+                                            key,
+                                            new NsoStateWrapper<>(State.NOOP, lsp)
+                                    );
                         } else {
                             log.debug("NsoLspStateSyncer.load() - Not managed by OSCARS. Skip LSP " + lsp.getName() + "/" + lsp.getDevice() + " (" + key + ")");
                         }
@@ -182,9 +180,9 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                 NsoStateWrapper<NsoLSP> wrappedNsoLSP = enumeration.nextElement();
                 // This should automatically mark this VPLS as "noop", "add", "delete", or "redeploy"
                 evaluate(
-                    hashKey(
-                        wrappedNsoLSP.getInstance()
-                    )
+                        hashKey(
+                                wrappedNsoLSP.getInstance()
+                        )
                 );
             }
 
@@ -192,6 +190,7 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
             if (this.isDirty()) {
                 boolean gotCommitError = false;
                 this.setSynchronized(false);
+                this.syncResults = new Hashtable<>();
 
                 // Sync local state with NSO service state at path
                 // Then, generate the RestTemplate / YangPatches and send using NsoProxy
@@ -203,16 +202,23 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                 // @TODO This for loop could be parallelized.
                 //  See NsoProxy.makeDismantleYangPatch()
                 for (NsoStateWrapper<NsoLSP> wrapper : toDelete) {
-                    try {
-                        NsoLSP lsp = wrapper.getInstance();
-                        String lspInstanceKey = lsp.instanceKey();
-                        YangPatchWrapper yangPatchWrapper = NsoProxy.makeDismantleLspYangPatch(lspInstanceKey);
+                    NsoLSP lsp = wrapper.getInstance();
+                    if (!this.isOscarsManaged(lsp)) {
+                        // do not dismantle unmanaged LSPs
+                        continue;
+                    }
+                    String connectionId = findConnectionId(lsp);
+                    String lspInstanceKey = lsp.instanceKey();
 
+                    try {
+                        YangPatchWrapper yangPatchWrapper = NsoProxy.makeDismantleLspYangPatch(lspInstanceKey);
                         nsoProxy.deleteLsp(yangPatchWrapper, lspInstanceKey);
+                        this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.DELETE, true));
 
                     } catch (NsoCommitException nsoCommitException) {
                         gotCommitError = true;
                         log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                        this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.DELETE, false));
                     }
                 }
                 // ...Delete END
@@ -221,16 +227,25 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                 // @TODO This for loop could be parallelized.
                 // @TODO The redeploys MIGHT need to be ordered in a certain way if there are resource dependencies
                 for (NsoStateWrapper<NsoLSP> wrapper : toRedeploy) {
+                    NsoLSP lsp = wrapper.getInstance();
+                    if (!this.isOscarsManaged(lsp)) {
+                        log.warn("attempted to redeploy unmanaged LSP {}/{}", lsp.getName(), lsp.getDevice());
+                        continue;
+                    }
+
+                    String connectionId = findConnectionId(lsp);
+
                     try {
-                        NsoLSP lsp = wrapper.getInstance();
                         String lspInstanceKey = lsp.instanceKey();
                         YangPatchWrapper yangPatchWrapper = NsoProxy.makeRedeployLspYangPatch(lsp);
 
                         nsoProxy.redeployLsp(yangPatchWrapper, lspInstanceKey);
+                        this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.REDEPLOY, true));
 
                     } catch (NsoCommitException nsoCommitException) {
                         gotCommitError = true;
                         log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                        this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.REDEPLOY, false));
                     }
 
                 }
@@ -242,6 +257,11 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                     NsoServicesWrapper.NsoServicesWrapperBuilder addBuilder = NsoServicesWrapper.builder();
                     List<NsoLSP> addList = new ArrayList<>();
                     NsoLSP lsp = wrapper.getInstance();
+                    if (!this.isOscarsManaged(lsp)) {
+                        log.warn("attempted to add an unmanaged LSP {}/{}", lsp.getName(), lsp.getDevice());
+                        continue;
+                    }
+
                     String connectionId = findConnectionId(lsp);
 
                     addList.add(lsp);
@@ -251,9 +271,11 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                             .build();
                     try {
                         nsoProxy.buildServices(addThese, connectionId);
+                        this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.ADD, true));
 
                     } catch (NsoCommitException nsoCommitException) {
                         gotCommitError = true;
+                        this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.ADD, false));
                         log.warn(nsoCommitException.getMessage(), nsoCommitException);
                     }
                 }
@@ -475,8 +497,8 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
      * NOT SUPPORTED. LSPs do not have any "ID" property provided.
      *
      * @param id The entry ID to look for.
-     * @throws UnsupportedOperationException This method is not supported.
      * @return The entry found within the local NSO state list.
+     * @throws UnsupportedOperationException This method is not supported.
      */
     @Override
     public NsoStateWrapper<NsoLSP> findLocalEntryById(int id) throws UnsupportedOperationException {
@@ -498,8 +520,8 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
      * NOT IMPLEMENTED. Find a remote state entry by ID.
      *
      * @param id The entry ID to look for.
-     * @throws UnsupportedOperationException This method is not supported.
      * @return The entry found within the remote NSO state list.
+     * @throws UnsupportedOperationException This method is not supported.
      */
     @Override
     public NsoStateWrapper<NsoLSP> findRemoteEntryById(int id) throws UnsupportedOperationException {
@@ -510,16 +532,16 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
      * LSPs don't have a unique ID in their JSON payload. We must go by name and device string, and generate the hashCode integer.
      * WARNING: hashCodes may collide!
      * This is what compositeKey() does:
-     *  - `int id = (lsp.getName() + '/' + lsp.getDevice()).hashCode();`
+     * - `int id = (lsp.getName() + '/' + lsp.getDevice()).hashCode();`
      *
      * @param lsp The NsoLSP object
      * @return The composite ID integer
      */
-    public int hashKey(NsoLSP lsp) {
+    public static int hashKey(NsoLSP lsp) {
         int id;
 
         id = (
-            lsp.instanceKey()
+                lsp.instanceKey()
         ).hashCode();
 
         return id;
@@ -536,6 +558,13 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
 
         return connectionId;
     }
+
+    public boolean isOscarsManaged(NsoLSP lsp) {
+        Pattern pattern = Pattern.compile(regexPatternOscarsManagedLsp);
+        Matcher matcher = pattern.matcher(lsp.getName());
+        return matcher.find();
+    }
+
 
     NsoStateWrapper<NsoLSP> _findByName(String instanceKeyName, Dictionary<Integer, NsoStateWrapper<NsoLSP>> state) {
         NsoStateWrapper<NsoLSP> result = null;
@@ -567,7 +596,8 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
 
     /**
      * Mark a VPLS with state.
-     * @param id The VPLS ID to mark.
+     *
+     * @param id    The VPLS ID to mark.
      * @param state From NsoStateSyncer states: State.ADD, State.DELETE, State.REDEPLOY, State.NOOP
      * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException May throw an exception.
@@ -575,10 +605,12 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
     private boolean marked(Integer id, State state) throws NsoStateSyncerException {
         return marked(id, state, "");
     }
+
     /**
      * Mark a VPLS with state.
-     * @param id The VPLS ID to mark.
-     * @param state From NsoStateSyncer states: State.ADD, State.DELETE, State.REDEPLOY, State.NOOP
+     *
+     * @param id          The VPLS ID to mark.
+     * @param state       From NsoStateSyncer states: State.ADD, State.DELETE, State.REDEPLOY, State.NOOP
      * @param description Optional. Description for this action.
      * @return True if successful, false otherwise.
      * @throws NsoStateSyncerException May throw an exception.
@@ -598,9 +630,6 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
             lspWrapped.setDescription(description);
             getLocalState().remove(id);
             getLocalState().put(id, lspWrapped);
-
-            log.info("description: " + description);
-
 
             if (!isDirty()) {
                 setDirty(true);

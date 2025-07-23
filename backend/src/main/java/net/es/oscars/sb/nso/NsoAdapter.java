@@ -47,6 +47,7 @@ public class NsoAdapter {
     public static String WORK_LSP_NAME_PIECE = "WRK";
     public static String PROTECT_LSP_NAME_PIECE = "PRT";
     public static String LSP_NAME_DELIMITER = "-";
+    public static String VPLS_NAME_PREFIX = "OSCARS-";
 
     private final NsoProperties nsoProperties;
 
@@ -125,7 +126,7 @@ public class NsoAdapter {
 
                     }
                     case REDEPLOY ->  {
-                        NsoVPLS oscarsServices = this.nsoOscarsServicesRedeploy(conn);
+                        NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
                         dumpDebug(conn.getConnectionId()+" REDEPLOY services", oscarsServices);
                         nsoProxy.redeployServices(oscarsServices, conn.getConnectionId());
                         newDepState = DeploymentState.DEPLOYED;
@@ -537,7 +538,7 @@ public class NsoAdapter {
 
         NsoVPLS vpls = NsoVPLS.builder()
                 .description(nsoDescription)
-                .name("OSCARS-"+conn.getConnectionId())
+                .name(VPLS_NAME_PREFIX+conn.getConnectionId())
                 .qosMode(NsoVplsQosMode.GUARANTEED)
                 .routingDomain(nsoProperties.getRoutingDomain())
                 .vcId(vcid)
@@ -547,98 +548,16 @@ public class NsoAdapter {
 
         List<NsoVPLS> vplsInstances = new ArrayList<>();
         vplsInstances.add(vpls);
-        DevelUtils.dumpDebug("vpls", vpls);
+        DevelUtils.dumpDebug(vpls.getName(), vpls);
+        for (NsoLSP lsp : lspInstances) {
+            DevelUtils.dumpDebug(lsp.instanceKey(), lsp);
+        }
         return NsoServicesWrapper.builder()
                 .lspInstances(lspInstances)
                 .vplsInstances(vplsInstances)
                 .build();
     }
 
-
-    // TODO: factor this out?
-    // this should just redeploy the vpls service part
-    public NsoVPLS nsoOscarsServicesRedeploy(Connection conn) throws NsoGenException {
-        log.info("NSO services wrapper - redeploy");
-
-        Map<String, NsoVPLS.DeviceContainer> vplsDeviceMap = new HashMap<>();
-        Integer vcid = nsoVcIdDAO.findNsoVcIdByConnectionId(conn.getConnectionId()).orElseThrow().getVcId();
-        for (VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
-            String deviceUrn = f.getJunction().getDeviceUrn();
-            log.info("working on fixture "+f.getPortUrn()+" id "+f.getId());
-
-            // FIXME: this needs to be populated correctly as a separate property instead of relying on string split
-            String portUrn = f.getPortUrn();
-            String[] parts = portUrn.split(":");
-            if (parts.length != 2) {
-                throw new NsoGenException("Invalid port URN format");
-            }
-            String portIfce = parts[1];
-
-            if (!vplsDeviceMap.containsKey(deviceUrn)) {
-                NsoVPLS.DeviceContainer dc = NsoVPLS.DeviceContainer.builder()
-                        .device(deviceUrn)
-                        .endpoint(new ArrayList<>())
-                        .virtualIfces(new ArrayList<>())
-                        .build();
-                vplsDeviceMap.put(deviceUrn, dc);
-            }
-            Optional<NsoQosSapPolicyId> maybeSapQosId = nsoQosSapPolicyIdDAO.findNsoQosSapPolicyIdByFixtureId(f.getId());
-            if (maybeSapQosId.isEmpty()) {
-                throw new NsoGenException("unable to retrieve NSO SAP QoS id");
-            }
-            NsoQosSapPolicyId sapQosId = maybeSapQosId.get();
-
-            NsoVPLS.DeviceContainer dc = vplsDeviceMap.get(deviceUrn);
-
-            // NSO yang sets this to min 1
-            int ingBw = f.getIngressBandwidth();
-            int egBw = f.getEgressBandwidth();
-            if (ingBw == 0) {
-                ingBw = 1;
-            }
-            if (egBw == 0) {
-                egBw = 1;
-            }
-            NsoVPLS.QoS qos = NsoVPLS.QoS.builder()
-                    .qosId(sapQosId.getPolicyId())
-                    .excessAction(NsoVplsQosExcessAction.KEEP)
-                    .ingressMbps(ingBw)
-                    .egressMbps(egBw)
-                    .build();
-
-            Boolean cflowd = null;
-            switch (nsoProperties.getCflowd()) {
-                case ENABLED -> cflowd = true;
-                case DISABLED -> cflowd = false;
-            }
-
-            NsoVPLS.Endpoint endpoint = NsoVPLS.Endpoint.builder()
-                    .ifce(portIfce)
-                    .vlanId(f.getVlan().getVlanId())
-                    .layer2Description(conn.getConnectionId())
-                    .cflowd(cflowd)
-                    .qos(qos)
-                    .build();
-            dc.getEndpoint().add(endpoint);
-        }
-
-        String nsoDescription = conn.getDescription();
-        if (nsoDescription.length() > 80) {
-            nsoDescription = conn.getDescription().substring(0, 79);
-        }
-
-        return NsoVPLS.builder()
-                .description(nsoDescription)
-                .name(conn.getConnectionId())
-                .qosMode(NsoVplsQosMode.GUARANTEED)
-                .routingDomain(nsoProperties.getRoutingDomain())
-                .vcId(vcid)
-                .sdp(new ArrayList<>())
-                .orchId("")
-                .device(vplsDeviceMap.values().stream().toList())
-                .build();
-
-    }
 
     @Data
     @Builder

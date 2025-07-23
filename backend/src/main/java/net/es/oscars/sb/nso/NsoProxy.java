@@ -114,9 +114,9 @@ public class NsoProxy {
     }
 
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
-    public void redeployServices(NsoVPLS nsoVPLS, String connectionId) throws NsoCommitException {
+    public void redeployServices(NsoServicesWrapper wrapper, String connectionId) throws NsoCommitException {
         log.info("redeploying services");
-        YangPatchWrapper wrapped = makeRedeployYangPatch(nsoVPLS, connectionId);
+        YangPatchWrapper wrapped = makeRedeployYangPatch(wrapper, connectionId);
         String rollbackLabel = connectionId + "-redeploy";
         submitYangPatch(wrapped, rollbackLabel);
     }
@@ -289,6 +289,21 @@ public class NsoProxy {
         }
 
         YangPatchWrapper wrapped = makeDismantleYangPatch(dismantle);
+        return this.yangPatchDryRun(wrapped);
+    }
+
+
+    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
+    public String redeployDryRun(NsoServicesWrapper wrapper, String connectionId) throws NsoDryrunException {
+        if (startupProperties.getStandalone()) {
+            log.info("standalone mode - skipping southbound");
+            return "standalone dry run";
+        }
+        YangPatchWrapper wrapped = makeRedeployYangPatch(wrapper, connectionId);
+        return this.yangPatchDryRun(wrapped);
+    }
+
+    private String yangPatchDryRun(YangPatchWrapper wrapped) throws NsoDryrunException {
 
         String path = "restconf/data?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
@@ -310,7 +325,6 @@ public class NsoProxy {
             throw new NsoDryrunException(ex.getMessage());
         }
     }
-
 
     public static YangPatchWrapper makeDismantleYangPatch(NsoAdapter.NsoOscarsDismantle dismantle) {
         List<YangPatch.YangEdit> edits = new ArrayList<>();
@@ -392,30 +406,53 @@ public class NsoProxy {
         submitYangPatch(yangPatchWrapper, rollbackLabel);
     }
 
-    public static YangPatchWrapper makeRedeployYangPatch(NsoVPLS vpls, String connectionId) {
+    public static YangPatchWrapper makeRedeployYangPatch(NsoServicesWrapper wrapper, String connectionId) {
         List<YangPatch.YangEdit> edits = new ArrayList<>();
+        for (NsoVPLS vpls: wrapper.getVplsInstances()) {
+            // TODO: (maybe) modify something else than the VPLS service endpoints
+            int vcid = vpls.getVcId();
+            int i = 0;
+            for (NsoVPLS.DeviceContainer dc : vpls.getDevice()) {
+                String vplsKey = "=" + vcid;
+                String devKey = "=" + dc.getDevice();
 
-        // TODO: (maybe) modify something else than the VPLS service endpoints
-        int vcid = vpls.getVcId();
-        int i = 0;
-        for (NsoVPLS.DeviceContainer dc : vpls.getDevice()) {
-            String vplsKey = "=" + vcid;
-            String devKey = "=" + dc.getDevice();
+                String path = "/tailf-ncs:services/esnet-vpls:vpls" + vplsKey + "/device" + devKey;
 
-            String path = "/tailf-ncs:services/esnet-vpls:vpls" + vplsKey + "/device" + devKey;
+                YangPatchDeviceWrapper deviceWrapper = YangPatchDeviceWrapper.builder()
+                        .device(dc)
+                        .build();
 
-            YangPatchDeviceWrapper deviceWrapper = YangPatchDeviceWrapper.builder()
-                    .device(dc)
+                edits.add(YangPatch.YangEdit.builder()
+                        .editId("replace " + i)
+                        .operation("replace")
+                        .value(deviceWrapper)
+                        .target(path)
+                        .build());
+                i++;
+            }
+        }
+        for (NsoLSP lsp: wrapper.getLspInstances()) {
+            String lspKeyArg = '=' + lsp.instanceKey();
+            String path = "/tailf-ncs:services/esnet-lsp:lsp" + lspKeyArg;
+
+            YangPatchLspWrapper lspWrapper = YangPatchLspWrapper
+                    .builder()
+                    .lsp(lsp)
                     .build();
 
-            edits.add(YangPatch.YangEdit.builder()
-                    .editId("replace " + i)
-                    .operation("replace")
-                    .value(deviceWrapper)
-                    .target(path)
-                    .build());
-            i++;
+            edits.add(
+                    YangPatch
+                            .YangEdit
+                            .builder()
+                            .editId("replace " + lsp.instanceKey())
+                            .operation("replace")
+                            .value(lspWrapper)
+                            .target(path)
+                            .build()
+            );
         }
+
+
 
         YangPatch patch = YangPatch.builder()
                 .patchId("redeploy VPLS for " + connectionId)

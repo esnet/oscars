@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import net.es.oscars.sb.beans.SyncFeature;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Component
 @NoArgsConstructor
 public class NsoProperties {
-    private boolean sync = false;
+    private SyncFeature sync = SyncFeature.DISABLED;
     private int syncIntervalMillisec = 10000;
 
     @NonNull
