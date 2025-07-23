@@ -254,7 +254,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 // the redeploys MIGHT need to be ordered in a certain way if there are
                 // resource dependencies; needs investigation
                 for (NsoStateWrapper<NsoVPLS> wrapper : toRedeploy) {
-                    if (isOscarsManaged(wrapper.getInstance())) {
+                    if (!isOscarsManaged(wrapper.getInstance())) {
                         log.warn("Wanted to redeploy a VPLS with unmanaged vc-id: {}", wrapper.getInstance().getVcId());
                         continue;
                     }
@@ -290,7 +290,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                 // ...Add BEGIN
                 // this for loop could also be parallelized (but must run after the delete)
                 for (NsoStateWrapper<NsoVPLS> wrapper : toAdd) {
-                    if (isOscarsManaged(wrapper.getInstance())) {
+                    if (!isOscarsManaged(wrapper.getInstance())) {
                         log.warn("Wanted to add a VPLS with unmanaged vc-id: {}", wrapper.getInstance().getVcId());
                         continue;
                     }
