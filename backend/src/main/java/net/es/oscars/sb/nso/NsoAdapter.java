@@ -548,7 +548,10 @@ public class NsoAdapter {
 
         List<NsoVPLS> vplsInstances = new ArrayList<>();
         vplsInstances.add(vpls);
-        DevelUtils.dumpDebug("vpls", vpls);
+        DevelUtils.dumpDebug(vpls.getName(), vpls);
+        for (NsoLSP lsp : lspInstances) {
+            DevelUtils.dumpDebug(lsp.instanceKey(), lsp);
+        }
         return NsoServicesWrapper.builder()
                 .lspInstances(lspInstances)
                 .vplsInstances(vplsInstances)
