@@ -326,9 +326,9 @@ public class L2VPNConversions {
 
             }
         }
-        String connectionId = connUtils.genUniqueConnectionId();
-        if (l2VPNRequest.getName() != null) {
-            connectionId = l2VPNRequest.getName();
+        String connectionId = l2VPNRequest.getName();
+        if (connectionId == null || connectionId.isEmpty()) {
+            connectionId = connUtils.genUniqueConnectionId();
         }
 
         // default to HELD / WAITING when null
