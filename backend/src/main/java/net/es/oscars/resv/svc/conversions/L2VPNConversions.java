@@ -5,7 +5,9 @@ import net.es.oscars.model.*;
 import net.es.oscars.model.enums.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.Phase;
+import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.resv.svc.ConnUtils;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.TopoService;
 import net.es.oscars.topo.beans.Device;
@@ -31,11 +33,13 @@ public class L2VPNConversions {
     private final ConnService connSvc;
     private final ResvService resvService;
     private final TopologyStore topologyStore;
+    private final ConnUtils connUtils;
 
-    public L2VPNConversions(ConnService connSvc, ResvService resvService, TopologyStore topologyStore) {
+    public L2VPNConversions(ConnService connSvc, ResvService resvService, TopologyStore topologyStore, ConnUtils connUtils) {
         this.connSvc = connSvc;
         this.resvService = resvService;
         this.topologyStore = topologyStore;
+        this.connUtils = connUtils;
     }
 
 
@@ -322,17 +326,33 @@ public class L2VPNConversions {
 
             }
         }
+        String connectionId = connUtils.genUniqueConnectionId();
+        if (l2VPNRequest.getName() != null) {
+            connectionId = l2VPNRequest.getName();
+        }
+
+        // default to HELD / WAITING when null
+        Phase phase = Phase.HELD;
+        State state = State.WAITING;
+        if (l2VPNRequest.getStatus() != null) {
+            if (l2VPNRequest.getStatus().getPhase() != null) {
+                phase = l2VPNRequest.getStatus().getPhase();
+            }
+            if (l2VPNRequest.getStatus().getState() != null) {
+                state = l2VPNRequest.getStatus().getState();
+            }
+        }
 
         return SimpleConnection.builder()
                 .username(l2VPNRequest.getMeta().getUsername())
                 .connection_mtu(l2VPNRequest.getTech().getMtu())
-                .connectionId(l2VPNRequest.getName())
+                .connectionId(connectionId)
                 .mode(l2VPNRequest.getTech().getMode())
                 .begin(begin)
                 .end(end)
                 .description(l2VPNRequest.getMeta().getDescription())
-                .phase(l2VPNRequest.getStatus().getPhase())
-                .state(l2VPNRequest.getStatus().getState())
+                .phase(phase)
+                .state(state)
                 .heldUntil(heldUntil)
                 .serviceId(l2VPNRequest.getMeta().getTrackingId())
                 .fixtures(fixtures)
