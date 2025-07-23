@@ -631,9 +631,6 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
             getLocalState().remove(id);
             getLocalState().put(id, lspWrapped);
 
-            log.info("description: " + description);
-
-
             if (!isDirty()) {
                 setDirty(true);
             }

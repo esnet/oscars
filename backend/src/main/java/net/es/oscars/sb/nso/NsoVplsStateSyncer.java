@@ -672,9 +672,6 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             getLocalState().remove(id);
             getLocalState().put(id, vplsWrapped);
 
-            log.info("description: " + description);
-
-
             setDirty(true);
             marked = true;
         } catch (NsoStateSyncerException nse) {
