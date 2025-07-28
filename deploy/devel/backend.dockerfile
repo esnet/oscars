@@ -5,6 +5,7 @@ ARG MAVEN_OPTS=""
 
 ENV JAVA_OPTS=${JAVA_OPTS}
 ENV MAVEN_OPTS=${MAVEN_OPTS}
+ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /build/backend
 COPY backend/.remoteRepositoryFilters .remoteRepositoryFilters
@@ -37,9 +38,19 @@ WORKDIR /build/backend
 RUN --mount=type=cache,target=/root/.m2 mvn test
 
 # 2. run stage
-FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:23-alpine
+FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:23-alpine as runner
+RUN sed -i '2s/^# *//' /etc/apk/repositories
+RUN apk update
+RUN apk add wget unzip openjdk21
 RUN addgroup -S oscars && adduser -S oscars -G oscars
 RUN mkdir -p /app
+
+# for profiling during CI/CD pipeline
+RUN wget https://github.com/oracle/visualvm/releases/download/2.2/visualvm_22.zip
+RUN unzip visualvm_22.zip
+RUN rm visualvm_22/bin/visualvm.exe
+RUN mv visualvm_22 /usr/bin/visualvm
+
 RUN chown oscars -R /app
 USER oscars
 
@@ -54,5 +65,8 @@ COPY --from=builder /build/backend/application/ ./
 
 # Debugger port
 EXPOSE 9201
+
 # run the application
-ENTRYPOINT sh -c 'java "$JAVA_OPTS" -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201 org.springframework.boot.loader.launch.JarLauncher'
+ENTRYPOINT sh -c 'java "$JAVA_OPTS" \
+-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201 \
+org.springframework.boot.loader.launch.JarLauncher'
