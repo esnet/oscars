@@ -1,0 +1,36 @@
+{
+  "name": "ZKJH",
+  "meta": {
+    "description": "I am a connection"
+  },
+  "schedule": {
+    "beginning": 1754072230.000000000,
+    "ending": 2069432183.000000000
+  },
+  "qos": {
+    "mode": "BEST_EFFORT",
+    "excessAction": "SCAVENGER",
+    "bandwidth": 100000000
+  },
+  "tech": {
+    "mode": "AUTOMATIC",
+    "flavor": "VPLS",
+    "mtu": 9000,
+    "macsec": false
+  },
+  "bundles": [],
+  "endpoints": [
+    {
+      "device": "anl221-cr6",
+      "port": "anl221-cr6:1/1/c17/2",
+      "vlan": 2,
+      "tagged": true
+    },
+    {
+      "device": "anl221-cr6",
+      "port": "anl221-cr6:1/1/c17/2",
+      "vlan": 3,
+      "tagged": true
+    }
+  ]
+}

@@ -17,6 +17,7 @@ import net.es.oscars.web.beans.v2.L2VPNList;
 import net.es.oscars.web.beans.v2.ValidationResponse;
 import net.es.oscars.web.simple.SimpleConnection;
 import net.es.oscars.web.simple.Validity;
+import net.es.topo.common.devel.DevelUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Component;
 
@@ -79,6 +80,8 @@ public class L2VPNService {
             } catch (NsoResvException | PCEException e) {
                 throw new ConnException(e.getMessage());
             }
+        } else {
+            throw new ConnException(v.getMessage());
         }
 
         return l2VPNConversions.fromConnection(connSvc.findConnection(l2VPN.getName()).orElseThrow(
@@ -100,6 +103,11 @@ public class L2VPNService {
                     .message(ex.getMessage())
                     .build();
         }
+    }
+
+    // only for tests
+    public void clear() {
+        connSvc.getConnRepo().deleteAll();
     }
 
 

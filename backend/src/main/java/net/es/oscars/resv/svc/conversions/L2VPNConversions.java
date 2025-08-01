@@ -75,7 +75,7 @@ public class L2VPNConversions {
 
 
         for (VlanFixture f: cmp.getFixtures()) {
-            boolean tagged = f.getVlan().getVlanId() == 0;
+            boolean tagged = f.getVlan().getVlanId() != 0;
             EdgePort ep = null;
             try {
                 topology = topologyStore.getCurrentTopology();
