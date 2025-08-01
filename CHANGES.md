@@ -1,4 +1,9 @@
 # OSCARS Release Notes
+### 1.2.30
+> July 2025
+- ESE integration
+- NSI test suite
+
 ### 1.2.29
 > June 2025
 - OS-522 fuzzy connection search
