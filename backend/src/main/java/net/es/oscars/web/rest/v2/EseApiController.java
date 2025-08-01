@@ -93,7 +93,7 @@ public class EseApiController {
     }
 
 
-    @RequestMapping(value = "/api/l2vpn/new", method = RequestMethod.POST)
+    @RequestMapping(value = "/protected/l2vpn/new", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
     @Operation(summary = "Submit a (new) L2VPN", description = "POST to create a new L2VPN.")
@@ -103,7 +103,7 @@ public class EseApiController {
         return l2VPNService.createOrReplace(l2vpn);
     }
 
-    @RequestMapping(value = "/api/l2vpn/replace", method = RequestMethod.PUT)
+    @RequestMapping(value = "/protected/l2vpn/replace", method = RequestMethod.PUT)
     @ResponseBody
     @Transactional
     @Operation(summary = "Overwrite a L2VPN", description = "PUT to replace an existing L2VPN.")
