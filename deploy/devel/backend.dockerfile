@@ -45,12 +45,6 @@ RUN apk add wget unzip openjdk21
 RUN addgroup -S oscars && adduser -S oscars -G oscars
 RUN mkdir -p /app
 
-# for profiling during CI/CD pipeline
-RUN wget https://github.com/oracle/visualvm/releases/download/2.2/visualvm_22.zip
-RUN unzip visualvm_22.zip
-RUN rm visualvm_22/bin/visualvm.exe
-RUN mv visualvm_22 /usr/bin/visualvm
-
 RUN chown oscars -R /app
 USER oscars
 
@@ -66,7 +60,11 @@ COPY --from=builder /build/backend/application/ ./
 # Debugger port
 EXPOSE 9201
 
-# run the application
-ENTRYPOINT sh -c 'java "$JAVA_OPTS" \
--agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201 \
-org.springframework.boot.loader.launch.JarLauncher'
+# run the application with debug and profiling options enabled
+ENTRYPOINT sh -c 'java ${JAVA_OPTS} org.springframework.boot.loader.launch.JarLauncher'
+
+FROM runner AS profile
+WORKDIR /app
+COPY backend/bin/profiling-start.sh /app/profiling-start.sh
+COPY backend/bin/profiling-stop.sh /app/profiling-stop.sh
+ENTRYPOINT ./profiling-start.sh && sleep 3m && ./profiling-stop.sh

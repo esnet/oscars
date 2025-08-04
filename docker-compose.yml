@@ -1,4 +1,3 @@
-version: '2.4'
 networks:
   topo-net:
     name: topo-net
@@ -13,6 +12,7 @@ services:
     build:
       context: ./
       args:
+        HOSTNAME: ${HOSTNAME:-oscars-backend.ocd-stack.orb.local}
         JAVA_OPTS: "-XX:UseSVE=0"
         MAVEN_OPTS: "-XX:UseSVE=0"
       dockerfile: ./deploy/devel/backend.dockerfile
@@ -26,9 +26,18 @@ services:
       - "1099:1099" # profiler port
       - "8200:8200"
     environment:
-      JAVA_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
-      MAVEN_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
       HOSTNAME: ${HOSTNAME:-oscars-backend.ocd-stack.orb.local}
+      JAVA_OPTS: >
+        -XX:UseSVE=0
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.port=1099
+        -Dcom.sun.management.jmxremote.rmi.port=1099
+        -Djava.rmi.server.hostname="${HOSTNAME}"
+        -Dcom.sun.management.jmxremote.local.only=false
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+      MAVEN_OPTS: ${MAVEN_OPTS}:--XX:UseSVE=0
       OSCARS_BACKEND_WEB_PORT: ${OSCARS_BACKEND_WEB_PORT:-8201}
       SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/${POSTGRES_DB:-oscars}
       POSTGRES_USER: ${POSTGRES_USER:-oscars}
@@ -49,35 +58,11 @@ services:
   oscars-backend-test:
     build:
       context: ./
-      dockerfile: ./deploy/devel/profile.dockerfile
+      dockerfile: ./deploy/devel/backend.dockerfile
       args:
         JAVA_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
         MAVEN_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
       target: test
-    environment:
-      JAVA_OPTS: "-XX:UseSVE=0"
-      MAVEN_OPTS: "-XX:UseSVE=0"
-      OSCARS_BACKEND_WEB_PORT: ${OSCARS_BACKEND_WEB_PORT:-8201}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/${POSTGRES_DB:-oscars}
-      POSTGRES_USER: ${POSTGRES_USER:-oscars}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-secret}
-      ESDB_API_KEY: ${ESDB_API_KEY}
-      ESDB_URI: ${ESDB_URI}
-      TOPO_OSCARS_URL: ${TOPO_OSCARS_URL:-http://topo-oscars:8004/oscars-one/topology}
-      NSO_USERNAME: ${NSO_USERNAME}
-      NSO_PASSWORD: ${NSO_PASSWORD}
-      NSO_URI: ${NSO_URI}
-    depends_on:
-      - oscars-backend
-  oscars-backend-profile:
-    image: "oscars-backend-image"
-    build:
-      context: ./
-      args:
-        JAVA_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
-        MAVEN_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
-      dockerfile: ./deploy/devel/backend.dockerfile
-      target: profile
     environment:
       JAVA_OPTS: "-XX:UseSVE=0"
       MAVEN_OPTS: "-XX:UseSVE=0"
