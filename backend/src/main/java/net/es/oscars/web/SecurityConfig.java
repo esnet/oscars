@@ -70,12 +70,14 @@ public class SecurityConfig {
     public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) throws Exception {
         if (!authProperties.isOauthEnabled()) {
             http.securityMatcher("/protected/**")
+                    .cors(Customizer.withDefaults())
                     .authorizeHttpRequests(authorize ->
                             authorize.anyRequest().permitAll()
                     )
                     .csrf(AbstractHttpConfigurer::disable);
         } else {
             http.securityMatcher("/protected/**")
+                    .cors(Customizer.withDefaults())
                     .authorizeHttpRequests(authorize ->
                             authorize.anyRequest().hasAuthority(ROLE_OSCARS_USER)
                     )
