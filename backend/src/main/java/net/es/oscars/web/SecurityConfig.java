@@ -12,6 +12,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -55,6 +56,7 @@ public class SecurityConfig {
     public SecurityFilterChain clientFilterChain(HttpSecurity http) throws Exception {
 
         http.securityMatcher("/api/**", "/services/**")
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize ->
                     authorize.anyRequest().permitAll()
                 )
