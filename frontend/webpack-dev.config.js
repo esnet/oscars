@@ -145,11 +145,6 @@ module.exports = {
                 changeOrigin: true,
                 target: "http://oscars-backend:8201/"
             }
-        },
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-            "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization"
         }
     }
 };

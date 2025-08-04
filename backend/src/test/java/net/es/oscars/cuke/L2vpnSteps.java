@@ -7,9 +7,14 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.BackendTestConfiguration;
+import net.es.oscars.app.Startup;
+import net.es.oscars.app.util.UsernameGetter;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.model.L2VPN;
+import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.enums.ConnectionMode;
+import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.L2VPNService;
 import net.es.oscars.topo.beans.TopoException;
 import net.es.oscars.topo.beans.Topology;
@@ -20,24 +25,42 @@ import net.es.oscars.web.beans.ConnException;
 import net.es.oscars.web.beans.ConnectionFilter;
 import net.es.oscars.web.beans.v2.L2VPNList;
 import net.es.oscars.web.beans.v2.ValidationResponse;
-import net.es.topo.common.devel.DevelUtils;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.*;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.junit.Assert.assertEquals;
 
 @Slf4j
 @Category({UnitTests.class})
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        classes = {
+                BackendTestConfiguration.class
+        }
+)
 public class L2vpnSteps extends CucumberSteps {
     private L2VPN request;
     private ValidationResponse validationResponse;
     private boolean gotSubmitException;
     private boolean gotListException;
     private L2VPNList l2VPNList;
+    private ResponseEntity<String> response;
+
+    @Autowired
+    private CucumberWorld world;
+
+    @Autowired
+    private Startup startup;
 
     @Autowired
     private TopoPopulator topoPopulator;
@@ -51,12 +74,15 @@ public class L2vpnSteps extends CucumberSteps {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private TestRestTemplate restTemplate;
 
     @Before("@L2vpnSteps")
     public void prepare()  {
         try {
             Topology t = topoPopulator.loadTopology("topo/esnet.json");
             topologyStore.replaceTopology(t);
+            startup.setInStartup(false);
         } catch (TopoException | IOException e) {
             throw new RuntimeException(e);
         }
@@ -150,5 +176,32 @@ public class L2vpnSteps extends CucumberSteps {
     @Then("the L2VPN list did not throw an exception")
     public void theL2VPNListDidNotThrowAnException() {
         assert !gotListException;
+    }
+
+
+    @When("The REST client sends the L2VPN request as {string} on path {string}")
+    public void theRESTClientSendsTheLVPNRequestAsPOSTOnPath(String httpMethod, String httpPath) throws Throwable {
+
+        HttpMethod method = HttpMethod.valueOf(httpMethod);
+        try {
+            log.info("Executing {} on path {}", httpMethod, httpPath);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            String payload = objectMapper.writeValueAsString(request);
+            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+
+            response = restTemplate.exchange(httpPath, method, entity, String.class);
+
+        } catch (Exception ex) {
+            world.add(ex);
+            log.error(ex.getLocalizedMessage(), ex);
+        }
+    }
+    @Then("The REST client received a status code of {int}")
+    public void theClientReceivedAStatusCodeOf(int statusCode) {
+        log.info("response status code: " + response.getStatusCode());
+        assertEquals(statusCode, response.getStatusCode().value());
     }
 }
