@@ -1,6 +1,7 @@
 package net.es.oscars.web;
 
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.AuthProperties;
@@ -9,7 +10,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -19,6 +22,7 @@ import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
@@ -52,6 +56,7 @@ public class SecurityConfig {
     public SecurityFilterChain clientFilterChain(HttpSecurity http) throws Exception {
 
         http.securityMatcher("/api/**", "/services/**")
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize ->
                     authorize.anyRequest().permitAll()
                 )
@@ -65,12 +70,14 @@ public class SecurityConfig {
     public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) throws Exception {
         if (!authProperties.isOauthEnabled()) {
             http.securityMatcher("/protected/**")
+                    .cors(Customizer.withDefaults())
                     .authorizeHttpRequests(authorize ->
                             authorize.anyRequest().permitAll()
                     )
                     .csrf(AbstractHttpConfigurer::disable);
         } else {
             http.securityMatcher("/protected/**")
+                    .cors(Customizer.withDefaults())
                     .authorizeHttpRequests(authorize ->
                             authorize.anyRequest().hasAuthority(ROLE_OSCARS_USER)
                     )
@@ -85,6 +92,11 @@ public class SecurityConfig {
     }
 
 
+    @Bean
+    public AuthenticationEntryPoint unauthorizedEntryPoint() {
+        return (request, response, authException) ->
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, HttpStatus.UNAUTHORIZED.getReasonPhrase());
+    }
 
     @Slf4j
     public static class OscarsAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {

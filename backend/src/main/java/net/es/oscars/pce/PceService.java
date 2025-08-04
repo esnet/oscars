@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.model.Bundle;
 import net.es.oscars.model.LSP;
+import net.es.oscars.model.Waypoint;
 import net.es.oscars.model.enums.Role;
 import net.es.oscars.pce.beans.PathConstraint;
 import net.es.oscars.resv.beans.PeriodBandwidth;
@@ -14,8 +15,11 @@ import net.es.oscars.resv.enums.BwDirection;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ResvLibrary;
 import net.es.oscars.resv.svc.ResvService;
+import net.es.oscars.resv.svc.conversions.L2VPNConversions;
 import net.es.oscars.topo.beans.TopoUrn;
+import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.enums.UrnType;
+import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.PcePath;
 import net.es.oscars.web.beans.PceRequest;
@@ -51,7 +55,13 @@ public class PceService {
         Map<String, List<PeriodBandwidth>> reservedEgBws = resvService.reservedEgBws(request.getInterval(), connService.getHeld(), request.getConnectionId());
         Map<String, Integer> availIngressBw = ResvLibrary.availableBandwidthMap(BwDirection.INGRESS, baseline, reservedIngBws);
         Map<String, Integer> availEgressBw = ResvLibrary.availableBandwidthMap(BwDirection.EGRESS, baseline, reservedEgBws);
-
+        Topology topology;
+        try {
+            topology = topologyStore.getCurrentTopology();
+        } catch (ConsistencyException ex) {
+            log.error(ex.getMessage(), ex);
+            throw new PCEException(ex.getMessage());
+        }
 
         AllPathsPceResponse response = AllPathsPceResponse.builder()
                 .interval(request.getInterval())
@@ -98,7 +108,6 @@ public class PceService {
             // calculate path for this pipe...
             PceResponse pceResponse = pceEngine.calculatePaths(bwPipe, availIngressBw, availEgressBw, constraint);
 
-            List<String> primaryPath = new ArrayList<>();
 
             PcePath path = pceResponse.getShortest();
 
@@ -115,8 +124,6 @@ public class PceService {
                     .build();
 
             for (EroHop hop : path.getAzEro()) {
-                primaryPath.add(hop.getUrn());
-
                 // remove the bandwidth from the topology before we do pathfinding for the next bundle
                 if (availIngressBw.containsKey(hop.getUrn())) {
                     availIngressBw.put(hop.getUrn(), availIngressBw.get(hop.getUrn()) - request.getBandwidth());
@@ -126,6 +133,8 @@ public class PceService {
                 }
             }
 
+            List<Waypoint> primaryPath = L2VPNConversions.eroAsWaypointList(path.getAzEro(), topology);
+
             LSP primary = LSP.builder()
                     .path(primaryPath)
                     .role(Role.PRIMARY)
@@ -133,9 +142,9 @@ public class PceService {
             responseBundle.getLsps().add(primary);
 
             // make a protect LSP
-            List<String> protectPath = new ArrayList<>();
-            protectPath.add(bundle.getA());
-            protectPath.add(bundle.getZ());
+            List<Waypoint> protectPath = new ArrayList<>();
+            protectPath.add(Waypoint.builder().urn(bundle.getA()).type(UrnType.DEVICE).build());
+            protectPath.add(Waypoint.builder().urn(bundle.getZ()).type(UrnType.DEVICE).build());
 
             LSP protect = LSP.builder()
                     .path(protectPath)

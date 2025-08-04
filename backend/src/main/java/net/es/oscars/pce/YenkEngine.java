@@ -139,7 +139,7 @@ public class YenkEngine implements Engine {
                     partialPath = pathComputation.get(timeout, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
                     failed = true;
-                    log.info("timed out calculating path");
+                    log.info("timed out calculating path after "+timeout+" seconds");
                     pathComputation.cancel(true);
                 } catch (Exception e) {
                     failed = true;

@@ -110,6 +110,7 @@ public class L2VPN {
         @Schema(description = "The orchestrator id")
         protected String orchId;
 
+        @Builder.Default
         @Schema(description = "When this was last modified")
         @JsonFormat(shape = JsonFormat.Shape.NUMBER, timezone = "UTC")
         private Instant lastModified = Instant.now();
