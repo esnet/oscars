@@ -26,7 +26,7 @@ Feature: EseApiController Endpoints for l2VPNs
 #    And The EseApiController response is a valid ValidationResponse object
 
   Scenario: Create a new L2VPN
-    Given The client executes POST with a L2VPN payload on EseApiController path "/api/l2vpn/new"
+    Given The client executes POST with a L2VPN payload on EseApiController path "/protected/l2vpn/new"
     When The client receives a response from EseApiController
     Then The client receives a EseApiController response status code of 200
     And The EseApiController response is a valid L2VPN object
