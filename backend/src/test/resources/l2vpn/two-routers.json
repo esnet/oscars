@@ -1,0 +1,125 @@
+{
+  "name": "XBYZ",
+  "meta": {
+    "description": "Point to point",
+    "username": "joe"
+  },
+  "schedule": {
+    "beginning": 1753209304.000000000,
+    "ending": 2068569237.000000000
+  },
+  "qos": {
+    "mode": "GUARANTEED",
+    "excessAction": "SCAVENGER",
+    "bandwidth": 1000
+  },
+  "tech": {
+    "mode": "AUTOMATIC",
+    "flavor": "VPLS",
+    "mtu": 9000,
+    "macsec": false
+  },
+  "bundles": [
+    {
+      "name": "kans-cr6---nash-cr6",
+      "a": "kans-cr6",
+      "z": "nash-cr6",
+      "protection": "LOOSE",
+      "constraints": {
+        "include": [
+          {
+            "urn": "kans-cr6",
+            "type": "DEVICE"
+          },
+          {
+            "urn": "kans-cr6:2/1/c19/1",
+            "type": "PORT"
+          },
+          {
+            "urn": "chic-cr6:1/1/c19/1",
+            "type": "PORT"
+          },
+          {
+            "urn": "chic-cr6",
+            "type": "DEVICE"
+          },
+          {
+            "urn": "chic-cr6:1/1/c28/1",
+            "type": "PORT"
+          },
+          {
+            "urn": "nash-cr6:1/1/c31/1",
+            "type": "PORT"
+          },
+          {
+            "urn": "nash-cr6",
+            "type": "DEVICE"
+          }
+        ],
+        "exclude": []
+      },
+      "lsps": [
+        {
+          "path": [
+            {
+              "urn": "kans-cr6",
+              "type": "DEVICE"
+            },
+            {
+              "urn": "nash-cr6",
+              "type": "DEVICE"
+            }
+          ],
+          "role": "SECONDARY"
+        },
+        {
+          "path": [
+            {
+              "urn": "kans-cr6",
+              "type": "DEVICE"
+            },
+            {
+              "urn": "kans-cr6:2/1/c19/1",
+              "type": "PORT"
+            },
+            {
+              "urn": "chic-cr6:1/1/c19/1",
+              "type": "PORT"
+            },
+            {
+              "urn": "chic-cr6",
+              "type": "DEVICE"
+            },
+            {
+              "urn": "chic-cr6:1/1/c28/1",
+              "type": "PORT"
+            },
+            {
+              "urn": "nash-cr6:1/1/c31/1",
+              "type": "PORT"
+            },
+            {
+              "urn": "nash-cr6",
+              "type": "DEVICE"
+            }
+          ],
+          "role": "PRIMARY"
+        }
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "device": "nash-cr6",
+      "port": "nash-cr6:1/1/c9/1",
+      "vlan": 2,
+      "tagged": true
+    },
+    {
+      "device": "kans-cr6",
+      "port": "kans-cr6:1/1/c17/2",
+      "vlan": 2,
+      "tagged": false
+    }
+  ]
+}

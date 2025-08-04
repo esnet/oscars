@@ -322,17 +322,17 @@ public class ConnService {
 
             // find all the adjacencies in the topology that match the search term
             for (Adjcy adjcy : topo.getAdjcies()) {
-                if (adjcy.getA().getAddr().toLowerCase().equals(lowerTerm)) {
+                if (adjcy.getA().getAddr() != null && adjcy.getA().getAddr().toLowerCase().equals(lowerTerm)) {
                     exactUrns.add(adjcy.getA().getPortUrn());
                 }
-                if (adjcy.getA().getIfce().toLowerCase().contains(lowerTerm)) {
+                if (adjcy.getA().getIfce() != null && adjcy.getA().getIfce().toLowerCase().contains(lowerTerm)) {
                     exactUrns.add(adjcy.getA().getPortUrn());
                 }
 
-                if (adjcy.getZ().getAddr().toLowerCase().equals(lowerTerm)) {
+                if (adjcy.getZ().getAddr() != null && adjcy.getZ().getAddr().toLowerCase().equals(lowerTerm)) {
                     exactUrns.add(adjcy.getZ().getPortUrn());
                 }
-                if (adjcy.getZ().getIfce().toLowerCase().contains(lowerTerm)) {
+                if (adjcy.getZ().getIfce() != null && adjcy.getZ().getIfce().toLowerCase().contains(lowerTerm)) {
                     exactUrns.add(adjcy.getZ().getPortUrn());
                 }
 
@@ -877,11 +877,11 @@ public class ConnService {
 //        log.info("minDuration (resv.minimum-duration): {}", minDuration);
 //        log.info("timeout (resv.timeout): {}", resvTimeout);
 
-        DevelUtils.dumpDebug("validate conn", inConn);
+//        DevelUtils.dumpDebug("validate conn", inConn);
         log.info("mode: {}", mode);
 
         StringBuilder error = new StringBuilder();
-        
+
         boolean valid = false;
 
         if (inConn == null) {
@@ -1131,17 +1131,6 @@ public class ConnService {
         }
         connLock.lock();
         log.debug("got connection lock; hold {} resuming", in.getConnectionId());
-
-        // maybe don't throw exception; populate all the Validity entries instead
-        Validity v = this.validate(in, ConnectionMode.NEW);
-        in.setValidity(v);
-
-        if (!v.isValid()) {
-            log.info("could not hold {}; releasing lock", in.getConnectionId());
-            log.info("reason: {}", v.getMessage());
-            connLock.unlock();
-            return Pair.of(in, null);
-        }
 
         // we can hold it, so we do
         Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);

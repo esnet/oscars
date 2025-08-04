@@ -2,6 +2,7 @@ package net.es.oscars.cuke;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -23,12 +24,10 @@ import net.es.oscars.resv.ent.Held;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.L2VPNService;
-import net.es.oscars.resv.svc.conversions.L2VPNConversions;
 import net.es.oscars.web.beans.BandwidthAvailabilityResponse;
 import net.es.oscars.web.beans.ConnectionFilter;
-import net.es.oscars.web.beans.ScheduleModifyType;
-import net.es.oscars.web.beans.ScheduleRangeRequest;
 import net.es.oscars.web.beans.v2.L2VPNList;
+import net.es.oscars.web.beans.v2.ValidationResponse;
 import net.es.oscars.web.rest.v2.EseApiController;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mockito;
@@ -87,11 +86,16 @@ public class EseApiControllerSteps extends CucumberSteps {
     @MockitoBean
     ConnService connSvc;
 
+    private ObjectMapper mapper;
+
     @Autowired
     private EseApiController controller;
 
     @Before("@EseApiControllerSteps")
     public void before() throws Exception {
+        mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+
         // Reset stuff
         clear();
 
@@ -181,7 +185,7 @@ public class EseApiControllerSteps extends CucumberSteps {
         // Mock L2VPNService.create()
         Mockito
             .when(
-                l2VPNService.create(Mockito.any(L2VPN.class))
+                l2VPNService.createOrReplace(Mockito.any(L2VPN.class))
             )
             .thenReturn(
                 mockL2VPN
@@ -197,7 +201,16 @@ public class EseApiControllerSteps extends CucumberSteps {
                     .baseline(1)
                     .build()
             );
-
+        Mockito
+                .when(
+                        l2VPNService.validate(Mockito.any(L2VPN.class), Mockito.any(ConnectionMode.class))
+                )
+                .thenReturn(
+                        ValidationResponse.builder()
+                                .valid(true)
+                                .message("OK")
+                                .build()
+                );
         controller.setL2VPNService(l2VPNService);
     }
 
@@ -309,7 +322,6 @@ public class EseApiControllerSteps extends CucumberSteps {
         HttpMethod method = HttpMethod.POST;
         try {
             log.info("Executing " + method + " on EseApiController path " + httpPath);
-            ObjectMapper mapper = new ObjectMapper();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -336,7 +348,7 @@ public class EseApiControllerSteps extends CucumberSteps {
         HttpMethod method = HttpMethod.POST;
         try {
             log.info("Executing " + method + " on EseApiController path " + httpPath);
-            ObjectMapper mapper = new ObjectMapper();
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -368,7 +380,7 @@ public class EseApiControllerSteps extends CucumberSteps {
     @Then("The EseApiController response is a valid L2VPN object")
     public void theEseApiControllerResponseIsAValidLVPNObject() throws Exception {
         assert response != null;
-        ObjectMapper mapper = new ObjectMapper();
+
         String payload = response.getBody();
         L2VPN responseObject = mapper.readValue(
             payload,
@@ -380,7 +392,7 @@ public class EseApiControllerSteps extends CucumberSteps {
     @Then("The EseApiController response is a valid L2VPNList object")
     public void theEseApiControllerResponseIsAValidLVPNListObject() throws Exception {
         assert response != null;
-        ObjectMapper mapper = new ObjectMapper();
+
         String payload = response.getBody();
         L2VPNList responseObject = mapper.readValue(
             payload,
@@ -392,7 +404,6 @@ public class EseApiControllerSteps extends CucumberSteps {
     @Then("The EseApiController response L2VPN object's meta username property matches {string}")
     public void theEseApiControllerResponseMetaUsernamePropertyMatches(String expectedUsername) throws JsonProcessingException {
         assert response != null;
-        ObjectMapper mapper = new ObjectMapper();
         String payload = response.getBody();
         L2VPN responseObject = mapper.readValue(
             payload,
@@ -405,7 +416,6 @@ public class EseApiControllerSteps extends CucumberSteps {
     @Then("The EseApiController response is a valid BandwidthAvailabilityResponse object")
     public void theEseApiControllerResponseIsAValidBandwidthAvailabilityResponseObject() throws JsonProcessingException {
         assert response != null;
-        ObjectMapper mapper = new ObjectMapper();
         String payload = response.getBody();
         BandwidthAvailabilityResponse responseObject = mapper.readValue(
             payload,
@@ -443,5 +453,14 @@ public class EseApiControllerSteps extends CucumberSteps {
             .connection_mtu(10000)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
             .build();
+    }
+
+    @And("The EseApiController response is a valid ValidationResponse object")
+    public void theEseApiControllerResponseIsAValidValidationResponseObject() throws JsonProcessingException {
+        assert response != null;
+        String payload = response.getBody();
+        ValidationResponse responseObject = mapper.readValue(payload, ValidationResponse.class);
+        assert responseObject != null;
+        assert responseObject.isValid();
     }
 }

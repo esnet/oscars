@@ -5,7 +5,9 @@ import net.es.oscars.model.*;
 import net.es.oscars.model.enums.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.Phase;
+import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.ConnService;
+import net.es.oscars.resv.svc.ConnUtils;
 import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.TopoService;
 import net.es.oscars.topo.beans.Device;
@@ -20,7 +22,6 @@ import net.es.oscars.web.simple.Fixture;
 import net.es.oscars.web.simple.Junction;
 import net.es.oscars.web.simple.Pipe;
 import net.es.oscars.web.simple.SimpleConnection;
-import net.es.topo.common.model.oscars2.OscarsTopology;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -32,17 +33,20 @@ public class L2VPNConversions {
     private final ConnService connSvc;
     private final ResvService resvService;
     private final TopologyStore topologyStore;
+    private final ConnUtils connUtils;
 
-    public L2VPNConversions(ConnService connSvc, ResvService resvService, TopologyStore topologyStore) {
+    public L2VPNConversions(ConnService connSvc, ResvService resvService, TopologyStore topologyStore, ConnUtils connUtils) {
         this.connSvc = connSvc;
         this.resvService = resvService;
         this.topologyStore = topologyStore;
+        this.connUtils = connUtils;
     }
 
 
-    public L2VPN fromConnection(Connection c) {
+    public L2VPN fromConnection(Connection c) throws ConsistencyException{
 
         L2VPN l2VPN = L2VPN.builder()
+                .name(c.getConnectionId())
                 .schedule(getInterval(c))
                 .qos(getQos(c))
                 .tech(getTech(c))
@@ -71,7 +75,7 @@ public class L2VPNConversions {
 
 
         for (VlanFixture f: cmp.getFixtures()) {
-            boolean tagged = f.getVlan().getVlanId() == 0;
+            boolean tagged = f.getVlan().getVlanId() != 0;
             EdgePort ep = null;
             try {
                 topology = topologyStore.getCurrentTopology();
@@ -102,9 +106,10 @@ public class L2VPNConversions {
     }
 
 
-    public List<Bundle> getBundles(Connection c) {
+    public List<Bundle> getBundles(Connection c) throws ConsistencyException {
         List<Bundle> bundles = new ArrayList<>();
         Components cmp = getComponents(c);
+        Topology topology = topologyStore.getCurrentTopology();
 
         for (VlanPipe vlanPipe : cmp.getPipes()) {
             Bundle b = Bundle.builder()
@@ -117,9 +122,9 @@ public class L2VPNConversions {
             Protection protection = Protection.NONE;
             if (vlanPipe.getProtect()) {
                 protection = Protection.LOOSE;
-                List<String> path = new ArrayList<>();
-                path.add(vlanPipe.getA().getDeviceUrn());
-                path.add(vlanPipe.getZ().getDeviceUrn());
+                List<Waypoint> path = new ArrayList<>();
+                path.add(Waypoint.builder().urn(vlanPipe.getA().getDeviceUrn()).type(UrnType.DEVICE).build());
+                path.add(Waypoint.builder().urn(vlanPipe.getZ().getDeviceUrn()).type(UrnType.DEVICE).build());
                 LSP loose = LSP.builder()
                         .path(path)
                         .role(Role.SECONDARY)
@@ -127,39 +132,49 @@ public class L2VPNConversions {
                         .build();
                 lsps.add(loose);
             }
+            lsps.add(LSP.builder()
+                    .role(Role.PRIMARY)
+                    .bundle(b)
+                    .path(eroAsWaypointList(vlanPipe.getAzERO(), topology))
+                    .build());
 
             b.setProtection(protection);
             b.setLsps(lsps);
             b.setConstraints(Bundle.Constraints.builder()
                     .exclude(new HashSet<>())
-                    .include(eroAsStringList(vlanPipe.getAzERO()))
+                    .include(eroAsWaypointList(vlanPipe.getAzERO(), topology))
                     .build());
             bundles.add(b);
         }
         return bundles;
     }
+    public List<String> eroAsStringList(List<EroHop> ero) {
+        List<String> result = new ArrayList<>();
 
-    public List<Bundle.Waypoint> eroAsStringList(List<EroHop> ero) {
-        List<Bundle.Waypoint> list = new ArrayList<>();
-        try {
-            Topology topology = topologyStore.getCurrentTopology();
-            ero.forEach(e -> {
-                UrnType urnType = UrnType.PORT;
-                if (topology.getDevices().containsKey(e.getUrn())) {
-                    urnType = UrnType.DEVICE;
-                }
-                Bundle.Waypoint waypoint = Bundle.Waypoint.builder()
-                        .urn(e.getUrn())
-                        .type(urnType)
-                        .build();
-                list.add(waypoint);
-            });
-            return list;
+        ero.forEach(e -> {
+            result.add(e.getUrn());
+        });
+        return result;
+    }
 
-        } catch (ConsistencyException e) {
-            log.error("can't get waypoints, exception: ", e);
-            throw new RuntimeException(e);
-        }
+    public static List<Waypoint> eroAsWaypointList(List<EroHop> ero, Topology topology) {
+        List<Waypoint> list = new ArrayList<>();
+        ero.forEach(e -> {
+            UrnType urnType = UrnType.UNKNOWN;
+            if (topology.getDevices().containsKey(e.getUrn())) {
+                urnType = UrnType.DEVICE;
+            }
+            if (topology.getPorts().containsKey(e.getUrn())) {
+                urnType = UrnType.PORT;
+            }
+            Waypoint waypoint = Waypoint.builder()
+                    .urn(e.getUrn())
+                    .type(urnType)
+                    .build();
+            list.add(waypoint);
+        });
+        return list;
+
 
     }
 
@@ -293,7 +308,7 @@ public class L2VPNConversions {
             if (primary != null) {
                 List<String> ero = new ArrayList<>();
                 if (primary.getPath() != null && !primary.getPath().isEmpty()) {
-                    ero = primary.getPath();
+                    ero = primary.pathUrns();
                 } else if (bundle.getConstraints().getInclude() != null && !bundle.getConstraints().getInclude().isEmpty()) {
                     ero = bundle.getConstraints().includedUrns();
                 }
@@ -311,17 +326,33 @@ public class L2VPNConversions {
 
             }
         }
+        String connectionId = l2VPNRequest.getName();
+        if (connectionId == null || connectionId.isEmpty()) {
+            connectionId = connUtils.genUniqueConnectionId();
+        }
+
+        // default to HELD / WAITING when null
+        Phase phase = Phase.HELD;
+        State state = State.WAITING;
+        if (l2VPNRequest.getStatus() != null) {
+            if (l2VPNRequest.getStatus().getPhase() != null) {
+                phase = l2VPNRequest.getStatus().getPhase();
+            }
+            if (l2VPNRequest.getStatus().getState() != null) {
+                state = l2VPNRequest.getStatus().getState();
+            }
+        }
 
         return SimpleConnection.builder()
                 .username(l2VPNRequest.getMeta().getUsername())
                 .connection_mtu(l2VPNRequest.getTech().getMtu())
-                .connectionId(l2VPNRequest.getName())
+                .connectionId(connectionId)
                 .mode(l2VPNRequest.getTech().getMode())
                 .begin(begin)
                 .end(end)
                 .description(l2VPNRequest.getMeta().getDescription())
-                .phase(l2VPNRequest.getStatus().getPhase())
-                .state(l2VPNRequest.getStatus().getState())
+                .phase(phase)
+                .state(state)
                 .heldUntil(heldUntil)
                 .serviceId(l2VPNRequest.getMeta().getTrackingId())
                 .fixtures(fixtures)
