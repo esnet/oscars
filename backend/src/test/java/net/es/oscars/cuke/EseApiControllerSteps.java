@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.cucumber.java.Before;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -26,6 +27,7 @@ import net.es.oscars.resv.svc.L2VPNService;
 import net.es.oscars.web.beans.BandwidthAvailabilityResponse;
 import net.es.oscars.web.beans.ConnectionFilter;
 import net.es.oscars.web.beans.v2.L2VPNList;
+import net.es.oscars.web.beans.v2.ValidationResponse;
 import net.es.oscars.web.rest.v2.EseApiController;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mockito;
@@ -199,7 +201,16 @@ public class EseApiControllerSteps extends CucumberSteps {
                     .baseline(1)
                     .build()
             );
-
+        Mockito
+                .when(
+                        l2VPNService.validate(Mockito.any(L2VPN.class), Mockito.any(ConnectionMode.class))
+                )
+                .thenReturn(
+                        ValidationResponse.builder()
+                                .valid(true)
+                                .message("OK")
+                                .build()
+                );
         controller.setL2VPNService(l2VPNService);
     }
 
@@ -442,5 +453,14 @@ public class EseApiControllerSteps extends CucumberSteps {
             .connection_mtu(10000)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
             .build();
+    }
+
+    @And("The EseApiController response is a valid ValidationResponse object")
+    public void theEseApiControllerResponseIsAValidValidationResponseObject() throws JsonProcessingException {
+        assert response != null;
+        String payload = response.getBody();
+        ValidationResponse responseObject = mapper.readValue(payload, ValidationResponse.class);
+        assert responseObject != null;
+        assert responseObject.isValid();
     }
 }

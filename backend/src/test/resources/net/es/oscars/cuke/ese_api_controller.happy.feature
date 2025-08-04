@@ -13,11 +13,11 @@ Feature: EseApiController Endpoints for l2VPNs
     Then The client receives a EseApiController response status code of 200
     And The EseApiController response is a valid L2VPNList object
 
-#  Scenario: Validate new L2VPN (Not implemented yet)
-#    Given The client executes POST with a L2VPN payload on EseApiController path "/api/l2vpn/validate"
-#    When The client receives a response from EseApiController
-#    Then The client receives a EseApiController response status code of 200
-#    And The EseApiController response is a valid ValidationResponse object
+  Scenario: Validate new L2VPN (Not implemented yet)
+    Given The client executes POST with a L2VPN payload on EseApiController path "/api/l2vpn/validate"
+    When The client receives a response from EseApiController
+    Then The client receives a EseApiController response status code of 200
+    And The EseApiController response is a valid ValidationResponse object
 
 #  Scenario: Validate existing L2VPN (Not implemented yet)
 #    Given The client executes PUT with a L2VPN payload on EseApiController path "/api/l2vpn/validate"
