@@ -1,6 +1,6 @@
 {
   "ietf-yang-patch:yang-patch-status": {
-    "patch-id": "delete VPLS and LSP forBBBB",
+    "patch-id": "delete VPLS and LSP for BBBB",
     "errors": [],
     "edit-status": {
       "edit": []
