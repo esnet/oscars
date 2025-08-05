@@ -39,9 +39,6 @@ RUN --mount=type=cache,target=/root/.m2 mvn test
 
 # 2. run stage
 FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:23-alpine as runner
-RUN sed -i '2s/^# *//' /etc/apk/repositories
-RUN apk update
-RUN apk add wget unzip openjdk21
 RUN addgroup -S oscars && adduser -S oscars -G oscars
 RUN mkdir -p /app
 
@@ -62,9 +59,3 @@ EXPOSE 9201
 
 # run the application with debug and profiling options enabled
 ENTRYPOINT sh -c 'java ${JAVA_OPTS} org.springframework.boot.loader.launch.JarLauncher'
-
-FROM runner AS profile
-WORKDIR /app
-COPY backend/bin/profiling-start.sh /app/profiling-start.sh
-COPY backend/bin/profiling-stop.sh /app/profiling-stop.sh
-ENTRYPOINT ./profiling-start.sh && sleep 3m && ./profiling-stop.sh

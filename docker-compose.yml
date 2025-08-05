@@ -78,6 +78,20 @@ services:
       NSO_URI: ${NSO_URI}
     depends_on:
       - oscars-backend
+  oscars-backend-profile:
+    container_name: oscars-backend-profile
+    depends_on:
+      oscars-backend:
+        condition: service_healthy
+    build:
+      context: ../oscars
+      dockerfile: ../oscars/deploy/devel/profile.dockerfile
+    environment:
+      DELAY_MIN: "1m"
+      DURATION_MIN: "1m"
+      TARGET_HOST: "oscars-backend:1099"
+    links:
+      - "oscars-backend:1099"
   oscars-db:
     image: "wharf.es.net/dockerhub-proxy/library/postgres:14.1-alpine"
     container_name:   oscars-nostack-db
