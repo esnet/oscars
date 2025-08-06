@@ -9,6 +9,8 @@ Please obtain [VisualVM](https://visualvm.github.io) for your platform.
 
 The local `oscars-backend` ocd-stack service is started with the appropriate Java arguments to enable remote JMX connections (without security enabled).
 
+We are using [OrbStack](https://orbstack.dev) to run our docker compose services locally.
+
 _**NOTE:** Staging and production environments should always have HTTPS and security authentication configurations enabled._
 
 ## Steps to connect VisualVM
@@ -22,11 +24,11 @@ _**NOTE:** Staging and production environments should always have HTTPS and secu
 
 ## Save Java Flight Recorder Data in VisualVM
 
-1. Right click "Remote > oscars-backend.ocd-stack.orb.local > org.springframework.boot.loader.launch.JarLauncher (pid 1)". Click "Start JFR". The VisualVM status bar (lower-right side of the window) will show "Starting JFR Recording".
+1. Right click "Remote > oscars-backend.ocd-stack.orb.local > org.springframework.boot.loader.launch.JarLauncher (pid 1)". Click "Start JFR". The VisualVM status bar (lower-right side of the window) will show "Starting JFR Recording". ![jfr_step1](img/jfr_step1.png)
 2. Interact with the `oscars-backend` service as usual.
-3. Use the "Dump JFR" option at any time during the JFR session. Please take note of _where_ the JFR file is being saved within the `oscars-backend` container!
-4. When you are done, right click "org.springframework.boot.loader.launch.JarLauncher (pid 1)" and click "Stop JFR".
-5. Extract the JFR dump file from the `oscars-backend` container if you need it. The `oscars-backend` container is not currently set up to use volumes, so any saved file data will not persist when the service is relaunched!
+3. Use the "Dump JFR" option at any time during the JFR session. Please take note of _where_ the JFR file is being saved within the `oscars-backend` container! ![jfr_step2a](img/jfr_step2a.png) ![jfr_step2b](img/jfr_step2b.png) ![jfr_step2c](img/jfr_step2c.png)
+4. When you are done, right click "org.springframework.boot.loader.launch.JarLauncher (pid 1)" and click "Stop JFR". ![jfr_step3](img/jfr_step3.png)
+5. Extract the JFR dump file from the `oscars-backend` container if you need it. The `oscars-backend` container is not currently set up to use volumes, so any saved file data will not persist when the service is relaunched! ![orbstack_file_extract1](img/orbstack_file_extract1.png) ![orbstack_file_extract2](img/orbstack_file_extract2.png)
 
 ## Profiling within the CI/CD pipeline
 
