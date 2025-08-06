@@ -36,6 +36,6 @@ _**NOTE:** Staging and production environments should always have HTTPS and secu
    * `DELAY_MIN`, specifies how long to wait before starting the JFR data recording. See the `sleep` command arguments (examples: 10 seconds as `10s`, 5 minutes as `5m`, etc.)
    * `DURATION_MIN`, specifies how long to run the JFR data recording. See the `sleep` command arguments (examples: 10 seconds as `10s`, 5 minutes as `5m`, etc.)
    * `TARGET_HOST`, specifies the `hostname:port` formatted value we establish a JMX connection with.
-1. Although not implemented as of the time of this writing, we could potentially run automated `oscars-backend' interaction simulations during the recording duration.
+1. Although not implemented as of the time of this writing, we could potentially run automated `oscars-backend` interaction simulations during the recording duration.
 1. After the DURATION_MIN time has elapsed, the JFR data will be dumped to `/app/recording.jfr` within the `oscars-backend` container.
 1. We can have the JFR recording extracted from the container for later viewing, using VisualVM or similar.
