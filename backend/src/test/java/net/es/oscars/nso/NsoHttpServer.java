@@ -339,7 +339,7 @@ public class NsoHttpServer {
             response.setContentType("application/yang-data+json");
 
             // Is this for VPLS or LSP ?
-            if (!nsoServicesWrapper.getVplsInstances().isEmpty()) {
+            if (nsoServicesWrapper.getVplsInstances() != null && !nsoServicesWrapper.getVplsInstances().isEmpty()) {
                 NsoEsnetVplsYangPatchResponseSpec[] responseSpecs = new ObjectMapper()
                         .readValue(new ClassPathResource("http/nso.esnet-vpls.sync.response-specs.json").getFile(), NsoEsnetVplsYangPatchResponseSpec[].class);
 
@@ -363,7 +363,7 @@ public class NsoHttpServer {
                     }
                 }
                 log.warn("Did not find a corresponding mock POST response (VPLS endpoint) in http/nso.esnet-vpls.sync.response-specs.json");
-            } else if (!nsoServicesWrapper.getLspInstances().isEmpty()) {
+            } else if (nsoServicesWrapper.getLspInstances() != null && !nsoServicesWrapper.getLspInstances().isEmpty()) {
                 NsoEsnetLspYangPatchResponseSpec[] responseSpecs = new ObjectMapper()
                         .readValue(new ClassPathResource("http/nso.esnet-lsp.post.response-specs.json").getFile(), NsoEsnetLspYangPatchResponseSpec[].class);
 
@@ -390,7 +390,6 @@ public class NsoHttpServer {
                     }
                     log.warn("Did not find a corresponding mock POST response for LSP instance key {} (LSP endpoint) in http/nso.esnet-lsp.post.response-specs.json", lsp.instanceKey());
                 }
-
             }
 
             // If we got this far, it means the requested mock payload was "404 Not found"... (we don't have it listed)

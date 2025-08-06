@@ -309,9 +309,9 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
                     try {
                         if (dryRun) {
-                            nsoProxy.buildServices(svcWrapper, connectionId);
-                        } else {
                             nsoProxy.buildDryRun(svcWrapper);
+                        } else {
+                            nsoProxy.buildServices(svcWrapper, connectionId);
                         }
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.ADD, true));
                     } catch (NsoCommitException nsoCommitException) {
@@ -721,11 +721,11 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     }
 
     public String findConnectionId(NsoVPLS vpls) {
-        String connectionId = "";
+        String connectionId = vpls.getName();
 
         // if this is null
         if (vpls.getUseLegacyNaming() != null && vpls.getUseLegacyNaming()) {
-            return vpls.getName();
+            return connectionId;
         } else {
             return connectionId.replace(VPLS_NAME_PREFIX, "");
         }
