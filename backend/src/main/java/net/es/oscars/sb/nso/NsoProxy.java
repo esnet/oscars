@@ -277,7 +277,7 @@ public class NsoProxy {
             }
         } catch (RestClientException ex) {
             log.error(errorRef + "REST error %s".formatted(ex.getMessage()));
-            throw new NsoDryrunException(ex.getMessage());
+            throw new NsoDryrunException(ex.getMessage()+" "+errorRef);
         }
     }
 
@@ -341,7 +341,7 @@ public class NsoProxy {
                     .build());
         }
         YangPatch deletePatch = YangPatch.builder()
-                .patchId("delete VPLS and LSP for" + dismantle.getConnectionId())
+                .patchId("delete VPLS and LSP for " + dismantle.getConnectionId())
                 .edit(edits)
                 .build();
 
@@ -408,48 +408,52 @@ public class NsoProxy {
 
     public static YangPatchWrapper makeRedeployYangPatch(NsoServicesWrapper wrapper, String connectionId) {
         List<YangPatch.YangEdit> edits = new ArrayList<>();
-        for (NsoVPLS vpls: wrapper.getVplsInstances()) {
-            // TODO: (maybe) modify something else than the VPLS service endpoints
-            int vcid = vpls.getVcId();
-            int i = 0;
-            for (NsoVPLS.DeviceContainer dc : vpls.getDevice()) {
-                String vplsKey = "=" + vcid;
-                String devKey = "=" + dc.getDevice();
+        if (wrapper.getVplsInstances() != null) {
+            for (NsoVPLS vpls: wrapper.getVplsInstances()) {
+                // TODO: (maybe) modify something else than the VPLS service endpoints
+                int vcid = vpls.getVcId();
+                int i = 0;
+                for (NsoVPLS.DeviceContainer dc : vpls.getDevice()) {
+                    String vplsKey = "=" + vcid;
+                    String devKey = "=" + dc.getDevice();
 
-                String path = "/tailf-ncs:services/esnet-vpls:vpls" + vplsKey + "/device" + devKey;
+                    String path = "/tailf-ncs:services/esnet-vpls:vpls" + vplsKey + "/device" + devKey;
 
-                YangPatchDeviceWrapper deviceWrapper = YangPatchDeviceWrapper.builder()
-                        .device(dc)
-                        .build();
+                    YangPatchDeviceWrapper deviceWrapper = YangPatchDeviceWrapper.builder()
+                            .device(dc)
+                            .build();
 
-                edits.add(YangPatch.YangEdit.builder()
-                        .editId("replace " + i)
-                        .operation("replace")
-                        .value(deviceWrapper)
-                        .target(path)
-                        .build());
-                i++;
+                    edits.add(YangPatch.YangEdit.builder()
+                            .editId("replace " + i)
+                            .operation("replace")
+                            .value(deviceWrapper)
+                            .target(path)
+                            .build());
+                    i++;
+                }
             }
         }
-        for (NsoLSP lsp: wrapper.getLspInstances()) {
-            String lspKeyArg = '=' + lsp.instanceKey();
-            String path = "/tailf-ncs:services/esnet-lsp:lsp" + lspKeyArg;
+        if (wrapper.getLspInstances() != null) {
+            for (NsoLSP lsp: wrapper.getLspInstances()) {
+                String lspKeyArg = '=' + lsp.instanceKey();
+                String path = "/tailf-ncs:services/esnet-lsp:lsp" + lspKeyArg;
 
-            YangPatchLspWrapper lspWrapper = YangPatchLspWrapper
-                    .builder()
-                    .lsp(lsp)
-                    .build();
+                YangPatchLspWrapper lspWrapper = YangPatchLspWrapper
+                        .builder()
+                        .lsp(lsp)
+                        .build();
 
-            edits.add(
-                    YangPatch
-                            .YangEdit
-                            .builder()
-                            .editId("replace " + lsp.instanceKey())
-                            .operation("replace")
-                            .value(lspWrapper)
-                            .target(path)
-                            .build()
-            );
+                edits.add(
+                        YangPatch
+                                .YangEdit
+                                .builder()
+                                .editId("replace " + lsp.instanceKey())
+                                .operation("replace")
+                                .value(lspWrapper)
+                                .target(path)
+                                .build()
+                );
+            }
         }
 
 

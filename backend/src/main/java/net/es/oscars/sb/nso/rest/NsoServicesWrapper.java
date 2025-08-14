@@ -1,5 +1,6 @@
 package net.es.oscars.sb.nso.rest;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,9 +20,12 @@ import java.util.List;
 public class NsoServicesWrapper {
     @Builder.Default
     @JsonProperty("esnet-lsp:lsp")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     List<NsoLSP> lspInstances = new ArrayList<>();
+
     @Builder.Default
     @JsonProperty("esnet-vpls:vpls")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     List<NsoVPLS> vplsInstances = new ArrayList<>();
 
     public String asCliCommands() {
