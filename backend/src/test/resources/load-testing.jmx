@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="OSCARS NSI SOAP API">
+      <boolProp name="TestPlan.functional_mode">true</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="startTime" elementType="Argument">
+            <stringProp name="Argument.name">startTime</stringProp>
+            <stringProp name="Argument.value">${__time()}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="endTime" elementType="Argument">
+            <stringProp name="Argument.name">endTime</stringProp>
+            <stringProp name="Argument.value">${__timeShift(yyyy-MM-dd HH:mm:ss,,PT30M,,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="host" elementType="Argument">
+            <stringProp name="Argument.name">host</stringProp>
+            <stringProp name="Argument.value">oscars-backend.ocd-stack.orb.local</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </Arguments>
+      <hashTree/>
+      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults">
+        <stringProp name="HTTPSampler.domain">${host}</stringProp>
+        <stringProp name="HTTPSampler.port">8201</stringProp>
+        <stringProp name="HTTPSampler.protocol">http</stringProp>
+        <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
+        <stringProp name="HTTPSampler.path">/services/provider?ServiceName=NsiProviderService&amp;PortName=NsiProviderPort&amp;PortTypeName=ConnectionProviderPort</stringProp>
+        <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+          <collectionProp name="Arguments.arguments"/>
+        </elementProp>
+        <stringProp name="HTTPSampler.implementation"></stringProp>
+      </ConfigTestElement>
+      <hashTree/>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Number of Users">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Soap Request">
+          <stringProp name="HTTPSampler.domain">oscars-backend.ocd-stack.orb.local</stringProp>
+          <stringProp name="HTTPSampler.port">8201</stringProp>
+          <stringProp name="HTTPSampler.protocol">https</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">uft-8</stringProp>
+          <stringProp name="HTTPSampler.path">/services/provider?ServiceName=NsiProviderService&amp;PortName=NsiProviderPort&amp;PortTypeName=ConnectionProviderPort</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">&lt;ns2:Envelope xmlns:ns6=&quot;http://www.w3.org/2000/09/xmldsig#&quot; xmlns:ns5=&quot;http://www.w3.org/2001/04/xmlenc#&quot; xmlns:ns8=&quot;http://schemas.ogf.org/nsi/2013/12/services/point2point&quot; xmlns:ns7=&quot;http://schemas.ogf.org/nsi/2013/12/framework/types&quot; xmlns:ns9=&quot;http://schemas.ogf.org/nsi/2013/12/framework/headers&quot; xmlns:ns2=&quot;http://schemas.xmlsoap.org/soap/envelope/&quot; xmlns:ns4=&quot;urn:oasis:names:tc:SAML:2.0:assertion&quot; xmlns:ns3=&quot;http://schemas.ogf.org/nsi/2013/12/connection/types&quot;&gt;&#xd;
+  &lt;ns2:Header&gt;&#xd;
+    &lt;ns9:nsiHeader&gt;&#xd;
+      &lt;protocolVersion&gt;application/vnd.ogf.nsi.cs.v2.provider+soap&lt;/protocolVersion&gt;&#xd;
+      &lt;correlationId&gt;fae29d4f-e61e-4987-a19a-asd12&lt;/correlationId&gt;&#xd;
+      &lt;requesterNSA&gt;urn:ogf:network:sense-rm.es.net:2013:esnet&lt;/requesterNSA&gt;&#xd;
+      &lt;providerNSA&gt;urn:ogf:network:es.net:2013:nsa&lt;/providerNSA&gt;&#xd;
+      &lt;replyTo&gt;&lt;/replyTo&gt;&#xd;
+    &lt;/ns9:nsiHeader&gt;&#xd;
+  &lt;/ns2:Header&gt;&#xd;
+  &lt;ns2:Body&gt;&#xd;
+    &lt;ns3:reserve&gt;&#xd;
+&#xd;
+      &lt;description&gt;NSI test&lt;/description&gt;&#xd;
+      &lt;criteria version=&quot;0&quot;&gt;&#xd;
+        &lt;schedule&gt;&#xd;
+          &lt;startTime&gt;${startTime}&lt;/startTime&gt;&#xd;
+          &lt;endTime&gt;${endTime}&lt;/endTime&gt;&#xd;
+        &lt;/schedule&gt;&#xd;
+        &lt;serviceType&gt;http://services.ogf.org/nsi/2013/12/descriptions/EVTS.A-GOLE&lt;/serviceType&gt;&#xd;
+        &lt;ns8:p2ps&gt;&#xd;
+          &lt;capacity&gt;150000&lt;/capacity&gt;&#xd;
+          &lt;directionality&gt;Bidirectional&lt;/directionality&gt;&#xd;
+          &lt;symmetricPath&gt;true&lt;/symmetricPath&gt;&#xd;
+          &lt;sourceSTP&gt;urn:ogf:network:es.net:2013::losa-cr6:2_1_c4_1:+?vlan=3700&lt;/sourceSTP&gt;&#xd;
+          &lt;destSTP&gt;urn:ogf:network:es.net:2013::fnalfcc-cr6:lag-2:+?vlan=3700&lt;/destSTP&gt;&#xd;
+        &lt;/ns8:p2ps&gt;&#xd;
+      &lt;/criteria&gt;&#xd;
+    &lt;/ns3:reserve&gt;&#xd;
+  &lt;/ns2:Body&gt;&#xd;
+&lt;/ns2:Envelope&gt;</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">text/xml</stringProp>
+              </elementProp>
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">SOAPAction</stringProp>
+                <stringProp name="Header.value">http://schemas.ogf.org/nsi/2013/12/connection/service/reserve</stringProp>
+              </elementProp>
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Accept</stringProp>
+                <stringProp name="Header.value">text/xml</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="nsi-soap-reserve-response">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="TestPlan.comments">Verify HTTP 200 response from OSCARS NSI SOAP API, reserve()</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">8</intProp>
+            <stringProp name="Assertion.custom_message">RESERVE FAILED</stringProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+      <ResultCollector guiclass="StatGraphVisualizer" testclass="ResultCollector" testname="Aggregate Graph">
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <latency>true</latency>
+            <timestamp>true</timestamp>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <message>true</message>
+            <threadName>true</threadName>
+            <dataType>false</dataType>
+            <encoding>false</encoding>
+            <assertions>true</assertions>
+            <subresults>false</subresults>
+            <responseData>false</responseData>
+            <samplerData>false</samplerData>
+            <xml>false</xml>
+            <fieldNames>true</fieldNames>
+            <responseHeaders>false</responseHeaders>
+            <requestHeaders>false</requestHeaders>
+            <responseDataOnError>true</responseDataOnError>
+            <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+            <assertionsResultsToSave>0</assertionsResultsToSave>
+            <bytes>true</bytes>
+            <hostname>true</hostname>
+            <threadCounts>true</threadCounts>
+            <sampleCount>true</sampleCount>
+          </value>
+        </objProp>
+        <stringProp name="filename"></stringProp>
+      </ResultCollector>
+      <hashTree/>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>

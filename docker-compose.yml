@@ -84,12 +84,21 @@ services:
       oscars-backend:
         condition: service_healthy
     build:
-      context: ../oscars
-      dockerfile: ../oscars/deploy/devel/profile.dockerfile
+      context: ./
+      dockerfile: ./deploy/devel/profile.dockerfile
     environment:
       DELAY_MIN: "1m"
       DURATION_MIN: "1m"
       TARGET_HOST: "oscars-backend:1099"
+    links:
+      - "oscars-backend:1099"
+  oscars-load-test:
+    depends_on:
+      oscars-backend:
+        condition: service_healthy
+    build: 
+      context: ./
+      dockerfile: ./deploy/devel/load-test.dockerfile
     links:
       - "oscars-backend:1099"
   oscars-db:

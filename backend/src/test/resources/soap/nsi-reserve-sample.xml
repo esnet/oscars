@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:Envelope
+	xmlns:ns6="http://www.w3.org/2000/09/xmldsig#"
+	xmlns:ns5="http://www.w3.org/2001/04/xmlenc#"
+	xmlns:ns8="http://schemas.ogf.org/nsi/2013/12/services/point2point"
+	xmlns:ns7="http://schemas.ogf.org/nsi/2013/12/framework/types"
+	xmlns:ns9="http://schemas.ogf.org/nsi/2013/12/framework/headers"
+	xmlns:ns2="http://schemas.xmlsoap.org/soap/envelope/"
+	xmlns:ns4="urn:oasis:names:tc:SAML:2.0:assertion"
+	xmlns:ns3="http://schemas.ogf.org/nsi/2013/12/connection/types">
+	<ns2:Header>
+		<ns9:nsiHeader>
+			 <protocolVersion>application/vnd.ogf.nsi.cs.v2.provider+soap</protocolVersion>
+			<correlationId>urn:uuid:{{$guid}}</correlationId>
+			<requesterNSA>local-stackv</requesterNSA>
+			<providerNSA>urn:ogf:network:es.net:2013:nsa</providerNSA>
+			<replyTo>https://stackv.dev3.virnao.com/StackV-web/restapi/notify/soap</replyTo>
+		</ns9:nsiHeader>
+	</ns2:Header>
+	<ns2:Body>
+		<ns3:reserve>
+            <description>manual_res_test</description>
+			<criteria version="0">
+				<schedule>
+					<endTime>2025-10-04T13:10:00.000Z</endTime>
+				</schedule>
+				<serviceType>http://services.ogf.org/nsi/2013/12/descriptions/EVTS.A-GOLE</serviceType>
+				<ns8:p2ps>
+					<capacity>50</capacity>
+					<directionality>Bidirectional</directionality>
+					<symmetricPath>true</symmetricPath>
+					<sourceSTP>urn:ogf:network:es.net:2013::newy32aoa-cr6:1_1_c13_1:+?vlan=3953</sourceSTP>
+					<destSTP>urn:ogf:network:es.net:2013::newy32aoa-cr6:2_1_c4_1:+?vlan=3954</destSTP>
+				</ns8:p2ps>
+			</criteria>
+		</ns3:reserve>
+	</ns2:Body>
+</ns2:Envelope>
