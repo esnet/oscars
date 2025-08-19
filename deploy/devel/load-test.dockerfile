@@ -21,5 +21,6 @@ RUN mkdir -p /app && cd /app
 RUN mkdir -p /app/web-report
 WORKDIR /app
 COPY ../../backend/src/test/resources/load-testing.jmx ./load-testing.jmx
+VOLUME [ "/app/web-report" ]
 ENTRYPOINT jmeter -n -t ./load-testing.jmx -l load-testing-results.csv -e -o ./web-report
 
