@@ -239,6 +239,7 @@ public class MockSimpleConnectionHelper {
             .pipes(         this.connectionPipes)
             .last_modified( this.beginTime )
             .validity( this.createTrueValidity() )
+            .projectId("ABCD-1234-EFGH-5678")
             .build();
     }
 
@@ -357,6 +358,7 @@ public class MockSimpleConnectionHelper {
             .deploymentState(DeploymentState.UNDEPLOYED)
             .deploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED)
             .last_modified(this.beginTime)
+            .projectId("ABCD-1234-EFGH-5678")
             .build();
         this.held.put(mockConnection.getConnectionId(), mockConnection);
 
@@ -497,6 +499,7 @@ public class MockSimpleConnectionHelper {
             .description("test description")
             .connection_mtu(connection_mtu)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
+            .projectId("ABCD-1234-EFGH-5678")
             .build();
     }
 }

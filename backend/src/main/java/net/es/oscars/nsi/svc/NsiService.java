@@ -828,7 +828,7 @@ public class NsiService {
         rcct.setServiceType(SERVICE_TYPE);
         rcct.setVersion(mapping.getDataplaneVersion());
 
-        P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping);
+        P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping, c);
         rcct.getAny().add(new ObjectFactory().createP2Ps(p2p));
 
         try {
@@ -1032,6 +1032,7 @@ public class NsiService {
 
         List<String> include = new ArrayList<>();
         ConnectionMode connectionMode = ConnectionMode.NEW;
+        String projectId = null;
 
         if (optC.isPresent()) {
             Connection c = optC.get();
@@ -1053,7 +1054,7 @@ public class NsiService {
             fixtures = fjp.getLeft();
             junctions = fjp.getRight();
             pipes = nsiMappingService.pipesFor(interval, mbps, junctions, include);
-
+            projectId = c.getProjectId();
         } else {
             // a new reserve
             log.info("got p2p for new reserve");
@@ -1109,6 +1110,7 @@ public class NsiService {
                     .tags(tags)
                     .connection_mtu(9000)
                     .username("nsi")
+                    .projectId(projectId)
                     .build();
             try {
                 String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(simpleConnection);

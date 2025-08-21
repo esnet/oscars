@@ -550,7 +550,7 @@ public class NsiMappingService {
     }
 
 
-    public P2PServiceBaseType makeP2P(Components cmp, NsiMapping mapping) {
+    public P2PServiceBaseType makeP2P(Components cmp, NsiMapping mapping, Connection c) {
 
         P2PServiceBaseType p2p = new P2PServiceBaseType();
 
@@ -558,6 +558,12 @@ public class NsiMappingService {
         tvt.setType("oscarsId");
         tvt.setValue(mapping.getOscarsConnectionId());
         p2p.getParameter().add(tvt);
+
+        TypeValueType tvtProjectId = new TypeValueType();
+        tvt.setType("projectId");
+        tvt.setValue(c.getProjectId());
+        p2p.getParameter().add(tvtProjectId);
+
         String srcStp = mapping.getSrc();
         String dstStp = mapping.getDst();
         long capacity = 0L;
@@ -611,6 +617,7 @@ public class NsiMappingService {
         p2p.setEro(ero);
         p2p.setDirectionality(DirectionalityType.BIDIRECTIONAL);
         p2p.setSymmetricPath(true);
+        
         return p2p;
     }
 

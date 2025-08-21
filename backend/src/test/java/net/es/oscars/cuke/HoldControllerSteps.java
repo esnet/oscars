@@ -118,6 +118,7 @@ public class HoldControllerSteps {
             .description("test description")
             .connection_mtu(10000)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
+            .projectId("ABCD-1234-EFGH-5678")
             .build();
     }
     private void setupMockConnSvc() throws Exception {
