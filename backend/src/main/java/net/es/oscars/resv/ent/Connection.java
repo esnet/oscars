@@ -37,7 +37,7 @@ public class Connection {
                       @JsonProperty("archived") Archived archived,
                       @JsonProperty("connection_mtu") @NonNull Integer connection_mtu,
                       @JsonProperty("last_modified") @NonNull Integer last_modified,
-                      @JsonProperty("projectId") @Nullable String projectId) {
+                      @JsonProperty("projectId") String projectId) {
         this.connectionId = connectionId;
         this.phase = phase;
         this.mode = mode;

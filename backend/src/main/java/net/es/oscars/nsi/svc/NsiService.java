@@ -18,6 +18,7 @@ import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.TypeValuePairType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.P2PServiceBaseType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.OrderedStpType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.TypeValueType;
 import net.es.oscars.app.exc.*;
 import net.es.oscars.model.Interval;
 import net.es.oscars.nsi.beans.*;
@@ -1034,6 +1035,12 @@ public class NsiService {
         ConnectionMode connectionMode = ConnectionMode.NEW;
         String projectId = null;
 
+        for (TypeValueType tvt : p2ps.getParameter()) {
+            if (tvt.getType().equals("projectId") && tvt.getValue() != null) {
+                projectId = tvt.getValue();
+            }
+        }
+
         if (optC.isPresent()) {
             Connection c = optC.get();
             connectionMode = ConnectionMode.MODIFY;
@@ -1054,7 +1061,7 @@ public class NsiService {
             fixtures = fjp.getLeft();
             junctions = fjp.getRight();
             pipes = nsiMappingService.pipesFor(interval, mbps, junctions, include);
-            projectId = c.getProjectId();
+            
         } else {
             // a new reserve
             log.info("got p2p for new reserve");

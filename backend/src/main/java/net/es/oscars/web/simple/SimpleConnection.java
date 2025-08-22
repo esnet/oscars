@@ -40,6 +40,7 @@ public class SimpleConnection {
     protected String description;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     protected Validity validity;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     protected String projectId;
 
 }
