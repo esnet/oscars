@@ -471,7 +471,20 @@ public class MockSimpleConnectionHelper {
             10000
         );
     }
+
     public Connection generateMockConnection(String mockConnectionId, Phase phase, BuildMode buildMode, State state, DeploymentState deploymentState, DeploymentIntent deploymentIntent, int connection_mtu) {
+        return generateMockConnection(
+            mockConnectionId,
+            phase,
+            buildMode,
+            state,
+            deploymentState,
+            deploymentIntent,
+            connection_mtu,
+            null
+        );
+    }
+    public Connection generateMockConnection(String mockConnectionId, Phase phase, BuildMode buildMode, State state, DeploymentState deploymentState, DeploymentIntent deploymentIntent, int connection_mtu, String projectId) {
         return Connection.builder()
             .id(1L)
             .held( // Required, or /protected/modify/description result will become an HTTP 500 Internal Server Error
@@ -499,7 +512,7 @@ public class MockSimpleConnectionHelper {
             .description("test description")
             .connection_mtu(connection_mtu)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
-            .projectId("ABCD-1234-EFGH-5678")
+            .projectId(projectId)
             .build();
     }
 }
