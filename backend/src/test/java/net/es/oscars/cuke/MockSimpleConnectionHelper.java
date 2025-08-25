@@ -52,6 +52,8 @@ public class MockSimpleConnectionHelper {
     private Instant beginInstant;
     private Instant endInstant;
 
+    private String projectId = null;
+
     public SimpleConnection createValidSimpleConnection() throws Exception {
         return  this.createSimpleConnection(
             1000,
@@ -158,7 +160,10 @@ public class MockSimpleConnectionHelper {
     public SimpleConnection createSimpleConnection(int inMbps, int outMpbs, int azMbps, int zaMbps, int mbps) throws Exception {
         return createSimpleConnection("ABCD", inMbps, outMpbs, azMbps, zaMbps, mbps);
     }
-    public SimpleConnection createSimpleConnection(String connectionId, int inMbps, int outMpbs, int azMbps, int zaMbps, int mbps) throws Exception {
+    public SimpleConnection createSimpleConnection(String connectionId, int inMbps, int outMbps, int azMbps, int zaMbps, int mbps) throws Exception {
+        return createSimpleConnection(connectionId, inMbps, outMbps, azMbps, zaMbps, mbps, null);
+    }
+    public SimpleConnection createSimpleConnection(String connectionId, int inMbps, int outMpbs, int azMbps, int zaMbps, int mbps, String projectId) throws Exception {
         // Create a valid SimpleConnection object
         this.connectionId = connectionId;
         this.connection_mtu = 9000;
@@ -169,6 +174,7 @@ public class MockSimpleConnectionHelper {
         this.phase = Phase.DESIGN;
         this.userName = "testuser";
         this.state = State.WAITING;
+        this.projectId = projectId;
 
         // @TODO: Need a mock list of fixtures, junctions, and pipes
         this.connectionFixtures = createFixtures(inMbps, outMpbs, mbps);
@@ -239,7 +245,7 @@ public class MockSimpleConnectionHelper {
             .pipes(         this.connectionPipes)
             .last_modified( this.beginTime )
             .validity( this.createTrueValidity() )
-            .projectId("ABCD-1234-EFGH-5678")
+            .projectId(projectId)
             .build();
     }
 
@@ -358,7 +364,7 @@ public class MockSimpleConnectionHelper {
             .deploymentState(DeploymentState.UNDEPLOYED)
             .deploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED)
             .last_modified(this.beginTime)
-            .projectId("ABCD-1234-EFGH-5678")
+            .projectId(this.projectId)
             .build();
         this.held.put(mockConnection.getConnectionId(), mockConnection);
 
