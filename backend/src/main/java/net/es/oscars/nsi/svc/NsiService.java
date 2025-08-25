@@ -1036,7 +1036,7 @@ public class NsiService {
         String projectId = null;
 
         for (TypeValueType tvt : p2ps.getParameter()) {
-            if (tvt.getType().equals("projectId") && tvt.getValue() != null) {
+            if (tvt.getType().equals("projectId") && tvt.getValue() != null && !tvt.getValue().isEmpty()) {
                 projectId = tvt.getValue();
             }
         }
