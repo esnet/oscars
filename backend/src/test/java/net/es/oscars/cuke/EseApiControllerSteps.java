@@ -255,6 +255,7 @@ public class EseApiControllerSteps extends CucumberSteps {
             .meta(
                 L2VPN.Meta.builder()
                     .username("test-user")
+                    .projectId("ABCD-1234-EFGH-5678")
                     .build()
             )
             .schedule(
@@ -452,6 +453,7 @@ public class EseApiControllerSteps extends CucumberSteps {
             .description("test description")
             .connection_mtu(10000)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
+            .projectId("ABCD-1234-EFGH-5678")
             .build();
     }
 

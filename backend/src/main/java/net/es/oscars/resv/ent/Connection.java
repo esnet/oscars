@@ -1,6 +1,8 @@
 package net.es.oscars.resv.ent;
 
 import com.fasterxml.jackson.annotation.*;
+
+import io.micrometer.common.lang.Nullable;
 import jakarta.persistence.*;
 import lombok.*;
 import net.es.oscars.resv.enums.*;
@@ -34,7 +36,8 @@ public class Connection {
                       @JsonProperty("held") Held held,
                       @JsonProperty("archived") Archived archived,
                       @JsonProperty("connection_mtu") @NonNull Integer connection_mtu,
-                      @JsonProperty("last_modified") @NonNull Integer last_modified) {
+                      @JsonProperty("last_modified") @NonNull Integer last_modified,
+                      @JsonProperty("projectId") String projectId) {
         this.connectionId = connectionId;
         this.phase = phase;
         this.mode = mode;
@@ -50,6 +53,8 @@ public class Connection {
         this.archived = archived;
         this.connection_mtu = connection_mtu;
         this.last_modified = last_modified;
+
+        this.projectId = projectId;
     }
 
 
@@ -148,6 +153,9 @@ public class Connection {
 
     @Transient
     public ConnectionSouthbound southbound;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String projectId;
 
     @Override
     public final boolean equals(Object o) {

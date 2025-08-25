@@ -107,6 +107,9 @@ public class HoldControllerSteps {
         controller.setConnRepo(connRepo);
     }
     private Connection generateMockConnection() {
+        return generateMockConnection(null);
+    }
+    private Connection generateMockConnection(String projectId) {
         return Connection.builder()
             .connectionId("ABCD")
             .phase(Phase.HELD)
@@ -118,6 +121,7 @@ public class HoldControllerSteps {
             .description("test description")
             .connection_mtu(10000)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
+            .projectId(null)
             .build();
     }
     private void setupMockConnSvc() throws Exception {
@@ -147,22 +151,49 @@ public class HoldControllerSteps {
             );
 
         // Mock ConnService.holdConnection(), returns Tuple <SimpleConnection, Connection>
+        SimpleConnection simpleConnection = helper.createSimpleConnection(
+            "ABCD",
+            10000,
+            10000,
+            10000,
+            10000,
+            10000
+        );
+
+        SimpleConnection simpleConnectionWithProjectId = helper.createSimpleConnection(
+            "ABCD",
+            10000,
+            10000,
+            10000,
+            10000,
+            10000,
+            "ABCD-1234-EFGH-5678"
+        );
+
         Pair<SimpleConnection, Connection> mockHoldConnection = Pair.of(
-            helper.createSimpleConnection(
-                10000,
-                10000,
-                10000,
-                10000,
-                10000
-            ),
+            simpleConnection,
             generateMockConnection()
+        );
+        Pair<SimpleConnection, Connection> mockHoldConnectionWithProjectId = Pair.of(
+            simpleConnectionWithProjectId,
+            generateMockConnection("ABCD-1234-EFGH-5678")
         );
         Mockito
             .when(
                 connSvc.holdConnection(Mockito.any(SimpleConnection.class))
             )
-            .thenReturn(
-                mockHoldConnection
+            .thenAnswer(
+                invocation -> {
+                    Pair<SimpleConnection, Connection> mockResult = null;
+                    SimpleConnection s = (SimpleConnection) invocation.getArgument(0);
+                    if (s.getProjectId() == null) {
+                        mockResult = mockHoldConnection;
+                    } else {
+                        mockResult = mockHoldConnectionWithProjectId;
+                    }
+                    
+                    return mockResult;
+                }
             );
 
         connSvc.setConnRepo(connRepo);
@@ -205,6 +236,7 @@ public class HoldControllerSteps {
 
             ObjectMapper mapper = new ObjectMapper();
             SimpleConnection simpleConnection = helper.createSimpleConnection(
+                "ABCD",
                 10000,
                 10000,
                 10000,
@@ -216,6 +248,38 @@ public class HoldControllerSteps {
             HttpEntity<String> entity = new HttpEntity<>(payload, headers);
 
             response = restTemplate.exchange(httpPath, method, entity, String.class);
+        } catch (Exception ex) {
+            world.add(ex);
+            log.error(ex.getLocalizedMessage(), ex);
+        }
+    }
+
+    @Given("The client executes POST with SimpleConnection payload on HoldController path {string} and projectId {string}")
+    public void theClientExecutesWithSimpleConnectionPayloadOnHoldControllerPathAndProjectId(String httpPath, String projectId) throws Throwable {
+        HttpMethod method = HttpMethod.POST;
+        try {
+            log.info("Executing " + method + " on HoldController path " + httpPath);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+            ObjectMapper mapper = new ObjectMapper();
+            SimpleConnection simpleConnection = helper.createSimpleConnection(
+                "ABCD",
+                10000,
+                10000,
+                10000,
+                10000,
+                10000,
+                projectId
+            );
+            String payload = mapper.writeValueAsString(simpleConnection);
+
+            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+
+            response = restTemplate.exchange(httpPath, method, entity, String.class);
+            log.info("response from {} is {}", httpPath, response.getStatusCode());
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -270,5 +334,15 @@ public class HoldControllerSteps {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
         }
+    }
+
+    @Then("The HoldController response does not have a projectId field")
+    public void theHoldControllerResponseDoesNotHaveAProjectIdField() {
+
+    }
+
+    @Then("The HoldController response does have a projectId field")
+    public void theHoldControllerResponseDoesHaveAProjectIdField() {
+
     }
 }
