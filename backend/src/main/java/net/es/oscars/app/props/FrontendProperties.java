@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Data
 @ConfigurationProperties(prefix = "frontend")
 @Component
@@ -17,5 +19,5 @@ public class FrontendProperties {
   String oauthLogoutEndpoint;
   String oauthRedirectUri;
   String oauthScope;
-
+  String[] corsOrigins;
 }
