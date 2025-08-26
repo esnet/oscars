@@ -74,9 +74,9 @@ public class NsoProxy {
         this.startupProperties = startupProperties;
         this.openTelemetry = openTelemetry;
         try {
-            // make sure we don't send empty values
+            // this object mapper makes sure we don't send any empty / null values
             ObjectMapper customObjectMapper = new ObjectMapper();
-            customObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            customObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
             converter.setObjectMapper(customObjectMapper);
             SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
@@ -87,10 +87,10 @@ public class NsoProxy {
             restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
             restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-data+json"));
             restTemplate.getInterceptors().add(telemetry.newInterceptor());
-            restTemplate.getMessageConverters().add(0, converter);
+            restTemplate.getMessageConverters().addFirst(converter);
 
 
-            // different http client for yang patch
+            // different http client for yang patch; note different Content-Type and error handler
             this.patchTemplate = builder.build();
             patchTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
             patchTemplate.setErrorHandler(patchErrorHandler);
@@ -98,6 +98,7 @@ public class NsoProxy {
             patchTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
             patchTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-patch+json"));
             patchTemplate.getInterceptors().add(telemetry.newInterceptor());
+            patchTemplate.getMessageConverters().addFirst(converter);
 
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
