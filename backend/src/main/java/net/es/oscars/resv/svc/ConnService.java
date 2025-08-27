@@ -1142,8 +1142,14 @@ public class ConnService {
         Connection c = simpleToHeldConnection(in);
         prettyLog(c);
 
-        this.held.put(connectionId, c);
+        Validity v = this.validate(in, ConnectionMode.NEW);
+        in.setValidity(v);
 
+        if (!v.isValid()) {
+            log.info("{} : not valid because {}", in.getConnectionId(), v.getMessage());
+        }
+
+        this.held.put(connectionId, c);
         connLock.unlock();
         log.debug("{} releasing connection lock", in.getConnectionId());
         return Pair.of(in, c);

@@ -18,6 +18,7 @@ import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.framework.types.TypeValuePairType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.P2PServiceBaseType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.OrderedStpType;
+import net.es.nsi.lib.soap.gen.nsi_2_0.services.types.TypeValueType;
 import net.es.oscars.app.exc.*;
 import net.es.oscars.model.Interval;
 import net.es.oscars.nsi.beans.*;
@@ -828,7 +829,7 @@ public class NsiService {
         rcct.setServiceType(SERVICE_TYPE);
         rcct.setVersion(mapping.getDataplaneVersion());
 
-        P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping);
+        P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping, c);
         rcct.getAny().add(new ObjectFactory().createP2Ps(p2p));
 
         try {
@@ -1032,6 +1033,13 @@ public class NsiService {
 
         List<String> include = new ArrayList<>();
         ConnectionMode connectionMode = ConnectionMode.NEW;
+        String projectId = null;
+
+        for (TypeValueType tvt : p2ps.getParameter()) {
+            if (tvt.getType().equals("projectId") && tvt.getValue() != null && !tvt.getValue().isEmpty()) {
+                projectId = tvt.getValue();
+            }
+        }
 
         if (optC.isPresent()) {
             Connection c = optC.get();
@@ -1053,7 +1061,7 @@ public class NsiService {
             fixtures = fjp.getLeft();
             junctions = fjp.getRight();
             pipes = nsiMappingService.pipesFor(interval, mbps, junctions, include);
-
+            
         } else {
             // a new reserve
             log.info("got p2p for new reserve");
@@ -1109,6 +1117,7 @@ public class NsiService {
                     .tags(tags)
                     .connection_mtu(9000)
                     .username("nsi")
+                    .projectId(projectId)
                     .build();
             try {
                 String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(simpleConnection);

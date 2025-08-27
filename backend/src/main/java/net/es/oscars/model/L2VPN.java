@@ -115,6 +115,9 @@ public class L2VPN {
         @JsonFormat(shape = JsonFormat.Shape.NUMBER, timezone = "UTC")
         private Instant lastModified = Instant.now();
 
+        @Schema(description = "Project identifier. This is an external ID", nullable = true)
+        protected String projectId;
+
     }
 
 

@@ -1,4 +1,9 @@
 # OSCARS Release Notes
+### 1.2.32
+> Sep 2025
+- OS-600 CORS origin customization
+- OS-604 YANG PATCH serialization hotfix
+ 
 ### 1.2.30
 > July 2025
 - ESE integration
