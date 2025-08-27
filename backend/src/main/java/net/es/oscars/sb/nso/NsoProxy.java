@@ -95,7 +95,10 @@ public class NsoProxy {
                         headers.add(HttpHeaders.ACCEPT,"application/yang-data+json" );
                         headers.add(HttpHeaders.CONTENT_TYPE,"application/yang-patch+json" );
                     })
-                    .requestInterceptor(telemetry.newInterceptor())
+                    .requestInterceptors(interceptors -> {
+                        interceptors.add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
+                        interceptors.add(telemetry.newInterceptor());
+                    })
                     .build();
 
 
