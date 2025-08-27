@@ -81,7 +81,6 @@ public class NsoProxy {
             // this object mapper makes sure we don't send any empty / null values
             customObjectMapper = new ObjectMapper();
             customObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            customObjectMapper.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, true);
 
             MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
             converter.setObjectMapper(customObjectMapper);
@@ -89,7 +88,6 @@ public class NsoProxy {
             SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
             patchClient = RestClient.builder()
                     .requestFactory(new HttpComponentsClientHttpRequestFactory())
-                    .baseUrl("https://example.com")
                     .messageConverters(converters -> converters.add(converter))
                     .defaultHeaders(headers -> {
                         headers.add(HttpHeaders.ACCEPT,"application/yang-data+json" );
