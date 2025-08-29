@@ -33,12 +33,17 @@ import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.nsi.svc.NsiAsyncQueue;
 import net.es.oscars.nsi.svc.NsiConnectionEventService;
 import net.es.oscars.soap.NsiProvider;
+import net.es.oscars.topo.TopoService;
+import net.es.oscars.topo.beans.Topology;
+import net.es.oscars.topo.pop.TopoPopulator;
+import net.es.oscars.topo.svc.TopologyStore;
 
 @Slf4j
 @Category({UnitTests.class})
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     classes = {
+        TopoService.class,
         NsiAsyncQueue.class,
         NsiConnectionEventService.class,
         
@@ -56,6 +61,12 @@ public class NsiProviderSteps extends CucumberSteps {
     private Startup startup;
 
     @Autowired
+    private TopologyStore topoService;
+
+    @Autowired
+    private TopoPopulator topoPopulator;
+
+    @Autowired
     private NsiConnectionEventService nsiConnectionEventService;
 
     @Autowired
@@ -67,11 +78,13 @@ public class NsiProviderSteps extends CucumberSteps {
     public void before() {
         startup.setInStartup(false);
         queue.queue.clear();
+        topoService.clear();
     }
 
     @Given("The NSI connection is queued for asynchronous reservation while not including a projectId")
     public void the_nsi_connection_is_queued_for_asynchronous_reservation_while_not_including_a_project_id() throws Throwable {
         try {
+            loadTopology();
             queueNsiConnection();
         } catch (Exception e) {
             world.add(e);
@@ -104,7 +117,7 @@ public class NsiProviderSteps extends CucumberSteps {
     @When("The NSI reserve is requested")
     public void the_NSI_reserve_is_requested() {
         try {
-            
+            queue.processQueue();
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -147,6 +160,13 @@ public class NsiProviderSteps extends CucumberSteps {
     public void the_NSI_provider_encountered_errors(int errorCount)
     {
         assert world.getExceptions().size() == errorCount;
+    }
+
+    private void loadTopology() throws Exception {
+        String topoPath = "topo/esnet.json";
+        Topology t = topoPopulator.loadTopology(topoPath);
+        if (t == null) throw new Exception(topoPath + " is not a topology");
+        topoService.replaceTopology(t);
     }
 
     private void queueNsiConnection() throws Exception {
