@@ -139,7 +139,7 @@ public class NsiProviderSteps extends CucumberSteps {
     @Then("The NSI connection is put on hold")
     public void the_NSI_connection_is_put_on_hold() {
         try {
-            
+            throw new Exception("Test stub not implemented yet.");
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -149,7 +149,7 @@ public class NsiProviderSteps extends CucumberSteps {
     @Then("The NSI connection has a projectId")
     public void the_NSI_connection_has_a_projectId() {
         try {
-            
+            throw new Exception("Test stub not implemented yet.");
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
