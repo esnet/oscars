@@ -376,10 +376,10 @@ public class NsiMappingService {
         Integer zVlanId = vlans.get(z_urn.getPort().getUrn() + "#Z");
 
         if (aVlanId == null) {
-            throw new NsiValidationException("vlan(s) unavailable for " + src, NsiErrors.UNAVAIL_ERROR);
+            throw new NsiValidationException("vlan(s) unavailable for src " + src, NsiErrors.UNAVAIL_ERROR);
 
         } else if (zVlanId == null) {
-            throw new NsiValidationException("vlan(s) unavailable for " + dst, NsiErrors.UNAVAIL_ERROR);
+            throw new NsiValidationException("vlan(s) unavailable for dst " + dst, NsiErrors.UNAVAIL_ERROR);
         }
 
         Fixture aF = Fixture.builder()

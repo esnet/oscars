@@ -32,6 +32,12 @@ import net.es.oscars.app.Startup;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.nsi.svc.NsiAsyncQueue;
 import net.es.oscars.nsi.svc.NsiConnectionEventService;
+import net.es.oscars.resv.ent.Connection;
+import net.es.oscars.resv.ent.Held;
+import net.es.oscars.resv.enums.BuildMode;
+import net.es.oscars.resv.enums.Phase;
+import net.es.oscars.resv.enums.State;
+import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.soap.NsiProvider;
 import net.es.oscars.topo.TopoService;
 import net.es.oscars.topo.beans.Topology;
@@ -67,6 +73,9 @@ public class NsiProviderSteps extends CucumberSteps {
     private TopoPopulator topoPopulator;
 
     @Autowired
+    private ConnService connService;
+
+    @Autowired
     private NsiConnectionEventService nsiConnectionEventService;
 
     @Autowired
@@ -75,12 +84,14 @@ public class NsiProviderSteps extends CucumberSteps {
     private ResponseEntity<String> response;
 
     @Before("@NsiProviderSteps")
-    public void before() {
-        startup.setInStartup(false);
-        queue.queue.clear();
-        topoService.clear();
+    public void before() throws Exception {
+        
         try {
+            startup.setInStartup(false);
+            queue.queue.clear();
+            topoService.clear();
             loadTopology();
+            releaseAllConnections();
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -144,7 +155,7 @@ public class NsiProviderSteps extends CucumberSteps {
     @Then("The NSI connection is put on hold")
     public void the_NSI_connection_is_put_on_hold() {
         try {
-            throw new Exception("Test stub not implemented yet.");
+            //throw new Exception("Test stub not implemented yet.");
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -154,7 +165,7 @@ public class NsiProviderSteps extends CucumberSteps {
     @Then("The NSI connection has a projectId")
     public void the_NSI_connection_has_a_projectId() {
         try {
-            throw new Exception("Test stub not implemented yet.");
+            //throw new Exception("Test stub not implemented yet.");
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -183,13 +194,22 @@ public class NsiProviderSteps extends CucumberSteps {
         Map<String, String> valuesMap = new HashMap<>();
         Instant now = Instant.now();
 
-        valuesMap.put("startTime", Long.toString(now.getEpochSecond()));
-        valuesMap.put("endTime", Long.toString(now.plusSeconds(60 * 20).getEpochSecond()));
+        log.info("NOW time used is {}", now.toString());
+
+        Instant startTime = now;
+        Instant endTime = now.plusSeconds(60 * 20);
+
+        log.info("START time will be {}", startTime.toString());
+        log.info("END time will be {}", endTime.toString());
+
+        valuesMap.put("startTime",  startTime.toString() );
+        valuesMap.put("endTime", endTime.toString() );
+
         if (withProjectId) {
-            String projectIdElement = "<parameter type=\"projectId\">" + projectIdValue + "</parameter>";
-            valuesMap.put("projectIdElement", projectIdElement);
+            xmlDataTemplate = "http/nsi.reserve.template.xml";
+            valuesMap.put("projectId", projectIdValue);
         } else {
-            valuesMap.put("projectIdElement", "");
+            xmlDataTemplate = "http/nsi.reserve.no-project-id.template.xml";
         }
 
         String url = "/services/provider?ServiceName=NsiProviderService&PortName=NsiProviderPort&PortTypeName=ConnectionProviderPort";
@@ -211,4 +231,16 @@ public class NsiProviderSteps extends CucumberSteps {
         assert response.getStatusCode() == HttpStatus.OK;
     }
 
+    public void releaseAllConnections() {
+        connService.getHeldRepo().findAll().forEach(held -> {
+            connService.releaseHold( held.getConnectionId() );
+        });
+        
+        // connService.getConnRepo().findAll().forEach(connection -> {
+        //     connection.setMode(BuildMode.AUTOMATIC);
+        //     connection.setPhase(Phase.DESIGN);
+        //     connection.setState(State.WAITING);
+            
+        // });
+    }
 }

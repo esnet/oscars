@@ -163,7 +163,7 @@ public class NsiService {
 
                     } else {
 
-                        log.error("unable to hold, sending error callback for {}", mapping.getNsiConnectionId());
+                        log.error("unable to hold, sending error callback for {}, message: code {}, {}", mapping.getNsiConnectionId(), holdResult.getErrorCode(), holdResult.getErrorMessage());
                         errorMessage = holdResult.getErrorMessage();
                         errorCode = holdResult.getErrorCode();
                         tvps = holdResult.getTvps();
