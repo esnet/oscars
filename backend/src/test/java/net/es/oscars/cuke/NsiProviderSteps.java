@@ -32,11 +32,7 @@ import net.es.oscars.app.Startup;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.nsi.svc.NsiAsyncQueue;
 import net.es.oscars.nsi.svc.NsiConnectionEventService;
-import net.es.oscars.resv.ent.Connection;
-import net.es.oscars.resv.ent.Held;
-import net.es.oscars.resv.enums.BuildMode;
-import net.es.oscars.resv.enums.Phase;
-import net.es.oscars.resv.enums.State;
+import net.es.oscars.nsi.svc.NsiService;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.soap.NsiProvider;
 import net.es.oscars.topo.TopoService;
@@ -50,6 +46,7 @@ import net.es.oscars.topo.svc.TopologyStore;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         classes = {
                 TopoService.class,
+                NsiService.class,
                 NsiAsyncQueue.class,
                 NsiConnectionEventService.class,
 
@@ -76,7 +73,7 @@ public class NsiProviderSteps extends CucumberSteps {
     private ConnService connService;
 
     @Autowired
-    private NsiConnectionEventService nsiConnectionEventService;
+    private NsiService nsiService;
 
     @Autowired
     private NsiAsyncQueue queue;
@@ -90,6 +87,7 @@ public class NsiProviderSteps extends CucumberSteps {
             startup.setInStartup(false);
             queue.queue.clear();
             topoService.clear();
+            nsiService.setErrorCount(0);
             loadTopology();
             releaseAllConnections();
         } catch (Exception e) {
@@ -174,6 +172,7 @@ public class NsiProviderSteps extends CucumberSteps {
 
     @Then("The NSI provider encountered {int} errors")
     public void the_NSI_provider_encountered_errors(int errorCount) {
+        assert nsiService.getErrorCount() == errorCount;
         assert world.getExceptions().size() == errorCount;
     }
 
@@ -235,12 +234,5 @@ public class NsiProviderSteps extends CucumberSteps {
         connService.getHeldRepo().findAll().forEach(held -> {
             connService.releaseHold( held.getConnectionId() );
         });
-        
-        // connService.getConnRepo().findAll().forEach(connection -> {
-        //     connection.setMode(BuildMode.AUTOMATIC);
-        //     connection.setPhase(Phase.DESIGN);
-        //     connection.setState(State.WAITING);
-            
-        // });
     }
 }
