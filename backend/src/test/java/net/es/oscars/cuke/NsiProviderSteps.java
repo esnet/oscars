@@ -153,7 +153,7 @@ public class NsiProviderSteps extends CucumberSteps {
     @Then("The NSI connection is put on hold")
     public void the_NSI_connection_is_put_on_hold() {
         try {
-            //throw new Exception("Test stub not implemented yet.");
+            assert connService.getHeld().size() == 1;
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -163,7 +163,10 @@ public class NsiProviderSteps extends CucumberSteps {
     @Then("The NSI connection has a projectId")
     public void the_NSI_connection_has_a_projectId() {
         try {
-            //throw new Exception("Test stub not implemented yet.");
+            connService.getHeld().forEach((id, conn) -> {
+                log.info("Connection {} has projectId {}", id, conn.getProjectId());
+                assert conn.getProjectId() != null;
+            });
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -231,8 +234,6 @@ public class NsiProviderSteps extends CucumberSteps {
     }
 
     public void releaseAllConnections() {
-        connService.getHeldRepo().findAll().forEach(held -> {
-            connService.releaseHold( held.getConnectionId() );
-        });
+        connService.getHeld().clear();
     }
 }
