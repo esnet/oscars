@@ -116,6 +116,16 @@ public class NsiProviderSteps extends CucumberSteps {
         }
     }
 
+    @Given("The NSI connection is queued for asynchronous reservation while including a blank projectId")
+    public void the_NSI_connection_is_queued_for_asynchronous_reservation_while_including_a_blank_projectId() {
+        try {
+            queueNsiConnection(true, "");
+        } catch (Exception e) {
+            world.add(e);
+            log.error("NsiProviderSteps Error - {}", e);
+        }
+    }
+
     @When("The NSI queue size is {}")
     public void the_NSI_queue_size_is(int expectedSize) {
         try {
