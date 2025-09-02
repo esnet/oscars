@@ -24,7 +24,7 @@
           <symmetricPath>true</symmetricPath>
           <sourceSTP>urn:ogf:network:es.net:2013::losa-cr6:2_1_c4_1:+?vlan=3700</sourceSTP>
           <destSTP>urn:ogf:network:es.net:2013::fnalfcc-cr6:lag-2:+?vlan=3700</destSTP>
-          <parameter type="projectId">${projectId}</parameter>
+          ${projectIdElement}
         </ns8:p2ps>
       </criteria>
     </ns3:reserve>

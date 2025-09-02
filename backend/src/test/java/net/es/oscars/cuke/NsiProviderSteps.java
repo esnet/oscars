@@ -41,14 +41,14 @@ import net.es.oscars.topo.svc.TopologyStore;
 @Slf4j
 @Category({UnitTests.class})
 @SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    classes = {
-        TopoService.class,
-        NsiAsyncQueue.class,
-        NsiConnectionEventService.class,
-        
-        NsiProvider.class,
-    }
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        classes = {
+                TopoService.class,
+                NsiAsyncQueue.class,
+                NsiConnectionEventService.class,
+
+                NsiProvider.class,
+        }
 )
 public class NsiProviderSteps extends CucumberSteps {
     @Autowired
@@ -79,12 +79,17 @@ public class NsiProviderSteps extends CucumberSteps {
         startup.setInStartup(false);
         queue.queue.clear();
         topoService.clear();
+        try {
+            loadTopology();
+        } catch (Exception e) {
+            world.add(e);
+            log.error("NsiProviderSteps Error - {}", e);
+        }
     }
 
     @Given("The NSI connection is queued for asynchronous reservation while not including a projectId")
     public void the_nsi_connection_is_queued_for_asynchronous_reservation_while_not_including_a_project_id() throws Throwable {
         try {
-            loadTopology();
             queueNsiConnection();
         } catch (Exception e) {
             world.add(e);
@@ -101,7 +106,7 @@ public class NsiProviderSteps extends CucumberSteps {
             log.error("NsiProviderSteps Error - {}", e);
         }
     }
-    
+
     @When("The NSI queue size is {}")
     public void the_NSI_queue_size_is(int expectedSize) {
         try {
@@ -157,8 +162,7 @@ public class NsiProviderSteps extends CucumberSteps {
     }
 
     @Then("The NSI provider encountered {int} errors")
-    public void the_NSI_provider_encountered_errors(int errorCount)
-    {
+    public void the_NSI_provider_encountered_errors(int errorCount) {
         assert world.getExceptions().size() == errorCount;
     }
 
@@ -179,12 +183,14 @@ public class NsiProviderSteps extends CucumberSteps {
         Map<String, String> valuesMap = new HashMap<>();
         Instant now = Instant.now();
 
-        valuesMap.put("startTime",  Long.toString( ((Long) now.getEpochSecond()) ) );
-        valuesMap.put("endTime", Long.toString( ((Long) now.plusSeconds(60 * 20).getEpochSecond()) ));
+        valuesMap.put("startTime", Long.toString(now.getEpochSecond()));
+        valuesMap.put("endTime", Long.toString(now.plusSeconds(60 * 20).getEpochSecond()));
         if (withProjectId) {
-            valuesMap.put("projectId", projectIdValue);
+            String projectIdElement = "<parameter type=\"projectId\">" + projectIdValue + "</parameter>";
+            valuesMap.put("projectIdElement", projectIdElement);
+        } else {
+            valuesMap.put("projectIdElement", "");
         }
-
 
         String url = "/services/provider?ServiceName=NsiProviderService&PortName=NsiProviderPort&PortTypeName=ConnectionProviderPort";
         InputStream bodyInputStream = new ClassPathResource(xmlDataTemplate).getInputStream();
@@ -199,10 +205,10 @@ public class NsiProviderSteps extends CucumberSteps {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_XML);
         HttpEntity<String> entity = new HttpEntity<>(payload, headers);
-        
+
         response = restTemplate.exchange(url, method, entity, String.class);
 
         assert response.getStatusCode() == HttpStatus.OK;
     }
-    
+
 }
