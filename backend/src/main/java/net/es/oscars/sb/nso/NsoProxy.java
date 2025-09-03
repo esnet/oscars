@@ -3,6 +3,7 @@ package net.es.oscars.sb.nso;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
@@ -34,6 +35,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
@@ -44,6 +46,7 @@ import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URI;
 import java.util.*;
 
 @Slf4j
@@ -63,7 +66,8 @@ public class NsoProxy {
 
     @Setter
     private RestTemplate restTemplate;
-    private RestTemplate patchTemplate;
+    private RestClient patchClient;
+    private ObjectMapper customObjectMapper;
     final OpenTelemetry openTelemetry;
 
 
@@ -74,12 +78,27 @@ public class NsoProxy {
         this.startupProperties = startupProperties;
         this.openTelemetry = openTelemetry;
         try {
-            // make sure we don't send empty values
-            ObjectMapper customObjectMapper = new ObjectMapper();
-            customObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            // this object mapper makes sure we don't send any empty / null values
+            customObjectMapper = new ObjectMapper();
+            customObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+
             MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
             converter.setObjectMapper(customObjectMapper);
+
             SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
+            patchClient = RestClient.builder()
+                    .requestFactory(new HttpComponentsClientHttpRequestFactory())
+                    .messageConverters(converters -> converters.add(converter))
+                    .defaultHeaders(headers -> {
+                        headers.add(HttpHeaders.ACCEPT,"application/yang-data+json" );
+                        headers.add(HttpHeaders.CONTENT_TYPE,"application/yang-patch+json" );
+                    })
+                    .requestInterceptors(interceptors -> {
+                        interceptors.add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
+                        interceptors.add(telemetry.newInterceptor());
+                    })
+                    .build();
+
 
             this.restTemplate = builder.build();
             restTemplate.setErrorHandler(restErrorHandler);
@@ -87,17 +106,7 @@ public class NsoProxy {
             restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
             restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-data+json"));
             restTemplate.getInterceptors().add(telemetry.newInterceptor());
-            restTemplate.getMessageConverters().add(0, converter);
-
-
-            // different http client for yang patch
-            this.patchTemplate = builder.build();
-            patchTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
-            patchTemplate.setErrorHandler(patchErrorHandler);
-            patchTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
-            patchTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
-            patchTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-patch+json"));
-            patchTemplate.getInterceptors().add(telemetry.newInterceptor());
+            restTemplate.getMessageConverters().addFirst(converter);
 
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
@@ -130,18 +139,22 @@ public class NsoProxy {
         String path = "restconf/data/";
         String restPath = props.getUri() + path + "?rollback-label=" + rollbackLabel;
 
-        final HttpEntity<YangPatchWrapper> entity = new HttpEntity<>(wrapped);
         UUID errorUuid = UUID.randomUUID();
         String errorRef = "Error reference: [" + errorUuid + "]\n";
 
         try {
             log.info("submitting yang patch to " + restPath);
-            ResponseEntity<String> response = patchTemplate.exchange(restPath, HttpMethod.PATCH, entity, String.class);
+            ResponseEntity<String> response = patchClient.patch()
+                    .uri(restPath)
+                    .body(wrapped)
+                    .retrieve()
+                    .toEntity(String.class);
+
             if (response.getStatusCode().isError()) {
                 log.error("raw error: " + response.getBody() + "\n" + response.getHeaders());
                 StringBuilder errorStr = new StringBuilder();
                 try {
-                    YangPatchErrorResponse errorResponse = new ObjectMapper().readValue(response.getBody(), YangPatchErrorResponse.class);
+                    YangPatchErrorResponse errorResponse = customObjectMapper.readValue(response.getBody(), YangPatchErrorResponse.class);
                     for (YangPatchErrorResponse.YangPatchError errObj : errorResponse.getStatus().getErrors().getErrorList()) {
                         errorStr.append(errObj.getErrorMessage()).append("\n");
                     }
@@ -153,8 +166,8 @@ public class NsoProxy {
                 throw new NsoCommitException(errorRef + "Unable to YANG patch. NSO error(s): " + errorStr);
             }
         } catch (RestClientException ex) {
-            log.error(errorRef + "REST error %s".formatted(ex.getMessage()));
-            throw new NsoCommitException(errorRef + " REST Error: %s".formatted(ex.getMessage()));
+            log.error(errorRef + "YANG PATCH error %s".formatted(ex.getMessage()));
+            throw new NsoCommitException(errorRef + " yang patch REST Error: %s".formatted(ex.getMessage()));
         }
     }
 
@@ -308,12 +321,16 @@ public class NsoProxy {
         String path = "restconf/data?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
 
-        final HttpEntity<YangPatchWrapper> entity = new HttpEntity<>(wrapped);
         UUID errorUuid = UUID.randomUUID();
         String errorRef = "Error reference: [" + errorUuid + "]\n";
 
         try {
-            NsoDryRun response = patchTemplate.patchForObject(restPath, entity, NsoDryRun.class);
+            NsoDryRun response = patchClient.patch()
+                    .uri(restPath)
+                    .body(wrapped)
+                    .retrieve()
+                    .body(NsoDryRun.class);
+
             if (response != null && response.getDryRunResult() != null) {
                 log.info(response.getDryRunResult().getCli().getLocalNode().getData());
                 return response.getDryRunResult().getCli().getLocalNode().getData();
