@@ -277,7 +277,7 @@ class HoldTimer extends Component {
                 })
             );
         },
-        { delay: 15000 }
+        { delay: 5000 }
     );
 
     render() {
