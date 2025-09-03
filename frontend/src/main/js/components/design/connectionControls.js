@@ -75,6 +75,12 @@ class ConnectionControls extends Component {
         };
         this.props.controlsStore.setParamsForConnection(params);
     };
+    onProjectIdChange = e => {
+        const params = {
+            projectId: e.target.value
+        };
+        this.props.controlsStore.setParamsForConnection(params);
+    };
     onBuildModeChange = e => {
         const params = {
             mode: e.target.value
@@ -225,6 +231,20 @@ class ConnectionControls extends Component {
                                 }
                                 defaultValue={conn.serviceId}
                                 onChange={this.onServiceIdChange}
+                            />
+                        </FormGroup>
+                        <FormGroup>
+                            {" "}
+                            <Label>Project identifier (optional):</Label>
+                            <Input
+                                type="text"
+                                placeholder="a-z, A-Z, 0-9, - length 0-48"
+                                valid={validator.projectIdControl(conn.projectId) === "success"}
+                                invalid={
+                                    validator.projectIdControl(conn.projectId) !== "success"
+                                }
+                                defaultValue={conn.projectId}
+                                onChange={this.onProjectIdChange}
                             />
                         </FormGroup>
                         <FormGroup>

@@ -31,7 +31,7 @@ public class NsiMapping {
     @NonNull
     private String nsiGri;
 
-    // OSCARS connectino ID
+    // OSCARS connection ID
     @NonNull
     private String oscarsConnectionId;
 

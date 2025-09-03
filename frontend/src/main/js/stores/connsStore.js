@@ -19,6 +19,7 @@ class ConnectionsStore {
                 }
             },
             serviceId: "",
+            projectId: "",
             tags: [],
         },
         foundCurrent: false,

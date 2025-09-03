@@ -26,7 +26,7 @@ public class WebConfig implements WebMvcConfigurer {
 
         if (startupProperties.getStandalone()) {
             registry.addMapping("/**")
-                    .allowedOrigins("*")
+                    .allowedOriginPatterns("*")
                     .allowedMethods("*")
                     .allowedHeaders("*")
                     .allowCredentials(true);

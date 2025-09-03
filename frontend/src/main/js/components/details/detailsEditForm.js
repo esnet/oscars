@@ -22,10 +22,18 @@ class DetailsEditForm extends Component {
 
                 <FormGroup row>
                     <Label for="serviceId" sm={2}>
-                        ServiceId
+                        Service Id
                     </Label>
                     <Col sm={10}>
                         <Input type="text" defaultValue={conn.serviceId} disabled/>
+                    </Col>
+                </FormGroup>
+                <FormGroup row>
+                    <Label for="projectId" sm={2}>
+                        Project Id
+                    </Label>
+                    <Col sm={10}>
+                        <Input type="text" defaultValue={conn.projectId} disabled/>
                     </Col>
                 </FormGroup>
 

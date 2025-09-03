@@ -55,6 +55,8 @@ import static net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReservationStateE
 @Data
 public class NsiService {
 
+    private int errorCount = 0;
+
     public NsiQueries nsiQueries;
     @Value("${resv.timeout}")
     private Integer resvTimeout;
@@ -163,7 +165,7 @@ public class NsiService {
 
                     } else {
 
-                        log.error("unable to hold, sending error callback for {}", mapping.getNsiConnectionId());
+                        log.error("unable to hold, sending error callback for {}, message: code {}, {}", mapping.getNsiConnectionId(), holdResult.getErrorCode(), holdResult.getErrorMessage());
                         errorMessage = holdResult.getErrorMessage();
                         errorCode = holdResult.getErrorCode();
                         tvps = holdResult.getTvps();
@@ -954,6 +956,8 @@ public class NsiService {
     public void errCallback(NsiEvent event, String nsaId, String nsiConnectionId, NsiMapping mapping,
                             String error, NsiErrors errNum, List<TypeValuePairType> tvps, String corrId) {
         try {
+
+            errorCount++;
 
             NsiRequesterNSA requesterNSA = this.nsiHeaderUtils.getRequesterNsa(nsaId);
             boolean performCallback = false;
