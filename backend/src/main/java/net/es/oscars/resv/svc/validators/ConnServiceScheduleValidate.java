@@ -81,7 +81,7 @@ public class ConnServiceScheduleValidate implements Validator, ValidatorWithErro
             Instant rejectBefore = Instant.now().minus(5, ChronoUnit.MINUTES);
             if (begin.isBefore(rejectBefore) && !connectionMode.equals(ConnectionMode.MODIFY)) {
                 beginValid = false;
-                errors.rejectValue("begin", null, "begin time is more than 5 minutes in the past");
+                errors.rejectValue("begin", null, "begin time " + begin.toString() + " is more than 5 minutes in the past");
             } else {
                 // if we are set to start to up to +30 sec from now,
                 // we (silently) modify the begin timestamp and we
@@ -115,7 +115,7 @@ public class ConnServiceScheduleValidate implements Validator, ValidatorWithErro
             end = Instant.ofEpochSecond(inConn.getEnd());
             if (!end.isAfter(Instant.now())) {
                 endValid = false;
-                errors.rejectValue("end", null, "end date is in the past");
+                errors.rejectValue("end", null, "end date " + end.toString() + " is in the past");
             } else if (!end.isAfter(checkedBeginTime)) {
                 endValid = false;
                 errors.rejectValue("end", null, "end date not past begin()");

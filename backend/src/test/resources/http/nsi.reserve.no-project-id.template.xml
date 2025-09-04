@@ -1,0 +1,31 @@
+<ns2:Envelope xmlns:ns6="http://www.w3.org/2000/09/xmldsig#" xmlns:ns5="http://www.w3.org/2001/04/xmlenc#" xmlns:ns8="http://schemas.ogf.org/nsi/2013/12/services/point2point" xmlns:ns7="http://schemas.ogf.org/nsi/2013/12/framework/types" xmlns:ns9="http://schemas.ogf.org/nsi/2013/12/framework/headers" xmlns:ns2="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns4="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:ns3="http://schemas.ogf.org/nsi/2013/12/connection/types">
+  <ns2:Header>
+    <ns9:nsiHeader>
+      <protocolVersion>application/vnd.ogf.nsi.cs.v2.provider+soap</protocolVersion>
+      <correlationId>fae29d4f-e61e-4987-a19a-asd12</correlationId>
+      <requesterNSA>urn:ogf:network:sense-rm.es.net:2013:esnet</requesterNSA>
+      <providerNSA>urn:ogf:network:es.net:2013:nsa</providerNSA>
+      <replyTo></replyTo>
+    </ns9:nsiHeader>
+  </ns2:Header>
+  <ns2:Body>
+    <ns3:reserve>
+
+      <description>NSI test</description>
+      <criteria version="0">
+        <schedule>
+          <startTime>${startTime}</startTime>
+          <endTime>${endTime}</endTime>
+        </schedule>
+        <serviceType>http://services.ogf.org/nsi/2013/12/descriptions/EVTS.A-GOLE</serviceType>
+        <ns8:p2ps>
+          <capacity>150000</capacity>
+          <directionality>Bidirectional</directionality>
+          <symmetricPath>true</symmetricPath>
+          <sourceSTP>urn:ogf:network:es.net:2013::losa-cr6:2_1_c4_1:+?vlan=3700</sourceSTP>
+          <destSTP>urn:ogf:network:es.net:2013::fnalfcc-cr6:lag-2:+?vlan=3700</destSTP>
+        </ns8:p2ps>
+      </criteria>
+    </ns3:reserve>
+  </ns2:Body>
+</ns2:Envelope>

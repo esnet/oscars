@@ -376,10 +376,10 @@ public class NsiMappingService {
         Integer zVlanId = vlans.get(z_urn.getPort().getUrn() + "#Z");
 
         if (aVlanId == null) {
-            throw new NsiValidationException("vlan(s) unavailable for " + src, NsiErrors.UNAVAIL_ERROR);
+            throw new NsiValidationException("vlan(s) unavailable for src " + src, NsiErrors.UNAVAIL_ERROR);
 
         } else if (zVlanId == null) {
-            throw new NsiValidationException("vlan(s) unavailable for " + dst, NsiErrors.UNAVAIL_ERROR);
+            throw new NsiValidationException("vlan(s) unavailable for dst " + dst, NsiErrors.UNAVAIL_ERROR);
         }
 
         Fixture aF = Fixture.builder()
@@ -550,7 +550,7 @@ public class NsiMappingService {
     }
 
 
-    public P2PServiceBaseType makeP2P(Components cmp, NsiMapping mapping) {
+    public P2PServiceBaseType makeP2P(Components cmp, NsiMapping mapping, Connection c) {
 
         P2PServiceBaseType p2p = new P2PServiceBaseType();
 
@@ -558,6 +558,14 @@ public class NsiMappingService {
         tvt.setType("oscarsId");
         tvt.setValue(mapping.getOscarsConnectionId());
         p2p.getParameter().add(tvt);
+
+        if (c.getProjectId() != null) {
+            TypeValueType tvtProjectId = new TypeValueType();
+            tvt.setType("projectId");
+            tvt.setValue(c.getProjectId());
+            p2p.getParameter().add(tvtProjectId);
+        }
+
         String srcStp = mapping.getSrc();
         String dstStp = mapping.getDst();
         long capacity = 0L;
@@ -611,6 +619,7 @@ public class NsiMappingService {
         p2p.setEro(ero);
         p2p.setDirectionality(DirectionalityType.BIDIRECTIONAL);
         p2p.setSymmetricPath(true);
+        
         return p2p;
     }
 

@@ -176,7 +176,7 @@ public class NsiQueries {
         qrrct.setVersion(mapping.getDataplaneVersion());
         Components cmp = getComponents(c);
 
-        P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping);
+        P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping, c);
 
         net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory p2pof
                 = new net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory();
@@ -236,7 +236,7 @@ public class NsiQueries {
                 QuerySummaryResultCriteriaType qsrct = new QuerySummaryResultCriteriaType();
                 qsrct.setSchedule(nsiMappingService.oscarsToNsiSchedule(sch));
                 Components cmp = getComponents(c);
-                P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping);
+                P2PServiceBaseType p2p = nsiMappingService.makeP2P(cmp, mapping, c);
                 net.es.nsi.lib.soap.gen.nsi_2_0.services.point2point.ObjectFactory p2pof = new ObjectFactory();
                 qsrct.getAny().add(p2pof.createP2Ps(p2p));
                 qsrct.setServiceType(NsiService.SERVICE_TYPE);

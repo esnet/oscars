@@ -134,6 +134,8 @@ public class NsiServiceSteps extends CucumberSteps {
     @Autowired
     private NsiMappingService nsiMappingService;
 
+    private Connection mockConnection;
+
     @Before("@NsiServiceSteps")
     public void before() throws Throwable {
         setupDatasources();
@@ -143,6 +145,8 @@ public class NsiServiceSteps extends CucumberSteps {
     }
 
     private void setupMocks(Connection mockConn) throws Exception {
+        mockConnection = mockConn;
+
         reserved = false;
         Instant now = Instant.now();
         Instant endingTime = now.plusSeconds(20 * 60); // 20 minutes
@@ -765,6 +769,40 @@ public class NsiServiceSteps extends CucumberSteps {
             throw ex;
         }
     }
+    @When("The NSI Service submits a reservation for OSCARS connection ID {string}, global reservation ID {string}, NSI connection ID {string}, project ID {string}")
+    public void theNsiServiceSubmitsAReservationForConnectionID(String oscarsConnectionId, String globalReservationId, String nsiConnectionId, String projectId) throws Throwable {
+        try {
+
+            // Part of the NSA protocol. An L2VPN identifier that may be on more than one NSI provider ("Fabric", etc).
+            // We keep it, but don't actually use it for any tracking. Not guaranteed to be unique.
+            // This must be a UUID.
+            this.globalReservationId = globalReservationId;
+
+            // Generated in OSCARS. Should be unique for that L2VPN instance.
+            // It may be a UUID.
+            this.nsiConnectionId = nsiConnectionId;
+
+            // The OSCARS connection ID
+            this.oscarsConnectionId = oscarsConnectionId;
+
+            Connection mockConn = helper.generateMockConnection(
+                this.oscarsConnectionId,
+                Phase.HELD,
+                BuildMode.AUTOMATIC,
+                State.WAITING,
+                DeploymentState.UNDEPLOYED,
+                DeploymentIntent.SHOULD_BE_DEPLOYED,
+                10000,
+                projectId
+            );
+
+            setupMocks(mockConn);
+        } catch (Exception ex) {
+
+            world.add(ex);
+            throw ex;
+        }
+    }
 
     @Then("The NSI Service made the reservation successfully.")
     public void theNsiServiceMadeTheReservationSuccessfully() {
@@ -833,6 +871,18 @@ public class NsiServiceSteps extends CucumberSteps {
 
     @Then("The NSI Service made the release request successfully.")
     public void theNSIServiceMadeTheReleaseRequestSuccessfully() {
+    }
+
+    @Then("the connection does not have a projectId value")
+    public void the_connection_does_not_have_a_projectId_value() {
+        assert mockConnection != null;
+        assert mockConnection.getProjectId() == null;
+    }
+
+    @Then("The connection has a projectId value")
+    public void The_connection_has_a_projectId_value() {
+        assert mockConnection != null;
+        assert mockConnection.getProjectId() != null;
     }
     // * NSI Release steps END *
 }

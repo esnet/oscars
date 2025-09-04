@@ -57,7 +57,8 @@ public class ESDBProxy {
     /**
      * Get all ESDB VLANS from ESDB using the /vlan endpoint.
      * Deprecated. Please use ESDBProxy.gqlVlanList() instead.
-     * @deprecated
+     * 
+     * @Deprecated
      * @return List of EsdbVlan objects from the REST endpoint response.
      */
     public List<EsdbVlan> getAllEsdbVlans() throws Exception {

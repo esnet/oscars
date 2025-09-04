@@ -238,6 +238,10 @@ class HoldTimer extends Component {
                 fixtures: cmp.fixtures
             };
 
+            if (conn.projectId !== "") {
+                connection.projectId = conn.projectId;
+            }
+
             myClient.submitWithToken("POST", "/protected/hold", connection).then(
                 action(response => {
                     let parsed = JSON.parse(response);
@@ -273,7 +277,7 @@ class HoldTimer extends Component {
                 })
             );
         },
-        { delay: 1000 }
+        { delay: 5000 }
     );
 
     render() {

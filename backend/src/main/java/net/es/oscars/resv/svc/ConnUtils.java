@@ -220,6 +220,7 @@ public class ConnUtils {
                 .tags(new ArrayList<>())
                 .connection_mtu(in.getConnection_mtu())
                 .serviceId(in.getServiceId())
+                .projectId(in.getProjectId())
                 .build();
 
         log.debug("setting a held connection " + c.getConnectionId());
@@ -467,6 +468,7 @@ public class ConnUtils {
                 .fixtures(fixtures)
                 .junctions(junctions)
                 .pipes(pipes)
+                .projectId(c.getProjectId())
                 .build());
     }
 

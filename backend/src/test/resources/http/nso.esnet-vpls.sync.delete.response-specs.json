@@ -1,11 +1,11 @@
 [
   {
-    "patchId": "delete VPLS and LSP forBBBB",
+    "patchId": "delete VPLS and LSP for BBBB",
     "data": "http/nso.esnet-vpls.sync.delete.response.happy.json",
     "status": 200
   },
   {
-    "patchId": "delete VPLS and LSP forBBB2",
+    "patchId": "delete VPLS and LSP for BBB2",
     "data": "http/nso.esnet-vpls.sync.delete.response.happy.json",
     "status": 200
   },
@@ -15,7 +15,7 @@
     "status": 200
   },
   {
-    "patchId": "delete VPLS and LSP forOSCARS-C2WJ",
+    "patchId": "delete VPLS and LSP for OSCARS-C2WJ",
     "data": "http/nso.esnet-vpls.sync.response.happy.json",
     "status": 200
   }
