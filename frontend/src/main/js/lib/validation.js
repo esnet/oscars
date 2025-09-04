@@ -226,7 +226,22 @@ class Validator {
         }
         return "error";
     }
-
+    projectIdControl(val) {
+        if (typeof val === "undefined") {
+            return "success";
+        }
+        if (val.length === 0) {
+            return "success";
+        }
+        if (val.length > 48) {
+            return "error";
+        }
+        // must be alphanumeric with dash
+        if (/^[a-zA-Z0-9-]+$/.test(val)) {
+            return "success";
+        }
+        return "error";
+    }
     mtuControl(val) {
         if (val >= 1500 && val <= 9000) {
             return "success";

@@ -31,3 +31,10 @@ Feature: Test the HoldController endpoints (Happy)
     When The client receives a response from HoldController
     Then The client receives a HoldController response status code of 200
     And The HoldController response is a valid SimpleConnection
+
+  Scenario: Sending an HTTP POST payload to /protected/hold with a projectId field
+    # Note, /protected/pcehold just calls the function handler for /protected/hold
+    Given The client executes POST with SimpleConnection payload on HoldController path "/protected/hold" and projectId "ABCD-1234-EFGH-5678"
+    When The client receives a response from HoldController
+    Then The client receives a HoldController response status code of 200
+    And The HoldController response is a valid SimpleConnection

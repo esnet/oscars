@@ -15,7 +15,6 @@ import net.es.oscars.web.beans.CurrentlyHeldEntry;
 import net.es.oscars.web.simple.SimpleConnection;
 import net.es.oscars.web.simple.Validity;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;

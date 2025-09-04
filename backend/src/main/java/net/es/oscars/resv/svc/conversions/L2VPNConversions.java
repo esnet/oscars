@@ -184,6 +184,7 @@ public class L2VPNConversions {
                 .username(c.getUsername())
                 .trackingId(c.getServiceId())
                 .orchId(null)
+                .projectId(c.getProjectId())
                 .build();
     }
 
@@ -343,6 +344,11 @@ public class L2VPNConversions {
             }
         }
 
+        String projectId = null;
+        if (l2VPNRequest.getMeta() != null && l2VPNRequest.getMeta().getProjectId() != null) {
+            l2VPNRequest.getMeta().getProjectId();
+        }
+
         return SimpleConnection.builder()
                 .username(l2VPNRequest.getMeta().getUsername())
                 .connection_mtu(l2VPNRequest.getTech().getMtu())
@@ -358,6 +364,7 @@ public class L2VPNConversions {
                 .fixtures(fixtures)
                 .junctions(new ArrayList<>(junctions))
                 .pipes(pipes)
+                .projectId(projectId)
                 .build();
 
     }
