@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.2.33
+> Sep 2025
+- defensive programming against topo NPE 
+
 ### 1.2.32
 > Sep 2025
 - OS-600 CORS origin customization
