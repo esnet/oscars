@@ -65,9 +65,8 @@ backend:profile:
     - *wharf_login
   after_script:
     - *wharf_logout
-  services:
-    - name: docker:dind
-      alias: docker
+  services: 
+    - docker:dind
   needs: ["backend:build_image"]
   rules:
     - if: $CI_COMMIT_BRANCH != $RELEASE_BRANCH
@@ -83,8 +82,8 @@ backend:profile:
 
     DOCKER_DRIVER: overlay2
     DOCKER_BUILDKIT: 1
-    DOCKER_HOST: tcp://docker:2375 # Connect to the DinD service
-    DOCKER_TLS_CERTDIR: "" # Disable TLS for simplicity in this example
+    # DOCKER_HOST: tcp://docker:2375 # Connect to the DinD service
+    # DOCKER_TLS_CERTDIR: "" # Disable TLS for simplicity in this example
     CONTEXT_PATH: ./
 
     SPRING_PROFILES_ACTIVE: test
