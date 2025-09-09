@@ -28,7 +28,6 @@ import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.sb.SouthboundTaskResult;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
-import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.*;
@@ -38,7 +37,6 @@ import java.time.Instant;
 import java.util.*;
 
 import static net.es.oscars.resv.svc.ResvLibrary.validateServiceId;
-import static net.es.topo.common.devel.DevelUtils.dumpDebug;
 
 @Component
 @Slf4j
@@ -103,14 +101,13 @@ public class NsoAdapter {
         boolean shouldWriteHistory = false;
 
         if (commandType.equals(CommandType.BUILD) || commandType.equals(CommandType.DISMANTLE) || commandType.equals(CommandType.REDEPLOY)) {
+            log.info("generating NSO payload for "+conn.getConnectionId()+" "+commandType);
             try {
                 switch (commandType) {
                     case BUILD -> {
                         NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
-                        log.info("got services");
                         commands = oscarsServices.asCliCommands();
-                        log.info("\n"+commands);
-                        dumpDebug(conn.getConnectionId()+" BUILD services", oscarsServices);
+                        log.info("BUILD cli commands\n"+commands);
                         dryRun = nsoProxy.buildDryRun(oscarsServices);
                         nsoProxy.buildServices(oscarsServices, conn.getConnectionId());
                         newDepState = DeploymentState.DEPLOYED;
@@ -119,7 +116,7 @@ public class NsoAdapter {
                     case DISMANTLE ->  {
                         NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
                         commands = dismantle.asCliCommands();
-                        log.info("\n"+commands);
+                        log.info("DISMANTLE cli \n"+commands);
                         dryRun = nsoProxy.dismantleDryRun(dismantle);
                         nsoProxy.deleteServices(dismantle);
                         newDepState = DeploymentState.UNDEPLOYED;
@@ -127,7 +124,6 @@ public class NsoAdapter {
                     }
                     case REDEPLOY ->  {
                         NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
-                        dumpDebug(conn.getConnectionId()+" REDEPLOY services", oscarsServices);
                         nsoProxy.redeployServices(oscarsServices, conn.getConnectionId());
                         newDepState = DeploymentState.DEPLOYED;
                     }
@@ -307,7 +303,7 @@ public class NsoAdapter {
     }
 
     public NsoServicesWrapper nsoOscarsServices(Connection conn) throws NsoGenException {
-        log.info("NSO services wrapper");
+        log.info("making NSO services wrapper for "+conn.getConnectionId());
         Map<LspMapKey, String> lspNames = new HashMap<>();
         List<NsoLSP> lspInstances = new ArrayList<>();
 
@@ -548,9 +544,9 @@ public class NsoAdapter {
 
         List<NsoVPLS> vplsInstances = new ArrayList<>();
         vplsInstances.add(vpls);
-        DevelUtils.dumpDebug(vpls.getName(), vpls);
+        NsoProxy.logNsoObject(vpls);
         for (NsoLSP lsp : lspInstances) {
-            DevelUtils.dumpDebug(lsp.instanceKey(), lsp);
+            NsoProxy.logNsoObject(lsp);
         }
         return NsoServicesWrapper.builder()
                 .lspInstances(lspInstances)

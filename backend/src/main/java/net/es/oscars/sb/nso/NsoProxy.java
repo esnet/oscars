@@ -3,7 +3,6 @@ package net.es.oscars.sb.nso;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
@@ -45,7 +44,6 @@ import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.net.URI;
 import java.util.*;
 
 @Slf4j
@@ -70,6 +68,7 @@ public class NsoProxy {
     @Setter
     private RestTemplate restTemplate;
     private RestClient patchClient;
+    private RestClient restClient;
     private ObjectMapper customObjectMapper;
     final OpenTelemetry openTelemetry;
 
@@ -102,6 +101,18 @@ public class NsoProxy {
                     })
                     .build();
 
+            restClient = RestClient.builder()
+                    .requestFactory(new HttpComponentsClientHttpRequestFactory())
+                    .messageConverters(converters -> converters.add(converter))
+                    .defaultHeaders(headers -> {
+                        headers.add(HttpHeaders.ACCEPT, APPLICATION_YANG_DATA_JSON);
+                        headers.add(HttpHeaders.CONTENT_TYPE, APPLICATION_YANG_DATA_JSON);
+                    })
+                    .requestInterceptors(interceptors -> {
+                        interceptors.add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
+                        interceptors.add(telemetry.newInterceptor());
+                    })
+                    .build();
 
             this.restTemplate = builder.build();
             restTemplate.setErrorHandler(restErrorHandler);
@@ -140,7 +151,7 @@ public class NsoProxy {
         }
 
         log.info("submitting yang patch");
-        logNsoRequest(wrapped);
+        logNsoObject(wrapped);
 
         String restPath = props.getUri() + RESTCONF_DATA + "/?rollback-label=" + rollbackLabel;
 
@@ -225,7 +236,7 @@ public class NsoProxy {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         log.info("building services");
-        logNsoRequest(wrapper);
+        logNsoObject(wrapper);
 
         try {
             ResponseEntity<IetfRestconfErrorResponse> response = restTemplate.postForEntity(restPath, wrapper, IetfRestconfErrorResponse.class);
@@ -716,47 +727,49 @@ public class NsoProxy {
     }
 
     public FromNsoServiceConfig getNsoServiceConfig(NsoService service, String path) throws Exception {
+        if (service != NsoService.VPLS && service != NsoService.LSP) {
+            throw new Exception("Unknown service " + service);
+        }
+
         log.info("get service config START %s ".formatted(service));
-
-        FromNsoServiceConfig result = null;
         try {
-            ResponseEntity<String> response;
 
-            response = restTemplate.getForEntity(path, String.class);
+            ResponseEntity<String> response = restClient.get()
+                    .uri(path)
+                    .retrieve()
+                    .toEntity(String.class);
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                result = new FromNsoServiceConfig();
+            if (response.getStatusCode().isError()) {
+                String errorStr = "%s: get config FAILED (error response status.) ".formatted(service.toString());
+                log.error(errorStr);
+                throw new Exception(errorStr);
+
+            } else {
+                FromNsoServiceConfig result = new FromNsoServiceConfig();
                 String body = response.getBody();
                 if (body != null) {
                     result.setConfig(body);
                 } else {
-                    if (service == NsoService.VPLS) {
-                        result.setConfig("{\"esnet-vpls:vpls\": []}");
-                    } else if (service == NsoService.LSP) {
-                        result.setConfig("{\"esnet-lsp:lsp\": []}");
-                    } else {
-                        throw new Exception("Unknown service " + service);
+                    switch (service) {
+                        case NsoService.VPLS -> result.setConfig("{\"esnet-vpls:vpls\": []}");
+                        case NsoService.LSP -> result.setConfig("{\"esnet-lsp:lsp\": []}");
                     }
                 }
-                result.setSuccessful(true);
-
-                log.info("%s: get service COMPLETE ".formatted(service.toString()));
-            } else {
-                log.error("%s: get config FAILED (response status was not HTTP 200 range.) ".formatted(service.toString()));
-                throw new Exception("%s: get config FAILED (response status was not HTTP 200 range.) ".formatted(service.toString()));
+                return result;
             }
-
-        } catch (Exception e) {
-            log.error(e.getLocalizedMessage(), e);
-            throw e;
+        } catch (RestClientException ex) {
+            log.error(ex.getLocalizedMessage(), ex);
+            throw ex;
         }
-        return result;
     }
 
     // this logs the object using the custom object mapper that the restClient / restTemplate use
-    private void logNsoRequest(Object o) {
+    public static void logNsoObject(Object o) {
         try {
-            String pretty = customObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(o);
+            ObjectMapper skipEmptyObjMapper = new ObjectMapper();
+            skipEmptyObjMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+
+            String pretty = skipEmptyObjMapper.writerWithDefaultPrettyPrinter().writeValueAsString(o);
             log.info(pretty);
         } catch (JsonProcessingException e) {
             log.error(e.getLocalizedMessage(), e);
