@@ -1,4 +1,4 @@
-image: wharf.es.net/dockerhub-proxy/library/docker:24.0.6
+image: wharf.es.net/dockerhub-proxy/library/docker:28.2.2-dind
 
 variables:
   DOCKER_DRIVER: overlay2
