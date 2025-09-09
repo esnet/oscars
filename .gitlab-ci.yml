@@ -83,6 +83,31 @@ backend:profile:
     DOCKER_BUILDKIT: 1
     DOCKER_HOST: tcp://docker:2375 # Connect to the DinD service
     DOCKER_TLS_CERTDIR: "" # Disable TLS for simplicity in this example
+
+    SPRING_PROFILES_ACTIVE: test
+    HOSTNAME: oscars-backend
+    JAVA_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201 \n
+      -Dcom.sun.management.jmxremote \n
+      -Dcom.sun.management.jmxremote.port=1099 \n
+      -Dcom.sun.management.jmxremote.rmi.port=1099 \n
+      -Djava.rmi.server.hostname=oscars-backend \n
+      -Dcom.sun.management.jmxremote.local.only=false \n
+      -Dcom.sun.management.jmxremote.authenticate=false \n
+      -Dcom.sun.management.jmxremote.ssl=false"
+    MAVEN_OPTS: ""
+    OSCARS_BACKEND_WEB_PORT: 8201
+    SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/oscars
+    POSTGRES_USER: no_user
+    POSTGRES_PASSWORD: no_password
+    ESDB_API_KEY: no_esdb_api_key
+    ESDB_URI: http://localhost:8080/esdb_api/v1
+    ESDB_GRAPHQL_URI: http://localhost:8080/esdb_api/graphql
+    TOPO_OSCARS_URL: http://localhost:8080/oscars-one/topology
+    NSO_SYNC: "disabled"
+    NSO_USERNAME: no_user
+    NSO_PASSWORD: no_password
+    NSO_URI: http://localhost:8080/restconf
+
   script:
     - mkdir -p backend/profiling
     - docker-compose -f docker-compose.profiling.yml up oscars-backend-profile --build --force-recreate -d
