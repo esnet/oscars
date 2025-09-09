@@ -60,7 +60,6 @@ backend:test:
 # OSCARS backend, not dependencies.
 backend:profile:
   stage: profile
-  image: docker:latest
   before_script:
     - *docker_login
     - *wharf_login
@@ -80,9 +79,12 @@ backend:profile:
     DURATION_MIN: "1m"
     TARGET_HOST: "oscars-backend:1099"
     FILENAME: "profiling/${CI_COMMIT_BRANCH}_${CI_PIPELINE_CREATED_AT}_oscars_backend_profile.jfr"
+
+    DOCKER_DRIVER: overlay2
     DOCKER_BUILDKIT: 1
-    DOCKER_HOST: tcp://host.docker.internal:2375 # Connect to the DinD service
+    DOCKER_HOST: tcp://docker:2375 # Connect to the DinD service
     DOCKER_TLS_CERTDIR: "" # Disable TLS for simplicity in this example
+    CONTEXT_PATH: ./
 
     SPRING_PROFILES_ACTIVE: test
     HOSTNAME: oscars-backend
@@ -110,8 +112,78 @@ backend:profile:
 
   script:
     - mkdir -p backend/profiling
-    - docker-compose -f docker-compose.profiling.yml up oscars-backend-profile --build --force-recreate -d
-    - docker-compose down
+    - docker network create
+      --attachable
+      --internal
+      -d bridge
+      oscars-local-net
+    - docker build -t postgres:14.1-alpine
+      wharf.es.net/dockerhub-proxy/library/postgres:14.1-alpine
+    - docker build -t oscars-backend
+      --build-arg TARGET_HOST="${HOSTNAME}"
+      --build-arg JAVA_OPTS="${JAVA_OPTS}"
+      --build-arg MAVEN_OPTS="${MAVEN_OPTS"
+      -e POSTGRES_DB="${POSTGRES_DB}"
+      -e POSTGRES_USER="${POSTGRES_USER}"
+      -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD"
+      --port 5432
+      --progress=plain
+      --target=test
+      --no-cache
+      -f ./deploy/devel/backend.dockerfile
+      $CONTEXT_PATH
+    - docker build -t oscars-backend-profile
+      --progress=plain
+      --build-arg TARGET_HOST="${TARGET_HOST}"
+      --build-arg FILENAME="${FILENAME}"
+      --no-cache
+      -f ./deploy/devel/profile.dockerfile
+      $CONTEXT_PATH
+    - docker run
+      -e POSTGRES_DB="${POSTGRES_DB}"
+      -e POSTGRES_USER="${POSTGRES_USER}"
+      -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
+      --network oscars-local-net
+      --network-alias esdb
+      postgres:14.1-alpine
+    - docker run
+      -e SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE}"
+      -e HOSTNAME="${HOSTNAME}"
+      -e JAVA_OPTS="${JAVA_OPTS}"
+      -e MAVEN_OPTS="${MAVEN_OPTS}"
+      -e OSCARS_BACKEND_WEB_PORT="${OSCARS_BACKEND_WEB_PORT}"
+      -e SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}"
+      -e POSTGRES_USER="${POSTGRES_USER}"
+      -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
+      -e ESDB_API_KEY="${ESDB_API_KEY}"
+      -e ESDB_URI="${ESDB_URI}"
+      -e ESDB_GRAPHQL_URI="${ESDB_GRAPHQL_URI}"
+      -e TOPO_OSCARS_URL="${TOPO_OSCARS_URL}"
+      -e NSO_SYNC="${NSO_SYNC}"
+      -e NSO_USERNAME="${NSO_USERNAME}"
+      -e NSO_PASSWORD="${NSO_PASSWORD}"
+      -e NSO_URI="${NSO_URI}"
+      -p 8201:8201
+      -p 9201:9201
+      -p 1099:1099
+      --network oscars-local-net
+      --network-alias oscars-backend
+      oscars-backend
+    - docker run
+      -e SPRING_PROFILES_ACTIVE="test"
+      -e SPRING_DATASOURCE_URL="jdbc:hsqldb:mem:oscars_db;sql.syntax_pgs=true"
+      -e SPRING_DATASOURCE_USERNAME="sa"
+      -e SPRING_DATASOURCE_PASSWORD=""
+      -e SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop
+      -e TARGET_HOST="oscars-backend:1099"
+      -e FILENAME="profiling/latest.recording.jfr"
+      -e DELAY_MIN="0m"
+      -e DURATION_MIN="1m"
+      -e OSCARS_BACKEND_WEB_PORT=8201
+      --network oscars-local-net
+      --network-alias oscars-backend-profile
+      oscars-backend-profile
+    - docker network rm oscars-local-net
 
 .backend:push:
   stage: push
