@@ -139,14 +139,14 @@ backend:profile:
       --no-cache
       -f ./deploy/devel/profile.dockerfile
       $CONTEXT_PATH
-    - docker run
+    - docker run -d
       -e POSTGRES_DB="${POSTGRES_DB}"
       -e POSTGRES_USER="${POSTGRES_USER}"
       -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
       --network oscars-local-net
       --network-alias esdb
       postgres:14.1-alpine
-    - docker run
+    - docker run -d
       -e SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE}"
       -e HOSTNAME="${HOSTNAME}"
       -e JAVA_OPTS="${JAVA_OPTS}"
@@ -169,7 +169,7 @@ backend:profile:
       --network oscars-local-net
       --network-alias oscars-backend
       oscars-backend
-    - docker run
+    - docker run -d
       -e SPRING_PROFILES_ACTIVE="test"
       -e SPRING_DATASOURCE_URL="jdbc:hsqldb:mem:oscars_db;sql.syntax_pgs=true"
       -e SPRING_DATASOURCE_USERNAME="sa"
@@ -183,6 +183,8 @@ backend:profile:
       --network oscars-local-net
       --network-alias oscars-backend-profile
       oscars-backend-profile
+    - docker stop $(docker ps -q)
+    - docker rm $(docker ps -a -q)
     - docker network rm oscars-local-net
 
 .backend:push:
