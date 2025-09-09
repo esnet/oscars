@@ -65,8 +65,6 @@ backend:profile:
     - *wharf_login
   after_script:
     - *wharf_logout
-  services:
-   - docker:dind
   needs: ["backend:build_image"]
   rules:
     - if: $CI_COMMIT_BRANCH != $RELEASE_BRANCH
