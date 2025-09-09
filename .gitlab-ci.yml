@@ -81,7 +81,7 @@ backend:profile:
     TARGET_HOST: "oscars-backend:1099"
     FILENAME: "profiling/${CI_COMMIT_BRANCH}_${CI_PIPELINE_CREATED_AT}_oscars_backend_profile.jfr"
     DOCKER_BUILDKIT: 1
-    DOCKER_HOST: tcp://docker:2375 # Connect to the DinD service
+    DOCKER_HOST: tcp://host.docker.internal:2375 # Connect to the DinD service
     DOCKER_TLS_CERTDIR: "" # Disable TLS for simplicity in this example
 
     SPRING_PROFILES_ACTIVE: test
