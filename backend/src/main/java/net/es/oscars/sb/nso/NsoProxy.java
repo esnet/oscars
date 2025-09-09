@@ -333,12 +333,9 @@ public class NsoProxy {
     }
 
     private String yangPatchDryRun(YangPatchWrapper wrapped) throws NsoDryrunException {
-
+        log.info("submitting yang patch dry run");
         String path = RESTCONF_DATA + "?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
-
-        UUID errorUuid = UUID.randomUUID();
-        String errorRef = "Error reference: [" + errorUuid + "]\n";
 
         try {
             NsoDryRun response = patchClient.patch()
@@ -354,7 +351,7 @@ public class NsoProxy {
                 return "no dry-run available";
             }
         } catch (RestClientException ex) {
-            log.error(errorRef + "REST error %s".formatted(ex.getMessage()));
+            log.error("YANG PATCH dry run REST error:\n%s".formatted(ex.getMessage()));
             throw new NsoDryrunException(ex.getMessage());
         }
     }

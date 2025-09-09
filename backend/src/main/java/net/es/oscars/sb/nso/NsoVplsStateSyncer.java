@@ -6,6 +6,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
+import net.es.oscars.sb.nso.exc.NsoDryrunException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.resv.NsoVcIdService;
 import net.es.topo.common.dto.nso.NsoLSP;
@@ -237,15 +238,15 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                     NsoAdapter.NsoOscarsDismantle dismantle = getNsoOscarsDismantle(wrapper);
                     try {
                         if (dryRun) {
-                            nsoProxy.dismantleDryRun(dismantle);
+                            log.info(nsoProxy.dismantleDryRun(dismantle));
                         } else {
                             nsoProxy.deleteServices(dismantle);
                         }
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.DELETE, true));
-                    } catch (NsoCommitException nsoCommitException) {
+                    } catch (NsoCommitException | NsoDryrunException nsoException) {
                         gotCommitError = true;
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.DELETE, false));
-                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! Nso Commit (or dry-run) Exception: " + nsoException.getMessage(), nsoException);
                     }
                 }
                 // ...Delete END
@@ -272,15 +273,15 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
                     try {
                         if (dryRun) {
-                            nsoProxy.redeployDryRun(svcWrapper, connectionId);
+                            log.info(nsoProxy.redeployDryRun(svcWrapper, connectionId));
                         } else {
                             nsoProxy.redeployServices(svcWrapper, connectionId);
                         }
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.REDEPLOY, true));
-                    } catch (NsoCommitException nsoCommitException) {
+                    } catch (NsoCommitException | NsoDryrunException nsoException) {
                         gotCommitError = true;
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.REDEPLOY, false));
-                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! Nso Commit (or dry-run) Exception: " + nsoException.getMessage(), nsoException);
                     }
 
                 }
@@ -309,15 +310,15 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
                     try {
                         if (dryRun) {
-                            nsoProxy.buildDryRun(svcWrapper);
+                            log.info(nsoProxy.buildDryRun(svcWrapper));
                         } else {
                             nsoProxy.buildServices(svcWrapper, connectionId);
                         }
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.ADD, true));
-                    } catch (NsoCommitException nsoCommitException) {
+                    } catch (NsoCommitException | NsoDryrunException nsoException) {
                         gotCommitError = true;
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.ADD, false));
-                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! Nso Commit (or dry-run) Exception: " + nsoException.getMessage(), nsoException);
                     }
                 }
                 // ...Add END
