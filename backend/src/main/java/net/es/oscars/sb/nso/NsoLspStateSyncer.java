@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.dto.NsoLspResponse;
 import net.es.oscars.sb.nso.dto.NsoStateWrapper;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
+import net.es.oscars.sb.nso.exc.NsoDryrunException;
 import net.es.oscars.sb.nso.exc.NsoStateSyncerException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.topo.common.dto.nso.NsoLSP;
@@ -212,12 +213,17 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
 
                     try {
                         YangPatchWrapper yangPatchWrapper = NsoProxy.makeDismantleLspYangPatch(lspInstanceKey);
-                        nsoProxy.deleteLsp(yangPatchWrapper, lspInstanceKey);
+                        if (dryRun) {
+                            log.info(nsoProxy.yangPatchDryRun(yangPatchWrapper));
+                        } else {
+                            nsoProxy.deleteLsp(yangPatchWrapper, lspInstanceKey);
+                        }
+
                         this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.DELETE, true));
 
-                    } catch (NsoCommitException nsoCommitException) {
+                    } catch (NsoCommitException | NsoDryrunException nsoException) {
                         gotCommitError = true;
-                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! Nso Commit (or dry-run) Exception: " + nsoException.getMessage(), nsoException);
                         this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.DELETE, false));
                     }
                 }
@@ -239,12 +245,17 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                         String lspInstanceKey = lsp.instanceKey();
                         YangPatchWrapper yangPatchWrapper = NsoProxy.makeRedeployLspYangPatch(lsp);
 
-                        nsoProxy.redeployLsp(yangPatchWrapper, lspInstanceKey);
+                        if (dryRun) {
+                            log.info(nsoProxy.yangPatchDryRun(yangPatchWrapper));
+                        } else {
+                            nsoProxy.redeployLsp(yangPatchWrapper, lspInstanceKey);
+                        }
+
                         this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.REDEPLOY, true));
 
-                    } catch (NsoCommitException nsoCommitException) {
+                    } catch (NsoCommitException | NsoDryrunException nsoException) {
                         gotCommitError = true;
-                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! Nso Commit (or dry-run) Exception: " + nsoException.getMessage(), nsoException);
                         this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.REDEPLOY, false));
                     }
 
@@ -270,13 +281,18 @@ public class NsoLspStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoLSP>> {
                             .lspInstances(addList)
                             .build();
                     try {
-                        nsoProxy.buildServices(addThese, connectionId);
+                        if (dryRun) {
+                            log.info(nsoProxy.buildDryRun(addThese, connectionId));
+                        } else {
+                            nsoProxy.buildServices(addThese, connectionId);
+                        }
                         this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.ADD, true));
 
-                    } catch (NsoCommitException nsoCommitException) {
+                    } catch (NsoCommitException | NsoDryrunException nsoException) {
                         gotCommitError = true;
+                        log.info("Error! Nso Commit (or dry-run) Exception: " + nsoException.getMessage(), nsoException);
                         this.syncResults.put(hashKey(wrapper.getInstance()), Triple.of(connectionId, State.ADD, false));
-                        log.warn(nsoCommitException.getMessage(), nsoCommitException);
+                        log.warn(nsoException.getMessage(), nsoException);
                     }
                 }
                 // ...Add END

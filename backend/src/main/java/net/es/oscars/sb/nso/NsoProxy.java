@@ -347,7 +347,7 @@ public class NsoProxy {
         return this.yangPatchDryRun(wrapped);
     }
 
-    private String yangPatchDryRun(YangPatchWrapper wrapped) throws NsoDryrunException {
+    public String yangPatchDryRun(YangPatchWrapper wrapped) throws NsoDryrunException {
         log.info("submitting yang patch dry run");
         String path = RESTCONF_DATA + "?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
