@@ -48,6 +48,8 @@ USER oscars
 # for development we copy config
 WORKDIR /app
 RUN mkdir -p /app/log
+RUN mkdir -p /app/profiling
+
 COPY ./backend/config ./config
 COPY --from=builder /build/backend/dependencies/ ./
 COPY --from=builder /build/backend/spring-boot-loader ./

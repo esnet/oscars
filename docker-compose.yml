@@ -16,7 +16,6 @@ services:
         JAVA_OPTS: "-XX:UseSVE=0"
         MAVEN_OPTS: "-XX:UseSVE=0"
       dockerfile: ./deploy/devel/backend.dockerfile
-    image: oscars-backend-image:latest
     depends_on:
       oscars-db:
         condition: service_healthy

@@ -1,0 +1,95 @@
+networks:
+  oscars-local-net:
+    name: oscars-local-net
+    driver: bridge
+
+services:
+  oscars-db:
+    image: "wharf.es.net/dockerhub-proxy/library/postgres:14.1-alpine"
+    container_name:   oscars-nostack-db
+    networks:
+      - oscars-local-net
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-oscars}
+      POSTGRES_USER: ${POSTGRES_USER:-oscars}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-secret}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${POSTGRES_DB:-oscars} -U ${POSTGRES_USER:-oscars}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  oscars-backend:
+    container_name: oscars-nostack-profiler-backend
+    hostname: oscars-backend
+    networks:
+      - oscars-local-net
+    build:
+      context: ./
+      args:
+        HOSTNAME: ${HOSTNAME}
+        JAVA_OPTS: ${JAVA_OPTS}
+        MAVEN_OPTS: ${MAVEN_OPTS}
+      dockerfile: ./deploy/devel/backend.dockerfile
+    depends_on:
+      oscars-db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+      HOSTNAME: ${HOSTNAME}
+      JAVA_OPTS: ${JAVA_OPTS}
+      MAVEN_OPTS: ${MAVEN_OPTS}
+      OSCARS_BACKEND_WEB_PORT: ${OSCARS_BACKEND_WEB_PORT:-8201}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/${POSTGRES_DB:-oscars}
+      POSTGRES_USER: ${POSTGRES_USER:-oscars}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-secret}
+      ESDB_API_KEY: ${ESDB_API_KEY}
+      ESDB_URI: ${ESDB_URI}
+      ESDB_GRAPHQL_URI: ${ESDB_GRAPHQL_URI:-http://esdb:8000/esdb_api/graphql}
+      TOPO_OSCARS_URL: ${TOPO_OSCARS_URL:-http://topo-oscars:8004/oscars-one/topology}
+      NSO_SYNC: "disabled"
+      NSO_USERNAME: ${NSO_USERNAME}
+      NSO_PASSWORD: ${NSO_PASSWORD}
+      NSO_URI: ${NSO_URI}
+    ports:
+      - "8201:8201"
+      - "9201:9201" # Debugger port
+      - "1099:1099" # profiler port
+    volumes:
+      - type: bind
+        source: ./backend/profiling
+        target: /app/profiling
+    healthcheck:
+      test: nc -z localhost 8201 || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  oscars-backend-profile:
+    container_name: oscars-backend-profile
+    depends_on:
+      oscars-backend:
+        condition: service_healthy
+    build:
+      context: ./
+      dockerfile: ./deploy/devel/profile.dockerfile
+      args:
+        TARGET_HOST: "oscars-backend:1099"
+        FILENAME: "${FILENAME:-profiling/latest.recording.jfr}"
+    image: oscars-backend-image:latest
+    environment:
+      SPRING_PROFILES_ACTIVE: "test"
+      SPRING_DATASOURCE_URL: "jdbc:hsqldb:mem:oscars_db;sql.syntax_pgs=true"
+      SPRING_DATASOURCE_USERNAME: "sa"
+      SPRING_DATASOURCE_PASSWORD: ""
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      TARGET_HOST: "oscars-backend:1099"
+      FILENAME: "${FILENAME:-profiling/latest.recording.jfr}"
+      DELAY_MIN: "0m"
+      DURATION_MIN: "1m"
+      OSCARS_BACKEND_WEB_PORT: 8201
+    links:
+      - "oscars-backend:1099"
+      - "oscars-backend:8201"
+    networks:
+      - oscars-local-net

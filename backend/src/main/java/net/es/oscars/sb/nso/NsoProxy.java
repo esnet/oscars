@@ -3,7 +3,6 @@ package net.es.oscars.sb.nso;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
@@ -46,7 +45,6 @@ import net.es.oscars.sb.nso.dto.NsoVplsResponse;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.net.URI;
 import java.util.*;
 
 @Slf4j
