@@ -1,6 +1,5 @@
 package net.es.oscars.sb.nso;
 
-import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -310,7 +309,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
                     try {
                         if (dryRun) {
-                            log.info(nsoProxy.buildDryRun(svcWrapper));
+                            log.info(nsoProxy.buildDryRun(svcWrapper, connectionId));
                         } else {
                             nsoProxy.buildServices(svcWrapper, connectionId);
                         }
@@ -396,6 +395,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             if (!local.getInstance().equals(remote.getInstance())) {
                 // Mark for REDEPLOY
                 String description = "Local and remote state differ for VPLS " + id + ", mark for redeploy.";
+                log.info(description);
                 state = State.REDEPLOY;
                 redeploy(id, description);
             }
@@ -405,20 +405,21 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             // Does it exist in remote? (Remote state may have changed between now and last load time)
             if (remote != null) {
                 String description = "No state found locally for VPLS " + id + ", mark for delete.";
+                log.info(description);
                 // Exists in remote, but not locally. Copy to local, then mark as "delete".
                 remote.setState(State.NOOP);
                 localState.put(id, remote);
                 state = State.REDEPLOY;
                 delete(id, description);
-                log.info("description:" + description);
+
 
             } else if (local != null) {
 
                 // Exists locally, but not in remote. Mark local as "add".
                 String description = "No state found remotely for VPLS " + id + ", mark for add.";
+                log.info(description);
                 state = State.ADD;
                 add(id, description);
-                log.info("description:" + description);
 
             } else {
                 // Doesn't exist in local OR remote. Throw exception

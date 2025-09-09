@@ -108,7 +108,7 @@ public class NsoAdapter {
                         NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
                         commands = oscarsServices.asCliCommands();
                         log.info("BUILD cli commands\n"+commands);
-                        dryRun = nsoProxy.buildDryRun(oscarsServices);
+                        dryRun = nsoProxy.buildDryRun(oscarsServices, conn.getConnectionId());
                         nsoProxy.buildServices(oscarsServices, conn.getConnectionId());
                         newDepState = DeploymentState.DEPLOYED;
 

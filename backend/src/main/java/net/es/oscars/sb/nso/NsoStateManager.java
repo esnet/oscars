@@ -465,6 +465,7 @@ public class NsoStateManager {
 //    }
 
     public boolean sync() throws NsoStateManagerException, Exception {
+        log.info("NSO sync run starting...");
         this.setVplsSynced(false);
         this.setLspSynced(false);
 

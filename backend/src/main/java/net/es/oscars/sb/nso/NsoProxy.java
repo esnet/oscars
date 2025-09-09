@@ -294,11 +294,12 @@ public class NsoProxy {
     }
 
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
-    public String buildDryRun(NsoServicesWrapper wrapper) throws NsoDryrunException {
+    public String buildDryRun(NsoServicesWrapper wrapper, String connectionId) throws NsoDryrunException {
         if (startupProperties.getStandalone()) {
             log.info("standalone mode - skipping southbound");
             return "standalone dry run";
         }
+        log.info("BUILD dry run for "+connectionId);
 
         String path = RESTCONF_DATA + "/tailf-ncs:services?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
@@ -327,6 +328,7 @@ public class NsoProxy {
 
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public String dismantleDryRun(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoDryrunException {
+        log.info("DISMANTLE dry run for "+dismantle.getConnectionId());
         if (startupProperties.getStandalone()) {
             log.info("standalone mode - skipping southbound");
             return "standalone dry run";
@@ -339,6 +341,7 @@ public class NsoProxy {
 
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public String redeployDryRun(NsoServicesWrapper wrapper, String connectionId) throws NsoDryrunException {
+        log.info("REDEPLOY dry run for "+connectionId);
         if (startupProperties.getStandalone()) {
             log.info("standalone mode - skipping southbound");
             return "standalone dry run";
@@ -360,8 +363,14 @@ public class NsoProxy {
                     .body(NsoDryRun.class);
 
             if (response != null && response.getDryRunResult() != null) {
-                log.info(response.getDryRunResult().getCli().getLocalNode().getData());
-                return response.getDryRunResult().getCli().getLocalNode().getData();
+                NsoProxy.logNsoObject(response);
+                if (response.getDryRunResult() != null && response.getDryRunResult().getCli() != null) {
+                    if (response.getDryRunResult().getCli().getLocalNode() != null) {
+                        return response.getDryRunResult().getCli().getLocalNode().getData();
+                    }
+                }
+
+                return "error retrieving dry run text";
             } else {
                 return "no dry-run available";
             }
