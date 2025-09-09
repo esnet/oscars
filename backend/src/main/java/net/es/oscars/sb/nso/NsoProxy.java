@@ -293,7 +293,6 @@ public class NsoProxy {
         restTemplate.postForLocation(restPath, HttpEntity.EMPTY);
     }
 
-    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public String buildDryRun(NsoServicesWrapper wrapper, String connectionId) throws NsoDryrunException {
         if (startupProperties.getStandalone()) {
             log.info("standalone mode - skipping southbound");
@@ -326,7 +325,6 @@ public class NsoProxy {
         }
     }
 
-    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public String dismantleDryRun(NsoAdapter.NsoOscarsDismantle dismantle) throws NsoDryrunException {
         log.info("DISMANTLE dry run for "+dismantle.getConnectionId());
         if (startupProperties.getStandalone()) {
@@ -339,7 +337,6 @@ public class NsoProxy {
     }
 
 
-    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public String redeployDryRun(NsoServicesWrapper wrapper, String connectionId) throws NsoDryrunException {
         log.info("REDEPLOY dry run for "+connectionId);
         if (startupProperties.getStandalone()) {
