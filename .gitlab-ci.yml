@@ -114,6 +114,7 @@ backend:profile:
     - mkdir -p backend/profiling
     - docker compose --version
     - ls -la
+    - docker compose --progress=plain -f docker-compose.profiling.yml up oscars-backend-profile
     # - docker network create
     #   --attachable
     #   --internal
