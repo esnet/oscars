@@ -91,7 +91,7 @@ public class NsoProxy {
             SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
             patchClient = RestClient.builder()
                     .requestFactory(new HttpComponentsClientHttpRequestFactory())
-                    .messageConverters(converters -> converters.addFirst(converter))
+                    .messageConverters(converters -> converters.add(converter))
                     .defaultHeaders(headers -> {
                         headers.add(HttpHeaders.ACCEPT, APPLICATION_YANG_DATA_JSON);
                         headers.add(HttpHeaders.CONTENT_TYPE, APPLICATION_YANG_PATCH_JSON);
@@ -142,7 +142,7 @@ public class NsoProxy {
         log.info("submitting yang patch");
         logNsoRequest(wrapped);
 
-        String restPath = props.getUri() + RESTCONF_DATA + "?rollback-label=" + rollbackLabel;
+        String restPath = props.getUri() + RESTCONF_DATA + "/?rollback-label=" + rollbackLabel;
 
         UUID errorUuid = UUID.randomUUID();
         String errorRef = "Error reference: [" + errorUuid + "]\n";
