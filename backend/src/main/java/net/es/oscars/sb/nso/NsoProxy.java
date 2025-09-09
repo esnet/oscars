@@ -22,7 +22,6 @@ import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.rest.LiveStatusRequest;
 import net.es.oscars.sb.nso.rest.LiveStatusMockData;
 import net.es.oscars.sb.nso.rest.LiveStatusOutput;
-import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.*;
 
 import net.es.topo.common.dto.nso.enums.NsoCheckSyncState;
@@ -52,6 +51,10 @@ import java.util.*;
 @Slf4j
 @Component
 public class NsoProxy {
+
+    public static final String APPLICATION_YANG_DATA_JSON = "application/yang-data+json";
+    public static final String APPLICATION_YANG_PATCH_JSON = "application/yang-patch+json";
+    public static final String RESTCONF_DATA = "restconf/data";
 
     private final NsoProperties props;
     private final StartupProperties startupProperties;
@@ -88,10 +91,10 @@ public class NsoProxy {
             SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
             patchClient = RestClient.builder()
                     .requestFactory(new HttpComponentsClientHttpRequestFactory())
-                    .messageConverters(converters -> converters.add(converter))
+                    .messageConverters(converters -> converters.addFirst(converter))
                     .defaultHeaders(headers -> {
-                        headers.add(HttpHeaders.ACCEPT,"application/yang-data+json" );
-                        headers.add(HttpHeaders.CONTENT_TYPE,"application/yang-patch+json" );
+                        headers.add(HttpHeaders.ACCEPT, APPLICATION_YANG_DATA_JSON);
+                        headers.add(HttpHeaders.CONTENT_TYPE, APPLICATION_YANG_PATCH_JSON);
                     })
                     .requestInterceptors(interceptors -> {
                         interceptors.add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
@@ -103,8 +106,8 @@ public class NsoProxy {
             this.restTemplate = builder.build();
             restTemplate.setErrorHandler(restErrorHandler);
             restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
-            restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, "application/yang-data+json"));
-            restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, "application/yang-data+json"));
+            restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, APPLICATION_YANG_DATA_JSON));
+            restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, APPLICATION_YANG_DATA_JSON));
             restTemplate.getInterceptors().add(telemetry.newInterceptor());
             restTemplate.getMessageConverters().addFirst(converter);
 
@@ -135,9 +138,11 @@ public class NsoProxy {
             log.info("standalone mode - skipping southbound");
             return;
         }
-        DevelUtils.dumpDebug("yang patch", wrapped);
-        String path = "restconf/data/";
-        String restPath = props.getUri() + path + "?rollback-label=" + rollbackLabel;
+
+        log.info("submitting yang patch");
+        logNsoRequest(wrapped);
+
+        String restPath = props.getUri() + RESTCONF_DATA + "?rollback-label=" + rollbackLabel;
 
         UUID errorUuid = UUID.randomUUID();
         String errorRef = "Error reference: [" + errorUuid + "]\n";
@@ -176,9 +181,9 @@ public class NsoProxy {
             log.info("standalone mode - returning in-sync for {}", device);
             return NsoCheckSyncState.IN_SYNC;
         }
-        String path = "restconf/data/tailf-ncs:devices/device="+device+"/check-sync";
+        String path = RESTCONF_DATA + "/tailf-ncs:devices/device=" + device + "/check-sync";
         String restPath = props.getUri() + path;
-        log.info("checking sync "+restPath);
+        log.info("checking sync " + restPath);
         ResponseEntity<FromNsoCheckSync> response = restTemplate.postForEntity(restPath, null, FromNsoCheckSync.class);
 
         if (response.getStatusCode().isError()) {
@@ -212,17 +217,17 @@ public class NsoProxy {
             return;
         }
 
-        String rollbackLabel = connectionId+"-build";
+        String rollbackLabel = connectionId + "-build";
         String path = "restconf/data/tailf-ncs:services";
-        String restPath = props.getUri() + path + "?rollback-label="+rollbackLabel;
+        String restPath = props.getUri() + path + "?rollback-label=" + rollbackLabel;
         UUID errorUuid = UUID.randomUUID();
         String errorRef = "Error reference: [" + errorUuid + "]\n";
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
-        DevelUtils.dumpDebug("build services", wrapper);
+        log.info("building services");
+        logNsoRequest(wrapper);
 
         try {
-//            DevelUtils.dumpDebug("commit", wrapper);
             ResponseEntity<IetfRestconfErrorResponse> response = restTemplate.postForEntity(restPath, wrapper, IetfRestconfErrorResponse.class);
 
             if (response.getStatusCode().isError()) {
@@ -269,7 +274,7 @@ public class NsoProxy {
             return "standalone dry run";
         }
 
-        String path = "restconf/data/tailf-ncs:services?dry-run=cli&commit-queue=async";
+        String path = RESTCONF_DATA + "/tailf-ncs:services?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
         UUID errorUuid = UUID.randomUUID();
         String errorRef = "Error reference: [" + errorUuid + "]\n";
@@ -290,7 +295,7 @@ public class NsoProxy {
             }
         } catch (RestClientException ex) {
             log.error(errorRef + "REST error %s".formatted(ex.getMessage()));
-            throw new NsoDryrunException(ex.getMessage()+" "+errorRef);
+            throw new NsoDryrunException(ex.getMessage() + " " + errorRef);
         }
     }
 
@@ -318,7 +323,7 @@ public class NsoProxy {
 
     private String yangPatchDryRun(YangPatchWrapper wrapped) throws NsoDryrunException {
 
-        String path = "restconf/data?dry-run=cli&commit-queue=async";
+        String path = RESTCONF_DATA + "?dry-run=cli&commit-queue=async";
         String restPath = props.getUri() + path;
 
         UUID errorUuid = UUID.randomUUID();
@@ -382,33 +387,33 @@ public class NsoProxy {
         return YangPatchWrapper.builder().patch(deletePatch).build();
     }
 
-    public static YangPatchWrapper makeRedeployLspYangPatch(NsoLSP lsp ) {
+    public static YangPatchWrapper makeRedeployLspYangPatch(NsoLSP lsp) {
         List<YangPatch.YangEdit> edits = new ArrayList<>();
 
         String lspKeyArg = '=' + lsp.instanceKey();
         String path = "/tailf-ncs:services/esnet-lsp:lsp" + lspKeyArg;
 
         YangPatchLspWrapper lspWrapper = YangPatchLspWrapper
-            .builder()
-            .lsp(lsp)
-            .build();
+                .builder()
+                .lsp(lsp)
+                .build();
 
         edits.add(
-            YangPatch
-                .YangEdit
-                .builder()
-                .editId("replace " + lsp.instanceKey())
-                .operation("replace")
-                .value( lspWrapper )
-                .target(path)
-                .build()
+                YangPatch
+                        .YangEdit
+                        .builder()
+                        .editId("replace " + lsp.instanceKey())
+                        .operation("replace")
+                        .value(lspWrapper)
+                        .target(path)
+                        .build()
         );
 
         YangPatch replacePatch = YangPatch
-            .builder()
-            .patchId("replace LSP " + lsp.instanceKey())
-            .edit(edits)
-            .build();
+                .builder()
+                .patchId("replace LSP " + lsp.instanceKey())
+                .edit(edits)
+                .build();
 
         return YangPatchWrapper.builder().patch(replacePatch).build();
     }
@@ -426,7 +431,7 @@ public class NsoProxy {
     public static YangPatchWrapper makeRedeployYangPatch(NsoServicesWrapper wrapper, String connectionId) {
         List<YangPatch.YangEdit> edits = new ArrayList<>();
         if (wrapper.getVplsInstances() != null) {
-            for (NsoVPLS vpls: wrapper.getVplsInstances()) {
+            for (NsoVPLS vpls : wrapper.getVplsInstances()) {
                 // TODO: (maybe) modify something else than the VPLS service endpoints
                 int vcid = vpls.getVcId();
                 int i = 0;
@@ -451,7 +456,7 @@ public class NsoProxy {
             }
         }
         if (wrapper.getLspInstances() != null) {
-            for (NsoLSP lsp: wrapper.getLspInstances()) {
+            for (NsoLSP lsp : wrapper.getLspInstances()) {
                 String lspKeyArg = '=' + lsp.instanceKey();
                 String path = "/tailf-ncs:services/esnet-lsp:lsp" + lspKeyArg;
 
@@ -472,7 +477,6 @@ public class NsoProxy {
                 );
             }
         }
-
 
 
         YangPatch patch = YangPatch.builder()
@@ -575,7 +579,7 @@ public class NsoProxy {
         LiveStatusRequest request = new LiveStatusRequest();
         request.setArgs(args);
         request.setDevice(device);
-        return getLiveStatusShow( request);
+        return getLiveStatusShow(request);
     }
 
     /**
@@ -590,7 +594,7 @@ public class NsoProxy {
             return "standalone live status";
         }
 
-        String path = "restconf/data/esnet-status:esnet-status/nokia-show";
+        String path = RESTCONF_DATA + "/esnet-status:esnet-status/nokia-show";
         String restPath = props.getUri() + path;
 
         StringBuilder errorStr = new StringBuilder();
@@ -671,7 +675,6 @@ public class NsoProxy {
     }
 
 
-
     public NsoVplsResponse getVpls() throws Exception {
         FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS);
         return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
@@ -701,7 +704,7 @@ public class NsoProxy {
         };
         if (path == null) {
             throw new Exception("Could not determine service path type. Please use VPLS or LSP.");
-        };
+        }
         String req = "restconf/data/tailf-ncs:services%s".formatted(path);
 
         return props.getUri() + req;
@@ -710,7 +713,8 @@ public class NsoProxy {
     public FromNsoServiceConfig getNsoServiceConfig(NsoService service) throws Exception {
         String restPath = getNsoServiceConfigRestPath(service);
         return getNsoServiceConfig(service, restPath);
-    };
+    }
+
     public FromNsoServiceConfig getNsoServiceConfig(NsoService service, String path) throws Exception {
         log.info("get service config START %s ".formatted(service));
 
@@ -719,8 +723,6 @@ public class NsoProxy {
             ResponseEntity<String> response;
 
             response = restTemplate.getForEntity(path, String.class);
-
-//            DevelUtils.dumpDebug("get-nso-service", response);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 result = new FromNsoServiceConfig();
@@ -749,6 +751,16 @@ public class NsoProxy {
             throw e;
         }
         return result;
+    }
+
+    // this logs the object using the custom object mapper that the restClient / restTemplate use
+    private void logNsoRequest(Object o) {
+        try {
+            String pretty = customObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(o);
+            log.info(pretty);
+        } catch (JsonProcessingException e) {
+            log.error(e.getLocalizedMessage(), e);
+        }
     }
 
 }

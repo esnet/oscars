@@ -1,7 +1,8 @@
 # OSCARS Release Notes
 ### 1.2.33
 > Sep 2025
-- defensive programming against topo NPE 
+- OS-617 defensive programming against topo NPE 
+- OS-618 try to stop sending null values to NSO
 
 ### 1.2.32
 > Sep 2025
