@@ -206,7 +206,6 @@ public class NsoAdapter {
                 .build();
         if (!isProtect) {
             Set<NsoLSP.Hop> nsoHops = new HashSet<>();
-            int i = 1;
             Set<MplsHop> mplsHops;
             try {
                 mplsHops = miscHelper.mplsHops(hops);
@@ -217,9 +216,8 @@ public class NsoAdapter {
             for (MplsHop hop : mplsHops) {
                 nsoHops.add(NsoLSP.Hop.builder()
                         .ipv4(hop.getAddress())
-                        .number(i)
+                        .number(hop.getOrder())
                         .build());
-                i++;
             }
             mplsPath.setHop(nsoHops);
         }
