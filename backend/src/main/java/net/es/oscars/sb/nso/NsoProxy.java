@@ -471,28 +471,26 @@ public class NsoProxy {
     public static YangPatchWrapper makeRedeployYangPatch(NsoServicesWrapper wrapper, String connectionId) {
         List<YangPatch.YangEdit> edits = new ArrayList<>();
         if (wrapper.getVplsInstances() != null) {
+            int i = 0;
+
+            // replace the entire remote VPLS instance
             for (NsoVPLS vpls : wrapper.getVplsInstances()) {
-                // TODO: (maybe) modify something else than the VPLS service endpoints
+
                 int vcid = vpls.getVcId();
-                int i = 0;
-                for (NsoVPLS.DeviceContainer dc : vpls.getDevice()) {
-                    String vplsKey = "=" + vcid;
-                    String devKey = "=" + dc.getDevice();
+                YangPatchVplsWrapper vplsWrapper = YangPatchVplsWrapper.builder()
+                        .vpls(vpls)
+                        .build();
+                String vplsKey = "=" + vcid;
+                String path = "/tailf-ncs:services/esnet-vpls:vpls" + vplsKey;
 
-                    String path = "/tailf-ncs:services/esnet-vpls:vpls" + vplsKey + "/device" + devKey;
+                edits.add(YangPatch.YangEdit.builder()
+                        .editId("replace " + i)
+                        .operation("replace")
+                        .value(vplsWrapper)
+                        .target(path)
+                        .build());
 
-                    YangPatchDeviceWrapper deviceWrapper = YangPatchDeviceWrapper.builder()
-                            .device(dc)
-                            .build();
-
-                    edits.add(YangPatch.YangEdit.builder()
-                            .editId("replace " + i)
-                            .operation("replace")
-                            .value(deviceWrapper)
-                            .target(path)
-                            .build());
-                    i++;
-                }
+                i++;
             }
         }
         if (wrapper.getLspInstances() != null) {
@@ -536,6 +534,16 @@ public class NsoProxy {
         @JsonProperty("esnet-vpls:device")
         NsoVPLS.DeviceContainer device;
 
+    }
+
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class YangPatchVplsWrapper {
+        @JsonProperty("esnet-vpls:vpls")
+        NsoVPLS vpls;
     }
 
     @Data
