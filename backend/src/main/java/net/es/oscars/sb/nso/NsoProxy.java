@@ -364,8 +364,19 @@ public class NsoProxy {
                 if (response.getDryRunResult() != null && response.getDryRunResult().getCli() != null) {
                     if (response.getDryRunResult().getCli().getLocalNode() != null) {
                         return response.getDryRunResult().getCli().getLocalNode().getData();
+                    } else {
+                        /*
+                        an empty dry run looks like this:
+                        {
+                          "dry-run-result" : {
+                            "cli" : { }
+                          }
+                        }
+                         */
+                        return "";
                     }
                 }
+                // if either "dry-run-result" or "dry-run-result/cli" are null, complain
 
                 return "error retrieving dry run text";
             } else {
