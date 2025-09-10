@@ -13,7 +13,6 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 133 instances
 
-
     # All the various evaluation functions live in NsoVplsStateSyncer
 
     # AAAA should NOT exist, mark as add
@@ -78,6 +77,21 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     When I evaluate VPLS "DDDD"
     When I evaluate VPLS "DDD2"
     Then The list of VPLS service instances marked "no-op" has a count of 129
+
+  Scenario: Read NSO VPLS service state, make decisions about redeploying with diffs
+    Given I have initialized the world
+    Given The list of active OSCARS connections are loaded
+    Given The NSO VPLS service state is loaded
+
+    # Evaluate CCCC when metadata is missing: should not redeploy
+    Given I had changed VPLS instance "CCCC" to "CCCC" from "http/nso.esnet-vpls.cccc-meta-removed.json"
+    When I evaluate VPLS "CCCC"
+    Then The list of VPLS service instances marked "redeploy" has a count of 0
+
+    # Evaluate CCCC when order of device entries has changed - should not redeploy
+    Given I had changed VPLS instance "CCCC" to "CCCC" from "http/nso.esnet-vpls.cccc-order-diff.json"
+    When I evaluate VPLS "CCCC"
+    Then The list of VPLS service instances marked "redeploy" has a count of 0
 
 
   # Happy path

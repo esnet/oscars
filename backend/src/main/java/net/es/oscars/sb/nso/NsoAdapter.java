@@ -35,6 +35,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static net.es.oscars.resv.svc.ResvLibrary.validateServiceId;
 
@@ -204,9 +205,9 @@ public class NsoAdapter {
                 .setupPriority(holdSetupPriority)
                 .build();
         if (!isProtect) {
-            List<NsoLSP.Hop> nsoHops = new ArrayList<>();
+            Set<NsoLSP.Hop> nsoHops = new HashSet<>();
             int i = 1;
-            List<MplsHop> mplsHops;
+            Set<MplsHop> mplsHops;
             try {
                 mplsHops = miscHelper.mplsHops(hops);
             } catch (PSSException e) {
@@ -367,8 +368,8 @@ public class NsoAdapter {
             if (!vplsDeviceMap.containsKey(deviceUrn)) {
                 NsoVPLS.DeviceContainer dc = NsoVPLS.DeviceContainer.builder()
                         .device(deviceUrn)
-                        .endpoint(new ArrayList<>())
-                        .virtualIfces(new ArrayList<>())
+                        .endpoint(new HashSet<>())
+                        .virtualIfces(new HashSet<>())
                         .build();
                 vplsDeviceMap.put(deviceUrn, dc);
             }
@@ -411,7 +412,7 @@ public class NsoAdapter {
                     .build();
             dc.getEndpoint().add(endpoint);
         }
-        List<NsoVPLS.SDP> sdps = new ArrayList<>();
+        HashSet<NsoVPLS.SDP> sdps = new HashSet<>();
         List<NsoSdpId> sdpIds = nsoSdpIdDAO.findNsoSdpIdByConnectionId(conn.getConnectionId());
         List<NsoSdpVcId> sdpVcIds = nsoSdpVcIdDAO.findNsoSdpVcIdByConnectionId(conn.getConnectionId());
         for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
@@ -539,7 +540,7 @@ public class NsoAdapter {
                 .routingDomain(nsoProperties.getRoutingDomain())
                 .vcId(vcid)
                 .sdp(sdps)
-                .device(vplsDeviceMap.values().stream().toList())
+                .device(new HashSet<>(vplsDeviceMap.values()))
                 .build();
 
         List<NsoVPLS> vplsInstances = new ArrayList<>();

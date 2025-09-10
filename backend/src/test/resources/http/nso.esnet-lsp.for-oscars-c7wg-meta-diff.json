@@ -1,0 +1,16 @@
+[
+  {
+    "name": "C7WG-PRT-sunn-cr6",
+    "device": "wash-cr6",
+    "routing-domain": "esnet-293",
+    "target": {
+      "device": "sunn-cr6"
+    },
+    "metric": 100000,
+    "primary": {
+      "path-type": "loose",
+      "hold-priority": 4,
+      "setup-priority": 4
+    }
+  }
+]

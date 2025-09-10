@@ -48,6 +48,21 @@ Feature: synchronize NSO service state to OSCARS state, LSP (Happy Path)
     When I evaluate LSP with name "C7WG-PRT-sunn-cr6" and device "wash-cr6"
     Then The list of LSP service instances marked "redeploy" has a count of 1
 
+  Scenario: Read NSO's LSP service state, don't redeploy when metadata or hop order changes
+    Given I have initialized the world
+    Given I have retrieved the NSO LSPs
+    Given The NSO LSP service state is loaded
+
+    Given I had changed LSP instance with name "C7WG-PRT-sunn-cr6" and device "wash-cr6" to name "C7WG-PRT-sunn-cr6" and device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c7wg-meta-diff.json"
+    When I evaluate LSP with name "C7WG-PRT-sunn-cr6" and device "wash-cr6"
+    Then The list of LSP service instances marked "redeploy" has a count of 0
+
+    Given I had changed LSP instance with name "C2KR-WRK-losa-cr6" and device "wash-cr6" to name "C2KR-WRK-losa-cr6" and device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr-hop-reorder.json"
+    When I evaluate LSP with name "C2KR-WRK-losa-cr6" and device "wash-cr6"
+    Then The list of LSP service instances marked "redeploy" has a count of 0
+
+
+
   Scenario: Read NSO's LSP service state, ADD synchronization.
     Given I have initialized the world
     Given I have retrieved the NSO LSPs
