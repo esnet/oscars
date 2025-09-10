@@ -2,43 +2,43 @@
   {
     "device": "loc1-cr6",
     "args": "router mpls lsp",
-    "body": "http/nso.esnet-status.nokia-show.router-mpls-lsp.response.json",
+    "body": "http/nso/status/nso.esnet-status.nokia-show.router-mpls-lsp.response.json",
     "status": 200
   },
   {
     "device": "loc1-cr6",
     "args": "service id 7115 sdp",
-    "body": "http/nso.esnet-status.nokia-show.service-sdp.response.json",
+    "body": "http/nso/status/nso.esnet-status.nokia-show.service-sdp.response.json",
     "status": 200
   },
   {
     "device": "loc1-cr6",
     "args": "service id 7115 sap",
-    "body": "http/nso.esnet-status.nokia-show.service-sap.response.json",
+    "body": "http/nso/status/nso.esnet-status.nokia-show.service-sap.response.json",
     "status": 200
   },
   {
     "device": "loc1-cr6",
     "args": "service fdb-info",
-    "body": "http/nso.esnet-status.nokia-show.service-fdb-info.response.json",
+    "body": "http/nso/status/nso.esnet-status.nokia-show.service-fdb-info.response.json",
     "status": 200
   },
   {
     "device": "loc1-cr6",
     "args": "service id 7093 fdb detail",
-    "body": "http/nso.esnet-status.nokia-show.service-fdb-detail.response.json",
+    "body": "http/nso/status/nso.esnet-status.nokia-show.service-fdb-detail.response.json",
     "status": 200
   },
   {
     "device": "loc1-cr6",
     "args": "service id 1111 sdp",
-    "body": "http/nso.esnet-status.nokia.empty.response.json",
+    "body": "http/nso/status/nso.esnet-status.nokia.empty.response.json",
     "status": 200
   },
   {
     "device": "does-not-exist-cr123",
     "args": "service fdb-info",
-    "body": "http/nso.esnet-status.nokia.missing-device.response.json",
+    "body": "http/nso/status/nso.esnet-status.nokia.missing-device.response.json",
     "status": 400
   }
 ]

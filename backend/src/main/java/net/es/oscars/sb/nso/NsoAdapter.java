@@ -198,7 +198,6 @@ public class NsoAdapter {
             pathType = NsoLspPathType.LOOSE;
         }
 
-
         NsoLSP.MplsPath mplsPath = NsoLSP.MplsPath.builder()
                 .pathType(pathType)
                 .holdPriority(holdSetupPriority)
