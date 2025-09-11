@@ -63,6 +63,7 @@ backend:profile:
   before_script:
     - *docker_login
     - *wharf_login
+    - docker network rm oscars-local-net
     - mkdir -p ./backend/profiling
   after_script:
     - ls -la ./backend/profiling
