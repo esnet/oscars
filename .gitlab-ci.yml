@@ -119,6 +119,7 @@ backend:profile:
   stage: push
   needs: ["backend:scan", "backend:test", "backend:profile"]
   before_script:
+    - sleep 30
     - *docker_login
     - *wharf_login
   after_script:
