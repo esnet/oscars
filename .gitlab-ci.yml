@@ -119,6 +119,7 @@ backend:profile:
     - echo "Docker daemon is available. Proceeding with scripts..."
     - chmod -R a+rw ./backend/profiling
     - docker compose --progress=plain -f docker-compose.profiling.yml up oscars-backend-profile
+    - if [ ! - f "./backend/${FILENAME}" ]; then echo "Could NOT find generated recording data at ./backend/${FILENAME}"; exit 1; fi;
 .backend:push:
   stage: push
   needs: ["backend:scan", "backend:test", "backend:profile"]
