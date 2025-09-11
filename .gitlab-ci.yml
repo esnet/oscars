@@ -117,6 +117,7 @@ backend:profile:
     - echo "Checking Docker daemon status..."
     - docker info # This command will fail if DinD is not ready
     - echo "Docker daemon is available. Proceeding with scripts..."
+    - chmod -R a+rw ./backend/profiling
     - docker compose --progress=plain -f docker-compose.profiling.yml up oscars-backend-profile
 .backend:push:
   stage: push
