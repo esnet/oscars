@@ -23,8 +23,8 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Given The VPLS instance "OSCARS-C2KR" is present in the state manager NSO VPLS service state
 
     # Add an LSP to a VPLS
-    Given The LSP with name "C2KR-PRT-losa-cr6" and device "wash-cr6" from JSON file "http/nso.esnet-lsp.for-oscars-c2kr.json" is added to VPLS "OSCARS-C2KR" as SDP entry "A"
-    Given The LSP with name "C2KR-PRT-wash-cr6" and device "losa-cr6" from JSON file "http/nso.esnet-lsp.for-oscars-c2kr.json" is added to VPLS "OSCARS-C2KR" as SDP entry "Z"
+    Given The LSP with name "C2KR-PRT-losa-cr6" and device "wash-cr6" from JSON file "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json" is added to VPLS "OSCARS-C2KR" as SDP entry "A"
+    Given The LSP with name "C2KR-PRT-wash-cr6" and device "losa-cr6" from JSON file "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json" is added to VPLS "OSCARS-C2KR" as SDP entry "Z"
 
     # ... does it validate()?
     When The state manager validates
@@ -51,7 +51,7 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
 
     Given The VPLS instance "OSCARS-C2KR" is present in the state manager NSO VPLS service state
     # Modify LSP of a VPLS
-    Given I had changed LSP instance in the state manager with name "C7WG-PRT-sunn-cr6" and device "wash-cr6" to name "C7WG-PRT-sunn-cr6" and device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c7wg.json"
+    Given I had changed LSP instance in the state manager with name "C7WG-PRT-sunn-cr6" and device "wash-cr6" to name "C7WG-PRT-sunn-cr6" and device "wash-cr6" from "http/nso/lsp/nso.esnet-lsp.for-oscars-c7wg.json"
     # ... validate()?
     When The state manager validates
     Then The state manager is valid

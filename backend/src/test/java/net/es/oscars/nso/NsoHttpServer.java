@@ -125,7 +125,7 @@ public class NsoHttpServer {
             log.info("ESNet GraphQL mock URI requested (" + req.getMethod() + "): " + req.getRequestURI());
             EsdbGraphqlResponseSpec[] esdbGraphqlResponseSpecs = new ObjectMapper()
                 .readValue(
-                    new ClassPathResource("http/esdb.graphql.response-specs.json").getFile(),
+                    new ClassPathResource("http/response-specs/esdb.graphql.response-specs.json").getFile(),
                     EsdbGraphqlResponseSpec[].class
                 );
             for (EsdbGraphqlResponseSpec spec : esdbGraphqlResponseSpecs) {
@@ -152,7 +152,7 @@ public class NsoHttpServer {
 
             NsoEsnetVplsResponseSpec[] vplsResponseSpecs = new ObjectMapper()
                 .readValue(
-                        new ClassPathResource("http/nso.esnet-vpls.response-specs.json").getFile(),
+                        new ClassPathResource("http/nso/vpls/nso.esnet-vpls.response-specs.json").getFile(),
                         NsoEsnetVplsResponseSpec[].class
                 );
 
@@ -177,7 +177,7 @@ public class NsoHttpServer {
         private void loadEsnetLspMockData(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             NsoEsnetLspResponseSpec[] lspResponseSpecs = new ObjectMapper()
                 .readValue(
-                        new ClassPathResource("http/nso.esnet-lsp.response-specs.json").getFile(),
+                        new ClassPathResource("http/response-specs/nso.esnet-lsp.response-specs.json").getFile(),
                         NsoEsnetLspResponseSpec[].class
                 );
 
@@ -232,7 +232,7 @@ public class NsoHttpServer {
             ) {
                 NsoEsnetVplsYangPatchDeleteResponseSpec[] vplsResponseSpecs = new ObjectMapper()
                     .readValue(
-                        new ClassPathResource("http/nso.esnet-vpls.sync.delete.response-specs.json").getFile(),
+                        new ClassPathResource("http/response-specs/nso.esnet-vpls.sync.delete.response-specs.json").getFile(),
                         NsoEsnetVplsYangPatchDeleteResponseSpec[].class
                     );
 
@@ -256,7 +256,7 @@ public class NsoHttpServer {
             ) {
                 NsoEsnetLspYangPatchDeleteResponseSpec[] lspResponseSpecs = new ObjectMapper()
                     .readValue(
-                        new ClassPathResource("http/nso.esnet-lsp.sync.delete.response-specs.json").getFile(),
+                        new ClassPathResource("http/response-specs/nso.esnet-lsp.sync.delete.response-specs.json").getFile(),
                         NsoEsnetLspYangPatchDeleteResponseSpec[].class
                     );
                 for ( NsoEsnetLspYangPatchDeleteResponseSpec responseSpec : lspResponseSpecs) {
@@ -341,7 +341,7 @@ public class NsoHttpServer {
             // Is this for VPLS or LSP ?
             if (nsoServicesWrapper.getVplsInstances() != null && !nsoServicesWrapper.getVplsInstances().isEmpty()) {
                 NsoEsnetVplsYangPatchResponseSpec[] responseSpecs = new ObjectMapper()
-                        .readValue(new ClassPathResource("http/nso.esnet-vpls.sync.response-specs.json").getFile(), NsoEsnetVplsYangPatchResponseSpec[].class);
+                        .readValue(new ClassPathResource("http/response-specs/nso.esnet-vpls.sync.response-specs.json").getFile(), NsoEsnetVplsYangPatchResponseSpec[].class);
 
                 for (NsoEsnetVplsYangPatchResponseSpec responseSpec : responseSpecs) {
                     // check by connectionId (VPLS name) and vc-id
@@ -365,7 +365,7 @@ public class NsoHttpServer {
                 log.warn("Did not find a corresponding mock POST response (VPLS endpoint) in http/nso.esnet-vpls.sync.response-specs.json");
             } else if (nsoServicesWrapper.getLspInstances() != null && !nsoServicesWrapper.getLspInstances().isEmpty()) {
                 NsoEsnetLspYangPatchResponseSpec[] responseSpecs = new ObjectMapper()
-                        .readValue(new ClassPathResource("http/nso.esnet-lsp.post.response-specs.json").getFile(), NsoEsnetLspYangPatchResponseSpec[].class);
+                        .readValue(new ClassPathResource("http/response-specs/nso.esnet-lsp.post.response-specs.json").getFile(), NsoEsnetLspYangPatchResponseSpec[].class);
 
 
                 for (NsoLSP lsp : nsoServicesWrapper.getLspInstances()) {
@@ -413,7 +413,7 @@ public class NsoHttpServer {
 
             // read in the JSON that specifies how we respond to a particular (device, args) tuple
             ResponseSpec[] responseSpecs = new ObjectMapper()
-                    .readValue(new ClassPathResource("http/response-specs.json").getFile(), ResponseSpec[].class);
+                    .readValue(new ClassPathResource("http/nso/status/response-specs.json").getFile(), ResponseSpec[].class);
 
             // walk through the response specifications
             for (ResponseSpec responseSpec : responseSpecs) {

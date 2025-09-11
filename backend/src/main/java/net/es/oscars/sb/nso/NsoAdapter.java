@@ -28,7 +28,6 @@ import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.sb.SouthboundTaskResult;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
-import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.*;
@@ -36,9 +35,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static net.es.oscars.resv.svc.ResvLibrary.validateServiceId;
-import static net.es.topo.common.devel.DevelUtils.dumpDebug;
 
 @Component
 @Slf4j
@@ -103,15 +102,14 @@ public class NsoAdapter {
         boolean shouldWriteHistory = false;
 
         if (commandType.equals(CommandType.BUILD) || commandType.equals(CommandType.DISMANTLE) || commandType.equals(CommandType.REDEPLOY)) {
+            log.info("generating NSO payload for "+conn.getConnectionId()+" "+commandType);
             try {
                 switch (commandType) {
                     case BUILD -> {
                         NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
-                        log.info("got services");
                         commands = oscarsServices.asCliCommands();
-                        log.info("\n"+commands);
-                        dumpDebug(conn.getConnectionId()+" BUILD services", oscarsServices);
-                        dryRun = nsoProxy.buildDryRun(oscarsServices);
+                        log.info("BUILD cli commands\n"+commands);
+                        dryRun = nsoProxy.buildDryRun(oscarsServices, conn.getConnectionId());
                         nsoProxy.buildServices(oscarsServices, conn.getConnectionId());
                         newDepState = DeploymentState.DEPLOYED;
 
@@ -119,7 +117,7 @@ public class NsoAdapter {
                     case DISMANTLE ->  {
                         NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
                         commands = dismantle.asCliCommands();
-                        log.info("\n"+commands);
+                        log.info("DISMANTLE cli \n"+commands);
                         dryRun = nsoProxy.dismantleDryRun(dismantle);
                         nsoProxy.deleteServices(dismantle);
                         newDepState = DeploymentState.UNDEPLOYED;
@@ -127,7 +125,6 @@ public class NsoAdapter {
                     }
                     case REDEPLOY ->  {
                         NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
-                        dumpDebug(conn.getConnectionId()+" REDEPLOY services", oscarsServices);
                         nsoProxy.redeployServices(oscarsServices, conn.getConnectionId());
                         newDepState = DeploymentState.DEPLOYED;
                     }
@@ -201,16 +198,14 @@ public class NsoAdapter {
             pathType = NsoLspPathType.LOOSE;
         }
 
-
         NsoLSP.MplsPath mplsPath = NsoLSP.MplsPath.builder()
                 .pathType(pathType)
                 .holdPriority(holdSetupPriority)
                 .setupPriority(holdSetupPriority)
                 .build();
         if (!isProtect) {
-            List<NsoLSP.Hop> nsoHops = new ArrayList<>();
-            int i = 1;
-            List<MplsHop> mplsHops;
+            Set<NsoLSP.Hop> nsoHops = new HashSet<>();
+            Set<MplsHop> mplsHops;
             try {
                 mplsHops = miscHelper.mplsHops(hops);
             } catch (PSSException e) {
@@ -220,9 +215,8 @@ public class NsoAdapter {
             for (MplsHop hop : mplsHops) {
                 nsoHops.add(NsoLSP.Hop.builder()
                         .ipv4(hop.getAddress())
-                        .number(i)
+                        .number(hop.getOrder())
                         .build());
-                i++;
             }
             mplsPath.setHop(nsoHops);
         }
@@ -307,7 +301,7 @@ public class NsoAdapter {
     }
 
     public NsoServicesWrapper nsoOscarsServices(Connection conn) throws NsoGenException {
-        log.info("NSO services wrapper");
+        log.info("making NSO services wrapper for "+conn.getConnectionId());
         Map<LspMapKey, String> lspNames = new HashMap<>();
         List<NsoLSP> lspInstances = new ArrayList<>();
 
@@ -371,8 +365,8 @@ public class NsoAdapter {
             if (!vplsDeviceMap.containsKey(deviceUrn)) {
                 NsoVPLS.DeviceContainer dc = NsoVPLS.DeviceContainer.builder()
                         .device(deviceUrn)
-                        .endpoint(new ArrayList<>())
-                        .virtualIfces(new ArrayList<>())
+                        .endpoint(new HashSet<>())
+                        .virtualIfces(new HashSet<>())
                         .build();
                 vplsDeviceMap.put(deviceUrn, dc);
             }
@@ -415,7 +409,7 @@ public class NsoAdapter {
                     .build();
             dc.getEndpoint().add(endpoint);
         }
-        List<NsoVPLS.SDP> sdps = new ArrayList<>();
+        HashSet<NsoVPLS.SDP> sdps = new HashSet<>();
         List<NsoSdpId> sdpIds = nsoSdpIdDAO.findNsoSdpIdByConnectionId(conn.getConnectionId());
         List<NsoSdpVcId> sdpVcIds = nsoSdpVcIdDAO.findNsoSdpVcIdByConnectionId(conn.getConnectionId());
         for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
@@ -543,14 +537,14 @@ public class NsoAdapter {
                 .routingDomain(nsoProperties.getRoutingDomain())
                 .vcId(vcid)
                 .sdp(sdps)
-                .device(vplsDeviceMap.values().stream().toList())
+                .device(new HashSet<>(vplsDeviceMap.values()))
                 .build();
 
         List<NsoVPLS> vplsInstances = new ArrayList<>();
         vplsInstances.add(vpls);
-        DevelUtils.dumpDebug(vpls.getName(), vpls);
+        NsoProxy.logNsoObject(vpls);
         for (NsoLSP lsp : lspInstances) {
-            DevelUtils.dumpDebug(lsp.instanceKey(), lsp);
+            NsoProxy.logNsoObject(lsp);
         }
         return NsoServicesWrapper.builder()
                 .lspInstances(lspInstances)

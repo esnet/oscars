@@ -169,6 +169,10 @@ public class TopoPopulator {
                     .build();
             devices.put(d.getUrn(), d);
             for (OscarsOnePort discPort : discDevice.getPorts()) {
+                // avoid NPEs
+                if (discPort == null) {
+                    continue;
+                }
                 // If this is an 'untagged' port, and features.untagged-ports is disabled, skip.
                 // If this is a QINQ port, and features.qinq-ports is disabled, skip.
                 if (
