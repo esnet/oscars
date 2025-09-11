@@ -64,13 +64,12 @@ backend:profile:
     - *docker_login
     - *wharf_login
     - mkdir -p ./backend/profiling
-    - delay 30
   after_script:
     - ls -la ./backend/profiling
     - docker compose down
     - *wharf_logout
   services: 
-    - docker:dind
+    - docker:28.2.2-dind
   needs: ["backend:build_image"]
   rules:
     - if: $CI_COMMIT_BRANCH != $RELEASE_BRANCH
@@ -79,7 +78,7 @@ backend:profile:
       - ./backend/profiling
   variables:
     CONTEXT_PATH: ./
-    DELAY_MIN: "0m"
+    DELAY_MIN: "30s"
     DURATION_MIN: "10m"
     TARGET_HOST: "oscars-backend:1099"
     FILENAME: "profiling/${CI_COMMIT_BRANCH}_${CI_PIPELINE_CREATED_AT}_oscars_backend_profile.jfr"
