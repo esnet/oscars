@@ -1,4 +1,4 @@
-image: wharf.es.net/dockerhub-proxy/library/docker:24.0.6
+image: wharf.es.net/dockerhub-proxy/library/docker:28.2.2-dind
 
 variables:
   DOCKER_DRIVER: overlay2
@@ -15,6 +15,7 @@ variables:
 stages:
   - build
   - test
+  - profile
   - push
 
 .wharf_logout: &wharf_logout |-
@@ -55,9 +56,73 @@ backend:test:
   script:
     - DOCKER_BUILDKIT=1 docker build --progress=plain --target=test --no-cache -f $DOCKERFILE_PATH $CONTEXT_PATH
 
+# MUST run in stand-alone, with in-memory DB only. We only want to profile
+# OSCARS backend, not dependencies.
+backend:profile:
+  stage: profile
+  before_script:
+    - *docker_login
+    - *wharf_login
+    - if docker network ls --format "{{.Name}}" | grep -q "^oscars-local-net$"; then docker network rm oscars-local-net; fi;
+    - mkdir -p ./backend/profiling
+  after_script:
+    - ls -la ./backend/profiling
+    - docker compose down
+    - *wharf_logout
+  services: 
+    - docker:28.2.2-dind
+  needs: ["backend:build_image"]
+  rules:
+    - if: $CI_COMMIT_BRANCH != $RELEASE_BRANCH
+  artifacts:
+    paths:
+      - ./backend/profiling
+  variables:
+    CONTEXT_PATH: ./
+    DELAY_MIN: "30s"
+    DURATION_MIN: "10m"
+    TARGET_HOST: "oscars-backend:1099"
+    FILENAME: "profiling/${CI_COMMIT_BRANCH}_${CI_PIPELINE_CREATED_AT}_oscars_backend_profile.jfr"
+
+    DOCKER_DRIVER: overlay2
+    DOCKER_BUILDKIT: 1
+    # DOCKER_HOST: tcp://docker:2375 # Connect to the DinD service
+    # DOCKER_TLS_CERTDIR: "" # Disable TLS for simplicity in this example
+
+    SPRING_PROFILES_ACTIVE: test
+    HOSTNAME: oscars-backend
+    JAVA_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201 \n
+      -Dcom.sun.management.jmxremote \n
+      -Dcom.sun.management.jmxremote.port=1099 \n
+      -Dcom.sun.management.jmxremote.rmi.port=1099 \n
+      -Djava.rmi.server.hostname=oscars-backend \n
+      -Dcom.sun.management.jmxremote.local.only=false \n
+      -Dcom.sun.management.jmxremote.authenticate=false \n
+      -Dcom.sun.management.jmxremote.ssl=false"
+    MAVEN_OPTS: ""
+    OSCARS_BACKEND_WEB_PORT: 8201
+    SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/oscars
+    POSTGRES_USER: no_user
+    POSTGRES_PASSWORD: no_password
+    ESDB_API_KEY: no_esdb_api_key
+    ESDB_URI: http://localhost:8080/esdb_api/v1
+    ESDB_GRAPHQL_URI: http://localhost:8080/esdb_api/graphql
+    TOPO_OSCARS_URL: http://localhost:8080/oscars-one/topology
+    NSO_SYNC: "disabled"
+    NSO_USERNAME: no_user
+    NSO_PASSWORD: no_password
+    NSO_URI: http://localhost:8080/restconf
+
+  script:
+    - echo "Checking Docker daemon status..."
+    - docker info # This command will fail if DinD is not ready
+    - echo "Docker daemon is available. Proceeding with scripts..."
+    - chmod -R a+rw ./backend/profiling
+    - docker compose --progress=plain -f docker-compose.profiling.yml up oscars-backend-profile
+    - if [ ! -f "./backend/${FILENAME}" ]; then echo "Could NOT find generated recording data at ./backend/${FILENAME}"; exit 1; fi;
 .backend:push:
   stage: push
-  needs: ["backend:scan", "backend:test"]
+  needs: ["backend:scan", "backend:test", "backend:profile"]
   before_script:
     - *docker_login
     - *wharf_login

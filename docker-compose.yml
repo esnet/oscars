@@ -1,4 +1,3 @@
-version: '2.4'
 networks:
   topo-net:
     name: topo-net
@@ -7,25 +6,37 @@ networks:
 services:
   oscars-backend:
     container_name: oscars-nostack-backend
+    hostname: oscars-backend
     networks:
       - topo-net
     build:
       context: ./
       args:
+        HOSTNAME: ${HOSTNAME:-oscars-backend.ocd-stack.orb.local}
         JAVA_OPTS: "-XX:UseSVE=0"
         MAVEN_OPTS: "-XX:UseSVE=0"
       dockerfile: ./deploy/devel/backend.dockerfile
-    image: oscars-backend-image:latest
     depends_on:
       oscars-db:
         condition: service_healthy
     ports:
       - "${OSCARS_BACKEND_WEB_PORT:-8201}:${OSCARS_BACKEND_WEB_PORT:-8201}"
-      - "9201:9201"
+      - "9201:9201" # Debugger port
+      - "1099:1099" # profiler port
       - "8200:8200"
     environment:
-      JAVA_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
-      MAVEN_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
+      HOSTNAME: ${HOSTNAME:-oscars-backend.ocd-stack.orb.local}
+      JAVA_OPTS: >
+        -XX:UseSVE=0
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.port=1099
+        -Dcom.sun.management.jmxremote.rmi.port=1099
+        -Djava.rmi.server.hostname="${HOSTNAME}"
+        -Dcom.sun.management.jmxremote.local.only=false
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+      MAVEN_OPTS: ${MAVEN_OPTS}:--XX:UseSVE=0
       OSCARS_BACKEND_WEB_PORT: ${OSCARS_BACKEND_WEB_PORT:-8201}
       SPRING_DATASOURCE_URL: jdbc:postgresql://oscars-db:5432/${POSTGRES_DB:-oscars}
       POSTGRES_USER: ${POSTGRES_USER:-oscars}
@@ -44,13 +55,12 @@ services:
       timeout: 10s
       retries: 10
   oscars-backend-test:
-    image: "oscars-backend-image"
     build:
       context: ./
-      args:
-        JAVA_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
-        MAVEN_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
       dockerfile: ./deploy/devel/backend.dockerfile
+      args:
+        JAVA_OPTS: "-Xms512m -Xmx1024m -XX:UseSVE=0"
+        MAVEN_OPTS: "-Xms512m -Xmx1024m -XX:UseSVE=0"
       target: test
     environment:
       JAVA_OPTS: "-XX:UseSVE=0"
@@ -67,6 +77,29 @@ services:
       NSO_URI: ${NSO_URI}
     depends_on:
       - oscars-backend
+  oscars-backend-profile:
+    container_name: oscars-backend-profile
+    depends_on:
+      oscars-backend:
+        condition: service_healthy
+    build:
+      context: ./
+      dockerfile: ./deploy/devel/profile.dockerfile
+    environment:
+      DELAY_MIN: "1m"
+      DURATION_MIN: "1m"
+      TARGET_HOST: "oscars-backend:1099"
+    links:
+      - "oscars-backend:1099"
+  oscars-load-test:
+    depends_on:
+      oscars-backend:
+        condition: service_healthy
+    build: 
+      context: ./
+      dockerfile: ./deploy/devel/load-test.dockerfile
+    links:
+      - "oscars-backend:1099"
   oscars-db:
     image: "wharf.es.net/dockerhub-proxy/library/postgres:14.1-alpine"
     container_name:   oscars-nostack-db
