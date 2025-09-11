@@ -11,20 +11,25 @@ WORKDIR /build/backend
 COPY backend/.remoteRepositoryFilters .remoteRepositoryFilters
 COPY backend/pom.xml pom.xml
 
+# layer that downloads and resolves stuff from maven (including maven's own plugins and their dependencies)
+# this has goals `resolve-plugins` and `go-offline`
 RUN --mount=type=cache,target=/root/.m2 mvn  \
     org.apache.maven.plugins:maven-dependency-plugin:3.8.1:resolve-plugins  \
     org.apache.maven.plugins:maven-dependency-plugin:3.8.1:go-offline  \
     -Daether.remoteRepositoryFilter.groupId=true  \
     -Daether.remoteRepositoryFilter.groupId.basedir=/build/backend/.remoteRepositoryFilters
 
+# another layer that downloads and resolves stuff from maven with a goal of `package`
 RUN --mount=type=cache,target=/root/.m2 mvn  \
     package --fail-never  \
     -Daether.remoteRepositoryFilter.groupId=true  \
     -Daether.remoteRepositoryFilter.groupId.basedir=/build/backend/.remoteRepositoryFilters
 
-# build and package spring app
+# now finally build and package spring app
 COPY backend/src ./src
 COPY backend/config ./config
+
+# layers that actually compile and package the project
 RUN --mount=type=cache,target=/root/.m2 mvn compile --offline
 RUN --mount=type=cache,target=/root/.m2 mvn package -DskipTests --offline
 

@@ -59,8 +59,8 @@ services:
       context: ./
       dockerfile: ./deploy/devel/backend.dockerfile
       args:
-        JAVA_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
-        MAVEN_OPTS: "-Xms512m -Xmx1024 -XX:UseSVE=0"
+        JAVA_OPTS: "-Xms512m -Xmx1024m -XX:UseSVE=0"
+        MAVEN_OPTS: "-Xms512m -Xmx1024m -XX:UseSVE=0"
       target: test
     environment:
       JAVA_OPTS: "-XX:UseSVE=0"

@@ -88,7 +88,6 @@ backend:profile:
     DOCKER_BUILDKIT: 1
     # DOCKER_HOST: tcp://docker:2375 # Connect to the DinD service
     # DOCKER_TLS_CERTDIR: "" # Disable TLS for simplicity in this example
-    CONTEXT_PATH: ./
 
     SPRING_PROFILES_ACTIVE: test
     HOSTNAME: oscars-backend
