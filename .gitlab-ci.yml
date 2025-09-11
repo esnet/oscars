@@ -75,8 +75,8 @@ backend:profile:
       - backend/profiling
   variables:
     CONTEXT_PATH: ./
-    DELAY_MIN: "1m"
-    DURATION_MIN: "1m"
+    DELAY_MIN: "0m"
+    DURATION_MIN: "10m"
     TARGET_HOST: "oscars-backend:1099"
     FILENAME: "profiling/${CI_COMMIT_BRANCH}_${CI_PIPELINE_CREATED_AT}_oscars_backend_profile.jfr"
 
