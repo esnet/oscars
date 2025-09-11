@@ -113,7 +113,7 @@ backend:profile:
     NSO_URI: http://localhost:8080/restconf
 
   script:
-    - docker compose --progress=plain -f docker-compose.profiling.yml up -d oscars-db oscars-backend oscars-backend-profile
+    - docker compose --progress=plain -f docker-compose.profiling.yml up -d oscars-backend-profile
     - docker compose exec oscars-backend ls -la /app/profiling
     - docker compose cp oscars-backend:/app/profiling ./backend/profiling
     
