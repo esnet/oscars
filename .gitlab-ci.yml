@@ -72,7 +72,7 @@ backend:profile:
     - if: $CI_COMMIT_BRANCH != $RELEASE_BRANCH
   artifacts:
     paths:
-      - backend/profiling
+      - ./backend/profiling
   variables:
     CONTEXT_PATH: ./
     DELAY_MIN: "0m"
@@ -114,7 +114,7 @@ backend:profile:
     - mkdir -p backend/profiling
     - docker compose --version
     - ls -la
-    - docker compose --progress=plain -f docker-compose.profiling.yml up oscars-backend-profile
+    - docker compose --progress=plain -f docker-compose.profiling.yml up oscars-db oscars-backend oscars-backend-profile
     # - docker network create
     #   --attachable
     #   --internal
