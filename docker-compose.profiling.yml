@@ -1,7 +1,6 @@
 networks:
   oscars-local-net:
     name: oscars-local-net
-    label: oscars-local-net
     driver: bridge
 services:
   oscars-db:
