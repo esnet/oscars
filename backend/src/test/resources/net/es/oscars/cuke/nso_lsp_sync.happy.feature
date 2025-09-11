@@ -31,7 +31,7 @@ Feature: synchronize NSO service state to OSCARS state, LSP (Happy Path)
     Given The NSO LSP service state has 536 instances
 
     # Add LSPs
-    Given I had added LSP instance name "C2KR-WRK-losa-cr6" with device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+    Given I had added LSP instance name "C2KR-WRK-losa-cr6" with device "wash-cr6" from "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json"
 
     When I evaluate LSP with name "C2KR-WRK-losa-cr6" and device "wash-cr6"
     Then The list of LSP service instances marked "add" has a count of 1
@@ -43,7 +43,7 @@ Feature: synchronize NSO service state to OSCARS state, LSP (Happy Path)
     Given The NSO LSP service state has 536 instances
 
     # Redeploy LSPs
-    Given I had changed LSP instance with name "C7WG-PRT-sunn-cr6" and device "wash-cr6" to name "C7WG-PRT-sunn-cr6" and device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c7wg.json"
+    Given I had changed LSP instance with name "C7WG-PRT-sunn-cr6" and device "wash-cr6" to name "C7WG-PRT-sunn-cr6" and device "wash-cr6" from "http/nso/lsp/nso.esnet-lsp.for-oscars-c7wg.json"
 
     When I evaluate LSP with name "C7WG-PRT-sunn-cr6" and device "wash-cr6"
     Then The list of LSP service instances marked "redeploy" has a count of 1
@@ -53,11 +53,11 @@ Feature: synchronize NSO service state to OSCARS state, LSP (Happy Path)
     Given I have retrieved the NSO LSPs
     Given The NSO LSP service state is loaded
 
-    Given I had changed LSP instance with name "C7WG-PRT-sunn-cr6" and device "wash-cr6" to name "C7WG-PRT-sunn-cr6" and device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c7wg-meta-diff.json"
+    Given I had changed LSP instance with name "C7WG-PRT-sunn-cr6" and device "wash-cr6" to name "C7WG-PRT-sunn-cr6" and device "wash-cr6" from "http/nso/lsp/nso.esnet-lsp.for-oscars-c7wg-meta-diff.json"
     When I evaluate LSP with name "C7WG-PRT-sunn-cr6" and device "wash-cr6"
     Then The list of LSP service instances marked "redeploy" has a count of 0
 
-    Given I had changed LSP instance with name "C2KR-WRK-losa-cr6" and device "wash-cr6" to name "C2KR-WRK-losa-cr6" and device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr-hop-reorder.json"
+    Given I had changed LSP instance with name "C2KR-WRK-losa-cr6" and device "wash-cr6" to name "C2KR-WRK-losa-cr6" and device "wash-cr6" from "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr-hop-reorder.json"
     When I evaluate LSP with name "C2KR-WRK-losa-cr6" and device "wash-cr6"
     Then The list of LSP service instances marked "redeploy" has a count of 0
 
@@ -71,9 +71,9 @@ Feature: synchronize NSO service state to OSCARS state, LSP (Happy Path)
 
     # Add LSPs
     # ... Note, VPLS "OSCARS-C2KR" as endpoint "A"
-    Given I had added LSP instance name "C2KR-WRK-losa-cr6" with device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+    Given I had added LSP instance name "C2KR-WRK-losa-cr6" with device "wash-cr6" from "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json"
     # ... Note, VPLS "OSCARS-C2KR" as endpoint "Z"
-    Given I had added LSP instance name "C2KR-WRK-wash-cr6" with device "losa-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+    Given I had added LSP instance name "C2KR-WRK-wash-cr6" with device "losa-cr6" from "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json"
 
     When I perform an LSP synchronization
 
@@ -118,9 +118,9 @@ Feature: synchronize NSO service state to OSCARS state, LSP (Happy Path)
 
     # Add LSPs
     # ... Note, VPLS "OSCARS-C2KR" as endpoint "A"
-    Given I had added LSP instance name "C2KR-WRK-losa-cr6" with device "wash-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+    Given I had added LSP instance name "C2KR-WRK-losa-cr6" with device "wash-cr6" from "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json"
     # ... Note, VPLS "OSCARS-C2KR" as endpoint "Z"
-    Given I had added LSP instance name "C2KR-WRK-wash-cr6" with device "losa-cr6" from "http/nso.esnet-lsp.for-oscars-c2kr.json"
+    Given I had added LSP instance name "C2KR-WRK-wash-cr6" with device "losa-cr6" from "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json"
 
     When I perform an LSP synchronization
 

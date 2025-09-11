@@ -17,12 +17,12 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Given The VPLS instance "OSCARS-C2KR" is present in the state manager NSO VPLS service state
 
     # Add an LSP to a VPLS
-    When The LSP with name "C2KR-PRT-losa-cr6" and device "wash-cr6" from JSON file "http/nso.esnet-lsp.for-oscars-c2kr.json" is added
-    When The LSP with name "C2KR-PRT-wash-cr6" and device "losa-cr6" from JSON file "http/nso.esnet-lsp.for-oscars-c2kr.json" is added
-    When The LSP with name "C2KR-WRK-losa-cr6" and device "wash-cr6" from JSON file "http/nso.esnet-lsp.for-oscars-c2kr.json" is added
-    When The LSP with name "C2KR-WRK-wash-cr6" and device "losa-cr6" from JSON file "http/nso.esnet-lsp.for-oscars-c2kr.json" is added
+    When The LSP with name "C2KR-PRT-losa-cr6" and device "wash-cr6" from JSON file "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json" is added
+    When The LSP with name "C2KR-PRT-wash-cr6" and device "losa-cr6" from JSON file "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json" is added
+    When The LSP with name "C2KR-WRK-losa-cr6" and device "wash-cr6" from JSON file "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json" is added
+    When The LSP with name "C2KR-WRK-wash-cr6" and device "losa-cr6" from JSON file "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json" is added
 
-    When The VPLS instance "OSCARS-C2KR" from JSON file "http/nso.esnet-vpls.for-oscars-c2kr.same-az-lsp.json" is put in the state manager
+    When The VPLS instance "OSCARS-C2KR" from JSON file "http/nso/vpls/nso.esnet-vpls.for-oscars-c2kr.same-az-lsp.json" is put in the state manager
     When The state manager validates
     Then The state manager is not valid
 
@@ -40,9 +40,9 @@ Feature: OSCARS to NSO state manager. This feature pre-validates and queues VPLS
     Given The VPLS instance "OSCARS-C2KR" is present in the state manager NSO VPLS service state
 
     # Add an LSP to a VPLS
-    When The LSP with name "C2KR-PRT-losa-cr6" and device "wash-cr6" from JSON file "http/nso.esnet-lsp.for-oscars-c2kr.json" is added
-    When The LSP with name "C2KR-PRT-wash-cr6" and device "losa-cr6" from JSON file "http/nso.esnet-lsp.for-oscars-c2kr.json" is added
-    When The LSP with name "C2KR-WRK-losa-cr6" and device "wash-cr6" from JSON file "http/nso.esnet-lsp.for-oscars-c2kr.json" is added
+    When The LSP with name "C2KR-PRT-losa-cr6" and device "wash-cr6" from JSON file "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json" is added
+    When The LSP with name "C2KR-PRT-wash-cr6" and device "losa-cr6" from JSON file "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json" is added
+    When The LSP with name "C2KR-WRK-losa-cr6" and device "wash-cr6" from JSON file "http/nso/lsp/nso.esnet-lsp.for-oscars-c2kr.json" is added
 
     When The state manager validates
     Then The state manager is not valid

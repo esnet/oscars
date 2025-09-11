@@ -1,6 +1,6 @@
 [
   {
-    "data": "http/nso.esnet-vpls.connections-active.json",
+    "data": "http/nso/vpls/nso.esnet-vpls.connections-active.json",
     "status": 200
   }
 ]

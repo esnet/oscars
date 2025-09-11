@@ -10,7 +10,7 @@ Feature: scheduled task to synchronize VPLS and LSP to NSO state
 
     # AAAA should NOT exist, mark as add
     Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
-    Given I had added VPLS instance "AAAA" from "http/nso.esnet-vpls.aaaa.json"
+    Given I had added VPLS instance "AAAA" from "http/nso/vpls/nso.esnet-vpls.aaaa.json"
     When I evaluate VPLS "AAAA"
     Then The list of VPLS service instances marked "add" has a count of 1
     Then VPLS "AAAA" is marked as "add"

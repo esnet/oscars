@@ -1,6 +1,6 @@
 [
   {
-    "data": "http/nso.esnet-lsp.json",
+    "data": "http/nso/lsp/nso.esnet-lsp.json",
     "status": 200
   }
 ]
