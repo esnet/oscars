@@ -63,8 +63,10 @@ backend:profile:
   before_script:
     - *docker_login
     - *wharf_login
+    - - mkdir -p backend/profiling
   after_script:
     - *wharf_logout
+    - - docker compose down
   services: 
     - docker:dind
   needs: ["backend:build_image"]
@@ -111,10 +113,8 @@ backend:profile:
     NSO_URI: http://localhost:8080/restconf
 
   script:
-    - mkdir -p backend/profiling
-    - docker compose --version
-    - ls -la
-    - docker compose --progress=plain -f docker-compose.profiling.yml up oscars-db oscars-backend oscars-backend-profile
+    - docker compose --progress=plain -f docker-compose.profiling.yml up -d oscars-db oscars-backend oscars-backend-profile
+    
     # - docker network create
     #   --attachable
     #   --internal
