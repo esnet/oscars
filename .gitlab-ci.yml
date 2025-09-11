@@ -63,7 +63,7 @@ backend:profile:
   before_script:
     - *docker_login
     - *wharf_login
-    - - mkdir -p backend/profiling
+    - mkdir -p ./backend/profiling
   after_script:
     - *wharf_logout
     - - docker compose down
