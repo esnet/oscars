@@ -63,7 +63,7 @@ backend:profile:
   before_script:
     - *docker_login
     - *wharf_login
-    - docker network rm oscars-local-net
+    - if docker network ls --format "{{.Name}}" | grep -q "^oscars-local-net$"; then docker network rm oscars-local-net; fi;
     - mkdir -p ./backend/profiling
   after_script:
     - ls -la ./backend/profiling
