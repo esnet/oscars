@@ -2,7 +2,8 @@ networks:
   oscars-local-net:
     name: oscars-local-net
     driver: bridge
-
+volumes:
+  oscars-backend-volume:
 services:
   oscars-db:
     image: "wharf.es.net/dockerhub-proxy/library/postgres:14.1-alpine"
@@ -55,9 +56,7 @@ services:
       - "9201:9201" # Debugger port
       - "1099:1099" # profiler port
     volumes:
-      - type: bind
-        source: ./backend/profiling
-        target: /app/profiling
+      - oscars-backend-volume:/app/profiling
     healthcheck:
       test: nc -z localhost 8201 || exit -1
       start_period: 15s

@@ -48,7 +48,7 @@ USER oscars
 # for development we copy config
 WORKDIR /app
 RUN mkdir -p /app/log
-RUN mkdir -p /app/profiling
+RUN mkdir -p -m 760 /app/profiling
 
 COPY ./backend/config ./config
 COPY --from=builder /build/backend/dependencies/ ./
