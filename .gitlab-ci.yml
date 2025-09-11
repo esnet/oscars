@@ -64,6 +64,7 @@ backend:profile:
     - *docker_login
     - *wharf_login
     - mkdir -p ./backend/profiling
+    - delay 30
   after_script:
     - ls -la ./backend/profiling
     - docker compose down
@@ -114,12 +115,14 @@ backend:profile:
     NSO_URI: http://localhost:8080/restconf
 
   script:
+    - echo "Checking Docker daemon status..."
+    - docker info # This command will fail if DinD is not ready
+    - echo "Docker daemon is available. Proceeding with scripts..."
     - docker compose --progress=plain -f docker-compose.profiling.yml up oscars-backend-profile
 .backend:push:
   stage: push
   needs: ["backend:scan", "backend:test", "backend:profile"]
   before_script:
-    - sleep 30
     - *docker_login
     - *wharf_login
   after_script:
