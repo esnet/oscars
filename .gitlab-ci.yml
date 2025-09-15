@@ -144,7 +144,7 @@ backendend:loadtest:
     - echo "Checking Docker daemon status..."
     - docker info # This command will fail if DinD is not ready
     - echo "Docker daemon is available. Proceeding with scripts..."
-    - docker compose --progress=plain -f docker-compose.loadtesting.yml up oscars-load-test
+    - docker compose --progress=plain -f docker-compose.profiling.yml up oscars-load-test
 
 .backend:push:
   stage: push
