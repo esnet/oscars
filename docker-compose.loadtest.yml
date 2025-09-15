@@ -1,13 +1,13 @@
 networks:
-  oscars-local-net:
-    name: oscars-local-net
+  oscars-loadtest-net:
+    name: oscars-loadtest-net
     driver: bridge
 services:
   oscars-db:
     image: "wharf.es.net/dockerhub-proxy/library/postgres:14.1-alpine"
     container_name:   oscars-nostack-db
     networks:
-      - oscars-local-net
+      - oscars-loadtest-net
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-oscars}
       POSTGRES_USER: ${POSTGRES_USER:-oscars}
@@ -21,7 +21,7 @@ services:
     container_name: oscars-nostack-profiler-backend
     hostname: oscars-backend
     networks:
-      - oscars-local-net
+      - oscars-loadtest-net
     build:
       context: ./
       args:
@@ -82,5 +82,4 @@ services:
     links:
       - "oscars-backend:1099"
     networks:
-      - oscars-local-net
-      
+      - oscars-loadtest-net
