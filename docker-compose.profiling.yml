@@ -90,3 +90,25 @@ services:
       - "oscars-backend:8201"
     networks:
       - oscars-local-net
+
+  oscars-load-test:
+    depends_on:
+      oscars-backend:
+        condition: service_healthy
+    build: 
+      context: ./
+      args:
+        TARGET_HOST: oscars-backend:1099
+        FILENAME: load-testing-results.csv
+        WEB_REPORT_DIR: load-testing
+      dockerfile: ./deploy/devel/load-test.dockerfile
+    environment:
+      TARGET_HOST: oscars-backend:1099
+      FILENAME: load-testing-results.csv
+      WEB_REPORT_DIR: load-testing-web
+    volumes:
+      - ./backend/load-testing:/app/load-testing:rw
+    links:
+      - "oscars-backend:1099"
+    networks:
+      - oscars-local-net
