@@ -16,6 +16,7 @@ stages:
   - build
   - test
   - profile
+  - loadtest
   - push
 
 .wharf_logout: &wharf_logout |-
@@ -63,7 +64,7 @@ backend:profile:
   before_script:
     - *docker_login
     - *wharf_login
-    - if docker network ls --format "{{.Name}}" | grep -q "^oscars-local-net$"; then docker network rm oscars-local-net; fi;
+    # - if docker network ls --format "{{.Name}}" | grep -q "^oscars-local-net$"; then docker network rm oscars-local-net; fi;
     - mkdir -p ./backend/profiling
   after_script:
     - ls -la ./backend/profiling
@@ -71,7 +72,7 @@ backend:profile:
     - *wharf_logout
   services: 
     - docker:28.2.2-dind
-  needs: ["backend:build_image"]
+  needs: ["backend:build_image", "backend:test"]
   rules:
     - if: $CI_COMMIT_BRANCH != $RELEASE_BRANCH
   artifacts:
@@ -120,6 +121,31 @@ backend:profile:
     - chmod -R a+rw ./backend/profiling
     - docker compose --progress=plain -f docker-compose.profiling.yml up oscars-backend-profile
     - if [ ! -f "./backend/${FILENAME}" ]; then echo "Could NOT find generated recording data at ./backend/${FILENAME}"; exit 1; fi;
+backendend:loadtest:
+  stage: loadtest
+  before_script:
+    - *docker_login
+    - *wharf_login
+    # - if docker network ls --format "{{.Name}}" | grep -q "^oscars-local-net$"; then docker network rm oscars-local-net; fi;
+    - mkdir -p ./backend/load-testing
+  after_script:
+    - ls -la ./backend/load-testing
+    - docker compose down
+    - *wharf_logout
+  services: 
+    - docker:28.2.2-dind
+  needs: ["backend:build_image", "backend:test", "backend:profile"]
+  rules:
+    - if: $CI_COMMIT_BRANCH != $RELEASE_BRANCH
+  artifacts:
+    paths:
+      - ./backend/load-testing
+  script:
+    - echo "Checking Docker daemon status..."
+    - docker info # This command will fail if DinD is not ready
+    - echo "Docker daemon is available. Proceeding with scripts..."
+    - docker compose --progress=plain -f docker-compose.loadtest.yml up oscars-load-test
+
 .backend:push:
   stage: push
   needs: ["backend:scan", "backend:test", "backend:profile"]

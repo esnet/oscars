@@ -98,6 +98,10 @@ services:
     build: 
       context: ./
       dockerfile: ./deploy/devel/load-test.dockerfile
+    environment:
+      TARGET_HOST: oscars-backend:1099
+      FILENAME: load-testing-results.csv
+      WEB_REPORT_DIR: load-testing-web
     links:
       - "oscars-backend:1099"
   oscars-db:

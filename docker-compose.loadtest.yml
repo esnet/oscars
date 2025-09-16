@@ -1,13 +1,13 @@
 networks:
-  oscars-local-net:
-    name: oscars-local-net
+  oscars-loadtest-net:
+    name: oscars-loadtest-net
     driver: bridge
 services:
   oscars-db:
     image: "wharf.es.net/dockerhub-proxy/library/postgres:14.1-alpine"
     container_name:   oscars-nostack-db
     networks:
-      - oscars-local-net
+      - oscars-loadtest-net
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-oscars}
       POSTGRES_USER: ${POSTGRES_USER:-oscars}
@@ -21,7 +21,7 @@ services:
     container_name: oscars-nostack-profiler-backend
     hostname: oscars-backend
     networks:
-      - oscars-local-net
+      - oscars-loadtest-net
     build:
       context: ./
       args:
@@ -62,32 +62,24 @@ services:
       timeout: 10s
       retries: 10
 
-  oscars-backend-profile:
-    container_name: oscars-backend-profile
+  oscars-load-test:
     depends_on:
       oscars-backend:
         condition: service_healthy
-    build:
+    build: 
       context: ./
-      dockerfile: ./deploy/devel/profile.dockerfile
       args:
-        TARGET_HOST: "oscars-backend:1099"
-        FILENAME: "${FILENAME:-profiling/latest.recording.jfr}"
-    image: oscars-backend-image:latest
+        TARGET_HOST: oscars-backend:1099
+        FILENAME: load-testing-results.csv
+        WEB_REPORT_DIR: load-testing
+      dockerfile: ./deploy/devel/load-test.dockerfile
     environment:
-      SPRING_PROFILES_ACTIVE: "test"
-      SPRING_DATASOURCE_URL: "jdbc:hsqldb:mem:oscars_db;sql.syntax_pgs=true"
-      SPRING_DATASOURCE_USERNAME: "sa"
-      SPRING_DATASOURCE_PASSWORD: ""
-      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
-      TARGET_HOST: "oscars-backend:1099"
-      FILENAME: "${FILENAME:-profiling/latest.recording.jfr}"
-      DELAY_MIN: "0m"
-      DURATION_MIN: "1m"
-      OSCARS_BACKEND_WEB_PORT: 8201
+      TARGET_HOST: oscars-backend:1099
+      FILENAME: load-testing-results.csv
+      WEB_REPORT_DIR: load-testing-web
+    volumes:
+      - ./backend/load-testing:/app/load-testing:rw
     links:
       - "oscars-backend:1099"
-      - "oscars-backend:8201"
     networks:
-      - oscars-local-net
-      
+      - oscars-loadtest-net
