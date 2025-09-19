@@ -189,6 +189,61 @@ public class NsiProviderSteps extends CucumberSteps {
         assert world.getExceptions().size() == errorCount;
     }
 
+    @Given("A connection is not reserved yet")
+    public void A_connection_is_not_reserved_yet() {
+        // Write code here that turns the phrase above into concrete actions
+    }
+
+    @Given("A connection reservation state is {string}")
+    public void A_connection_reservation_state_is_reserve_checking(String expectedReservationState) {
+        // Write code here that turns the phrase above into concrete actions
+    }
+
+    @When("An NSI connection reserve is requested")
+    public void An_NSI_connection_reserve_is_requested() {
+        // Write code here that turns the phrase above into concrete actions
+    }
+
+    @When("The resources ARE available")
+    public void The_resources_ARE_available() {
+        // Write code here that turns the phrase above into concrete actions
+    }
+
+    @When("The resources ARE NOT available")
+    public void The_resources_ARE_NOT_available() {
+        // Write code here that turns the phrase above into concrete actions
+    }
+
+    @Then("The NSI mapping and connection object is created")
+    public void The_NSI_mapping_and_connection_object_is_created() {
+        // Write code here that turns the phrase above into concrete actions
+    }
+
+    @Then("The reservation state is now {string}")
+    public void The_reservation_state_is_now_reserve_held(String expectedReservationState) {
+        // Write code here that turns the phrase above into concrete actions
+    }
+
+    @Then("The resources are no longer available for something else")
+    public void The_resources_are_no_longer_available_for_something_else() {
+        // Write code here that turns the phrase above into concrete actions
+    }
+
+    @Then("The resources are available for something else")
+    public void The_resources_are_available_for_something_else() {
+        // Write code here that turns the phrase above into concrete actions
+    }
+
+    @Then("The reserveConfirmed message callback is triggered")
+    public void The_reserveConfirmed_message_callback_is_triggered() {
+        // Write code here that turns the phrase above into concrete actions
+    }
+
+    @Then("The reserveFailed message callback is triggered")
+    public void The_reserveFailed_message_callback_is_triggered() {
+        // Write code here that turns the phrase above into concrete actions
+    }
+
     private void loadTopology() throws Exception {
         String topoPath = "topo/esnet.json";
         Topology t = topoPopulator.loadTopology(topoPath);
