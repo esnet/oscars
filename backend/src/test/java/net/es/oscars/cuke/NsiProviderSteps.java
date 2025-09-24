@@ -2,11 +2,15 @@ package net.es.oscars.cuke;
 
 import static net.es.oscars.app.util.PrettyPrinter.prettyLog;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.junit.experimental.categories.Category;
@@ -19,7 +23,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StreamUtils;
-
+import org.w3c.dom.Document;
+import org.w3c.dom.DocumentType;
+import org.w3c.dom.Element;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
@@ -27,18 +33,30 @@ import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBElement;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Unmarshaller;
+import jakarta.xml.soap.MessageFactory;
+import jakarta.xml.soap.SOAPBody;
+import jakarta.xml.soap.SOAPMessage;
 import lombok.extern.slf4j.Slf4j;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReserveResponseType;
 import net.es.oscars.app.Startup;
 import net.es.oscars.ctg.UnitTests;
+import net.es.oscars.nsi.beans.NsiConnectionEventType;
+import net.es.oscars.nsi.ent.NsiConnectionEvent;
 import net.es.oscars.nsi.svc.NsiAsyncQueue;
 import net.es.oscars.nsi.svc.NsiConnectionEventService;
 import net.es.oscars.nsi.svc.NsiService;
+import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.soap.NsiProvider;
 import net.es.oscars.topo.TopoService;
 import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.pop.TopoPopulator;
 import net.es.oscars.topo.svc.TopologyStore;
+import net.es.oscars.resv.enums.Phase;
 
 @Slf4j
 @Category({UnitTests.class})
@@ -49,7 +67,7 @@ import net.es.oscars.topo.svc.TopologyStore;
                 NsiService.class,
                 NsiAsyncQueue.class,
                 NsiConnectionEventService.class,
-
+                
                 NsiProvider.class,
         }
 )
@@ -76,9 +94,15 @@ public class NsiProviderSteps extends CucumberSteps {
     private NsiService nsiService;
 
     @Autowired
+    private NsiConnectionEventService nsiConnectionEventService;
+
+    @Autowired
     private NsiAsyncQueue queue;
 
     private ResponseEntity<String> response;
+
+    private String testConnectionId;
+    private String nsiResponseString;
 
     @Before("@NsiProviderSteps")
     public void before() throws Exception {
@@ -90,6 +114,9 @@ public class NsiProviderSteps extends CucumberSteps {
             nsiService.setErrorCount(0);
             loadTopology();
             releaseAllConnections();
+
+            testConnectionId = "";
+            nsiResponseString = "";
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -99,7 +126,7 @@ public class NsiProviderSteps extends CucumberSteps {
     @Given("The NSI connection is queued for asynchronous reservation while not including a projectId")
     public void the_nsi_connection_is_queued_for_asynchronous_reservation_while_not_including_a_project_id() throws Throwable {
         try {
-            queueNsiConnection();
+            nsiResponseString = queueNsiConnection();
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -109,7 +136,7 @@ public class NsiProviderSteps extends CucumberSteps {
     @Given("The NSI connection is queued for asynchronous reservation while including a projectId")
     public void the_NSI_connection_is_queued_for_asynchronous_reservation_while_including_a_projectId() {
         try {
-            queueNsiConnection(true, "ABCD-1234-EFGH-5678");
+            nsiResponseString = queueNsiConnection(true, "ABCD-1234-EFGH-5678");
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -119,7 +146,7 @@ public class NsiProviderSteps extends CucumberSteps {
     @Given("The NSI connection is queued for asynchronous reservation while including a blank projectId")
     public void the_NSI_connection_is_queued_for_asynchronous_reservation_while_including_a_blank_projectId() {
         try {
-            queueNsiConnection(true, "");
+            nsiResponseString = queueNsiConnection(true, "");
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -189,19 +216,36 @@ public class NsiProviderSteps extends CucumberSteps {
         assert world.getExceptions().size() == errorCount;
     }
 
-    @Given("A connection is not reserved yet")
+    @Given("The connection is not reserved yet")
     public void A_connection_is_not_reserved_yet() {
-        // Write code here that turns the phrase above into concrete actions
+        assert connService.getHeld().isEmpty();
     }
 
-    @Given("A connection reservation state is {string}")
+    @Given("The connection reservation state is {string}")
     public void A_connection_reservation_state_is_reserve_checking(String expectedReservationState) {
-        // Write code here that turns the phrase above into concrete actions
+        try {
+            // Find the connection
+            List<NsiConnectionEvent> connEvents = nsiConnectionEventService.getEventRepo().findByNsiConnectionId(testConnectionId);
+            assert connEvents.size() != 0;
+            assert connEvents.getLast().getType().equals(NsiConnectionEventType.valueOf(expectedReservationState));
+            
+        } catch (Exception e) {
+            world.add(e);
+            log.error("NsiProviderSteps Error - {}", e);
+        }
     }
 
     @When("An NSI connection reserve is requested")
-    public void An_NSI_connection_reserve_is_requested() {
-        // Write code here that turns the phrase above into concrete actions
+    public void An_NSI_connection_reserve_is_requested() throws Exception {
+        nsiResponseString = queueNsiConnection(true, "ABCD-1234-EFGH-5678");
+        log.info("NSI RESPONSE was: {}", nsiResponseString);
+        ReserveResponseType reserveResponse = deserializeXmlReserveResponseType(nsiResponseString);
+
+        assert !reserveResponse.getConnectionId().isEmpty();
+
+        log.info("NSI connection ID is: " + reserveResponse.getConnectionId());
+        testConnectionId = reserveResponse.getConnectionId();
+
     }
 
     @When("The resources ARE available")
@@ -221,7 +265,14 @@ public class NsiProviderSteps extends CucumberSteps {
 
     @Then("The reservation state is now {string}")
     public void The_reservation_state_is_now_reserve_held(String expectedReservationState) {
-        // Write code here that turns the phrase above into concrete actions
+        
+        assert nsiConnectionEventService.getEventRepo().count() != 0;
+        List<NsiConnectionEvent> connectionEvents = nsiConnectionEventService.getEventRepo().findByNsiConnectionId(testConnectionId);
+        
+        assert connectionEvents.size() != 0;
+
+        NsiConnectionEvent connEv = connectionEvents.getLast();
+        assert connEv.getType().equals(NsiConnectionEventType.valueOf(expectedReservationState));
     }
 
     @Then("The resources are no longer available for something else")
@@ -251,11 +302,11 @@ public class NsiProviderSteps extends CucumberSteps {
         topoService.replaceTopology(t);
     }
 
-    private void queueNsiConnection() throws Exception {
-        queueNsiConnection(false, null);
+    private String queueNsiConnection() throws Exception {
+        return queueNsiConnection(false, null);
     }
 
-    private void queueNsiConnection(boolean withProjectId, String projectIdValue) throws Exception {
+    private String queueNsiConnection(boolean withProjectId, String projectIdValue) throws Exception {
         HttpMethod method = HttpMethod.POST;
         String xmlDataTemplate = "http/nsi.reserve.template.xml";
         Map<String, String> valuesMap = new HashMap<>();
@@ -296,9 +347,32 @@ public class NsiProviderSteps extends CucumberSteps {
         response = restTemplate.exchange(url, method, entity, String.class);
 
         assert response.getStatusCode() == HttpStatus.OK;
+        String body = response.getBody();
+
+        return body;
     }
 
     public void releaseAllConnections() {
         connService.getHeld().clear();
+    }
+
+    public ReserveResponseType deserializeXmlReserveResponseType(String xml) throws Exception {
+        SOAPMessage soapMessage = MessageFactory.newInstance().createMessage(null, new ByteArrayInputStream(xml.getBytes()));
+        SOAPBody soapBody = soapMessage.getSOAPBody();
+        Document doc = soapBody.extractContentAsDocument();
+        Element element = doc.getDocumentElement();
+
+        // Don't want to deal with marshallizing/unmarshalizing just to extract the ReserveResponse element from the Envelope...
+        // Grab what we need and set the connectionId accordingly.
+
+        ReserveResponseType reserveResponse = new ReserveResponseType();
+        reserveResponse.setConnectionId(
+            element.getElementsByTagName("connectionId")
+                .item(0)
+                .getFirstChild()
+                .getNodeValue()
+        );
+        
+        return reserveResponse;
     }
 }

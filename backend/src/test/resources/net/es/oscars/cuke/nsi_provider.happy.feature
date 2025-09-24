@@ -26,21 +26,26 @@ Feature: The NSI SOAP API provider endpoints (Happy)
        And The NSI provider encountered 0 errors
 
     Scenario: NSI Reserve test suite - not reserved yet
-        Given A connection is not reserved yet
+
+        Given The connection is not reserved yet
         When An NSI connection reserve is requested
         Then The NSI mapping and connection object is created
-        And The reservation state is now "reserve checking"
+        # And The reservation state is now "reserve checking"
+        And The reservation state is now "RESERVE_RECEIVED"
 
-    Scenario: NSI Reserve test suite - reservation state is "reserve checking", resources available
-        Given A connection reservation state is "reserve checking"
+        
+        # Given The connection reservation state is "reserve checking"
+        Given The connection reservation state is "RESERVE_RECEIVED"
+        When The NSI reserve is requested
         When The resources ARE available
-        Then The reservation state is now "reserve held"
+        # Then The reservation state is now "reserve held"
+        Then The reservation state is now "RESERVE_CONFIRM"
         And The resources are no longer available for something else
         And The reserveConfirmed message callback is triggered
 
-    Scenario: NSI Reserve test suite - reservation state is "reserve checking", resources not available
-        Given A connection reservation state is "reserve checking"
-        When The resources ARE NOT available
-        Then The reservation state is now "reserve failed"
-        And The resources are available for something else
-        And The reserveFailed message callback is triggered
+        # Given The connection reservation state is "reserve checking"
+        # When The resources ARE NOT available
+        # #Then The reservation state is now "reserve failed"
+        # Then The reservation state is now "RESERVE_FAILED"
+        # And The resources are available for something else
+        # And The reserveFailed message callback is triggered

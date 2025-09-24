@@ -1,8 +1,6 @@
 package net.es.oscars.resv.svc;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
@@ -26,7 +24,6 @@ import net.es.oscars.topo.beans.*;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
-import net.es.topo.common.devel.DevelUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
