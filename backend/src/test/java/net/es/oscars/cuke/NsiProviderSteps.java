@@ -4,14 +4,11 @@ import static net.es.oscars.app.util.PrettyPrinter.prettyLog;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-
 import org.apache.commons.text.StringSubstitutor;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +21,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StreamUtils;
 import org.w3c.dom.Document;
-import org.w3c.dom.DocumentType;
 import org.w3c.dom.Element;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -33,10 +29,6 @@ import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBElement;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Unmarshaller;
 import jakarta.xml.soap.MessageFactory;
 import jakarta.xml.soap.SOAPBody;
 import jakarta.xml.soap.SOAPMessage;
@@ -49,14 +41,12 @@ import net.es.oscars.nsi.ent.NsiConnectionEvent;
 import net.es.oscars.nsi.svc.NsiAsyncQueue;
 import net.es.oscars.nsi.svc.NsiConnectionEventService;
 import net.es.oscars.nsi.svc.NsiService;
-import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.soap.NsiProvider;
 import net.es.oscars.topo.TopoService;
 import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.pop.TopoPopulator;
 import net.es.oscars.topo.svc.TopologyStore;
-import net.es.oscars.resv.enums.Phase;
 
 @Slf4j
 @Category({UnitTests.class})
