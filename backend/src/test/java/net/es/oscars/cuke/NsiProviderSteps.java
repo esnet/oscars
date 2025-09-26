@@ -9,6 +9,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
 import org.apache.commons.text.StringSubstitutor;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StreamUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+
+import graphql.util.TraverserContext.Phase;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
@@ -32,15 +37,21 @@ import io.cucumber.java.en.When;
 import jakarta.xml.soap.MessageFactory;
 import jakarta.xml.soap.SOAPBody;
 import jakarta.xml.soap.SOAPMessage;
+import kotlin.NotImplementedError;
 import lombok.extern.slf4j.Slf4j;
+import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReservationStateEnumType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReserveResponseType;
 import net.es.oscars.app.Startup;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.nsi.beans.NsiConnectionEventType;
+import net.es.oscars.nsi.db.NsiConnectionEventRepository;
 import net.es.oscars.nsi.ent.NsiConnectionEvent;
+import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.svc.NsiAsyncQueue;
 import net.es.oscars.nsi.svc.NsiConnectionEventService;
+import net.es.oscars.nsi.svc.NsiMappingService;
 import net.es.oscars.nsi.svc.NsiService;
+import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.soap.NsiProvider;
 import net.es.oscars.topo.TopoService;
@@ -57,7 +68,8 @@ import net.es.oscars.topo.svc.TopologyStore;
                 NsiService.class,
                 NsiAsyncQueue.class,
                 NsiConnectionEventService.class,
-                
+                NsiConnectionEventRepository.class,
+                NsiMappingService.class,
                 NsiProvider.class,
         }
 )
@@ -84,7 +96,12 @@ public class NsiProviderSteps extends CucumberSteps {
     private NsiService nsiService;
 
     @Autowired
+    private NsiMappingService nsiMappingService;
+
+    @Autowired
     private NsiConnectionEventService nsiConnectionEventService;
+
+    @Autowired NsiConnectionEventRepository nsiConnectionEventRepo;
 
     @Autowired
     private NsiAsyncQueue queue;
@@ -102,6 +119,8 @@ public class NsiProviderSteps extends CucumberSteps {
             queue.queue.clear();
             topoService.clear();
             nsiService.setErrorCount(0);
+            nsiConnectionEventService.getEventRepo().deleteAll();
+            nsiConnectionEventRepo.deleteAll();
             loadTopology();
             releaseAllConnections();
 
@@ -155,8 +174,8 @@ public class NsiProviderSteps extends CucumberSteps {
         }
     }
 
-    @When("The NSI reserve is requested")
-    public void the_NSI_reserve_is_requested() {
+    @When("The NSI queue is processed")
+    public void the_NSI_queue_is_processed() {
         try {
             queue.processQueue();
         } catch (Exception e) {
@@ -211,58 +230,126 @@ public class NsiProviderSteps extends CucumberSteps {
         assert connService.getHeld().isEmpty();
     }
 
-    @Given("The connection reservation state is {string}")
-    public void A_connection_reservation_state_is_reserve_checking(String expectedReservationState) {
-        try {
-            // Find the connection
-            List<NsiConnectionEvent> connEvents = nsiConnectionEventService.getEventRepo().findByNsiConnectionId(testConnectionId);
-            assert connEvents.size() != 0;
-            assert connEvents.getLast().getType().equals(NsiConnectionEventType.valueOf(expectedReservationState));
+    // @Given("The connection reservation state is {string}")
+    // public void A_connection_reservation_state_is_reserve_checking(String expectedReservationState) {
+    //     try {
+    //         // Find the connection
+    //         List<NsiConnectionEvent> connEvents = nsiConnectionEventService
+    //             .getEventRepo()
+    //             .findByNsiConnectionId(testConnectionId);
             
+    //         assert connEvents.size() != 0;
+    //         assert connEvents.getLast()
+    //             .getType()
+    //             .equals(
+    //                 NsiConnectionEventType
+    //                     .valueOf(expectedReservationState)
+    //             );
+            
+    //     } catch (Exception e) {
+    //         world.add(e);
+    //         log.error("NsiProviderSteps Error - {}", e);
+    //     }
+    // }
+
+    @Then("The connection phase is {string}")
+    public void The_connection_phase_is(String strExpectedPhase) throws Exception {
+        try {
+            Phase expectedPhase = Phase.valueOf(strExpectedPhase);
+
         } catch (Exception e) {
+            // TODO: handle exception
             world.add(e);
-            log.error("NsiProviderSteps Error - {}", e);
+            log.error("Test failed to compare connection phase. error: ", e);
         }
     }
 
     @When("An NSI connection reserve is requested")
     public void An_NSI_connection_reserve_is_requested() throws Exception {
-        nsiResponseString = queueNsiConnection(true, "ABCD-1234-EFGH-5678");
-        log.info("NSI RESPONSE was: {}", nsiResponseString);
-        ReserveResponseType reserveResponse = deserializeXmlReserveResponseType(nsiResponseString);
+        try {
+            nsiResponseString = queueNsiConnection(true, "ABCD-1234-EFGH-5678");
+            log.info("NSI RESPONSE was: {}", nsiResponseString);
+            ReserveResponseType reserveResponse = deserializeXmlReserveResponseType(nsiResponseString);
 
-        assert !reserveResponse.getConnectionId().isEmpty();
+            assert !reserveResponse.getConnectionId().isEmpty();
 
-        log.info("NSI connection ID is: " + reserveResponse.getConnectionId());
-        testConnectionId = reserveResponse.getConnectionId();
+            log.info("NSI connection reserve is requested, connectionID is: " + reserveResponse.getConnectionId());
+            testConnectionId = reserveResponse.getConnectionId();
+            nsiConnectionEventRepo.findAll().forEach((nsiConnEv) -> {
+                log.info("NSI connection reserve is requested, event repo event is: ", reserveResponse);
+            });
+            // Check state
 
+            // List<NsiConnectionEvent> connectionEvents = nsiConnectionEventService
+            //     .getEventRepo()
+            //     .findByNsiConnectionId(testConnectionId);
+
+            // NsiConnectionEvent connEv = connectionEvents.getLast();
+            // log.info("NSI connection reserve is requested, connection event type is {}, expect RESERVE_RECEIVED", connEv.getType());
+
+            // assert connEv.getType().equals(NsiConnectionEventType.RESERVE_RECEIVED);
+        } catch (Exception e) {
+            world.add(e);
+            log.error("An NSI connectin reserve is requested, error: {}", e);
+            throw e;
+        }
     }
 
     @When("The resources ARE available")
-    public void The_resources_ARE_available() {
+    public void The_resources_ARE_available() throws Exception {
         // Write code here that turns the phrase above into concrete actions
+        // Resources: vpls, lsp
+        throw new NotImplementedError();
     }
 
     @When("The resources ARE NOT available")
-    public void The_resources_ARE_NOT_available() {
+    public void The_resources_ARE_NOT_available() throws Exception {
         // Write code here that turns the phrase above into concrete actions
+        throw new NotImplementedError();
     }
 
-    @Then("The NSI mapping and connection object is created")
-    public void The_NSI_mapping_and_connection_object_is_created() {
-        // Write code here that turns the phrase above into concrete actions
+    @When("The NSI mapping and connection object is created")
+    public void The_NSI_mapping_and_connection_object_is_created() throws Exception {
+        try {
+            // Grab the mapping using the NSI connection ID.
+            boolean hasMapping = nsiMappingService.hasMapping(testConnectionId);
+            log.info("NSI mapping service, check if has mapping for {}. Has? {}", testConnectionId, hasMapping);
+            assert hasMapping;
+            NsiMapping nsiMapping = nsiMappingService.getMapping(testConnectionId);
+            log.info("nsiMapping is {}", nsiMapping);
+            assert nsiMapping != null;
+
+            // Note, the ConnService class expects OSCARS connection IDs.
+            // Thankfully, the NsiMapping object has a way to get that for us.
+            Optional<Connection> optConn = nsiService
+                .getConnSvc()
+                .findConnection(
+                    nsiMapping
+                        .getOscarsConnectionId() // Find by OSCARS connection ID
+                );
+            assert optConn.isPresent();
+        } catch (Exception e) {
+            // TODO: handle exception
+            world.add(e);
+            log.error("The NSI mapping and connection object is created, error: {}", e);
+            throw e;
+        }
     }
 
     @Then("The reservation state is now {string}")
-    public void The_reservation_state_is_now_reserve_held(String expectedReservationState) {
-        
-        assert nsiConnectionEventService.getEventRepo().count() != 0;
-        List<NsiConnectionEvent> connectionEvents = nsiConnectionEventService.getEventRepo().findByNsiConnectionId(testConnectionId);
-        
-        assert connectionEvents.size() != 0;
+    public void The_reservation_state_is_now_reserve_held(String expectedReservationState) throws Exception {
+        try {
+            NsiMapping mapping = nsiMappingService.getMapping(testConnectionId);
+            ReservationStateEnumType reservationState = mapping.getReservationState();
 
-        NsiConnectionEvent connEv = connectionEvents.getLast();
-        assert connEv.getType().equals(NsiConnectionEventType.valueOf(expectedReservationState));
+            assert reservationState.equals(ReservationStateEnumType.valueOf(expectedReservationState));
+            
+        } catch (Exception e) {
+            // TODO: handle exception
+            world.add(e);
+            log.error("The reservation state is now... error: {}", e);
+            throw e;
+        }
     }
 
     @Then("The resources are no longer available for something else")
@@ -284,6 +371,35 @@ public class NsiProviderSteps extends CucumberSteps {
     public void The_reserveFailed_message_callback_is_triggered() {
         // Write code here that turns the phrase above into concrete actions
     }
+
+    @Then("The latest connection event type is {string}")
+    public void The_latest_connection_event_is(String expectedNsiConnectionEventType) {
+        try {
+            assert nsiConnectionEventService.getEventRepo().count() != 0;
+            List<NsiConnectionEvent> connectionEvents = nsiConnectionEventService
+                .getEventRepo()
+                .findByNsiConnectionId(testConnectionId);
+            
+            assert connectionEvents.size() != 0;
+
+            NsiConnectionEvent connEv = connectionEvents.getLast();
+            boolean isState = connEv
+                .getType()
+                .equals(
+                    NsiConnectionEventType
+                        .valueOf(expectedNsiConnectionEventType)
+                );
+            assert isState;
+        } catch (Exception e) {
+            world.add(e);
+            log.error("The latest connectin event is ..., error: {}", e);
+            throw e;
+        }
+    }
+
+
+
+
 
     private void loadTopology() throws Exception {
         String topoPath = "topo/esnet.json";
@@ -358,8 +474,8 @@ public class NsiProviderSteps extends CucumberSteps {
         ReserveResponseType reserveResponse = new ReserveResponseType();
         reserveResponse.setConnectionId(
             element.getElementsByTagName("connectionId")
-                .item(0)
-                .getFirstChild()
+                .item(0) // use the first <connectionId> tag
+                .getFirstChild() // Not sure why we are forced to "get first child", but this is how we get t
                 .getNodeValue()
         );
         
