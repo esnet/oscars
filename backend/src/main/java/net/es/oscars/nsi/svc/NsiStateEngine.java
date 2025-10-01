@@ -3,8 +3,11 @@ package net.es.oscars.nsi.svc;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.LifecycleStateEnumType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ProvisionStateEnumType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReservationStateEnumType;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.NsiStateException;
+import net.es.oscars.app.util.AsyncCallback;
 import net.es.oscars.nsi.beans.NsiErrors;
 import net.es.oscars.nsi.beans.NsiEvent;
 import net.es.oscars.nsi.ent.NsiMapping;
@@ -17,33 +20,61 @@ import java.util.Set;
 @Slf4j
 public class NsiStateEngine {
 
+    /**
+     * An internal handler that can be used to receive a callback when the reserve() function transitions internally between ReservationStateEnumType states.
+     * Not to be confused with the URI callback mechanism.
+     */
+    @Getter
+    @Setter
+    private AsyncCallback<NsiMapping> reserveHandler;
+
+    private void reserveHandlerTriggerOnFailure(NsiStateException nsiEx) {
+        if (reserveHandler != null) reserveHandler.onFailure(nsiEx);
+    }
+    private void reserveHandlerTriggerOnSuccess(NsiMapping mapping) {
+        reserveHandler.onSuccess(mapping);
+    }
+
     public void reserve(NsiEvent event, NsiMapping mapping) throws NsiStateException {
         if (event.equals(NsiEvent.RESV_START)) {
             if (!mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_START)) {
-                throw new NsiStateException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
+                NsiStateException nsiEx = new NsiStateException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
+                reserveHandlerTriggerOnFailure(nsiEx);
+                throw nsiEx;
             }
             mapping.setReservationState(ReservationStateEnumType.RESERVE_START);
+            reserveHandlerTriggerOnSuccess(mapping);
 
         } else if (event.equals(NsiEvent.RESV_CHECK)) {
             if (!mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_START)) {
-                throw new NsiStateException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
+                NsiStateException nsiEx = new NsiStateException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
+                reserveHandlerTriggerOnFailure(nsiEx);
+                throw nsiEx;
             }
 
             mapping.setReservationState(ReservationStateEnumType.RESERVE_CHECKING);
+            reserveHandlerTriggerOnSuccess(mapping);
 
         } else if (event.equals(NsiEvent.RESV_FL)) {
             if (!mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_CHECKING)) {
-                throw new NsiStateException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
+                NsiStateException nsiEx = new NsiStateException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
+                reserveHandlerTriggerOnFailure(nsiEx);
+                throw nsiEx;
             }
 
             mapping.setReservationState(ReservationStateEnumType.RESERVE_FAILED);
+            reserveHandlerTriggerOnSuccess(mapping);
         } else if (event.equals(NsiEvent.RESV_CF)) {
             if (!mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_CHECKING)) {
-                throw new NsiStateException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
+                NsiStateException nsiEx = new NsiStateException("Invalid reservation state " + mapping.getReservationState(), NsiErrors.TRANS_ERROR);
+                throw nsiEx;
             }
             mapping.setReservationState(ReservationStateEnumType.RESERVE_HELD);
+            reserveHandlerTriggerOnSuccess(mapping);
         } else {
-            throw new NsiStateException("Invalid event " + event, NsiErrors.TRANS_ERROR);
+            NsiStateException nsiEx = new NsiStateException("Invalid event " + event, NsiErrors.TRANS_ERROR);
+            reserveHandlerTriggerOnFailure(nsiEx);
+            throw nsiEx;
         }
 
     }

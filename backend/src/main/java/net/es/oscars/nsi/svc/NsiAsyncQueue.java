@@ -11,6 +11,7 @@ import net.es.nsi.lib.soap.gen.nsi_2_0.framework.headers.CommonHeaderType;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.NsiException;
 import net.es.oscars.app.exc.NsiMappingException;
+import net.es.oscars.app.util.AsyncCallback;
 import net.es.oscars.nsi.ent.NsiMapping;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,8 @@ public class NsiAsyncQueue {
     private final Startup startup;
 
     public ConcurrentLinkedQueue<AsyncItem> queue = new ConcurrentLinkedQueue<>();
+
+    public AsyncCallback<String> processQueueHandler;
 
     public NsiAsyncQueue(NsiService nsiService, NsiMappingService nsiMappingService, Startup startup) {
         this.nsiService = nsiService;
@@ -65,33 +68,40 @@ public class NsiAsyncQueue {
 
         try (ExecutorService executorService = Executors.newFixedThreadPool(1)) {
 
-            Callable<Results> pollTask = () -> {
-                Results results = Results.builder().build();
-                while (queue.peek() != null) {
-                    AsyncItem item = queue.poll();
-                    try {
-                        switch (item) {
-                            case Generic generic -> this.processGeneric(generic);
-                            case Query query -> this.processQuery(query);
-                            case Reserve reserve -> this.processReserve(reserve);
-                            default -> {}
-                        }
-                        results.getSucceeded().add(item);
-                    } catch (NsiException ex) {
-                        results.getFailed().add(item);
-                    }
-                }
-                return results;
-            };
-
-            Future<Results> future = executorService.submit(pollTask);
+            Future<Results> future = asyncProcessQueue(executorService);
             future.get();
 
             executorService.shutdown();
         } catch (InterruptedException | ExecutionException e) {
             log.error(e.getLocalizedMessage(), e);
         }
+    }
 
+    public Future<Results> asyncProcessQueue(ExecutorService executorService )  throws InterruptedException, ExecutionException {
+        Callable<Results> pollTask = () -> {
+            Results results = Results.builder().build();
+            while (queue.peek() != null) {
+                AsyncItem item = queue.poll();
+                try {
+                    switch (item) {
+                        case Generic generic -> this.processGeneric(generic);
+                        case Query query -> this.processQuery(query);
+                        case Reserve reserve -> this.processReserve(reserve);
+                        default -> {}
+                    }
+                    results.getSucceeded().add(item);
+                    if (processQueueHandler != null) {
+                        processQueueHandler.onSuccess(item.toString());
+                    }
+                } catch (NsiException ex) {
+                    results.getFailed().add(item);
+                    processQueueHandler.onFailure(ex);
+                }
+            }
+            return results;
+        };
+
+        return executorService.submit(pollTask);
     }
 
     public void processGeneric(Generic item) throws NsiException {
