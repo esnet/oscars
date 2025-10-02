@@ -162,6 +162,24 @@ public class NsiProviderSteps extends CucumberSteps {
         }
     }
 
+    @Given("The reservation state is now {string}")
+    public void The_reservation_state_is_now_reserve_held(String expectedReservationState) throws Exception {
+        try {
+            assert !testConnectionId.isEmpty();
+            
+            NsiMapping mapping = nsiService.nsiMappingService.getMapping(testConnectionId);
+            assert mapping != null;
+            ReservationStateEnumType reservationState = mapping.getReservationState();
+
+            log.info("The reservation state is now (expected) {}, actual {}", expectedReservationState, reservationState);
+            assert reservationState.equals(ReservationStateEnumType.valueOf(expectedReservationState));
+        } catch (Exception e) {
+            world.add(e);
+            log.error("The reservation state is now... error: {}", e);
+            throw e;
+        }
+    }
+
     @Given("The NSI connection is queued for asynchronous reservation while not including a projectId")
     public void the_nsi_connection_is_queued_for_asynchronous_reservation_while_not_including_a_project_id() throws Throwable {
         try {
@@ -203,6 +221,11 @@ public class NsiProviderSteps extends CucumberSteps {
             log.error("NsiProviderSteps Error - {}", e);
         }
     }
+    
+    @Given("The connection is not reserved yet")
+    public void A_connection_is_not_reserved_yet() {
+        assert connService.getHeld().isEmpty();
+    }
 
     @When("The NSI queue is processed")
     public void the_NSI_queue_is_processed() throws Exception {
@@ -238,6 +261,64 @@ public class NsiProviderSteps extends CucumberSteps {
         }
 
         assert NsiProviderSteps.isProcessingQueueSuccess == true;
+    }
+
+    @When("An NSI connection reserve is requested")
+    public void An_NSI_connection_reserve_is_requested() throws Exception {
+        try {
+            nsiResponseString = queueNsiConnection(true, "ABCD-1234-EFGH-5678");
+            log.info("NSI RESPONSE was: {}", nsiResponseString);
+            ReserveResponseType reserveResponse = deserializeXmlReserveResponseType(nsiResponseString);
+
+            assert !reserveResponse.getConnectionId().isEmpty();
+
+            log.info("NSI connection reserve is requested, connectionID is: " + reserveResponse.getConnectionId());
+            
+            // the_NSI_queue_is_processed();
+
+            testConnectionId = reserveResponse.getConnectionId();
+            // nsiConnectionEventRepo.findAll().forEach((nsiConnEv) -> {
+            //     log.info("NSI connection reserve is requested, event repo event is: ", reserveResponse);
+            // });
+
+        } catch (Exception e) {
+            world.add(e);
+            log.error("An NSI connection reserve is requested, error: {}", e);
+            throw e;
+        }
+    }
+
+    @When("The NSI mapping and connection object is created")
+    public void The_NSI_mapping_and_connection_object_is_created() throws Exception {
+        try {
+            log.debug("Checking the NSI Mapping and connection object.");
+            // Grab the mapping using the NSI connection ID.
+            boolean hasMapping = nsiMappingService.hasMapping(testConnectionId);
+            log.info("NSI mapping service, check if has mapping for {}. Has? {}", testConnectionId, hasMapping);
+            assert hasMapping;
+            NsiMapping nsiMapping = nsiMappingService.getMapping(testConnectionId);
+            log.info("nsiMapping is {}", nsiMapping);
+            assert nsiMapping != null;
+
+            // Note, the ConnService class expects OSCARS connection IDs.
+            // Thankfully, the NsiMapping object has a way to get that for us.
+            Optional<Connection> optConn = nsiService
+                .getConnSvc()
+                .findConnection(
+                    nsiMapping
+                        .getOscarsConnectionId() // Find by OSCARS connection ID
+                );
+            assert optConn.isPresent();
+        } catch (Exception e) {
+            world.add(e);
+            log.error("The NSI mapping and connection object is created, error: {}", e);
+            throw e;
+        }
+    }
+
+    @When("An NSI connection commit is requested")
+    public void An_NSI_connection_commit_is_requested() {
+        // Write code here that turns the phrase above into concrete actions
     }
 
     @Then("The NSI connection does not have a projectId")
@@ -281,33 +362,6 @@ public class NsiProviderSteps extends CucumberSteps {
         assert world.getExceptions().size() == errorCount;
     }
 
-    @Given("The connection is not reserved yet")
-    public void A_connection_is_not_reserved_yet() {
-        assert connService.getHeld().isEmpty();
-    }
-
-    // @Given("The connection reservation state is {string}")
-    // public void A_connection_reservation_state_is_reserve_checking(String expectedReservationState) {
-    //     try {
-    //         // Find the connection
-    //         List<NsiConnectionEvent> connEvents = nsiConnectionEventService
-    //             .getEventRepo()
-    //             .findByNsiConnectionId(testConnectionId);
-            
-    //         assert connEvents.size() != 0;
-    //         assert connEvents.getLast()
-    //             .getType()
-    //             .equals(
-    //                 NsiConnectionEventType
-    //                     .valueOf(expectedReservationState)
-    //             );
-            
-    //     } catch (Exception e) {
-    //         world.add(e);
-    //         log.error("NsiProviderSteps Error - {}", e);
-    //     }
-    // }
-
     @Then("The connection phase is {string}")
     public void The_connection_phase_is(String strExpectedPhase) throws Exception {
         try {
@@ -317,90 +371,6 @@ public class NsiProviderSteps extends CucumberSteps {
             // TODO: handle exception
             world.add(e);
             log.error("Test failed to compare connection phase. error: ", e);
-        }
-    }
-
-    @When("An NSI connection reserve is requested")
-    public void An_NSI_connection_reserve_is_requested() throws Exception {
-        try {
-            nsiResponseString = queueNsiConnection(true, "ABCD-1234-EFGH-5678");
-            log.info("NSI RESPONSE was: {}", nsiResponseString);
-            ReserveResponseType reserveResponse = deserializeXmlReserveResponseType(nsiResponseString);
-
-            assert !reserveResponse.getConnectionId().isEmpty();
-
-            log.info("NSI connection reserve is requested, connectionID is: " + reserveResponse.getConnectionId());
-            
-            // the_NSI_queue_is_processed();
-
-            testConnectionId = reserveResponse.getConnectionId();
-            // nsiConnectionEventRepo.findAll().forEach((nsiConnEv) -> {
-            //     log.info("NSI connection reserve is requested, event repo event is: ", reserveResponse);
-            // });
-
-        } catch (Exception e) {
-            world.add(e);
-            log.error("An NSI connection reserve is requested, error: {}", e);
-            throw e;
-        }
-    }
-
-    @When("The resources ARE available")
-    public void The_resources_ARE_available() throws Exception {
-        // Write code here that turns the phrase above into concrete actions
-        // Resources: vpls, lsp
-        throw new NotImplementedError();
-    }
-
-    @When("The resources ARE NOT available")
-    public void The_resources_ARE_NOT_available() throws Exception {
-        // Write code here that turns the phrase above into concrete actions
-        throw new NotImplementedError();
-    }
-
-    @When("The NSI mapping and connection object is created")
-    public void The_NSI_mapping_and_connection_object_is_created() throws Exception {
-        try {
-            log.debug("Checking the NSI Mapping and connection object.");
-            // Grab the mapping using the NSI connection ID.
-            boolean hasMapping = nsiMappingService.hasMapping(testConnectionId);
-            log.info("NSI mapping service, check if has mapping for {}. Has? {}", testConnectionId, hasMapping);
-            assert hasMapping;
-            NsiMapping nsiMapping = nsiMappingService.getMapping(testConnectionId);
-            log.info("nsiMapping is {}", nsiMapping);
-            assert nsiMapping != null;
-
-            // Note, the ConnService class expects OSCARS connection IDs.
-            // Thankfully, the NsiMapping object has a way to get that for us.
-            Optional<Connection> optConn = nsiService
-                .getConnSvc()
-                .findConnection(
-                    nsiMapping
-                        .getOscarsConnectionId() // Find by OSCARS connection ID
-                );
-            assert optConn.isPresent();
-        } catch (Exception e) {
-            world.add(e);
-            log.error("The NSI mapping and connection object is created, error: {}", e);
-            throw e;
-        }
-    }
-
-    @Then("The reservation state is now {string}")
-    public void The_reservation_state_is_now_reserve_held(String expectedReservationState) throws Exception {
-        try {
-            assert !testConnectionId.isEmpty();
-            
-            NsiMapping mapping = nsiService.nsiMappingService.getMapping(testConnectionId);
-            assert mapping != null;
-            ReservationStateEnumType reservationState = mapping.getReservationState();
-
-            log.info("The reservation state is now (expected) {}, actual {}", expectedReservationState, reservationState);
-            assert reservationState.equals(ReservationStateEnumType.valueOf(expectedReservationState));
-        } catch (Exception e) {
-            world.add(e);
-            log.error("The reservation state is now... error: {}", e);
-            throw e;
         }
     }
 
@@ -457,9 +427,7 @@ public class NsiProviderSteps extends CucumberSteps {
         assert nsiStatesReserve.equals(states);
     }
 
-
-
-
+    
 
     private void loadTopology() throws Exception {
         String topoPath = "topo/esnet.json";

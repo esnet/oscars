@@ -35,6 +35,15 @@ public class NsiStateEngine {
         reserveHandler.onSuccess(mapping);
     }
 
+    /**
+     * Reserve (hold) a new connection.
+     * NSI Reservation state transition:
+     *  - RESERVE_CHECKING -> RESERVE_HELD (if resources are available)
+     *  - RESERVE_CHECKING -> RESERVE_FAILED
+     * @param event
+     * @param mapping
+     * @throws NsiStateException
+     */
     public void reserve(NsiEvent event, NsiMapping mapping) throws NsiStateException {
         if (event.equals(NsiEvent.RESV_START)) {
             if (!mapping.getReservationState().equals(ReservationStateEnumType.RESERVE_START)) {
@@ -180,6 +189,16 @@ public class NsiStateEngine {
         mapping.setLifecycleState(LifecycleStateEnumType.TERMINATED);
     }
 
+    /**
+     * Commit a held reservation, and start it.
+     * 
+     * NSI Reservation state transition:
+     *  - RESERVE_HELD -> RESERVE_COMMITTING -> RESERVE_START
+     * 
+     * @param event
+     * @param mapping
+     * @throws NsiStateException
+     */
     public void commit(NsiEvent event, NsiMapping mapping) throws NsiStateException {
 
 
