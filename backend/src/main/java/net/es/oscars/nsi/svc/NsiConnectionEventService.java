@@ -1,5 +1,6 @@
 package net.es.oscars.nsi.svc;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.nsi.db.NsiConnectionEventRepository;
 import net.es.oscars.nsi.ent.NsiConnectionEvent;
@@ -8,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Slf4j
+@Data
 public class NsiConnectionEventService {
 
     private final NsiConnectionEventRepository eventRepo;
