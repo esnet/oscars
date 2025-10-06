@@ -3,6 +3,7 @@
 > Sep 2025
 - OS-617 defensive programming against topo NPE 
 - OS-618 try to stop sending null values to NSO
+- OS-640 multiple project ids per connection
 
 ### 1.2.32
 > Sep 2025

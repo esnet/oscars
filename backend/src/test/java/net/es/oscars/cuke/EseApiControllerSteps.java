@@ -8,6 +8,7 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.cucumber.java.hu.Ha;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.BackendTestConfiguration;
 import net.es.oscars.app.Startup;
@@ -249,13 +250,15 @@ public class EseApiControllerSteps extends CucumberSteps {
                 .tagged(false)
                 .build()
         );
+        Set<String> projectIds = new HashSet<>();
+        projectIds.add("ABCD-1234-EFGH-5678");
         return L2VPN.builder()
             .id(1L)
             .name("TEST")
             .meta(
                 L2VPN.Meta.builder()
                     .username("test-user")
-                    .projectId("ABCD-1234-EFGH-5678")
+                    .projectId(projectIds)
                     .build()
             )
             .schedule(
@@ -426,6 +429,9 @@ public class EseApiControllerSteps extends CucumberSteps {
     }
 
     private Connection generateMockConnection() {
+        Set<String> projectIds = new HashSet<>();
+        projectIds.add("ABCD-1234-EFGH-5678");
+
         return Connection.builder()
             .id(1L)
             .held( // Required, or /protected/modify/description result will become an HTTP 500 Internal Server Error
@@ -453,7 +459,7 @@ public class EseApiControllerSteps extends CucumberSteps {
             .description("test description")
             .connection_mtu(10000)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
-            .projectId("ABCD-1234-EFGH-5678")
+            .projectId(projectIds)
             .build();
     }
 

@@ -1038,11 +1038,11 @@ public class NsiService {
 
         List<String> include = new ArrayList<>();
         ConnectionMode connectionMode = ConnectionMode.NEW;
-        String projectId = null;
+        Set<String> projectId = new HashSet<>();
 
         for (TypeValueType tvt : p2ps.getParameter()) {
             if (tvt.getType().equals("projectId") && tvt.getValue() != null && !tvt.getValue().isEmpty()) {
-                projectId = tvt.getValue();
+                projectId.add(tvt.getValue());
             }
         }
 

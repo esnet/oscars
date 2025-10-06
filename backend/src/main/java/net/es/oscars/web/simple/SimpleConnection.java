@@ -11,6 +11,7 @@ import net.es.oscars.resv.enums.State;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Builder
 @Data
@@ -41,6 +42,6 @@ public class SimpleConnection {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     protected Validity validity;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    protected String projectId;
+    protected Set<String> projectId;
 
 }

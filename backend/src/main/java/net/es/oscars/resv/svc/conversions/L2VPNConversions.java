@@ -344,9 +344,9 @@ public class L2VPNConversions {
             }
         }
 
-        String projectId = null;
+        Set<String> projectId = new HashSet<>();
         if (l2VPNRequest.getMeta() != null && l2VPNRequest.getMeta().getProjectId() != null) {
-            l2VPNRequest.getMeta().getProjectId();
+            projectId = l2VPNRequest.getMeta().getProjectId();
         }
 
         return SimpleConnection.builder()

@@ -10,6 +10,7 @@ import org.hibernate.proxy.HibernateProxy;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -37,7 +38,7 @@ public class Connection {
                       @JsonProperty("archived") Archived archived,
                       @JsonProperty("connection_mtu") @NonNull Integer connection_mtu,
                       @JsonProperty("last_modified") @NonNull Integer last_modified,
-                      @JsonProperty("projectId") String projectId) {
+                      @JsonProperty("projectId") Set<String> projectId) {
         this.connectionId = connectionId;
         this.phase = phase;
         this.mode = mode;
@@ -155,7 +156,8 @@ public class Connection {
     public ConnectionSouthbound southbound;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private String projectId;
+    @ElementCollection
+    private Set<String> projectId;
 
     @Override
     public final boolean equals(Object o) {
