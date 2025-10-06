@@ -2,6 +2,8 @@ package net.es.oscars.topo.beans.v2;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -21,6 +23,13 @@ public class Bandwidth {
 
     @NonNull
     private Integer physical;
+
+    private Double utilization;
+
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    public void setUtilization(Double utilization) {
+        this.utilization = utilization;
+    }
 
     @JsonGetter
     private Double utilization() {
