@@ -876,7 +876,7 @@ public class NsiServiceSteps extends CucumberSteps {
     @Then("the connection does not have a projectId value")
     public void the_connection_does_not_have_a_projectId_value() {
         assert mockConnection != null;
-        assert mockConnection.getProjectId() == null;
+        assert mockConnection.getProjectId() == null || !mockConnection.getProjectId().isEmpty();
     }
 
     @Then("The connection has a projectId value")

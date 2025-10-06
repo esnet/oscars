@@ -8,6 +8,7 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.cucumber.java.hu.Ha;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.BackendTestConfiguration;
 import net.es.oscars.app.Startup;
