@@ -1,6 +1,7 @@
 # OSCARS Release Notes
 ### 1.2.33
 > Sep 2025
+- OS-634 NSO operation reordering
 - OS-617 defensive programming against topo NPE 
 - OS-618 try to stop sending null values to NSO
 
