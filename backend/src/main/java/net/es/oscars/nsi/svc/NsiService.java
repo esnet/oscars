@@ -1122,7 +1122,7 @@ public class NsiService {
                     .tags(tags)
                     .connection_mtu(9000)
                     .username("nsi")
-                    .projectId(projectId)
+                    .projectIds(projectId)
                     .build();
             try {
                 String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(simpleConnection);
