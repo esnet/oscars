@@ -41,8 +41,7 @@ public class SouthboundQueuer {
     @Autowired
     private NsiService nsiService;
 
-    @Transactional
-    public void process() {
+    public static List<SouthboundTask> preprocessQueue(List<SouthboundTask> waiting, List<SouthboundTask> running) {
 
         // Skip "duplicate" tasks that are already running (or planned) - if we are already
         // performing (or planning to perform) a DISMANTLE for connection ABCD, we don't
@@ -85,10 +84,16 @@ public class SouthboundQueuer {
             }
         }
         // then join the two lists, putting the dismantles first
-        List<SouthboundTask> dismantlesFirst = new ArrayList<>(dismantles);
-        dismantlesFirst.addAll(others);
+        List<SouthboundTask> result = new ArrayList<>(dismantles);
+        result.addAll(others);
+        return result;
+    }
 
-        for (SouthboundTask wt : dismantlesFirst) {
+    @Transactional
+    public void process() {
+        List<SouthboundTask> tasks = preprocessQueue(waiting, running);
+
+        for (SouthboundTask wt : tasks) {
             log.info("running task : " + wt.getConnectionId() + " " + wt.getCommandType());
             cr.findByConnectionId(wt.getConnectionId()).ifPresent(conn -> {
                 if (wt.getCommandType().equals(CommandType.BUILD)) {
