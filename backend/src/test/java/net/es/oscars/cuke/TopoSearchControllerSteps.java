@@ -142,7 +142,7 @@ public class TopoSearchControllerSteps {
             .description("test description")
             .connection_mtu(10000)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
-            .projectId(projectIds)
+            .projectIds(projectIds)
             .build();
     }
     private void setupMockConnSvc() throws Exception {

@@ -119,7 +119,7 @@ public class L2VPN {
 
         @Builder.Default
         @Schema(description = "Project identifier. This is an external ID", nullable = true)
-        protected Set<String> projectId = new HashSet<>();
+        protected Set<String> projectIds = new HashSet<>();
 
     }
 

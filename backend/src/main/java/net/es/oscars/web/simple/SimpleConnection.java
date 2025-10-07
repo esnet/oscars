@@ -42,6 +42,6 @@ public class SimpleConnection {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     protected Validity validity;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    protected Set<String> projectId;
+    protected Set<String> projectIds;
 
 }

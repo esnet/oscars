@@ -560,8 +560,8 @@ public class NsiMappingService {
         p2p.getParameter().add(tvt);
 
         // add multiple project ids
-        if (c.getProjectId() != null) {
-            for (String projectId : c.getProjectId()) {
+        if (c.getProjectIds() != null) {
+            for (String projectId : c.getProjectIds()) {
                 TypeValueType tvtProjectId = new TypeValueType();
                 tvt.setType("projectId");
                 tvt.setValue(projectId);
