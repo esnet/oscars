@@ -100,6 +100,7 @@ public class L2vpnSteps extends CucumberSteps {
         // modify the schedule
         request.getSchedule().setBeginning(Instant.now().plus(1, ChronoUnit.MINUTES));
         request.getSchedule().setEnding(Instant.now().plus(30, ChronoUnit.MINUTES));
+        world.l2vpn = request;
     }
 
     @When("I validate the new L2VPN request")

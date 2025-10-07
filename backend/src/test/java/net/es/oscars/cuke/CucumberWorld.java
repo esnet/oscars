@@ -1,5 +1,6 @@
 package net.es.oscars.cuke;
 
+import net.es.oscars.model.L2VPN;
 import net.es.oscars.resv.beans.PeriodBandwidth;
 import net.es.oscars.resv.ent.Design;
 import net.es.oscars.resv.ent.EroHop;
@@ -26,6 +27,8 @@ public class CucumberWorld {
     Map<String, TopoUrn> topoBaseline ;
     Design design;
     Map<EroDirection, List<EroHop>> pipeEros;
+
+    L2VPN l2vpn;
 
 
     public void expectException() {
