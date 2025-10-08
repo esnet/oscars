@@ -14,6 +14,13 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EdgePort {
+    private String urn;
+
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    public void setUrn(String urn) {
+        this.urn = urn;
+    }
+
     @JsonGetter("urn")
     public String getUrn() {
         return device+":"+name;

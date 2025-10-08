@@ -22,7 +22,7 @@ public class MiscHelper {
     private TopologyStore topologyStore;
 
 
-    public List<MplsHop> mplsHops(List<EroHop> hops) throws PSSException {
+    public Set<MplsHop> mplsHops(List<EroHop> hops) throws PSSException {
 
         // eroHops look like this:
         // 0: A
@@ -40,7 +40,7 @@ public class MiscHelper {
         // we get that IP address from the adjacency between the hops marked with + and *
         //
 
-        List<MplsHop> mplsHops = new ArrayList<>();
+        Set<MplsHop> mplsHops = new HashSet<>();
 
         // the _output_ hop order field starts at 1 (not 0)
         int order = 1;

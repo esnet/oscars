@@ -116,6 +116,7 @@ public class NsiService {
                 // this will throw an NsiMappingException if it fails and do an errCallback
                 mapping = nsiMappingService.newMapping(nsiConnectionId, nsiGri, nsaId, incomingRT.getCriteria().getVersion(), false);
                 nsiMappingService.save(mapping);
+                nsiStateEngine.getReserveHandler().onSuccess(mapping);
             } else {
                 log.info("transitioning NSI state: RESV_CHECK {}", mapping.getNsiConnectionId());
                 nsiStateEngine.reserve(NsiEvent.RESV_CHECK, mapping);
@@ -1037,11 +1038,11 @@ public class NsiService {
 
         List<String> include = new ArrayList<>();
         ConnectionMode connectionMode = ConnectionMode.NEW;
-        String projectId = null;
+        Set<String> projectId = new HashSet<>();
 
         for (TypeValueType tvt : p2ps.getParameter()) {
             if (tvt.getType().equals("projectId") && tvt.getValue() != null && !tvt.getValue().isEmpty()) {
-                projectId = tvt.getValue();
+                projectId.add(tvt.getValue());
             }
         }
 
@@ -1121,7 +1122,7 @@ public class NsiService {
                     .tags(tags)
                     .connection_mtu(9000)
                     .username("nsi")
-                    .projectId(projectId)
+                    .projectIds(projectId)
                     .build();
             try {
                 String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(simpleConnection);

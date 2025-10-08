@@ -12,3 +12,4 @@ backend/log
 .env.*
 **/.env
 **/.env.*
+backend/web-report

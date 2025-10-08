@@ -559,11 +559,14 @@ public class NsiMappingService {
         tvt.setValue(mapping.getOscarsConnectionId());
         p2p.getParameter().add(tvt);
 
-        if (c.getProjectId() != null) {
-            TypeValueType tvtProjectId = new TypeValueType();
-            tvt.setType("projectId");
-            tvt.setValue(c.getProjectId());
-            p2p.getParameter().add(tvtProjectId);
+        // add multiple project ids
+        if (c.getProjectIds() != null) {
+            for (String projectId : c.getProjectIds()) {
+                TypeValueType tvtProjectId = new TypeValueType();
+                tvt.setType("projectId");
+                tvt.setValue(projectId);
+                p2p.getParameter().add(tvtProjectId);
+            }
         }
 
         String srcStp = mapping.getSrc();

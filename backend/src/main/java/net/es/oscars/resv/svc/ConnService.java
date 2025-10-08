@@ -1,8 +1,6 @@
 package net.es.oscars.resv.svc;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
@@ -26,7 +24,6 @@ import net.es.oscars.topo.beans.*;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
-import net.es.topo.common.devel.DevelUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
@@ -51,6 +48,9 @@ import static net.es.oscars.app.util.PrettyPrinter.prettyLog;
 import static net.es.oscars.resv.svc.ConnUtils.*;
 import static net.es.oscars.sb.nso.NsoAdapter.NSO_TEMPLATE_VERSION;
 
+/**
+ * ConnService - Connection Service class. Please note, "connectionId" here refers to an OSCARS connection ID.
+ */
 @Service
 @Slf4j
 @Data
@@ -1083,18 +1083,22 @@ public class ConnService {
         return error;
     }
 
-
-    public Optional<Connection> findConnection(String connectionId) {
-        if (connectionId == null || connectionId.isEmpty()) {
+    /**
+     * Find a connection by OSCARS connection ID. Not to be confused with an NSI connection ID.
+     * @param connectionId The OSCARS connection ID to search for.
+     * @return Optional<Connection> A connection wrapped in an Optional container object.
+     */
+    public Optional<Connection> findConnection(String oscarsConnectionId) {
+        if (oscarsConnectionId == null || oscarsConnectionId.isEmpty()) {
             return Optional.empty();
         }
 
-        if (held.containsKey(connectionId)) {
-            return Optional.of(held.get(connectionId));
+        if (held.containsKey(oscarsConnectionId)) {
+            return Optional.of(held.get(oscarsConnectionId));
         }
 
-//        log.info("looking for connectionId "+ connectionId);
-        Optional<Connection> cOpt = connRepo.findByConnectionId(connectionId);
+//        log.info("looking for oscarsConnectionId "+ oscarsConnectionId);
+        Optional<Connection> cOpt = connRepo.findByConnectionId(oscarsConnectionId);
         if (cOpt.isPresent()) {
 
             Connection c = cOpt.get();

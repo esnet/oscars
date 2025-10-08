@@ -1,0 +1,90 @@
+[
+  {
+    "vc-id": 7005,
+    "modified": {
+      "devices": ["eqxsv5-cr6", "nrelrsf-cr6"],
+      "services": ["/tailf-ncs:services/esnet-port:port[device='nrelrsf-cr6'][ifce='2/1/c7/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='nrelrsf-cr6'][service-id='7005']", "/tailf-ncs:services/esnet-port:port[device='eqxsv5-cr6'][ifce='1/1/c6/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='eqxsv5-cr6'][service-id='7005']"]
+    },
+    "directly-modified": {
+      "devices": ["eqxsv5-cr6", "nrelrsf-cr6"],
+      "services": ["/tailf-ncs:services/esnet-shared:nokia-service-registry[device='eqxsv5-cr6'][service-id='7005']", "/tailf-ncs:services/esnet-port:port[device='eqxsv5-cr6'][ifce='1/1/c6/1']", "/tailf-ncs:services/esnet-shared:nokia-service-registry[device='nrelrsf-cr6'][service-id='7005']", "/tailf-ncs:services/esnet-port:port[device='nrelrsf-cr6'][ifce='2/1/c7/1']"]
+    },
+    "created": "2024-07-22T19:29:58.411737+00:00",
+    "last-modified": "2024-07-22T19:29:58.411775+00:00",
+    "last-run": "2024-10-03T14:32:56.817687+00:00",
+    "description": "NREL_5G_ExpressRoute_AzureComm_Primary ",
+    "qos-mode": "guaranteed",
+    "name": "CCCC",
+    "routing-domain": "esnet-293",
+    "device": [
+      {
+        "device": "nrelrsf-cr6",
+        "endpoint": [
+          {
+            "ifce": "2/1/c7/1",
+            "vlan-id": 1500,
+            "layer2-description": "ZFK7",
+            "qos": {
+              "ingress-mbps": 5000,
+              "egress-mbps": 5000,
+              "excess-action": "keep",
+              "qos-id": 7003
+            }
+          }
+        ]
+      },
+      {
+        "device": "eqxsv5-cr6",
+        "endpoint": [
+          {
+            "ifce": "1/1/c6/1",
+            "vlan-id": 1500,
+            "layer2-description": "ZFK7",
+            "qos": {
+              "ingress-mbps": 5000,
+              "egress-mbps": 5000,
+              "excess-action": "keep",
+              "qos-id": 7009
+            }
+          }
+        ]
+      }
+    ],
+    "sdp": [
+      {
+        "sdp-id": 7060,
+        "description": "ZFK7",
+        "a": {
+          "device": "eqxsv5-cr6",
+          "mode": "spoke",
+          "vc-id": 7018,
+          "lsp": "ZFK7-WRK-nrelrsf-cr6"
+        },
+        "z": {
+          "device": "nrelrsf-cr6",
+          "mode": "spoke",
+          "vc-id": 7018,
+          "lsp": "ZFK7-WRK-eqxsv5-cr6"
+        },
+        "precedence": "primary"
+      },
+      {
+        "sdp-id": 7061,
+        "description": "ZFK7",
+        "a": {
+          "device": "eqxsv5-cr6",
+          "mode": "spoke",
+          "vc-id": 7019,
+          "lsp": "ZFK7-PRT-nrelrsf-cr6"
+        },
+        "z": {
+          "device": "nrelrsf-cr6",
+          "mode": "spoke",
+          "vc-id": 7019,
+          "lsp": "ZFK7-PRT-eqxsv5-cr6"
+        },
+        "precedence": "secondary"
+      }
+    ]
+  }
+]

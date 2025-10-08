@@ -1,11 +1,11 @@
 package net.es.oscars.sb.nso;
 
-import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
+import net.es.oscars.sb.nso.exc.NsoDryrunException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.oscars.sb.nso.resv.NsoVcIdService;
 import net.es.topo.common.dto.nso.NsoLSP;
@@ -237,15 +237,15 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
                     NsoAdapter.NsoOscarsDismantle dismantle = getNsoOscarsDismantle(wrapper);
                     try {
                         if (dryRun) {
-                            nsoProxy.dismantleDryRun(dismantle);
+                            log.info(nsoProxy.dismantleDryRun(dismantle));
                         } else {
                             nsoProxy.deleteServices(dismantle);
                         }
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.DELETE, true));
-                    } catch (NsoCommitException nsoCommitException) {
+                    } catch (NsoCommitException | NsoDryrunException nsoException) {
                         gotCommitError = true;
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.DELETE, false));
-                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! Nso Commit (or dry-run) Exception: " + nsoException.getMessage(), nsoException);
                     }
                 }
                 // ...Delete END
@@ -272,15 +272,15 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
                     try {
                         if (dryRun) {
-                            nsoProxy.redeployDryRun(svcWrapper, connectionId);
+                            log.info(nsoProxy.redeployDryRun(svcWrapper, connectionId));
                         } else {
                             nsoProxy.redeployServices(svcWrapper, connectionId);
                         }
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.REDEPLOY, true));
-                    } catch (NsoCommitException nsoCommitException) {
+                    } catch (NsoCommitException | NsoDryrunException nsoException) {
                         gotCommitError = true;
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.REDEPLOY, false));
-                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! Nso Commit (or dry-run) Exception: " + nsoException.getMessage(), nsoException);
                     }
 
                 }
@@ -309,15 +309,15 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
 
                     try {
                         if (dryRun) {
-                            nsoProxy.buildDryRun(svcWrapper);
+                            log.info(nsoProxy.buildDryRun(svcWrapper, connectionId));
                         } else {
                             nsoProxy.buildServices(svcWrapper, connectionId);
                         }
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.ADD, true));
-                    } catch (NsoCommitException nsoCommitException) {
+                    } catch (NsoCommitException | NsoDryrunException nsoException) {
                         gotCommitError = true;
                         this.syncResults.put(wrapper.getInstance().getVcId(), Triple.of(connectionId, State.ADD, false));
-                        log.info("Error! NsoCommitException: " + nsoCommitException.getMessage(), nsoCommitException);
+                        log.info("Error! Nso Commit (or dry-run) Exception: " + nsoException.getMessage(), nsoException);
                     }
                 }
                 // ...Add END
@@ -395,6 +395,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             if (!local.getInstance().equals(remote.getInstance())) {
                 // Mark for REDEPLOY
                 String description = "Local and remote state differ for VPLS " + id + ", mark for redeploy.";
+                log.info(description);
                 state = State.REDEPLOY;
                 redeploy(id, description);
             }
@@ -404,20 +405,21 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
             // Does it exist in remote? (Remote state may have changed between now and last load time)
             if (remote != null) {
                 String description = "No state found locally for VPLS " + id + ", mark for delete.";
+                log.info(description);
                 // Exists in remote, but not locally. Copy to local, then mark as "delete".
                 remote.setState(State.NOOP);
                 localState.put(id, remote);
                 state = State.REDEPLOY;
                 delete(id, description);
-                log.info("description:" + description);
+
 
             } else if (local != null) {
 
                 // Exists locally, but not in remote. Mark local as "add".
                 String description = "No state found remotely for VPLS " + id + ", mark for add.";
+                log.info(description);
                 state = State.ADD;
                 add(id, description);
-                log.info("description:" + description);
 
             } else {
                 // Doesn't exist in local OR remote. Throw exception

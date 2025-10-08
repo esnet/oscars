@@ -15,11 +15,11 @@ import net.es.oscars.resv.enums.State;
 import net.es.oscars.sb.nso.resv.NsoResourceService;
 import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.topo.common.devel.DevelUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 
 @Component
@@ -41,34 +41,60 @@ public class SouthboundQueuer {
     @Autowired
     private NsiService nsiService;
 
+    public static List<SouthboundTask> preprocessQueue(List<SouthboundTask> waiting, List<SouthboundTask> running) {
+
+        // Skip "duplicate" tasks that are already running (or planned) - if we are already
+        // performing (or planning to perform) a DISMANTLE for connection ABCD, we don't
+        // want to do that again
+
+        // We initialize a set of <connectionId, commandType> tuples to keep track,
+        // and fill it with data from all the currently running tasks..
+        Set<Pair<String, CommandType>> runningOrPlanned = new HashSet<>();
+        for (SouthboundTask rt : running) {
+            runningOrPlanned.add(Pair.of(rt.getConnectionId(), rt.getCommandType()));
+        }
+
+        List<SouthboundTask> dupesEliminated = new ArrayList<>();
+        for (SouthboundTask wt : waiting) {
+            Pair<String, CommandType> tuple = Pair.of(wt.getConnectionId(), wt.getCommandType());
+            // If the tuple set does _not_ contain our <connectionId, commandType>, we should run the task
+            // We also add the tuple to the set.
+            if (!runningOrPlanned.contains(tuple)) {
+                runningOrPlanned.add(tuple);
+                dupesEliminated.add(wt);
+            }
+        }
+
+
+        // Now we reorder the list by doing DISMANTLEs before any BUILDs and REDEPLOYs
+        // Reason is, if this scenario comes up:
+        // connection ABCD is now deployed, using resource 1000, we are asked to DISMANTLE it
+        // connection DEFG is undeployed, plans to use resource 1000, we are asked to BUILD it
+        //
+        // then we must do the ABCD DISMANTLE before the DEFG build or NSO will throw an error
+
+        // make two lists, filter our tasks to either...
+        List<SouthboundTask> dismantles = new ArrayList<>();
+        List<SouthboundTask> others = new ArrayList<>();
+        for (SouthboundTask sbt : dupesEliminated) {
+            if (sbt.getCommandType().equals(CommandType.DISMANTLE)) {
+                dismantles.add(sbt);
+            } else {
+                others.add(sbt);
+            }
+        }
+        // then join the two lists, putting the dismantles first
+        List<SouthboundTask> result = new ArrayList<>(dismantles);
+        result.addAll(others);
+        return result;
+    }
+
     @Transactional
     public void process() {
-        for (SouthboundTask rt : running) {
-            log.info("running : " + rt.getConnectionId() + " " + rt.getCommandType());
-        }
+        List<SouthboundTask> tasks = preprocessQueue(waiting, running);
 
-        // TODO: ensure we don't do opposite tasks for the same connection; last should win
-        List<SouthboundTask> shouldRun = new ArrayList<>();
-        for (SouthboundTask wt : waiting) {
-            log.info("waiting : " + wt.getConnectionId() + " " + wt.getCommandType());
-            boolean foundSame = false;
-            for (SouthboundTask rt : running) {
-                if (rt.getCommandType().equals(wt.getCommandType()) &&
-                        rt.getConnectionId().equals(wt.getConnectionId())) {
-                    log.info("already running " + wt.getConnectionId() + " " + wt.getCommandType());
-                    foundSame = true;
-                }
-            }
-            if (!foundSame) {
-                shouldRun.add(wt);
-            }
-        }
-
-        running.addAll(shouldRun);
-
-        for (SouthboundTask wt : shouldRun) {
+        for (SouthboundTask wt : tasks) {
             log.info("running task : " + wt.getConnectionId() + " " + wt.getCommandType());
-
             cr.findByConnectionId(wt.getConnectionId()).ifPresent(conn -> {
                 if (wt.getCommandType().equals(CommandType.BUILD)) {
                     conn.setDeploymentState(DeploymentState.BEING_DEPLOYED);

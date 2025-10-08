@@ -110,6 +110,9 @@ public class HoldControllerSteps {
         return generateMockConnection(null);
     }
     private Connection generateMockConnection(String projectId) {
+        Set<String> projectIds = new HashSet<>();
+        projectIds.add(projectId);
+
         return Connection.builder()
             .connectionId("ABCD")
             .phase(Phase.HELD)
@@ -121,7 +124,7 @@ public class HoldControllerSteps {
             .description("test description")
             .connection_mtu(10000)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
-            .projectId(null)
+            .projectIds(projectIds)
             .build();
     }
     private void setupMockConnSvc() throws Exception {
@@ -186,7 +189,7 @@ public class HoldControllerSteps {
                 invocation -> {
                     Pair<SimpleConnection, Connection> mockResult = null;
                     SimpleConnection s = (SimpleConnection) invocation.getArgument(0);
-                    if (s.getProjectId() == null) {
+                    if (s.getProjectIds() == null) {
                         mockResult = mockHoldConnection;
                     } else {
                         mockResult = mockHoldConnectionWithProjectId;

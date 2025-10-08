@@ -13,12 +13,11 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Given The NSO VPLS service state is loaded
     Given The NSO VPLS service state has 133 instances
 
-
     # All the various evaluation functions live in NsoVplsStateSyncer
 
     # AAAA should NOT exist, mark as add
     Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
-    Given I had added VPLS instance "AAAA" from "http/nso.esnet-vpls.aaaa.json"
+    Given I had added VPLS instance "AAAA" from "http/nso/vpls/nso.esnet-vpls.aaaa.json"
     When I evaluate VPLS "AAAA"
     Then The list of VPLS service instances marked "add" has a count of 1
     Then VPLS "AAAA" is marked as "add"
@@ -33,7 +32,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     # CCCC should exist and IS NOT in sync with NSO state, mark for redeploy
     Given The VPLS instance "CCCC" is present in the NSO VPLS service state
     # ...changes ingress-mbps and egress-mbps from 5000 to 10000
-    Given I had changed VPLS instance "CCCC" to "CCCC" from "http/nso.esnet-vpls.cccc.json"
+    Given I had changed VPLS instance "CCCC" to "CCCC" from "http/nso/vpls/nso.esnet-vpls.cccc.json"
     When I evaluate VPLS "CCCC"
     Then The list of VPLS service instances marked "redeploy" has a count of 1
     Then VPLS "CCCC" is marked as "redeploy"
@@ -52,8 +51,8 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     Given The NSO VPLS service state has 133 instances
 
     # Evaluate AAAA and AAA2, sync should add both.
-    Given I had added VPLS instance "AAAA" from "http/nso.esnet-vpls.aaaa.json"
-    Given I had added VPLS instance "AAA2" from "http/nso.esnet-vpls.aaaa.json"
+    Given I had added VPLS instance "AAAA" from "http/nso/vpls/nso.esnet-vpls.aaaa.json"
+    Given I had added VPLS instance "AAA2" from "http/nso/vpls/nso.esnet-vpls.aaaa.json"
     When I evaluate VPLS "AAAA"
     When I evaluate VPLS "AAA2"
     Then The list of VPLS service instances marked "add" has a count of 2
@@ -67,9 +66,9 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
 
     # Evaluate CCCC and CCC2, sync should redeploy both
     # ...changes ingress-mbps and egress-mbps from 5000 to 10000
-    Given I had changed VPLS instance "CCCC" to "CCCC" from "http/nso.esnet-vpls.cccc.json"
+    Given I had changed VPLS instance "CCCC" to "CCCC" from "http/nso/vpls/nso.esnet-vpls.cccc.json"
     # ...changes ingress-mbps and egress-mbps from 1 to 50
-    Given I had changed VPLS instance "CCC2" to "CCC2" from "http/nso.esnet-vpls.cccc.json"
+    Given I had changed VPLS instance "CCC2" to "CCC2" from "http/nso/vpls/nso.esnet-vpls.cccc.json"
     When I evaluate VPLS "CCCC"
     When I evaluate VPLS "CCC2"
     Then The list of VPLS service instances marked "redeploy" has a count of 2
@@ -78,6 +77,21 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     When I evaluate VPLS "DDDD"
     When I evaluate VPLS "DDD2"
     Then The list of VPLS service instances marked "no-op" has a count of 129
+
+  Scenario: Read NSO VPLS service state, make decisions about redeploying with diffs
+    Given I have initialized the world
+    Given The list of active OSCARS connections are loaded
+    Given The NSO VPLS service state is loaded
+
+    # Evaluate CCCC when metadata is missing: should not redeploy
+    Given I had changed VPLS instance "CCCC" to "CCCC" from "http/nso/vpls/nso.esnet-vpls.cccc-meta-removed.json"
+    When I evaluate VPLS "CCCC"
+    Then The list of VPLS service instances marked "redeploy" has a count of 0
+
+    # Evaluate CCCC when order of device entries has changed - should not redeploy
+    Given I had changed VPLS instance "CCCC" to "CCCC" from "http/nso/vpls/nso.esnet-vpls.cccc-order-diff.json"
+    When I evaluate VPLS "CCCC"
+    Then The list of VPLS service instances marked "redeploy" has a count of 0
 
 
   # Happy path
@@ -89,7 +103,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
 
     # Add the VPLS "AAAA" to service state without it, should be an "add" operation
     Given The VPLS instance "AAAA" is not present in the NSO VPLS service state
-    Given I had added VPLS instance "AAAA" from "http/nso.esnet-vpls.aaaa.json"
+    Given I had added VPLS instance "AAAA" from "http/nso/vpls/nso.esnet-vpls.aaaa.json"
     When I mark VPLS instance "AAAA" with "add"
     Then VPLS "AAAA" is marked as "add"
     Then The list of VPLS service instances marked "add" has a count of 1
@@ -153,7 +167,7 @@ Feature: Synchronize NSO service state to OSCARS state (Happy Path)
     # Apply batch operations as a patch.
 #    When I apply VPLS service patch from "http/nso.esnet-vpls.vpls-patch.json"
 
-    Given I had added VPLS instance "AAAA" from "http/nso.esnet-vpls.aaaa.json"
+    Given I had added VPLS instance "AAAA" from "http/nso/vpls/nso.esnet-vpls.aaaa.json"
     Given I had marked "BBBB" with "delete"
     Given I had marked "CCCC" with "redeploy"
 

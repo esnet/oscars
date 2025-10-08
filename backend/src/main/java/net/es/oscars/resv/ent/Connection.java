@@ -2,7 +2,6 @@ package net.es.oscars.resv.ent;
 
 import com.fasterxml.jackson.annotation.*;
 
-import io.micrometer.common.lang.Nullable;
 import jakarta.persistence.*;
 import lombok.*;
 import net.es.oscars.resv.enums.*;
@@ -10,6 +9,7 @@ import org.hibernate.proxy.HibernateProxy;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -37,7 +37,7 @@ public class Connection {
                       @JsonProperty("archived") Archived archived,
                       @JsonProperty("connection_mtu") @NonNull Integer connection_mtu,
                       @JsonProperty("last_modified") @NonNull Integer last_modified,
-                      @JsonProperty("projectId") String projectId) {
+                      @JsonProperty("projectId") Set<String> projectIds) {
         this.connectionId = connectionId;
         this.phase = phase;
         this.mode = mode;
@@ -54,7 +54,7 @@ public class Connection {
         this.connection_mtu = connection_mtu;
         this.last_modified = last_modified;
 
-        this.projectId = projectId;
+        this.projectIds = projectIds;
     }
 
 
@@ -155,7 +155,8 @@ public class Connection {
     public ConnectionSouthbound southbound;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private String projectId;
+    @ElementCollection
+    private Set<String> projectIds;
 
     @Override
     public final boolean equals(Object o) {

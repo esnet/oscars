@@ -1,6 +1,9 @@
 package net.es.oscars.topo.beans.v2;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
+import com.sun.xml.xsom.impl.scd.Step;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +21,19 @@ import java.util.Set;
 public class VlanAvailability {
 
     private Set<IntRange> ranges;
+    private String expression;
+    private List<List<Integer>> tuples;
+
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    public void setExpression(String expression) {
+        this.expression = expression;
+    }
+
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    public void setTuples(List<List<Integer>> tuples) {
+        this.tuples = tuples;
+    }
+
 
     @JsonGetter("expression")
     private String asExpression() {

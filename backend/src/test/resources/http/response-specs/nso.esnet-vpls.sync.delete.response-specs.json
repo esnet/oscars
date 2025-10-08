@@ -1,22 +1,22 @@
 [
   {
     "patchId": "delete VPLS and LSP for BBBB",
-    "data": "http/nso.esnet-vpls.sync.delete.response.happy.json",
+    "data": "http/nso/vpls/nso.esnet-vpls.sync.delete.response.happy.json",
     "status": 200
   },
   {
     "patchId": "delete VPLS and LSP for BBB2",
-    "data": "http/nso.esnet-vpls.sync.delete.response.happy.json",
+    "data": "http/nso/vpls/nso.esnet-vpls.sync.delete.response.happy.json",
     "status": 200
   },
   {
     "patchId": "redeploy VPLS for CCCC",
-    "data": "http/nso.esnet-vpls.sync.response.happy.json",
+    "data": "http/nso/vpls/nso.esnet-vpls.sync.response.happy.json",
     "status": 200
   },
   {
     "patchId": "delete VPLS and LSP for OSCARS-C2WJ",
-    "data": "http/nso.esnet-vpls.sync.response.happy.json",
+    "data": "http/nso/vpls/nso.esnet-vpls.sync.response.happy.json",
     "status": 200
   }
 ]

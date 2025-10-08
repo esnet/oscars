@@ -1,32 +1,32 @@
 [
   {
     "patchId": "replace LSP C7WG-PRT-sunn-cr6,wash-cr6",
-    "data": "http/nso.esnet-lsp.sync.delete.response.happy.json",
+    "data": "http/nso/lsp/nso.esnet-lsp.sync.delete.response.happy.json",
     "status": 200
   },
   {
     "patchId": "replace LSP C2WJ-PRT-newy32aoa-cr6,star-cr6",
-    "data": "http/nso.esnet-lsp.sync.delete.response.happy.json",
+    "data": "http/nso/lsp/nso.esnet-lsp.sync.delete.response.happy.json",
     "status": 200
   },
   {
     "patchId": "delete LSP C2WJ-PRT-newy32aoa-cr6,star-cr6",
-    "data": "http/nso.esnet-lsp.sync.delete.response.happy.json",
+    "data": "http/nso/lsp/nso.esnet-lsp.sync.delete.response.happy.json",
     "status": 200
   },
   {
     "patchId": "delete LSP C2WJ-WRK-star-cr6,newy32aoa-cr6",
-    "data": "http/nso.esnet-lsp.sync.delete.response.happy.json",
+    "data": "http/nso/lsp/nso.esnet-lsp.sync.delete.response.happy.json",
     "status": 200
   },
   {
     "patchId": "delete LSP C2WJ-PRT-star-cr6,newy32aoa-cr6",
-    "data": "http/nso.esnet-lsp.sync.delete.response.happy.json",
+    "data": "http/nso/lsp/nso.esnet-lsp.sync.delete.response.happy.json",
     "status": 200
   },
   {
     "patchId": "delete LSP C2WJ-WRK-newy32aoa-cr6,star-cr6",
-    "data": "http/nso.esnet-lsp.sync.delete.response.happy.json",
+    "data": "http/nso/lsp/nso.esnet-lsp.sync.delete.response.happy.json",
     "status": 200
   }
 ]
