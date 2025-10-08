@@ -496,7 +496,9 @@ public class MockSimpleConnectionHelper {
     }
     public Connection generateMockConnection(String mockConnectionId, Phase phase, BuildMode buildMode, State state, DeploymentState deploymentState, DeploymentIntent deploymentIntent, int connection_mtu, String projectId) {
         Set<String> projectIds = new HashSet<>();
-        projectIds.add(projectId);
+        if (projectId != null) {
+            projectIds.add(projectId);
+        }
 
         return Connection.builder()
             .id(1L)
