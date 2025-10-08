@@ -226,6 +226,8 @@ public class MockSimpleConnectionHelper {
 
         int minMtuDefault = this.connService.getMinMtu();
         log.info("minMtuDefault: " + minMtuDefault);
+        Set<String> projectIds = new HashSet<>();
+        projectIds.add(projectId);
 
         return SimpleConnection.builder()
             .username(      this.userName )
@@ -245,7 +247,7 @@ public class MockSimpleConnectionHelper {
             .pipes(         this.connectionPipes)
             .last_modified( this.beginTime )
             .validity( this.createTrueValidity() )
-            .projectId(projectId)
+            .projectIds(projectIds)
             .build();
     }
 
@@ -348,6 +350,8 @@ public class MockSimpleConnectionHelper {
 
         // Mock held connections.
         // @TODO: Must be length zero or more for validation to pass?
+        Set<String> projectIds = new HashSet<>();
+        projectIds.add(this.projectId);
 
         // ...add mock held Connection entries.
         Connection mockConnection = Connection.builder()
@@ -364,7 +368,7 @@ public class MockSimpleConnectionHelper {
             .deploymentState(DeploymentState.UNDEPLOYED)
             .deploymentIntent(DeploymentIntent.SHOULD_BE_UNDEPLOYED)
             .last_modified(this.beginTime)
-            .projectId(this.projectId)
+            .projectIds(projectIds)
             .build();
         this.held.put(mockConnection.getConnectionId(), mockConnection);
 
@@ -491,6 +495,9 @@ public class MockSimpleConnectionHelper {
         );
     }
     public Connection generateMockConnection(String mockConnectionId, Phase phase, BuildMode buildMode, State state, DeploymentState deploymentState, DeploymentIntent deploymentIntent, int connection_mtu, String projectId) {
+        Set<String> projectIds = new HashSet<>();
+        projectIds.add(projectId);
+
         return Connection.builder()
             .id(1L)
             .held( // Required, or /protected/modify/description result will become an HTTP 500 Internal Server Error
@@ -518,7 +525,7 @@ public class MockSimpleConnectionHelper {
             .description("test description")
             .connection_mtu(connection_mtu)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
-            .projectId(projectId)
+            .projectIds(projectIds)
             .build();
     }
 }

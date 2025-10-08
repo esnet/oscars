@@ -13,7 +13,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Jacksonized
 @Builder
@@ -115,8 +117,9 @@ public class L2VPN {
         @JsonFormat(shape = JsonFormat.Shape.NUMBER, timezone = "UTC")
         private Instant lastModified = Instant.now();
 
+        @Builder.Default
         @Schema(description = "Project identifier. This is an external ID", nullable = true)
-        protected String projectId;
+        protected Set<String> projectIds = new HashSet<>();
 
     }
 

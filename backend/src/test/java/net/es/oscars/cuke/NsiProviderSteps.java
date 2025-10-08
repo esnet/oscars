@@ -39,7 +39,6 @@ import io.cucumber.java.en.When;
 import jakarta.xml.soap.MessageFactory;
 import jakarta.xml.soap.SOAPBody;
 import jakarta.xml.soap.SOAPMessage;
-import kotlin.NotImplementedError;
 import lombok.extern.slf4j.Slf4j;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReservationStateEnumType;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.ReserveResponseType;
@@ -347,8 +346,8 @@ public class NsiProviderSteps extends CucumberSteps {
     public void the_NSI_connection_has_a_projectId() {
         try {
             connService.getHeld().forEach((id, conn) -> {
-                log.info("Connection {} has projectId {}", id, conn.getProjectId());
-                assert conn.getProjectId() != null;
+                log.info("Connection {} has projectId {}", id, conn.getProjectIds());
+                assert conn.getProjectIds() != null;
             });
         } catch (Exception e) {
             world.add(e);

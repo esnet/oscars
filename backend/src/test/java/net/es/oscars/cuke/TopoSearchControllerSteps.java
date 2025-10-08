@@ -128,6 +128,9 @@ public class TopoSearchControllerSteps {
         controller.setConnRepo(connRepo);
     }
     private Connection generateMockConnection() {
+        Set<String> projectIds = new HashSet<>();
+        projectIds.add("ABCD-1234-EFGH-5678");
+
         return Connection.builder()
             .connectionId("ABCD")
             .phase(Phase.HELD)
@@ -139,7 +142,7 @@ public class TopoSearchControllerSteps {
             .description("test description")
             .connection_mtu(10000)
             .last_modified( ((Long) Instant.now().getEpochSecond()).intValue() )
-            .projectId("ABCD-1234-EFGH-5678")
+            .projectIds(projectIds)
             .build();
     }
     private void setupMockConnSvc() throws Exception {
