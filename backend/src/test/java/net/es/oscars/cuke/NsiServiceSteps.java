@@ -876,13 +876,13 @@ public class NsiServiceSteps extends CucumberSteps {
     @Then("the connection does not have a projectId value")
     public void the_connection_does_not_have_a_projectId_value() {
         assert mockConnection != null;
-        assert mockConnection.getProjectIds() == null || !mockConnection.getProjectIds().isEmpty();
+        assert mockConnection.getProjectIds() == null || mockConnection.getProjectIds().isEmpty();
     }
 
     @Then("The connection has a projectId value")
     public void The_connection_has_a_projectId_value() {
         assert mockConnection != null;
-        assert mockConnection.getProjectIds() != null;
+        assert mockConnection.getProjectIds() != null && !mockConnection.getProjectIds().isEmpty();
     }
     // * NSI Release steps END *
 }
