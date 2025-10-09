@@ -121,7 +121,8 @@ backend:profile:
     - chmod -R a+rw ./backend/profiling
     - docker compose --progress=plain -f docker-compose.profiling.yml up oscars-backend-profile
     - if [ ! -f "./backend/${FILENAME}" ]; then echo "Could NOT find generated recording data at ./backend/${FILENAME}"; exit 1; fi;
-backendend:loadtest:
+
+backend:loadtest:
   stage: loadtest
   before_script:
     - *docker_login
@@ -134,7 +135,11 @@ backendend:loadtest:
     - *wharf_logout
   services: 
     - docker:28.2.2-dind
-  needs: ["backend:build_image", "backend:test", "backend:profile"]
+  needs:
+    - job: "backend:build_image"
+    - job: "backend:test"
+    - job: "backend:profile"
+      optional: true
   rules:
     - if: $CI_COMMIT_BRANCH != $RELEASE_BRANCH
   artifacts:
@@ -148,7 +153,12 @@ backendend:loadtest:
 
 .backend:push:
   stage: push
-  needs: ["backend:scan", "backend:test", "backend:profile"]
+  needs:
+    - job: "backend:scan"
+    - job: "backend:test"
+    - job: "backend:profile"
+      optional: true
+
   before_script:
     - *docker_login
     - *wharf_login
