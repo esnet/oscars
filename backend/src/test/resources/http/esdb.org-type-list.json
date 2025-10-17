@@ -1,0 +1,40 @@
+{
+  "data": {
+    "organizationTypeList": {
+      "list": [
+        {
+          "uuid": "004b905b-cc8f-4997-980f-7435c51ceee9",
+          "name": "Telecom Provider"
+        },
+        {
+          "uuid": "b517a117-fbc3-4436-a17d-85a0bf9b48e9",
+          "name": "Commercial Peer"
+        },
+        {
+          "uuid": "02082061-f4ce-4007-9acf-0d281eba2792",
+          "name": "ESnet Site"
+        },
+        {
+          "uuid": "70604b74-4b8d-4c72-bf7b-b898f30f8f1c",
+          "name": "R&E"
+        },
+        {
+          "uuid": "9f56d92a-f40c-4539-8f3e-21f9c9c1068f",
+          "name": "Vendor"
+        },
+        {
+          "uuid": "a1b54872-f904-45a2-a2e3-fe3932cbfe65",
+          "name": "Collaborator"
+        },
+        {
+          "uuid": "29ea57c2-d2a9-45af-baf4-5cc81031b82f",
+          "name": "Manufacturer"
+        },
+        {
+          "uuid": "57bafbc4-7296-417b-8561-294f73b6fb06",
+          "name": "Project"
+        }
+      ]
+    }
+  }
+}

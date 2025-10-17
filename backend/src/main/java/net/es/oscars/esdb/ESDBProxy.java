@@ -5,9 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import jakarta.validation.constraints.Null;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.EsdbProperties;
 import net.es.oscars.app.util.HeaderRequestInterceptor;
+import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganization;
+import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganizationType;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
@@ -28,8 +32,12 @@ import java.util.*;
 @Component
 public class ESDBProxy {
 
+
     private final RestTemplate restTemplate;
-    private final EsdbProperties esdbProperties;
+
+    @Getter
+    @Setter
+    private EsdbProperties esdbProperties;
     final OpenTelemetry openTelemetry;
 
     @Autowired
@@ -57,7 +65,7 @@ public class ESDBProxy {
     /**
      * Get all ESDB VLANS from ESDB using the /vlan endpoint.
      * Deprecated. Please use ESDBProxy.gqlVlanList() instead.
-     * 
+     *
      * @Deprecated
      * @return List of EsdbVlan objects from the REST endpoint response.
      */
@@ -117,6 +125,53 @@ public class ESDBProxy {
     public List<EsdbVlan> gqlVlanList(String searchQuery, String sortProperty, Integer first, Integer skip) {
         return this.gqlVlanList(searchQuery, sortProperty, first, skip, null);
     }
+
+    /**
+     * Get ESDB organizations from ESDB using GraphQL filtered by org type uuid.
+     * @return Returns a list of GraphqlEsdbOrganization objects from the GraphQL response.
+     */
+    public List<GraphqlEsdbOrganization> gqlOrganizationList(String orgTypes) {
+
+        HttpSyncGraphQlClient graphQlClient = createGraphqlClient();
+        // See oscars/backend/src/main/resources/graphql-documents/orgList.graphql
+        // Our GraphQL client can autoload by document name from the graphql-documents/ directory.
+        GraphQlClient.RequestSpec requestSpec = graphQlClient.documentName("orgList");
+
+        Map<String, Object> params = new HashMap<>();
+        if (orgTypes != null && !orgTypes.isEmpty()) {
+            params.put("orgTypes", orgTypes);
+        }
+        if (!params.isEmpty()) {
+            requestSpec.variables(params);
+        }
+
+        ClientGraphQlResponse response = requestSpec.executeSync();
+
+        return response
+                .field("organizationList.list")
+                .toEntityList(GraphqlEsdbOrganization.class);
+    }
+
+    /**
+     * Get ESDB organizations from ESDB using GraphQL filtered by org type uuid.
+     * @return Returns a list of GraphqlEsdbOrganization objects from the GraphQL response.
+     */
+    public List<GraphqlEsdbOrganizationType> gqlOrganizationTypeList() {
+
+        HttpSyncGraphQlClient graphQlClient = createGraphqlClient();
+        // See oscars/backend/src/main/resources/graphql-documents/orgTypeList.graphql
+        // Our GraphQL client can autoload by document name from the graphql-documents/ directory.
+        GraphQlClient.RequestSpec requestSpec = graphQlClient.documentName("orgTypeList");
+
+
+        ClientGraphQlResponse response = requestSpec.executeSync();
+
+        return response
+                .field("organizationTypeList.list")
+                .toEntityList(GraphqlEsdbOrganizationType.class);
+    }
+
+
 
     /**
      * Get all ESDB VLANs from ESDB using GraphQL. Targets vlanList.
