@@ -1,0 +1,8 @@
+query {
+    organizationTypeList {
+        list {
+            uuid
+            name
+        }
+    }
+}

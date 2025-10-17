@@ -1,0 +1,1161 @@
+{
+  "data": {
+    "organizationList": {
+      "list": [
+        {
+          "uuid": "80703fbc-b2e1-427e-ad70-58aa24ff7a95",
+          "shortName": "CmpsDigTwins",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "caitlin.ross@kitware.com",
+                "uuid": "1aa23d5c-d086-4e82-b048-c59c2f222e99"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "sanjaychari2xy2@gmail.com",
+                "uuid": "96a34e0d-3160-4619-bb49-5922f15a4470"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "tmallick@anl.gov",
+                "uuid": "aa2fd618-b6b6-480d-8b1a-7d1ed43b1abe"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "kabrown@anl.gov",
+                "uuid": "22b7eaf3-afef-427a-8e33-7ff79adf19c3"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "3069bcfc-a865-47e7-ac63-9feb3a84fcbd",
+          "shortName": "Cloud-Connect",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "fibersupport@crowncastle.com",
+                "uuid": "f986363c-feed-41cd-8981-a1aca2a24c20"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "fibersupport@crowncastle.com",
+                "uuid": "ee1d2ccb-80f3-4fe7-aad6-09ca2eca64f9"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "paul.feldman@crowncastle.com",
+                "uuid": "73ff1ea2-018a-43df-a0a8-66cd75901b5d"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "msantoro@lanl.gov",
+                "uuid": "b18bd138-0a56-4904-a847-247c4fe92351"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "DuplexRJ@nv.doe.gov",
+                "uuid": "2ca808e4-0a23-49ba-868a-69d0006c6d79"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "jlmaure@sandia.gov",
+                "uuid": "8b8fd517-972f-4c5e-885f-4b9e57478f8f"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "william.arnold@srs.gov",
+                "uuid": "efbc6830-19cd-42ef-8843-1dadb6097da5"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "7a1f3cc7-c932-4b58-ab75-ab271abd3992",
+          "shortName": "BBRv3Testing",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "bltierney@es.net",
+                "uuid": "c3e415f6-2a6b-44a1-98ed-50bd4e63cade"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "kissel@es.net",
+                "uuid": "dd378646-c545-4d47-b39e-6952b89f2460"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "SYu5@es.net",
+                "uuid": "398817a2-4ed7-4ea8-8793-0f09327ef9cb"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "ada03f7e-5d1a-4213-af4c-d1a250a54c7d",
+          "shortName": "NORD-UNINETT",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "lars@nordu.net",
+                "uuid": "77f6ef8b-ed4d-4812-b1d2-240796d9da98"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "c52ac989-8f7b-40fc-841b-84037aa5c275",
+          "shortName": "SciStream",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "castro.flaviojr@gmail.com",
+                "uuid": "e848b9f3-7b26-4cab-9da3-93aa3a94d7f5"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "chungmiranda@anl.gov",
+                "uuid": "57d1b6dc-8543-47cc-ab17-798fe01e8ffd"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "272180b3-ef73-48d1-9a75-096844d179a4",
+          "shortName": "TbitsDataTran",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "dantongyu@gmail.com",
+                "uuid": "c9745735-4dba-48c8-92d5-c4f26746f549"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "k.mahon.dev@gmail.com",
+                "uuid": "4abe5745-0df4-4d3c-b432-647e72df9cfe"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "zeyu.dong@stonybrook. ",
+                "uuid": "7836d7a7-b856-4d89-bc5b-82e104fdf75c"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "023b0bc9-9320-46ac-9783-6b3aa340812f",
+          "shortName": "LHC-CernCanarie",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "thomas.tam@canarie.ca",
+                "uuid": "fb46cb8d-d94f-446e-826d-8345f7fbfd68"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "328edbf2-5cd3-41ec-95f0-cd70e9789247",
+          "shortName": "CERN-Internet2",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "https://orcid.org/0000-0002-3694-376X",
+                "primaryEmailAddress": "edoardo.martelli@cern.ch",
+                "uuid": "0d0ef241-4b38-4a15-89bc-52c28527f958"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "c03b0aa3-e579-4421-9371-e0f08b078d64",
+          "shortName": "LHC-CernMren",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "schmitz@anl.gov",
+                "uuid": "cbe7110a-aadc-4a5b-b40f-38af56fac65b"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "ba969643-b3f8-49ae-8954-39e87e02fe00",
+          "shortName": "LHC-CernKreonet",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "bscho@kisti.re.kr",
+                "uuid": "396f0a82-2496-4e31-9897-a2a51a2bf17b"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "9d9e019f-4779-42f9-bfad-f8e18950c9fd",
+          "shortName": "NASA-MrenCern",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "arkan.a.aldijaili@nasa.gov",
+                "uuid": "7fe33d6c-2da9-48d8-8ddb-0705eb0a9d3c"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "259790cc-cc22-4b95-8179-500be2bbe919",
+          "shortName": "DOE-IN-VIASAT",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "matolaka@ornl.gov",
+                "uuid": "4c3dfb41-d90a-40fb-9239-cdc0b35d84f6"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "1a9856f6-275d-4d9d-9123-6ff1d246adff",
+          "shortName": "NORDUnet/CSC",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "lars@nordu.net",
+                "uuid": "77f6ef8b-ed4d-4812-b1d2-240796d9da98"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "66fa34e9-dc7e-4793-9b0b-bb209323ec8c",
+          "shortName": "NORDUnet/DeiC",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "lars@nordu.net",
+                "uuid": "77f6ef8b-ed4d-4812-b1d2-240796d9da98"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "8878db3a-ba51-4718-b647-aa700aece102",
+          "shortName": "NORDUnet/FUnet",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "lars@nordu.net",
+                "uuid": "77f6ef8b-ed4d-4812-b1d2-240796d9da98"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "e113e56c-f2ef-4017-98d8-62f8d3073e61",
+          "shortName": "NORDUnet/HEAnet",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "lars@nordu.net",
+                "uuid": "77f6ef8b-ed4d-4812-b1d2-240796d9da98"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "b0a81534-9787-4a68-9a0d-621e3c8439ff",
+          "shortName": "DELERIA",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "lomax@es.net",
+                "uuid": "6c38dec8-1505-4b2b-93c0-dfbc788af273"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "KVasu@es.net",
+                "uuid": "5610d76a-65c4-448d-8c42-7567fdf33afb"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "kissel@es.net",
+                "uuid": "dd378646-c545-4d47-b39e-6952b89f2460"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "SYu5@es.net",
+                "uuid": "398817a2-4ed7-4ea8-8793-0f09327ef9cb"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "mcromaz@lbl.gov",
+                "uuid": "b9f78c42-55fe-4c25-a087-1d3090279542"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "a9997490-7dd0-4127-8c7a-e275feaccfcc",
+          "shortName": "DUNE/LBNF",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "pweber@fnal.gov",
+                "uuid": "8d5ae3dd-cb20-4ce3-8820-869e517f6a5c"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "28ff7086-c327-4c13-82e3-757693089991",
+          "shortName": "NORDUnet/RHnet",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "lars@nordu.net",
+                "uuid": "77f6ef8b-ed4d-4812-b1d2-240796d9da98"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "b62f5f91-6e85-4f16-a444-137426f08e00",
+          "shortName": "NORDUnet/Sikt",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "lars@nordu.net",
+                "uuid": "77f6ef8b-ed4d-4812-b1d2-240796d9da98"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "a071d4c3-26e0-46d8-932e-ebc7b18cd46a",
+          "shortName": "NORDUnet/SUNET",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "lars@nordu.net",
+                "uuid": "77f6ef8b-ed4d-4812-b1d2-240796d9da98"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "36c9d887-c897-4ee7-8326-f20edc505040",
+          "shortName": "NREL ARIES",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "rob.hovsapian@nrel.gov",
+                "uuid": "44d4b4de-a493-490c-8150-b47e7cd94ec6"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "d7f21beb-4ba6-4791-9914-378cc0492602",
+          "shortName": "USATLAS/LHC",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "mlukasczyk@bnl.gov",
+                "uuid": "9a79456e-88cf-4272-b4aa-f0fdb12a26a3"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "56378771-5332-4d40-9750-437c967203d2",
+          "shortName": "LHC ATLAS",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "simon.lin@twgrid.org",
+                "uuid": "c4e7aad2-6dc8-4d51-8f07-80805c7d158c"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "b5857ba9-d45f-4581-9faa-c0bfb0343133",
+          "shortName": "CERN-Starlight",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "https://orcid.org/0000-0002-3694-376X",
+                "primaryEmailAddress": "edoardo.martelli@cern.ch",
+                "uuid": "0d0ef241-4b38-4a15-89bc-52c28527f958"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "c171528f-970a-44dd-8a00-52b1bb1e9020",
+          "shortName": "MultiONE",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "https://orcid.org/0000-0002-3694-376X",
+                "primaryEmailAddress": "edoardo.martelli@cern.ch",
+                "uuid": "0d0ef241-4b38-4a15-89bc-52c28527f958"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "4c961a8e-bb0c-4733-8b28-fe3a7500fd88",
+          "shortName": "US CMS",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "https://orcid.org/0000-0002-0074-5390",
+                "primaryEmailAddress": "dmason@fnal.gov",
+                "uuid": "22ebe5ef-f4c5-4809-8a9d-39270dbaba38"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "https://orcid.org/0000-0002-8015-9622",
+                "primaryEmailAddress": "gutsche@fnal.gov",
+                "uuid": "7d2f0c30-3d6b-485b-9c5f-d9ea95306003"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "a3f09bb0-2327-43b1-868c-5cc7cc504a01",
+          "shortName": "LHC CMS",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "pn@tifr.res.in",
+                "uuid": "0662750c-1b56-4fa8-a928-ceb831a6eca4"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "a698ad28-65aa-4fe1-a702-6deabd3a8ac5",
+          "shortName": "NOvA",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "shanahan@fnal.gov",
+                "uuid": "59dffd34-9f0e-467a-bd56-142d5ab67a87"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "0c141f1d-2545-4baa-ae12-343f72e0d6ca",
+          "shortName": "Chameleon",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "keahey@anl.gov",
+                "uuid": "3540f4b8-fef5-4f86-8999-69f37edb2d39"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "ccc81a69-c603-4061-8d5e-1a8f8e9f8e45",
+          "shortName": "LANL-NTS-LLNL",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "sidhu2@llnl.gov",
+                "uuid": "405a5b36-0349-4a55-9d7f-2c0fd25334d6"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "36391187-c312-454e-8a67-d6eb6e8864d3",
+          "shortName": "ANL-UChicago-pr",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "winkler@anl.gov",
+                "uuid": "62d0ee1d-1f85-4fad-aba1-c45a07db1284"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "6dbd1fd6-08be-43d3-8ada-71f22fd445b0",
+          "shortName": "AzureExpress",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "Ken.hyatt@nrel.gov",
+                "uuid": "46f2925e-f2dc-40b4-8cc1-c9f7c99cbc40"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "353d9399-295a-428e-aa56-16cc64a24acf",
+          "shortName": "ORNL-Azure-Gov",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "hicksse@ornl.gov",
+                "uuid": "3c4e46a2-58c9-4945-b65d-bd74d497fa81"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "80bfd30c-d271-4754-a3ad-21aab7723ab8",
+          "shortName": "Fault-Loc-Isol",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "hicksse@ornl.gov",
+                "uuid": "3c4e46a2-58c9-4945-b65d-bd74d497fa81"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "8e3642ba-0825-4a96-ae49-8dee0073e2ab",
+          "shortName": "SRNL-ICN-ORNL",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "william.arnold@srs.gov",
+                "uuid": "efbc6830-19cd-42ef-8843-1dadb6097da5"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "a644d409-2288-4e41-91c7-b883a75692fe",
+          "shortName": "OLCF-AF-Sys11",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "jrogers@ornl.gov",
+                "uuid": "79de23b2-245c-44cb-b6ed-172f923a5d2c"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "044f7bc5-563e-4a0d-bd57-c82b3a339677",
+          "shortName": "BBRv3 Testing",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "bltierney@es.net",
+                "uuid": "c3e415f6-2a6b-44a1-98ed-50bd4e63cade"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "kissel@es.net",
+                "uuid": "dd378646-c545-4d47-b39e-6952b89f2460"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "SYu5@es.net",
+                "uuid": "398817a2-4ed7-4ea8-8793-0f09327ef9cb"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "39f72245-310e-4422-a29f-168f55cdc541",
+          "shortName": "SAatfdsbfsi",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "chungmiranda@anl.gov",
+                "uuid": "57d1b6dc-8543-47cc-ab17-798fe01e8ffd"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "castro.flaviojr@gmail.com",
+                "uuid": "e848b9f3-7b26-4cab-9da3-93aa3a94d7f5"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "e0d91b42-9405-4500-85e2-6aba207a8acd",
+          "shortName": "CDTfSNIuPDES",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "caitlin.ross@kitware.com",
+                "uuid": "1aa23d5c-d086-4e82-b048-c59c2f222e99"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "kabrown@anl.gov",
+                "uuid": "22b7eaf3-afef-427a-8e33-7ff79adf19c3"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "sanjaychari2xy2@gmail.com",
+                "uuid": "96a34e0d-3160-4619-bb49-5922f15a4470"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "tmallick@anl.gov",
+                "uuid": "aa2fd618-b6b6-480d-8b1a-7d1ed43b1abe"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "c7216e40-e125-4679-916c-8d9f7b841fcc",
+          "shortName": "Y12 AWS",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "christopher.ickles@y12nsc.doe.gov",
+                "uuid": "d010aa0d-5f29-47af-9578-03e5eb36d91b"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "23294ca2-6ef7-4b48-ab4e-f583b3edc138",
+          "shortName": "TDTTfHEDBDA",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "dantongyu@gmail.com",
+                "uuid": "c9745735-4dba-48c8-92d5-c4f26746f549"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "k.mahon.dev@gmail.com",
+                "uuid": "4abe5745-0df4-4d3c-b432-647e72df9cfe"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "zeyu.dong@stonybrook. ",
+                "uuid": "7836d7a7-b856-4d89-bc5b-82e104fdf75c"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "0a2443e2-4cbb-478a-8659-6ce4ee0c11a1",
+          "shortName": "NU",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "lars@nordu.net",
+                "uuid": "77f6ef8b-ed4d-4812-b1d2-240796d9da98"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "b7056d9d-0392-4ccc-9d52-dc78b9109c33",
+          "shortName": "SENSE",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "tlehman@lbl.gov",
+                "uuid": "f2d2fea8-9c75-4bb9-aac8-b99dec5c6310"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "XiYang@es.net",
+                "uuid": "7c78f26e-5883-42fb-a718-bed54265a883"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "JBalcas@es.net",
+                "uuid": "e4493b9d-a37f-4f03-858c-a3428d329e3c"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "AJimenez@es.net",
+                "uuid": "e7d52099-3fc6-4e39-bda6-7b59b535753c"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "985a276b-cc66-49b1-b931-429e4a2f5cd9",
+          "shortName": "DARKNET",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "hicksse@ornl.gov",
+                "uuid": "3c4e46a2-58c9-4945-b65d-bd74d497fa81"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "53c91485-8fb1-4b7a-bec6-d8b0f68dd52d",
+          "shortName": "SC23 HT Demo",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "chin@es.net",
+                "uuid": "eaf8dc7e-5963-431f-aefc-c91fe85cb8fe"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "bmah@es.net",
+                "uuid": "4b51a1a0-960d-4906-ac61-31b99964e88c"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "stac@lbl.gov",
+                "uuid": "553b9f0b-e2ce-407e-996d-7c58aeeee709"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "f4bba09a-9341-4bb6-b72b-3b2cfc9f57cc",
+          "shortName": "SParc-CAST",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "stephen.bukowski@inl.gov",
+                "uuid": "3fafa082-3d8b-4dbe-9a11-6f727776c7a2"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "db60634f-4225-4bfe-9001-6c85e67634ee",
+          "shortName": "SRS - OSTI",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "william.arnold@srs.gov",
+                "uuid": "efbc6830-19cd-42ef-8843-1dadb6097da5"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "21e89491-062a-44c9-8f1e-e541651a9685",
+          "shortName": "ORNL-VA-MVP",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "hicksse@ornl.gov",
+                "uuid": "3c4e46a2-58c9-4945-b65d-bd74d497fa81"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "aea1995c-215f-4cdc-95a4-9569e96cac67",
+          "shortName": "Pantex AWS",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "christopher.ickles@y12nsc.doe.gov",
+                "uuid": "d010aa0d-5f29-47af-9578-03e5eb36d91b"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "97ff957a-e877-4404-88d8-538eb7fdc068",
+          "shortName": "LCfCtC",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "thomas.tam@canarie.ca",
+                "uuid": "fb46cb8d-d94f-446e-826d-8345f7fbfd68"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "97f75b76-eada-4c2c-ad33-7f3c2de11de2",
+          "shortName": "Cp",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "https://orcid.org/0000-0002-3694-376X",
+                "primaryEmailAddress": "edoardo.martelli@cern.ch",
+                "uuid": "0d0ef241-4b38-4a15-89bc-52c28527f958"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "9f5914d5-01ae-4dd5-854b-01d7a8be96cf",
+          "shortName": "LCfCtMS",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "schmitz@anl.gov",
+                "uuid": "cbe7110a-aadc-4a5b-b40f-38af56fac65b"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "ca8b7e57-4cb8-4920-9636-861b5139974d",
+          "shortName": "NNSCV",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "arkan.a.aldijaili@nasa.gov",
+                "uuid": "7fe33d6c-2da9-48d8-8ddb-0705eb0a9d3c"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "a5e2b76f-1e30-4ad9-b202-6f8f29942e62",
+          "shortName": "OAGC",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "hicksse@ornl.gov",
+                "uuid": "3c4e46a2-58c9-4945-b65d-bd74d497fa81"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "91fabed6-ce32-46f2-b2d1-d80b3b6dedfa",
+          "shortName": "FABRIC",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "pruth@renci.org",
+                "uuid": "80a22f62-f63b-416e-b8cc-38e431a775ad"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "dwcarder@es.net",
+                "uuid": "dd78f5ec-4c60-486a-a20c-e5172081d610"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "soc@fabric-testbed.net",
+                "uuid": "c353b3c6-06c5-44c8-ae5c-5638a96f4c0d"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "noc@fabric-testbed.net",
+                "uuid": "3009613f-a2af-41d1-9fcc-bfe8ab0e07d0"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "mcevik@email.unc.edu",
+                "uuid": "43824473-1f89-4190-805a-10b4f038eb41"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "hussam.nasir@uky.edu",
+                "uuid": "1be147a9-2427-4fa9-bc93-e36c5dff722d"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "anitan@illinois.edu",
+                "uuid": "67bf1e19-add2-4831-95a0-833d6ed84f2c"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "tlehman@lbl.gov",
+                "uuid": "f2d2fea8-9c75-4bb9-aac8-b99dec5c6310"
+              }
+            },
+            {
+              "contact": {
+                "orcid": "https://orcid.org/0000-0001-7158-0143",
+                "primaryEmailAddress": "ibaldin@renci.org",
+                "uuid": "04ea9ad4-97d2-4dc0-8188-e82e385a7e6b"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "tlehman@lbl.gov",
+                "uuid": "f2d2fea8-9c75-4bb9-aac8-b99dec5c6310"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "958c4f32-5f49-4afd-9b3c-d3e3af8f791e",
+          "shortName": "DIVK",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "matolaka@ornl.gov",
+                "uuid": "4c3dfb41-d90a-40fb-9239-cdc0b35d84f6"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "063b1a3d-1495-4831-a6fb-ff07fdbeef17",
+          "shortName": "LCfCtK",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "bscho@kisti.re.kr",
+                "uuid": "396f0a82-2496-4e31-9897-a2a51a2bf17b"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "46c16281-a4fb-46c6-b021-37e90b16f1ae",
+          "shortName": "LNtL",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "sidhu2@llnl.gov",
+                "uuid": "405a5b36-0349-4a55-9d7f-2c0fd25334d6"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "ff64912a-d595-4d6d-b07b-622c1ed31f8f",
+          "shortName": "AUp",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": "N/A",
+                "primaryEmailAddress": "winkler@anl.gov",
+                "uuid": "62d0ee1d-1f85-4fad-aba1-c45a07db1284"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "80bbc137-8404-476c-9bdf-c4bdbb91f20c",
+          "shortName": "AE",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "Ken.hyatt@nrel.gov",
+                "uuid": "46f2925e-f2dc-40b4-8cc1-c9f7c99cbc40"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "a510ae73-5c65-43e6-a380-e1262ce9a484",
+          "shortName": "FLIaSR",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "hicksse@ornl.gov",
+                "uuid": "3c4e46a2-58c9-4945-b65d-bd74d497fa81"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "b5793702-6843-4f74-9672-2e779e4078b4",
+          "shortName": "CC",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "msantoro@lanl.gov",
+                "uuid": "b18bd138-0a56-4904-a847-247c4fe92351"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "DuplexRJ@nv.doe.gov",
+                "uuid": "2ca808e4-0a23-49ba-868a-69d0006c6d79"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "jlmaure@sandia.gov",
+                "uuid": "8b8fd517-972f-4c5e-885f-4b9e57478f8f"
+              }
+            },
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "william.arnold@srs.gov",
+                "uuid": "efbc6830-19cd-42ef-8843-1dadb6097da5"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "5bda1439-f2fc-4246-9fb0-3d1a5a163f1c",
+          "shortName": "OA",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "jrogers@ornl.gov",
+                "uuid": "79de23b2-245c-44cb-b6ed-172f923a5d2c"
+              }
+            }
+          ]
+        },
+        {
+          "uuid": "ab6a772b-ee69-4c95-a2de-a22fc5d61f25",
+          "shortName": "SItO",
+          "contacts": [
+            {
+              "contact": {
+                "orcid": null,
+                "primaryEmailAddress": "william.arnold@srs.gov",
+                "uuid": "efbc6830-19cd-42ef-8843-1dadb6097da5"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

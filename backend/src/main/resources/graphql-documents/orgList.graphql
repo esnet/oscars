@@ -1,0 +1,15 @@
+query ($orgTypes: String) {
+    organizationList(orgTypes: $orgTypes) {
+        list {
+            uuid
+            shortName
+            contacts {
+                contact {
+                    orcid
+                    primaryEmailAddress
+                    uuid
+                }
+            }
+        }
+    }
+}
