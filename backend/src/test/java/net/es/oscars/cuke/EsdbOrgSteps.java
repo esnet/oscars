@@ -45,6 +45,7 @@ public class EsdbOrgSteps extends CucumberSteps {
         // Override with our mock server URL and port
         esdbProps.setUri("http://localhost:" + mockPort + "/esdb_api/v1");
         esdbProps.setGraphqlUri("http://localhost:" + mockPort + "/esdb_api/graphql");
+        world.getExceptions().clear();
     }
 
 
