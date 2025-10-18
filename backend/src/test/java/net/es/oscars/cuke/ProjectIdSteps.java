@@ -56,6 +56,7 @@ public class ProjectIdSteps extends CucumberSteps {
         esdbProps.setGraphqlUri("http://localhost:" + mockPort + "/esdb_api/graphql");
 
         esdbProxy.setEsdbProperties(esdbProps);
+        world.getExceptions().clear();
     }
 
     @When("I perform orcid validation on {string}")
