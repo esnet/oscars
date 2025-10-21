@@ -136,6 +136,16 @@ Feature: Validation of project ids
     When I perform orcid validation on "https://orcid.org/0000-0002-1694-233X"
     Then the orcid validation succeeded
 
+    # invalid check digits
+    When I perform orcid validation on "https://orcid.org/0000-0002-1694-2331"
+    Then the orcid validation failed
+
+    When I perform orcid validation on "https://orcid.org/0000-0001-5109-3709"
+    Then the orcid validation failed
+
+    # other invalid formatting
+    When I perform orcid validation on "https://orcid.org/0000-0001-1234"
+    Then the orcid validation failed
 
     When I perform orcid validation on ""
     Then the orcid validation failed

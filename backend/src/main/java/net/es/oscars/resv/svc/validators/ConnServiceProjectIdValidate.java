@@ -3,6 +3,7 @@ package net.es.oscars.resv.svc.validators;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.ValidationProperties;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganization;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganizationType;
@@ -24,6 +25,7 @@ import java.util.regex.Pattern;
 
 @Getter
 @Setter
+@Slf4j
 public class ConnServiceProjectIdValidate implements Validator, ValidatorWithErrors {
     private ValidationProperties props;
     private ESDBProxy esdbProxy;
@@ -178,7 +180,27 @@ public class ConnServiceProjectIdValidate implements Validator, ValidatorWithErr
         String regex = "^https://orcid.org/\\d{4}-\\d{4}-\\d{4}-\\d{3}[0-9X]{1}$";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(orcId);
-        return matcher.find();
+        if (!matcher.find()) {
+            return false;
+        }
+
+        // remove non-digit bits
+        String digitsOnly = orcId
+                .replace("https://orcid.org/", "")
+                .replace("-", "");
+
+        // get first fifteen chars
+        String firstFifteen = digitsOnly.substring(0, 15);
+        String myCheckDigit = generateOrcIDCheckDigit(firstFifteen);
+        String withMyCheckDigit = firstFifteen+myCheckDigit;
+
+        if (!digitsOnly.equals(withMyCheckDigit)) {
+            log.info("bad orcId checksum for "+orcId);
+            return false;
+        }
+
+        return true;
+
     }
 
     /**
@@ -205,6 +227,17 @@ public class ConnServiceProjectIdValidate implements Validator, ValidatorWithErr
     }
 
 
+
+    public static String generateOrcIDCheckDigit(String baseDigits) {
+        int total = 0;
+        for (int i = 0; i < baseDigits.length(); i++) {
+            int digit = Character.getNumericValue(baseDigits.charAt(i));
+            total = (total + digit) * 2;
+        }
+        int remainder = total % 11;
+        int result = (12 - remainder) % 11;
+        return result == 10 ? "X" : String.valueOf(result);
+    }
 
     public boolean hasErrors() {
         return !allErrors.isEmpty();
