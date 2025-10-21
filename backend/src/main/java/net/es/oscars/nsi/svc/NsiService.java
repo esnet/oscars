@@ -116,7 +116,9 @@ public class NsiService {
                 // this will throw an NsiMappingException if it fails and do an errCallback
                 mapping = nsiMappingService.newMapping(nsiConnectionId, nsiGri, nsaId, incomingRT.getCriteria().getVersion(), false);
                 nsiMappingService.save(mapping);
-                nsiStateEngine.getReserveHandler().onSuccess(mapping);
+                if (nsiStateEngine.getReserveHandler() != null) {
+                    nsiStateEngine.getReserveHandler().onSuccess(mapping);
+                }
             } else {
                 log.info("transitioning NSI state: RESV_CHECK {}", mapping.getNsiConnectionId());
                 nsiStateEngine.reserve(NsiEvent.RESV_CHECK, mapping);
