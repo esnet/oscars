@@ -4,14 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
+import net.es.oscars.app.props.ValidationProperties;
 import net.es.oscars.app.util.DbAccess;
 import net.es.oscars.app.util.PrettyPrinter;
+import net.es.oscars.esdb.ESDBProxy;
 import net.es.oscars.model.Interval;
 import net.es.oscars.resv.svc.comparisons.Comparison;
 import net.es.oscars.resv.svc.comparisons.ConnServiceBWtoAvailableCompare;
 import net.es.oscars.resv.svc.comparisons.ConnServiceVlanToAvailableCompare;
 import net.es.oscars.resv.svc.populators.*;
 import net.es.oscars.resv.svc.validators.ConnServiceGlobalConnectionValidate;
+import net.es.oscars.resv.svc.validators.ConnServiceProjectIdValidate;
 import net.es.oscars.resv.svc.validators.ConnServiceScheduleValidate;
 import net.es.oscars.sb.db.RouterCommandsRepository;
 import net.es.oscars.sb.ent.RouterCommands;
@@ -100,6 +103,12 @@ public class ConnService {
 
     @Autowired
     private ConnUtils connUtils;
+
+    @Autowired
+    private ValidationProperties validationProperties;
+
+    @Autowired
+    private ESDBProxy esdbProxy;
 
     @Value("${pss.default-mtu:9000}")
     private Integer defaultMtu;
@@ -888,8 +897,25 @@ public class ConnService {
             throw new ConnException("null connection");
         }
 
+
+        Errors errorsProjectId = new BeanPropertyBindingResult(inConn, "inConn");
         Errors errorsConnection = new BeanPropertyBindingResult(inConn, "inConn");
         Errors errorsSchedule = new BeanPropertyBindingResult(inConn, "inConn");
+
+        // validate project id START
+        ConnServiceProjectIdValidate validateProjectId = new ConnServiceProjectIdValidate(validationProperties, esdbProxy);
+        validateProjectId.validate(inConn, errorsProjectId);
+        if (validateProjectId.hasErrors()) {
+            Map<String, Errors> allErrors = validateProjectId.getAllErrors();
+            appendErrors(error, allErrors);
+            // early return if we found a project id error
+            return Validity.builder()
+                    .message(error.toString())
+                    .valid(valid)
+                    .build();
+        }
+        // validate project id END
+
         // validate global connection params BEGIN
         ConnServiceGlobalConnectionValidate validateGlobalConnection = new ConnServiceGlobalConnectionValidate(
             minMtu,
@@ -1085,7 +1111,7 @@ public class ConnService {
 
     /**
      * Find a connection by OSCARS connection ID. Not to be confused with an NSI connection ID.
-     * @param connectionId The OSCARS connection ID to search for.
+     * @param oscarsConnectionId The OSCARS connection ID to search for.
      * @return Optional<Connection> A connection wrapped in an Optional container object.
      */
     public Optional<Connection> findConnection(String oscarsConnectionId) {
