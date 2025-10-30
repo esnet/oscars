@@ -116,55 +116,45 @@ public class SouthboundQueuer {
     @Transactional
     public void completeTask(SouthboundTaskResult result) {
         DevelUtils.dumpDebug("complete task", result);
-        SouthboundTask completed = null;
-        for (SouthboundTask task : running) {
-            if (task.getCommandType().equals(result.getCommandType()) &&
-                    task.getConnectionId().equals(result.getConnectionId())) {
-                completed = task;
 
-                CommandType rct = result.getCommandType();
-                // when the task was to build, dismantle or redeploy we update the connection state
-                if (rct.equals(CommandType.BUILD) || rct.equals(CommandType.DISMANTLE) || rct.equals(CommandType.REDEPLOY)) {
-                    nsiService.updateDataplane(result);
+        CommandType rct = result.getCommandType();
+        // when the task was to build, dismantle or redeploy we update the connection state
+        if (rct.equals(CommandType.BUILD) || rct.equals(CommandType.DISMANTLE) || rct.equals(CommandType.REDEPLOY)) {
+            nsiService.updateDataplane(result);
 
-                    // this is kinda funky
-                    cr.findByConnectionId(task.getConnectionId()).ifPresent(c -> {
-                                c.setState(result.getState());
-                                c.setDeploymentState(result.getDeploymentState());
-                                if (rct.equals(CommandType.REDEPLOY)) {
-                                    c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED);
-                                }
-                                cr.save(c);
-                            }
-                    );
-                }
-
-                // special case for DISMANTLE: once complete we release the NSO resources
-                // - if the resulting DeploymentState was UNDEPLOYED (instead of i.e. FAILED)
-                // AND
-                // - if the connection phase is now ARCHIVED
-                if (rct.equals(CommandType.DISMANTLE)) {
-                    if (result.getDeploymentState().equals(DeploymentState.UNDEPLOYED)) {
-                        cr.findByConnectionId(task.getConnectionId()).ifPresent(c -> {
-                            if (c.getPhase().equals(Phase.ARCHIVED)) {
-                                try {
-                                    nsoResourceService.release(c);
-                                } catch (NsoResvException e) {
-                                    log.error("failed to release NSO resources " + c.getConnectionId(), e);
-                                }
-                            }
-                        });
+            // this is kinda funky
+            cr.findByConnectionId(result.getConnectionId()).ifPresent(c -> {
+                        c.setState(result.getState());
+                        c.setDeploymentState(result.getDeploymentState());
+                        if (rct.equals(CommandType.REDEPLOY)) {
+                            c.setDeploymentIntent(DeploymentIntent.SHOULD_BE_DEPLOYED);
+                        }
+                        cr.save(c);
                     }
+            );
+        }
 
-
-                }
-                log.info("completed : " + result.getConnectionId() + " " + result.getCommandType()+" "+result.getDeploymentState());
+        // special case for DISMANTLE: once complete we release the NSO resources
+        // - if the resulting DeploymentState was UNDEPLOYED (instead of i.e. FAILED)
+        // AND
+        // - if the connection phase is now ARCHIVED
+        if (rct.equals(CommandType.DISMANTLE)) {
+            if (result.getDeploymentState().equals(DeploymentState.UNDEPLOYED)) {
+                cr.findByConnectionId(result.getConnectionId()).ifPresent(c -> {
+                    if (c.getPhase().equals(Phase.ARCHIVED)) {
+                        try {
+                            nsoResourceService.release(c);
+                        } catch (NsoResvException e) {
+                            log.error("failed to release NSO resources " + c.getConnectionId(), e);
+                        }
+                    }
+                });
             }
+
+
         }
-        if (completed != null) {
-            running.remove(completed);
-            done.add(completed);
-        }
+        log.info("completed : " + result.getConnectionId() + " " + result.getCommandType()+" "+result.getDeploymentState());
+
     }
 
     public void clear(QueueName name) {

@@ -48,9 +48,7 @@ public class VlanAvailability {
                     .forEach(range -> result.add(new ArrayList<>() {
                         {
                             add(range.getFloor());
-                            if (!range.getFloor().equals(range.getCeiling())) {
-                                add(range.getCeiling());
-                            }
+                            add(range.getCeiling());
                         }
                     }));
 

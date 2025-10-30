@@ -2,6 +2,7 @@ package net.es.oscars.cuke;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import net.es.oscars.app.props.ValidationProperties;
 import net.es.oscars.model.Interval;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
@@ -27,6 +28,9 @@ public class MockSimpleConnectionHelper {
 
     @Autowired
     private ConnService connService;
+
+    @Autowired
+    private ValidationProperties validationProperties;
 
     private SimpleConnection inConn;
     private ConnectionMode connectionMode;
@@ -342,6 +346,7 @@ public class MockSimpleConnectionHelper {
 
         this.connService.setMinDuration(15);
         this.connService.setResvTimeout(900);
+        this.connService.setValidationProperties(validationProperties);
 
         this.inConn = createValidSimpleConnection();
 

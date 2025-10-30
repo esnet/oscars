@@ -1,4 +1,9 @@
 # OSCARS Release Notes
+### 1.2.34
+> Oct 2025
+- OS-632 ProjectId validation against ESDB
+- OS-633 Multiple projectId validation modes
+
 ### 1.2.33
 > Sep 2025
 - OS-634 NSO operation reordering

@@ -26,13 +26,23 @@ public class NsiStateEngine {
      */
     @Getter
     @Setter
-    private AsyncCallback<NsiMapping> reserveHandler;
+    private AsyncCallback<NsiMapping> reserveHandler = new AsyncCallback<NsiMapping>() {
+        @Override
+        public void onSuccess(NsiMapping mapping) {
+            return;
+        }
+        @Override
+        public void onFailure(Throwable ex) {
+            return;
+        }
+
+    };
 
     private void reserveHandlerTriggerOnFailure(NsiStateException nsiEx) {
         if (reserveHandler != null) reserveHandler.onFailure(nsiEx);
     }
     private void reserveHandlerTriggerOnSuccess(NsiMapping mapping) {
-        reserveHandler.onSuccess(mapping);
+        if (reserveHandler != null) reserveHandler.onSuccess(mapping);
     }
 
     /**

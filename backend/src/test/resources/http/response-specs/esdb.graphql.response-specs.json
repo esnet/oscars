@@ -2,6 +2,20 @@
   {
     "method": "POST",
     "status": 200,
+    "match": "vlanList",
     "data": "http/esdb.vlan-list.json"
+  },
+  {
+    "method": "POST",
+    "status": 200,
+    "match": "organizationTypeList",
+    "data": "http/esdb.org-type-list.json"
+  },
+  {
+    "method": "POST",
+    "status": 200,
+    "match": "organizationList",
+    "data": "http/esdb.org-list.json"
   }
+
 ]

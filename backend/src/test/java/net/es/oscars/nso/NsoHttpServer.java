@@ -28,6 +28,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -128,16 +129,21 @@ public class NsoHttpServer {
                     new ClassPathResource("http/response-specs/esdb.graphql.response-specs.json").getFile(),
                     EsdbGraphqlResponseSpec[].class
                 );
+
+            String requestBody  = req.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
+
             for (EsdbGraphqlResponseSpec spec : esdbGraphqlResponseSpecs) {
+
                 if (spec.method.equals(req.getMethod())) {
-                    InputStream stream = new ClassPathResource(spec.data).getInputStream();
-                    String body = StreamUtils.copyToString(stream, Charset.defaultCharset());
-                    resp.getWriter().write(body);
-                    resp.setContentType("application/json");
-                    resp.setStatus(spec.status);
-                    resp.getWriter().flush();
-                    log.info("ESNet GraphQL mock response: " + body);
-                    return;
+                    if (requestBody.contains(spec.match)) {
+                        InputStream stream = new ClassPathResource(spec.data).getInputStream();
+                        String body = StreamUtils.copyToString(stream, Charset.defaultCharset());
+                        resp.setContentType("application/json");
+                        resp.setStatus(spec.status);
+                        resp.getWriter().write(body);
+                        resp.getWriter().flush();
+                        return;
+                    }
                 }
             }
             // No response found? HTTP 404
@@ -161,12 +167,13 @@ public class NsoHttpServer {
                 InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
                 // Read the mock data from the file found in the responseSpec.body path
                 String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
+                // set the content type BEFORE writing data
+                resp.setContentType("application/yang-data+json");
                 // Write the mock data to our response
                 resp.getWriter().write(body);
 
                 // Set the mock HTTP status
                 resp.setStatus(responseSpec.status);
-                resp.setContentType("application/yang-data+json");
                 resp.getWriter().flush();
 
                 // We found our entry, break the loop
@@ -186,12 +193,12 @@ public class NsoHttpServer {
                 InputStream bodyInputStream = new ClassPathResource(responseSpec.data).getInputStream();
                 // Read the mock data from the file found in the responseSpec.body path
                 String body = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
+                resp.setContentType("application/yang-data+json");
                 // Write the mock data to our response
                 resp.getWriter().write(body);
 
                 // Set the mock HTTP status
                 resp.setStatus(responseSpec.status);
-                resp.setContentType("application/yang-data+json");
                 resp.getWriter().flush();
 
                 // We found our entry, break the loop
@@ -442,5 +449,5 @@ public class NsoHttpServer {
     public record NsoEsnetLspYangPatchResponseSpec(String lspName, String lspDevice, String data, Integer status) {}
     public record NsoEsnetLspYangPatchDeleteResponseSpec(String patchId, String data, Integer status) {}
 
-    public record EsdbGraphqlResponseSpec(String method, String data, Integer status) {}
+    public record EsdbGraphqlResponseSpec(String method, String data, String match, Integer status) {}
 }
