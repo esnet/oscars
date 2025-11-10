@@ -15,6 +15,7 @@ import net.es.oscars.app.util.AsyncCallback;
 import net.es.oscars.nsi.ent.NsiMapping;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -81,6 +82,16 @@ public class NsiAsyncQueue {
         } catch (InterruptedException | ExecutionException e) {
             log.error(e.getLocalizedMessage(), e);
         }
+    }
+
+    @Scheduled(fixedDelayString = "${nsi.housekeeping-delay}")
+    @Transactional
+    public void nsiHousekeeping() {
+        if (startup.isInStartup() || startup.isInShutdown()) {
+            return;
+        }
+        log.info("NSI housekeeping");
+        nsiService.housekeeping();
     }
 
     public Future<Results> asyncProcessQueue(ExecutorService executorService)  throws InterruptedException, ExecutionException {
