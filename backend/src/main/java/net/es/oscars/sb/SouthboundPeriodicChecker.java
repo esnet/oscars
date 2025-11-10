@@ -45,9 +45,9 @@ public class SouthboundPeriodicChecker {
      * - Any connection's deployment intent does not match its deployment state
      *
      */
-    @Scheduled(fixedDelay = 3000)
+    @Scheduled(fixedDelayString = "${sb.trigger-delay}")
     @Transactional
-    public void buildOrDismantle() {
+    public void triggerSouthbound() {
         if (startup.isInStartup() || startup.isInShutdown()) {
             // log.info("application in startup or shutdown; skipping state transitions");
             return;
