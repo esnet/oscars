@@ -59,10 +59,16 @@ public class NsiAsyncQueue {
         }
     }
 
-    @Scheduled(fixedDelayString = "${nsi.queue-interval-millisec}")
+    @Scheduled(fixedDelayString = "${nsi.queue-delay}")
     public void processQueue() {
         if (startup.isInStartup() || startup.isInShutdown()) {
             // log.info("application in startup or shutdown; skipping queue processing");
+            return;
+        }
+        // log.info("processing NSI async task queue");
+
+        if (queue.isEmpty()) {
+            // log.info("returning from empty queue");
             return;
         }
 
@@ -77,7 +83,8 @@ public class NsiAsyncQueue {
         }
     }
 
-    public Future<Results> asyncProcessQueue(ExecutorService executorService )  throws InterruptedException, ExecutionException {
+    public Future<Results> asyncProcessQueue(ExecutorService executorService)  throws InterruptedException, ExecutionException {
+
         Callable<Results> pollTask = () -> {
             Results results = Results.builder().build();
             while (queue.peek() != null) {
@@ -95,12 +102,15 @@ public class NsiAsyncQueue {
                     }
                 } catch (NsiException ex) {
                     results.getFailed().add(item);
-                    processQueueHandler.onFailure(ex);
+                    if (processQueueHandler != null) {
+                        processQueueHandler.onFailure(ex);
+                    }
                 }
             }
             return results;
         };
 
+        log.info("submitting a task to async task queue");
         return executorService.submit(pollTask);
     }
 

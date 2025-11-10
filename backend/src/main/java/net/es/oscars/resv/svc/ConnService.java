@@ -611,6 +611,7 @@ public class ConnService {
 
                 oldScheduleId = existing.get().getReserved().getSchedule().getId();
                 connRepo.delete(existing.get());
+                archivedRepo.delete(existing.get().getArchived());
             }
 
             reservedFromHeld(c);
