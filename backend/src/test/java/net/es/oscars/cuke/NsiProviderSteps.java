@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.text.StringSubstitutor;
 import org.junit.experimental.categories.Category;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ClassPathResource;
@@ -67,6 +67,7 @@ import net.es.oscars.topo.svc.TopologyStore;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         classes = {
+                Startup.class,
                 TopoService.class,
                 NsiService.class,
                 NsiStateEngine.class,
@@ -77,41 +78,30 @@ import net.es.oscars.topo.svc.TopologyStore;
                 NsiProvider.class,
         }
 )
+@RequiredArgsConstructor
 public class NsiProviderSteps extends CucumberSteps {
-    @Autowired
-    private CucumberWorld world;
+    private final CucumberWorld world;
+    private final Startup startup;
 
-    @Autowired
-    private TestRestTemplate restTemplate;
+    private final  TestRestTemplate restTemplate;
 
-    @Autowired
-    private Startup startup;
+    private final TopologyStore topoService;
 
-    @Autowired
-    private TopologyStore topoService;
+    private final TopoPopulator topoPopulator;
 
-    @Autowired
-    private TopoPopulator topoPopulator;
+    private final ConnService connService;
 
-    @Autowired
-    private ConnService connService;
+    private final NsiService nsiService;
 
-    @Autowired
-    private NsiService nsiService;
+    private final NsiStateEngine nsiStateEngine;
 
-    @Autowired
-    private NsiStateEngine nsiStateEngine;
+    private final NsiMappingService nsiMappingService;
 
-    @Autowired
-    private NsiMappingService nsiMappingService;
+    private final NsiConnectionEventService nsiConnectionEventService;
 
-    @Autowired
-    private NsiConnectionEventService nsiConnectionEventService;
+    private final NsiConnectionEventRepository nsiConnectionEventRepo;
 
-    @Autowired NsiConnectionEventRepository nsiConnectionEventRepo;
-
-    @Autowired
-    private NsiAsyncQueue queue;
+    private final NsiAsyncQueue asyncQueue;
 
     private ResponseEntity<String> response;
 
@@ -128,7 +118,26 @@ public class NsiProviderSteps extends CucumberSteps {
         
         try {
             startup.setInStartup(false);
-            queue.queue.clear();
+
+            asyncQueue.setDisable(true);
+            asyncQueue.setProcessQueueHandler(new AsyncCallback<>() {
+
+                @Override
+                public void onSuccess(String message) {
+                    log.info("NSI queue.processQueueCallback(), onSuccess event: {}", message);
+                    NsiProviderSteps.isProcessingQueue = false;
+                    NsiProviderSteps.isProcessingQueueSuccess = true;
+                }
+
+                @Override
+                public void onFailure(Throwable thrown) {
+                    world.add((Exception) thrown);
+                    log.error("NSI queue.processQueueCallback(), onFailure event: {}", thrown.getMessage());
+                    NsiProviderSteps.isProcessingQueue = false;
+
+                }
+            });
+
             topoService.clear();
             nsiService.setErrorCount(0);
             nsiConnectionEventService.getEventRepo().deleteAll();
@@ -143,7 +152,7 @@ public class NsiProviderSteps extends CucumberSteps {
             isProcessingQueueSuccess = false;
 
             nsiStatesReserve = new ArrayList<>();
-            nsiStateEngine.setReserveHandler(new AsyncCallback<NsiMapping>() {
+            nsiStateEngine.setReserveHandler(new AsyncCallback<>() {
                 @Override
                 public void onSuccess(NsiMapping mapping) {
                     nsiStatesReserve.add(mapping.getReservationState().toString());
@@ -212,9 +221,9 @@ public class NsiProviderSteps extends CucumberSteps {
     @When("The NSI queue size is {}")
     public void the_NSI_queue_size_is(int expectedSize) {
         try {
-            assert queue.queue != null && !queue.queue.isEmpty();
-            log.info("NSI QUEUE size: {}", queue.queue.size());
-            assert queue.queue.size() == expectedSize;
+            assert asyncQueue.getQueue() != null;
+            log.info("NSI QUEUE size: {}", asyncQueue.getQueue().size());
+            assert asyncQueue.getQueue().size() == expectedSize;
         } catch (Exception e) {
             world.add(e);
             log.error("NsiProviderSteps Error - {}", e);
@@ -231,35 +240,22 @@ public class NsiProviderSteps extends CucumberSteps {
         log.debug("NSI queue is processed - queue.processQueue() called. NOTE, this is a multi-threaded (async) operation! Do we have a callback event handler?");
         try {
             NsiProviderSteps.isProcessingQueue = true;
-            queue.processQueueHandler = new AsyncCallback<String>() {
-                @Override
-                public void onSuccess(String message) {
-                    log.info("NSI queue.processQueueCallback(), onSuccess event: {}", message);
-                    NsiProviderSteps.isProcessingQueue = false;
-                    NsiProviderSteps.isProcessingQueueSuccess = true;
-                }
+            asyncQueue.setDisable(false);
 
-                @Override
-                public void onFailure(Throwable thrown) {
-                    world.add((Exception) thrown);
-                    log.error("NSI queue.processQueueCallback(), onFailure event: {}", thrown);
-                    NsiProviderSteps.isProcessingQueue = false;
-
-                }
-            };
-            
-            queue.processQueue();
+            asyncQueue.processQueue();
 
             while (NsiProviderSteps.isProcessingQueue) {
-                // NO-OP
+                System.out.println("sleeping while waiting for NSI queue to process");
+                Thread.sleep(100);
             }
+            asyncQueue.setDisable(true);
         } catch (Exception ex) {
             world.add(ex);
             log.error("The NSI queue is processed: Error - {}", ex.getLocalizedMessage());
             NsiProviderSteps.isProcessingQueue = false;
         }
 
-        assert NsiProviderSteps.isProcessingQueueSuccess == true;
+        assert NsiProviderSteps.isProcessingQueueSuccess;
     }
 
     @When("An NSI connection reserve is requested")
@@ -279,6 +275,10 @@ public class NsiProviderSteps extends CucumberSteps {
             // nsiConnectionEventRepo.findAll().forEach((nsiConnEv) -> {
             //     log.info("NSI connection reserve is requested, event repo event is: ", reserveResponse);
             // });
+            assert testConnectionId != null;
+            assert !testConnectionId.isEmpty();
+
+            Thread.sleep(100);
 
         } catch (Exception e) {
             world.add(e);
@@ -323,7 +323,7 @@ public class NsiProviderSteps extends CucumberSteps {
     @Then("The NSI connection does not have a projectId")
     public void the_NSI_connection_does_not_have_a_projectId() {
         try {
-            queue.queue.forEach(element -> {
+            asyncQueue.getQueue().forEach(element -> {
                 prettyLog(element);
             });
         } catch (Exception e) {
@@ -481,6 +481,7 @@ public class NsiProviderSteps extends CucumberSteps {
 
         assert response.getStatusCode() == HttpStatus.OK;
         String body = response.getBody();
+        Thread.sleep(1000);
 
         return body;
     }
@@ -507,5 +508,15 @@ public class NsiProviderSteps extends CucumberSteps {
         );
         
         return reserveResponse;
+    }
+
+    @Given("I clear all held reservations")
+    public void iClearAllHeldReservations() {
+        this.connService.getHeld().clear();
+    }
+
+    @Given("I clear the nsi queue")
+    public void iClearTheNsiQueue() {
+        asyncQueue.getQueue().clear();
     }
 }

@@ -1,8 +1,6 @@
 package net.es.oscars.nsi.svc;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.QueryType;
@@ -27,8 +25,14 @@ public class NsiAsyncQueue {
     private final NsiMappingService nsiMappingService;
     private final Startup startup;
 
+    @Getter
+    @Setter
+    private boolean disable = false;
+
+    @Getter
     public ConcurrentLinkedQueue<AsyncItem> queue = new ConcurrentLinkedQueue<>();
 
+    @Setter
     public AsyncCallback<String> processQueueHandler;
 
     public NsiAsyncQueue(NsiService nsiService, NsiMappingService nsiMappingService, Startup startup) {
@@ -66,13 +70,16 @@ public class NsiAsyncQueue {
             // log.info("application in startup or shutdown; skipping queue processing");
             return;
         }
-        // log.info("processing NSI async task queue");
+        // when we want to pause the queue processing during testing
+        if (disable) {
+            return;
+        }
 
+        // log.info("processing NSI async task queue");
         if (queue.isEmpty()) {
             // log.info("returning from empty queue");
             return;
         }
-
         try (ExecutorService executorService = Executors.newFixedThreadPool(1)) {
 
             Future<Results> future = asyncProcessQueue(executorService);
