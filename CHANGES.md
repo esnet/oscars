@@ -1,4 +1,10 @@
 # OSCARS Release Notes
+### 1.2.35
+> Nov 2025
+- OS-652 Commit on modify error
+- OS-653 Fix task scheduling stalls
+
+
 ### 1.2.34
 > Oct 2025
 - OS-632 ProjectId validation against ESDB

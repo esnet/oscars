@@ -550,11 +550,12 @@ public class ConnService {
 
     @Transactional
     public ConnChangeResult commit(Connection c) throws NsoResvException, PCEException, ConnException {
-        log.info("committing " + c.getConnectionId());
+        log.info("committing {}", c.getConnectionId());
         ReentrantLock connLock = dbAccess.getConnLock();
         if (connLock.isLocked()) {
-            log.debug("connection lock already locked; will need to wait to complete commit");
+            log.debug("connection lock already locked; will need to wait to complete commit for {}", c.getConnectionId());
         }
+        log.debug("got connection lock, resuming commit for {}", c.getConnectionId());
         connLock.lock();
 
         Held h = c.getHeld();
@@ -578,7 +579,7 @@ public class ConnService {
 
 
         try {
-            log.info("removing from held " + c.getConnectionId());
+            log.info("removing from held {}", c.getConnectionId());
             held.remove(c.getConnectionId());
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
@@ -611,6 +612,7 @@ public class ConnService {
 
                 oldScheduleId = existing.get().getReserved().getSchedule().getId();
                 connRepo.delete(existing.get());
+                archivedRepo.delete(existing.get().getArchived());
             }
 
             reservedFromHeld(c);

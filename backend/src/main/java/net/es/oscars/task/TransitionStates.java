@@ -47,7 +47,7 @@ public class TransitionStates {
         this.connService = connService;
     }
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelayString = "${resv.state-delay}")
     @Transactional
     public void processingLoop() {
         if (startup.isInStartup() || startup.isInShutdown()) {
@@ -57,6 +57,7 @@ public class TransitionStates {
         ReentrantLock connLock = dbAccess.getConnLock();
         boolean gotLock = connLock.tryLock();
         if (gotLock) {
+//            log.info("TransitionStates got connLock");
             try {
 
                 List<Connection> heldConns = new ArrayList<>(connService.getHeld().values());
@@ -68,6 +69,7 @@ public class TransitionStates {
                 Set<NsiMapping> pastEndTime = new HashSet<>();
                 Set<NsiMapping> timedOut = new HashSet<>();
 
+//                log.info("processing held connections");
                 for (Connection c : heldConns) {
 
                     if (c.getHeld() == null || c.getHeld().getExpiration().isBefore(Instant.now())) {
@@ -82,6 +84,7 @@ public class TransitionStates {
                     }
                 }
 
+//                log.info("processing reserved connections");
                 for (Connection c : reservedConns) {
                     if (c.getReserved().getSchedule().getEnding().isBefore(Instant.now())) {
                         log.info("will archive (and dismantle if needed) a reserved connection that reached its end time: " + c.getConnectionId());
@@ -96,6 +99,7 @@ public class TransitionStates {
                     }
                 }
 
+//                log.info("processing timed out NSI connections");
                 List<NsiRequest> expiredRequests = nsiRequestManager.timedOut();
                 for (NsiRequest req : expiredRequests) {
                     nsiRequestManager.remove(req.getNsiConnectionId());
@@ -117,9 +121,6 @@ public class TransitionStates {
                     nsiService.resvTimedOut(mapping);
                 }
 
-                nsiService.housekeeping();
-
-
                 unholdThese.forEach(c -> {
                     log.debug("Un-holding "+c.getConnectionId());
                     connService.unhold(c.getConnectionId());
@@ -132,14 +133,14 @@ public class TransitionStates {
 
 
             } finally {
-                // log.debug("unlocking connections");
+//                log.info("TransitionStates releasing connLock");
                 connLock.unlock();
             }
         } else {
             log.debug("unable to lock; waiting for next run ");
         }
-
-
     }
+
+
 
 }
