@@ -1,6 +1,7 @@
 # OSCARS Release Notes
 ### 1.2.35
 > Nov 2025
+- OS-657 Handle rare error when a modify would temporarily set connection.reserved to null
 - OS-652 Commit on modify error
 - OS-653 Fix task scheduling stalls
 

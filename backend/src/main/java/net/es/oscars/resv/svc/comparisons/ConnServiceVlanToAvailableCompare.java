@@ -73,7 +73,7 @@ public class ConnServiceVlanToAvailableCompare implements Comparison {
                         setValid(true);
                     } else {
                         errorMessage = f.getPort() + " : vlan " + f.getVlan() + " not available";
-                        errors.rejectValue("vlans", null, errorMessage);
+                        errors.rejectValue("vlan", "VLAN_NOT_AVAILABLE", errorMessage);
                         fv.setMessage(errorMessage);
                         fv.setValid(false);
                     }
@@ -84,7 +84,7 @@ public class ConnServiceVlanToAvailableCompare implements Comparison {
                 fv.setValid(false);
                 fv.setMessage(f.getPort() + " not in topology\n");
 
-                errors.rejectValue("port", null, f.getPort() + " not in topology");
+                errors.rejectValue("port", "PORT_NOT_IN_TOPOLOGY", f.getPort() + " not in topology");
                 isValid = false;
             }
             if (errors.hasErrors()) {
