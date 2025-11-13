@@ -6,11 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.util.UsernameGetter;
-import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.enums.ConnectionMode;
-import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.L2VPNService;
-import net.es.oscars.resv.svc.ResvService;
 
 import net.es.oscars.topo.pop.ConsistencyException;
 
@@ -20,11 +17,12 @@ import net.es.oscars.web.beans.ConnException;
 import net.es.oscars.web.beans.ConnectionFilter;
 import net.es.oscars.web.beans.v2.L2VPNList;
 import net.es.oscars.web.beans.v2.ValidationResponse;
-import net.es.oscars.web.simple.SimpleConnection;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.NoSuchElementException;
 
 
 @RestController
@@ -45,7 +43,13 @@ public class EseApiController {
     @ExceptionHandler(ConsistencyException.class)
     @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
     public void handleException(ConsistencyException ex) {
-        log.warn("consistency error " + ex.getMessage());
+        log.warn("consistency error {}", ex.getMessage());
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    @ResponseStatus(value = HttpStatus.NOT_FOUND)
+    public void handleException(NoSuchElementException ex) {
+        log.warn("Element not found {}", ex.getMessage());
     }
 
     @ExceptionHandler(StartupException.class)
@@ -59,7 +63,7 @@ public class EseApiController {
     @ResponseBody
     @Transactional
     @Operation(summary = "Get a L2VPN by connectionId", description = "Returns the L2VPN with the matching connectionId.")
-    public L2VPN get(@PathVariable String connectionId) throws StartupException, ConnException, ConsistencyException {
+    public L2VPN get(@PathVariable String connectionId) throws StartupException, ConnException, NoSuchElementException, ConsistencyException {
         startup.startupCheck();
         return l2VPNService.get(connectionId);
     }
