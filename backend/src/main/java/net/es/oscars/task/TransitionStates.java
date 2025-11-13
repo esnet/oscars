@@ -59,7 +59,6 @@ public class TransitionStates {
         if (gotLock) {
 //            log.info("TransitionStates got connLock");
             try {
-
                 List<Connection> heldConns = new ArrayList<>(connService.getHeld().values());
                 List<Connection> reservedConns = connRepo.findByPhase(Phase.RESERVED);
 
@@ -73,7 +72,7 @@ public class TransitionStates {
                 for (Connection c : heldConns) {
 
                     if (c.getHeld() == null || c.getHeld().getExpiration().isBefore(Instant.now())) {
-                        log.info("will un-hold a held connection that expired: " + c.getConnectionId());
+                        log.info("will un-hold a held connection that expired: {}", c.getConnectionId());
                         Optional<NsiMapping> maybeMapping =  nsiMappingService.getMappingForOscarsId(c.getConnectionId());
                         maybeMapping.ifPresent(m -> {
                             log.info("timing out associated NSI mapping: " + m.getNsiConnectionId());
@@ -87,7 +86,7 @@ public class TransitionStates {
 //                log.info("processing reserved connections");
                 for (Connection c : reservedConns) {
                     if (c.getReserved().getSchedule().getEnding().isBefore(Instant.now())) {
-                        log.info("will archive (and dismantle if needed) a reserved connection that reached its end time: " + c.getConnectionId());
+                        log.info("will archive (and dismantle if needed) a reserved connection that reached its end time: {}", c.getConnectionId());
                         Optional<NsiMapping> maybeMapping =  nsiMappingService.getMappingForOscarsId(c.getConnectionId());
                         maybeMapping.ifPresent(pastEndTime::add);
 
@@ -106,9 +105,9 @@ public class TransitionStates {
                     try {
                         NsiMapping mapping = nsiMappingService.getMapping(req.getNsiConnectionId());
                         timedOut.add(mapping);
-                        log.info("an NSI request timed out " + req.getNsiConnectionId());
+                        log.info("an NSI request timed out {}", req.getNsiConnectionId());
                     } catch (NsiMappingException ex) {
-                        log.error("mapping problem: "+req.getNsiConnectionId(), ex);
+                        log.error("mapping problem: {}", req.getNsiConnectionId(), ex);
                     }
                 }
 

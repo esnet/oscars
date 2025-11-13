@@ -5,6 +5,7 @@ import net.es.oscars.topo.beans.v2.BackbonePort;
 import net.es.oscars.topo.beans.v2.Bandwidth;
 import net.es.oscars.topo.beans.v2.EdgePort;
 import net.es.oscars.topo.beans.v2.VlanAvailability;
+import net.es.oscars.topo.enums.Layer;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.topo.common.model.oscars1.EthernetEncapsulation;
 
@@ -18,10 +19,6 @@ public class TopoService {
                                        Map<String, PortBwVlan> available,
                                        Map<String, Map<Integer, Set<String>>> vlanUsageMap) throws ConsistencyException {
 
-        EthernetEncapsulation encapsulation = EthernetEncapsulation.DOT1Q;
-        if (p.getReservableVlans().size() <= 1) {
-            encapsulation = EthernetEncapsulation.NULL;
-        }
 
         String[] parts = p.getUrn().split(":");
         if (parts.length != 2) {
@@ -36,6 +33,15 @@ public class TopoService {
         VlanAvailability vlanAvailability = VlanAvailability.builder()
                 .ranges(pbw.getVlanRanges())
                 .build();
+
+        EthernetEncapsulation encapsulation;
+        if (p.getCapabilities().contains(Layer.UNTAGGED)) {
+            encapsulation = EthernetEncapsulation.NULL;
+        } else if (p.getCapabilities().contains(Layer.TAGGED)) {
+            encapsulation = EthernetEncapsulation.DOT1Q;
+        } else {
+            throw new ConsistencyException("cannot determine encapsulation for " + p.getUrn());
+        }
 
         // get the least of ingress / egress available
         int bwPhysical = p.getReservableIngressBw();

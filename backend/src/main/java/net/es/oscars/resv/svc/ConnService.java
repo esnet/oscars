@@ -1161,30 +1161,34 @@ public class ConnService {
         if (connLock.isLocked()) {
             log.debug("connection lock already locked by another thread; hold {} waiting", in.getConnectionId());
         }
-        connLock.lock();
-        log.debug("got connection lock; hold {} resuming", in.getConnectionId());
+        try {
+            connLock.lock();
+            log.debug("got connection lock; hold {} resuming", in.getConnectionId());
 
-        // we can hold it, so we do
-        Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
-        long secs = exp.toEpochMilli() / 1000L;
-        in.setHeldUntil((int) secs);
+            // we can hold it, so we do
+            Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
+            long secs = exp.toEpochMilli() / 1000L;
+            in.setHeldUntil((int) secs);
 
 
-        String connectionId = in.getConnectionId();
-        Connection c = simpleToHeldConnection(in);
-        prettyLog(c);
+            String connectionId = in.getConnectionId();
+            Connection c = simpleToHeldConnection(in);
+            prettyLog(c);
 
-        Validity v = this.validate(in, ConnectionMode.NEW);
-        in.setValidity(v);
+            Validity v = this.validate(in, ConnectionMode.NEW);
+            in.setValidity(v);
 
-        if (!v.isValid()) {
-            log.info("{} : not valid because {}", in.getConnectionId(), v.getMessage());
+            if (!v.isValid()) {
+                log.info("{} : not valid because {}", in.getConnectionId(), v.getMessage());
+            }
+
+            this.held.put(connectionId, c);
+            return Pair.of(in, c);
+        } finally {
+            // this will execute after the return
+            log.debug("{} releasing connection lock", in.getConnectionId());
+            connLock.unlock();
         }
-
-        this.held.put(connectionId, c);
-        connLock.unlock();
-        log.debug("{} releasing connection lock", in.getConnectionId());
-        return Pair.of(in, c);
 
     }
 
