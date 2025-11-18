@@ -109,9 +109,20 @@ public class NsiAsyncQueue {
                 AsyncItem item = queue.poll();
                 try {
                     switch (item) {
-                        case Generic generic -> this.processGeneric(generic);
-                        case Query query -> this.processQuery(query);
-                        case Reserve reserve -> this.processReserve(reserve);
+                        case Generic generic -> {
+                            log.info("submitting {} to async task queue for {}",generic.getOperation(),generic.getNsiConnectionId());
+
+                            this.processGeneric(generic);
+                        }
+                        case Query query -> {
+                            log.info("submitting a query to async task queue");
+
+                            this.processQuery(query);
+                        }
+                        case Reserve reserve -> {
+                            log.info("submitting a reserve to async task queue" );
+                            this.processReserve(reserve);
+                        }
                         default -> {}
                     }
                     results.getSucceeded().add(item);
@@ -128,7 +139,6 @@ public class NsiAsyncQueue {
             return results;
         };
 
-        log.info("submitting a task to async task queue");
         return executorService.submit(pollTask);
     }
 
