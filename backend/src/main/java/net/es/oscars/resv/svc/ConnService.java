@@ -550,11 +550,12 @@ public class ConnService {
 
     @Transactional
     public ConnChangeResult commit(Connection c) throws NsoResvException, PCEException, ConnException {
-        log.info("committing " + c.getConnectionId());
+        log.info("committing {}", c.getConnectionId());
         ReentrantLock connLock = dbAccess.getConnLock();
         if (connLock.isLocked()) {
-            log.debug("connection lock already locked; will need to wait to complete commit");
+            log.debug("connection lock already locked; will need to wait to complete commit for {}", c.getConnectionId());
         }
+        log.debug("got connection lock, resuming commit for {}", c.getConnectionId());
         connLock.lock();
 
         Held h = c.getHeld();
@@ -578,7 +579,7 @@ public class ConnService {
 
 
         try {
-            log.info("removing from held " + c.getConnectionId());
+            log.info("removing from held {}", c.getConnectionId());
             held.remove(c.getConnectionId());
             // log.debug("got connection lock ");
             c.setPhase(Phase.RESERVED);
@@ -611,6 +612,7 @@ public class ConnService {
 
                 oldScheduleId = existing.get().getReserved().getSchedule().getId();
                 connRepo.delete(existing.get());
+                archivedRepo.delete(existing.get().getArchived());
             }
 
             reservedFromHeld(c);
@@ -1159,30 +1161,34 @@ public class ConnService {
         if (connLock.isLocked()) {
             log.debug("connection lock already locked by another thread; hold {} waiting", in.getConnectionId());
         }
-        connLock.lock();
-        log.debug("got connection lock; hold {} resuming", in.getConnectionId());
+        try {
+            connLock.lock();
+            log.debug("got connection lock; hold {} resuming", in.getConnectionId());
 
-        // we can hold it, so we do
-        Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
-        long secs = exp.toEpochMilli() / 1000L;
-        in.setHeldUntil((int) secs);
+            // we can hold it, so we do
+            Instant exp = Instant.now().plus(resvTimeout, ChronoUnit.SECONDS);
+            long secs = exp.toEpochMilli() / 1000L;
+            in.setHeldUntil((int) secs);
 
 
-        String connectionId = in.getConnectionId();
-        Connection c = simpleToHeldConnection(in);
-        prettyLog(c);
+            String connectionId = in.getConnectionId();
+            Connection c = simpleToHeldConnection(in);
+            prettyLog(c);
 
-        Validity v = this.validate(in, ConnectionMode.NEW);
-        in.setValidity(v);
+            Validity v = this.validate(in, ConnectionMode.NEW);
+            in.setValidity(v);
 
-        if (!v.isValid()) {
-            log.info("{} : not valid because {}", in.getConnectionId(), v.getMessage());
+            if (!v.isValid()) {
+                log.info("{} : not valid because {}", in.getConnectionId(), v.getMessage());
+            }
+
+            this.held.put(connectionId, c);
+            return Pair.of(in, c);
+        } finally {
+            // this will execute after the return
+            log.debug("{} releasing connection lock", in.getConnectionId());
+            connLock.unlock();
         }
-
-        this.held.put(connectionId, c);
-        connLock.unlock();
-        log.debug("{} releasing connection lock", in.getConnectionId());
-        return Pair.of(in, c);
 
     }
 

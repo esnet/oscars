@@ -502,6 +502,10 @@ public class NsiService {
         log.info("starting terminate task for {}", mapping.getNsiConnectionId());
 
         boolean succeeded = false;
+        // early return if already terminated
+        if (mapping.getLifecycleState().equals(LifecycleStateEnumType.TERMINATED)) {
+            return true;
+        }
 
         try {
             // go from CREATED | PASSED_END_TIME | FAILED to TERMINATING

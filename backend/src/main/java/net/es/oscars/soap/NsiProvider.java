@@ -49,8 +49,8 @@ public class NsiProvider implements ConnectionProviderPort {
         ReserveResponseType rrt = new ReserveResponseType();
         String nsiConnectionId = reserve.getConnectionId();
         if (nsiConnectionId == null || nsiConnectionId.isEmpty()) {
-            log.info("creating a new connectionId");
             nsiConnectionId = UUID.randomUUID().toString();
+            log.info("created a new nsiConnectionId {}", nsiConnectionId);
         }
 
         rrt.setConnectionId(nsiConnectionId);
@@ -78,6 +78,7 @@ public class NsiProvider implements ConnectionProviderPort {
                 .reserve(reserve)
                 .build();
         queue.add(asyncItem);
+        log.info("added reserve task to queue for {}", nsiConnectionId);
 
         nsiHeaderUtils.makeResponseHeader(header.value);
         return rrt;

@@ -32,6 +32,7 @@ public class NsiConnectionEvent {
     @JsonFormat(shape = JsonFormat.Shape.STRING, timezone = "UTC")
     private Instant timestamp;
 
+    @Column(length = 1024)
     private String message;
     private int version;
 

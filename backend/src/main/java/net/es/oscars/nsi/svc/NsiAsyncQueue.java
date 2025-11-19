@@ -1,8 +1,6 @@
 package net.es.oscars.nsi.svc;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 import net.es.nsi.lib.soap.gen.nsi_2_0.connection.types.QueryType;
@@ -15,6 +13,7 @@ import net.es.oscars.app.util.AsyncCallback;
 import net.es.oscars.nsi.ent.NsiMapping;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -26,8 +25,14 @@ public class NsiAsyncQueue {
     private final NsiMappingService nsiMappingService;
     private final Startup startup;
 
+    @Getter
+    @Setter
+    private boolean disable = false;
+
+    @Getter
     public ConcurrentLinkedQueue<AsyncItem> queue = new ConcurrentLinkedQueue<>();
 
+    @Setter
     public AsyncCallback<String> processQueueHandler;
 
     public NsiAsyncQueue(NsiService nsiService, NsiMappingService nsiMappingService, Startup startup) {
@@ -59,13 +64,22 @@ public class NsiAsyncQueue {
         }
     }
 
-    @Scheduled(fixedDelayString = "${nsi.queue-interval-millisec}")
+    @Scheduled(fixedDelayString = "${nsi.queue-delay}")
     public void processQueue() {
         if (startup.isInStartup() || startup.isInShutdown()) {
             // log.info("application in startup or shutdown; skipping queue processing");
             return;
         }
+        // when we want to pause the queue processing during testing
+        if (disable) {
+            return;
+        }
 
+        // log.info("processing NSI async task queue");
+        if (queue.isEmpty()) {
+            // log.info("returning from empty queue");
+            return;
+        }
         try (ExecutorService executorService = Executors.newFixedThreadPool(1)) {
 
             Future<Results> future = asyncProcessQueue(executorService);
@@ -77,16 +91,38 @@ public class NsiAsyncQueue {
         }
     }
 
-    public Future<Results> asyncProcessQueue(ExecutorService executorService )  throws InterruptedException, ExecutionException {
+    @Scheduled(fixedDelayString = "${nsi.housekeeping-delay}")
+    @Transactional
+    public void nsiHousekeeping() {
+        if (startup.isInStartup() || startup.isInShutdown()) {
+            return;
+        }
+        log.info("NSI housekeeping");
+        nsiService.housekeeping();
+    }
+
+    public Future<Results> asyncProcessQueue(ExecutorService executorService)  throws InterruptedException, ExecutionException {
+
         Callable<Results> pollTask = () -> {
             Results results = Results.builder().build();
             while (queue.peek() != null) {
                 AsyncItem item = queue.poll();
                 try {
                     switch (item) {
-                        case Generic generic -> this.processGeneric(generic);
-                        case Query query -> this.processQuery(query);
-                        case Reserve reserve -> this.processReserve(reserve);
+                        case Generic generic -> {
+                            log.info("submitting {} to async task queue for {}",generic.getOperation(),generic.getNsiConnectionId());
+
+                            this.processGeneric(generic);
+                        }
+                        case Query query -> {
+                            log.info("submitting a query to async task queue");
+
+                            this.processQuery(query);
+                        }
+                        case Reserve reserve -> {
+                            log.info("submitting a reserve to async task queue" );
+                            this.processReserve(reserve);
+                        }
                         default -> {}
                     }
                     results.getSucceeded().add(item);
@@ -95,7 +131,9 @@ public class NsiAsyncQueue {
                     }
                 } catch (NsiException ex) {
                     results.getFailed().add(item);
-                    processQueueHandler.onFailure(ex);
+                    if (processQueueHandler != null) {
+                        processQueueHandler.onFailure(ex);
+                    }
                 }
             }
             return results;
