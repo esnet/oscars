@@ -4,7 +4,6 @@
 - OS-657 Handle rare error when a modify would temporarily set connection.reserved to null
 - OS-652 Commit on modify error
 - OS-653 Fix task scheduling stalls
-- OS-657 Fix NPE when modifying
 
 ### 1.2.34
 > Oct 2025
