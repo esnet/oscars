@@ -417,8 +417,8 @@ public class ConnService {
         }
 
         finalFiltered.sort(comparator);
-        if (filter.getSortDirection() == SortDirection.DESCENDING) {
-            finalFiltered.sort(Collections.reverseOrder());
+        if (filter.getSortDirection().equals(SortDirection.DESCENDING)) {
+            finalFiltered = finalFiltered.reversed();
         }
 
         List<Connection> paged = new ArrayList<>();
