@@ -59,13 +59,13 @@ public class EseApiController {
     }
 
 
-    @RequestMapping(value = "/api/l2vpn/get/{connectionId}", method = RequestMethod.GET)
+    @RequestMapping(value = "/api/l2vpn/get/{name}", method = RequestMethod.GET)
     @ResponseBody
     @Transactional
-    @Operation(summary = "Get a L2VPN by connectionId", description = "Returns the L2VPN with the matching connectionId.")
-    public L2VPN get(@PathVariable String connectionId) throws StartupException, ConnException, NoSuchElementException, ConsistencyException {
+    @Operation(summary = "Get a L2VPN by name", description = "Returns the L2VPN with the matching name.")
+    public L2VPN get(@PathVariable String name) throws StartupException, ConnException, NoSuchElementException, ConsistencyException {
         startup.startupCheck();
-        return l2VPNService.get(connectionId);
+        return l2VPNService.get(name);
     }
 
     @RequestMapping(value = "/api/l2vpn/list", method = RequestMethod.POST)
@@ -116,6 +116,16 @@ public class EseApiController {
         l2vpn.getMeta().setUsername(usernameGetter.username(authentication));
         return l2VPNService.createOrReplace(l2vpn);
     }
+
+    @RequestMapping(value = "/protected/l2vpn/release/{name}", method = RequestMethod.DELETE)
+    @ResponseBody
+    @Transactional
+    @Operation(summary = "Release a L2VPN", description = "DELETE to release an existing L2VPN.")
+    public void releaseL2VPN(@PathVariable String name) throws StartupException, ConnException, ConsistencyException {
+        startup.startupCheck();
+        l2VPNService.release(name);
+    }
+
 
     @RequestMapping(value = "/api/l2vpn/availability", method = RequestMethod.POST)
     @ResponseBody
