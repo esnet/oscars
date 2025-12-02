@@ -38,7 +38,7 @@ public class ConnectionFilter {
         CONNECTION_ID,
         @JsonProperty("username")
         USERNAME,
-        @JsonProperty("connectionMtu")
+        @JsonProperty("connectionMTU")
         CONNECTION_MTU,
         @JsonProperty("mode")
         MODE,
@@ -56,7 +56,7 @@ public class ConnectionFilter {
         DEPLOYMENT_STATE,
         @JsonProperty("serviceId")
         SERVICE_ID,
-        @JsonProperty("port")
+        @JsonProperty("ports")
         PORT,
         @JsonProperty("tags")
         TAGS,
