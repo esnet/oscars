@@ -45,3 +45,8 @@ Feature: EseApiController Endpoints for l2VPNs
     When The client receives a response from EseApiController
     Then The client receives a EseApiController response status code of 200
     And The EseApiController response is a valid BandwidthAvailabilityResponse object
+
+  Scenario: Release the l2VPN of connection ID "XBYZ"
+    Given The client executes "DELETE" on EseApiController path "/protected/l2vpn/release/XBYZ"
+    When The client receives a response from EseApiController
+    Then The client receives a EseApiController response status code of 200

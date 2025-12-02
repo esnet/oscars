@@ -710,7 +710,7 @@ public class ConnService {
         if (c.getPhase().equals(Phase.RESERVED)) {
             if (c.getReserved().getSchedule().getBeginning().isAfter(Instant.now())) {
                 // we haven't started yet; can delete without consequence
-                log.info("deleting unstarted connection during release" + c.getConnectionId());
+                log.info("release: deleting unstarted connection " + c.getConnectionId());
                 connRepo.delete(c);
                 Event ev = Event.builder()
                         .connectionId(c.getConnectionId())
