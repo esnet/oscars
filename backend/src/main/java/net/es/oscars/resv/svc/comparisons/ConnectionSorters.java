@@ -3,7 +3,9 @@ package net.es.oscars.resv.svc.comparisons;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.svc.ConnUtils;
 import net.es.oscars.web.beans.ConnectionFilter;
+import net.es.oscars.web.simple.Fixture;
 import net.es.oscars.web.simple.SimpleConnection;
+import net.es.oscars.web.simple.SimpleTag;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -24,7 +26,7 @@ public class ConnectionSorters {
             case USERNAME -> {
                 return Comparator.comparing(Connection::getUsername);
             }
-            case MTU -> {
+            case CONNECTION_MTU -> {
                 return Comparator.comparing(Connection::getConnection_mtu);
             }
             case MODE -> {
@@ -57,7 +59,7 @@ public class ConnectionSorters {
             case TAGS -> {
                 return new TagsComparator(connUtils);
             }
-            case VLAN_ID -> {
+            case VLANS -> {
                 return new VlanIdComparator(connUtils);
             }
             default -> {
@@ -77,9 +79,19 @@ public class ConnectionSorters {
         public int compare(Connection o1, Connection o2) {
             SimpleConnection c1 = connUtils.fromConnection(o1, true);
             SimpleConnection c2 = connUtils.fromConnection(o2, true);
-            String c1Port = c1.getFixtures().getFirst().getPort();
-            String c2Port = c2.getFixtures().getFirst().getPort();
-            return c1Port.compareTo(c2Port);
+            boolean c1Empty = (c1.getFixtures() == null || c1.getFixtures().isEmpty());
+            boolean c2Empty = (c2.getFixtures() == null || c2.getFixtures().isEmpty());
+            if (c1Empty && c2Empty) {
+                return 0;
+            } else if (c1Empty) {
+                return -1;
+            }else if (c2Empty) {
+                return 1;
+            } else {
+                String c1Port = c1.getFixtures().getFirst().getPort();
+                String c2Port = c2.getFixtures().getFirst().getPort();
+                return c1Port.compareTo(c2Port);
+            }
         }
     }
     public static class TagsComparator implements Comparator<Connection> {
@@ -93,11 +105,24 @@ public class ConnectionSorters {
         public int compare(Connection o1, Connection o2) {
             SimpleConnection c1 = connUtils.fromConnection(o1, true);
             SimpleConnection c2 = connUtils.fromConnection(o2, true);
-            String c1Tag = c1.getTags().getFirst().getContents();
-            String c2Tag = c2.getTags().getFirst().getContents();
-            return c1Tag.compareTo(c2Tag);
+            boolean c1Empty = (c1.getTags() == null || c1.getTags().isEmpty());
+            boolean c2Empty = (c2.getTags() == null || c2.getTags().isEmpty());
+            if (c1Empty && c2Empty) {
+                return 0;
+            } else if (c1Empty) {
+                return -1;
+            }else if (c2Empty) {
+                return 1;
+            } else {
+                c1.getTags().sort(Comparator.comparing(SimpleTag::getContents));
+                c2.getTags().sort(Comparator.comparing(SimpleTag::getContents));
+                String c1Tag = c1.getTags().getFirst().getContents();
+                String c2Tag = c2.getTags().getFirst().getContents();
+                return c1Tag.compareTo(c2Tag);
+            }
         }
     }
+
     public static class VlanIdComparator implements Comparator<Connection> {
         private final ConnUtils connUtils;
 
@@ -109,9 +134,21 @@ public class ConnectionSorters {
         public int compare(Connection o1, Connection o2) {
             SimpleConnection c1 = connUtils.fromConnection(o1, true);
             SimpleConnection c2 = connUtils.fromConnection(o2, true);
-            Integer c1Vlan = c1.getFixtures().getFirst().getVlan();
-            Integer c2Vlan = c2.getFixtures().getFirst().getVlan();
-            return c1Vlan.compareTo(c2Vlan);
+            boolean c1Empty = (c1.getFixtures() == null || c1.getFixtures().isEmpty());
+            boolean c2Empty = (c2.getFixtures() == null || c2.getFixtures().isEmpty());
+            if (c1Empty && c2Empty) {
+                return 0;
+            } else if (c1Empty) {
+                return -1;
+            }else if (c2Empty) {
+                return 1;
+            } else {
+                c1.getFixtures().sort(Comparator.comparing(Fixture::getVlan));
+                c2.getFixtures().sort(Comparator.comparing(Fixture::getVlan));
+                Integer c1Vlan = c1.getFixtures().getFirst().getVlan();
+                Integer c2Vlan = c2.getFixtures().getFirst().getVlan();
+                return c1Vlan.compareTo(c2Vlan);
+            }
         }
     }
 }

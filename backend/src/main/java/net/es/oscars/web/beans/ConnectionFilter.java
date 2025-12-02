@@ -1,5 +1,6 @@
 package net.es.oscars.web.beans;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -33,20 +34,34 @@ public class ConnectionFilter {
     private int sizePerPage;
 
     public enum SortProperty {
+        @JsonProperty("connectionId")
         CONNECTION_ID,
+        @JsonProperty("username")
         USERNAME,
-        MTU,
+        @JsonProperty("connectionMtu")
+        CONNECTION_MTU,
+        @JsonProperty("mode")
         MODE,
+        @JsonProperty("state")
         STATE,
+        @JsonProperty("phase")
         PHASE,
+        @JsonProperty("lastModified")
         LAST_MODIFIED,
+        @JsonProperty("description")
         DESCRIPTION,
+        @JsonProperty("deploymentIntent")
         DEPLOYMENT_INTENT,
+        @JsonProperty("deploymentState")
         DEPLOYMENT_STATE,
+        @JsonProperty("serviceId")
         SERVICE_ID,
+        @JsonProperty("port")
         PORT,
+        @JsonProperty("tags")
         TAGS,
-        VLAN_ID
+        @JsonProperty("vlans")
+        VLANS
     }
 
 }
