@@ -38,8 +38,8 @@ public class L2VPNService {
         this.l2VPNConversions = l2VPNConversions;
     }
 
-    public L2VPN get(String connectionId) throws ConnException, ConsistencyException {
-        return l2VPNConversions.fromConnection(connSvc.findConnection(connectionId).orElseThrow());
+    public L2VPN get(String name) throws ConnException, ConsistencyException {
+        return l2VPNConversions.fromConnection(connSvc.findConnection(name).orElseThrow());
     }
 
     public L2VPNList list(ConnectionFilter filter) throws ConnException, ConsistencyException {
@@ -68,6 +68,10 @@ public class L2VPNService {
     }
 
 
+    public void release(String name) throws ConnException, ConsistencyException {
+        Connection c = connSvc.findConnection(name).orElseThrow();
+        connSvc.release(c);
+    }
 
     public L2VPN createOrReplace(L2VPN l2VPN) throws ConnException, ConsistencyException {
         SimpleConnection in = l2VPNConversions.fromL2VPN(l2VPN);

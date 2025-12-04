@@ -113,8 +113,24 @@ public class Connection {
     @NonNull
     private DeploymentState deploymentState;
 
+    public DeploymentState getDeploymentState() {
+        if (deploymentState == null) {
+            return DeploymentState.UNDEPLOYED;
+        } else  {
+            return deploymentState;
+        }
+    }
+
     @NonNull
     private DeploymentIntent deploymentIntent;
+
+    public DeploymentIntent getDeploymentIntent() {
+        if (deploymentIntent == null) {
+            return DeploymentIntent.SHOULD_BE_UNDEPLOYED;
+        } else  {
+            return deploymentIntent;
+        }
+    }
 
     @NonNull
     private State state;
