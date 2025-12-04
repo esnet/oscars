@@ -12,6 +12,7 @@ import net.es.oscars.model.Interval;
 import net.es.oscars.resv.svc.comparisons.Comparison;
 import net.es.oscars.resv.svc.comparisons.ConnServiceBWtoAvailableCompare;
 import net.es.oscars.resv.svc.comparisons.ConnServiceVlanToAvailableCompare;
+import net.es.oscars.resv.svc.comparisons.ConnectionSorters;
 import net.es.oscars.resv.svc.populators.*;
 import net.es.oscars.resv.svc.validators.ConnServiceGlobalConnectionValidate;
 import net.es.oscars.resv.svc.validators.ConnServiceProjectIdValidate;
@@ -29,6 +30,7 @@ import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.hibernate.query.SortDirection;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.Multigraph;
@@ -109,6 +111,9 @@ public class ConnService {
 
     @Autowired
     private ESDBProxy esdbProxy;
+
+    @Autowired
+    private ConnectionSorters connectionSorters;
 
     @Value("${pss.default-mtu:9000}")
     private Integer defaultMtu;
@@ -396,6 +401,26 @@ public class ConnService {
 
 
         List<Connection> finalFiltered = termFiltered;
+
+        if (filter.getSortProperty() == null) {
+            filter.setSortProperty(ConnectionFilter.SortProperty.CONNECTION_ID);
+        }
+        if (filter.getSortDirection() == null) {
+            filter.setSortDirection(SortDirection.ASCENDING);
+        }
+
+        Comparator<Connection> comparator = connectionSorters.getComparator(filter.getSortProperty());
+
+        if (comparator == null) {
+            log.error("No connection comparator found for filter: " + filter.getSortProperty());
+            comparator = connectionSorters.getComparator(ConnectionFilter.SortProperty.CONNECTION_ID);
+        }
+
+        finalFiltered.sort(comparator);
+        if (filter.getSortDirection().equals(SortDirection.DESCENDING)) {
+            finalFiltered = finalFiltered.reversed();
+        }
+
         List<Connection> paged = new ArrayList<>();
         int totalSize = finalFiltered.size();
 
@@ -710,7 +735,7 @@ public class ConnService {
         if (c.getPhase().equals(Phase.RESERVED)) {
             if (c.getReserved().getSchedule().getBeginning().isAfter(Instant.now())) {
                 // we haven't started yet; can delete without consequence
-                log.info("deleting unstarted connection during release" + c.getConnectionId());
+                log.info("release: deleting unstarted connection " + c.getConnectionId());
                 connRepo.delete(c);
                 Event ev = Event.builder()
                         .connectionId(c.getConnectionId())

@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.2.36
+> Dec 2025
+- OS-661 Add sorting parameters to connection list
+
 ### 1.2.35
 > Nov 2025
 - OS-657 Handle rare error when a modify would temporarily set connection.reserved to null

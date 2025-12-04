@@ -5,6 +5,7 @@ import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.sb.nso.db.NsoVcIdDAO;
+import net.es.oscars.sb.nso.ent.NsoVcId;
 import net.es.oscars.web.simple.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -417,7 +418,14 @@ public class ConnUtils {
 
         Integer vcid;
         if (return_svc_ids) {
-            vcid = nsoVcIdDAO.findNsoVcIdByConnectionId(c.getConnectionId()).orElseThrow().getVcId();
+            vcid = nsoVcIdDAO.findNsoVcIdByConnectionId(c.getConnectionId())
+                    .orElse(NsoVcId.builder()
+                            .connectionId(c.getConnectionId())
+                            .vcId(-1)
+                            .scheduleId(null)
+                            .id(null)
+                            .build())
+                    .getVcId();
         } else {
             vcid = null;
         }
