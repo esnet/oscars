@@ -71,37 +71,52 @@ public class NsoLiveStatusController {
         log.debug("MAC info request");
         startup.startupCheck();
 
+        Connection conn = connSvc.findConnection(request.getConnectionId()).orElseThrow(NoSuchElementException::new);
+
+        // start building REST return
+        MacInfoResponse response = new MacInfoResponse();
+        response.setConnectionId(conn.getConnectionId());
+        response.setTimestamp(Instant.now());
+
+        response.setTimestamp(Instant.now());
+        response.setConnectionId(request.getConnectionId()); // cp connId from request
+
+        boolean canGetLiveStatus = false;
+        String message = "connection not in RESERVED phase";
+        if (conn.getPhase().equals(Phase.RESERVED)) {
+            message = "connection RESERVED but not ACTIVE";
+            if (conn.getState().equals(State.ACTIVE)) {
+                message = "connection RESERVED and ACTIVE but not DEPLOYED";
+                if (conn.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
+                    canGetLiveStatus = true;
+                    message = "Connection RESERVED, ACTIVE, and DEPLOYED";
+                }
+            }
+        }
+        if (!canGetLiveStatus) {
+            response.setResults(Collections.emptyList());
+            response.setMessage(message);
+            return response;
+        }
+
         // filter and extract request data
-        RequestData requestData = getRequestData(request);
+        RequestData requestData = getRequestData(request, conn);
         if (requestData == null) {
             log.info("Couldn't extract REST request data");
             throw new NoSuchElementException();
         }
 
-        MacInfoResponse response = new MacInfoResponse();
         // the question is if we move this into the list with the results
         // since entries can have a different timestamp based on the if-older-than criteria
-        response.setTimestamp(Instant.now());
-        response.setConnectionId(request.getConnectionId()); // cp connId from request
 
         List<MacInfoResult> results = new LinkedList<>();
-
         log.debug("Run live-status request on devices");
         for (String device : requestData.getDevices()) {
-            if (requestData.getConn().getState().equals(State.ACTIVE) &&
-                    requestData.getConn().getDeploymentState().equals(DeploymentState.DEPLOYED)) {
-                log.debug("Fetch FDB from LiveStatusCacheManager for " + device + " service id " + requestData.getServiceId());
-                results.add(operationalStateCacheManager
-                        .getMacs(device, requestData.getServiceId(), request.getRefreshIfOlderThan()).getMacInfoResult());
-            } else {
-                results.add(MacInfoResult.builder()
-                        .device(device)
-                        .errorMessage("Not deployed")
-                        .status(false)
-                        .timestamp(Instant.now())
-                        .fdbQueryResult("Not deployed")
-                        .build());
-            }
+            log.debug("Fetch FDB from LiveStatusCacheManager for {} service id {}", device, requestData.getServiceId());
+            results.add(operationalStateCacheManager
+                    .getMacs(device, requestData.getServiceId(), request.getRefreshIfOlderThan())
+                    .getMacInfoResult());
+
         }
         response.setResults(results);
         return response;
@@ -114,31 +129,41 @@ public class NsoLiveStatusController {
         log.info("Operational state (SDPs, SAPs, LSPs) info request");
         startup.startupCheck();
 
-        // filter and extract request data
-        RequestData requestData = getRequestData(request);
-        if (requestData == null) {
-            log.info("Couldn't extract REST request data");
-            throw new NoSuchElementException();
-        }
-        List<String> devices = requestData.getDevices();
-        int serviceId = requestData.getServiceId();
-        Connection conn = requestData.getConn();
+        // find devices in circuit
+        Connection conn = connSvc.findConnection(request.getConnectionId()).orElseThrow(NoSuchElementException::new);
 
         // start building REST return
         OperationalStateInfoResponse response = new OperationalStateInfoResponse();
         response.setTimestamp(Instant.now());
         response.setConnectionId(request.getConnectionId()); // cp connId from request
         boolean canGetLiveStatus = false;
+        String message = "connection not in RESERVED phase";
         if (conn.getPhase().equals(Phase.RESERVED)) {
+            message = "connection RESERVED but not ACTIVE";
             if (conn.getState().equals(State.ACTIVE)) {
-                canGetLiveStatus = true;
+                message = "connection RESERVED and ACTIVE but not DEPLOYED";
+                if (conn.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
+                    canGetLiveStatus = true;
+                    message = "Connection RESERVED, ACTIVE, and DEPLOYED";
+                }
             }
         }
         if (!canGetLiveStatus) {
+            response.setResults(Collections.emptyList());
+            response.setMessage(message);
             response.setState(OperationalState.DOWN);
             return response;
         }
 
+
+        // filter and extract request data
+        RequestData requestData = getRequestData(request, conn);
+        if (requestData == null) {
+            log.info("Couldn't extract REST request data");
+            throw new NoSuchElementException();
+        }
+        List<String> devices = requestData.getDevices();
+        int serviceId = requestData.getServiceId();
 
 
         Instant timestamp = request.getRefreshIfOlderThan();
@@ -356,10 +381,9 @@ public class NsoLiveStatusController {
     private static class RequestData {
         private List<String> devices;
         private int serviceId;
-        private Connection conn;
     }
 
-    private RequestData getRequestData(NsoLiveStatusRequest request) {
+    private RequestData getRequestData(NsoLiveStatusRequest request, Connection conn) {
         log.info("Request:" + request.toString());
 
         String connectionId = request.getConnectionId();
@@ -379,13 +403,6 @@ public class NsoLiveStatusController {
             vcid = optVcid.get().getVcId();
         } else {
             log.info("Couldn't find VC-ID for OSCARS circuit " + connectionId);
-            throw new NoSuchElementException();
-        }
-
-        // find devices in circuit
-        Connection conn = connSvc.findConnection(connectionId).orElseThrow(NoSuchElementException::new);
-        if (!conn.getPhase().equals(Phase.RESERVED)) {
-            log.info("Connection is not RESERVED " + connectionId);
             throw new NoSuchElementException();
         }
 
@@ -410,7 +427,6 @@ public class NsoLiveStatusController {
         return RequestData.builder()
                 .devices(devices)
                 .serviceId(vcid)
-                .conn(conn)
                 .build();
     }
 

@@ -18,5 +18,6 @@ public class LiveStatusResponse {
     @JsonProperty("connection-id")
     private String connectionId;
     private Instant timestamp;
+    private String message;
 
 }
