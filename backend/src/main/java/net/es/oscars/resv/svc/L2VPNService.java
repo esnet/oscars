@@ -19,10 +19,13 @@ import net.es.oscars.web.simple.SimpleConnection;
 import net.es.oscars.web.simple.Validity;
 import net.es.topo.common.devel.DevelUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 
 @Component
@@ -67,10 +70,46 @@ public class L2VPNService {
         return connSvc.bwAvailability(simpleConnection);
     }
 
-
     public void release(String name) throws ConnException, ConsistencyException {
-        Connection c = connSvc.findConnection(name).orElseThrow();
-        connSvc.release(c);
+        log.info("Attempting to release L2VPN connection: {}", name);
+        
+        // find the connection - if not found, assume already released (idempotent behavior)
+        Connection c;
+        try {
+            c = connSvc.findConnection(name).orElseThrow();
+        } catch (NoSuchElementException e) {
+            log.info("L2VPN connection {} not found - assuming already released", name);
+            return; // idempotent operation
+        }
+        
+        // get initiator information for audit trail
+        String initiator = "unknown";
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getName() != null) {
+                initiator = auth.getName();
+            }
+        } catch (Exception e) {
+            log.warn("Unable to retrieve authentication context for release operation", e);
+        }
+        
+        // log release initiation with full context
+        log.info("L2VPN_RELEASE_INITIATED - name: {}, connectionId: {}, phase: {}, state: {}, initiator: {}", 
+            name, 
+            c.getConnectionId(),
+            c.getPhase(),
+            c.getState(),
+            initiator);
+        
+        // perform the actual release
+        try {
+            connSvc.release(c);
+            log.info("L2VPN_RELEASE_COMPLETED - name: {}, connectionId: {}", name, c.getConnectionId());
+        } catch (Exception e) {
+            log.error("L2VPN_RELEASE_FAILED - name: {}, connectionId: {}, error: {}", 
+                name, c.getConnectionId(), e.getMessage(), e);
+            throw e;
+        }
     }
 
     public L2VPN createOrReplace(L2VPN l2VPN) throws ConnException, ConsistencyException {
@@ -113,6 +152,4 @@ public class L2VPNService {
     public void clear() {
         connSvc.getConnRepo().deleteAll();
     }
-
-
 }
