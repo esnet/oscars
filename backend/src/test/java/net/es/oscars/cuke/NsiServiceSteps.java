@@ -230,7 +230,7 @@ public class NsiServiceSteps extends CucumberSteps {
             mockFixturesAndJunctions
         ).when(
             mockNsiMappingService
-        ).simpleComponents(Mockito.any(), Mockito.anyInt(), false);
+        ).simpleComponents(Mockito.any(), Mockito.anyInt(), Mockito.anyBoolean());
 
         Mockito.doReturn(
             mockFixturesAndJunctions
@@ -240,7 +240,7 @@ public class NsiServiceSteps extends CucumberSteps {
             Mockito.any(),
             Mockito.any(),
             Mockito.any(),
-                false
+            Mockito.anyBoolean()
         );
 
         // Mock the NsiMappingService.getP2PService() method.
