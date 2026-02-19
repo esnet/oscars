@@ -3,6 +3,7 @@
 > Feb 2026
 - ESE-361 fix last modified date for L2VPN
 - OS-672 error when modifying VLAN ids
+- OS-670 add hard / soft cap parameter to NSI
 
 ### 1.2.36
 > Dec 2025
