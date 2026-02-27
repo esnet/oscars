@@ -25,18 +25,10 @@ public class NsoQosSapPolicyIdService {
     private NsoQosSapPolicyIdDAO nsoQosSapPolicyIdDAO;
 
 
-    @Transactional
-    public void migrate(Long newScheduleId, Long oldScheduleId, Map<Long, Long> fixtureIdMap) {
-        nsoQosSapPolicyIdDAO.findAllByScheduleId(oldScheduleId).forEach(qspId -> {
-            qspId.setScheduleId(newScheduleId);
-            // migrate fixture id
-            qspId.setFixtureId(fixtureIdMap.get(qspId.getFixtureId()));
-            nsoQosSapPolicyIdDAO.save(qspId);
-        });
-    }
 
     @Transactional
     public void findAndReserveQosSapPolicyIds(Connection conn, List<Schedule> schedules) throws NsoResvException {
+        log.info("reserving SAP QoS policy id resources for " + conn.getConnectionId());
         Map<String, Set<VlanFixture>> byDevice = new HashMap<>();
         conn.getReserved().getCmp().getJunctions().forEach(j -> byDevice.put(j.getDeviceUrn(), new HashSet<>()));
         for (VlanFixture f : conn.getReserved().getCmp().getFixtures()) {

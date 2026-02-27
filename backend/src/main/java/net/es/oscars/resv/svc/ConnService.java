@@ -654,22 +654,10 @@ public class ConnService {
             if (!isModify) {
                 nsoResourceService.reserve(c);
             } else {
-                Map<Long, Long> fixtureIdMap = new HashMap<>();
-                for (VlanFixture vf : c.getReserved().getCmp().getFixtures()) {
-
-                    Long prevFixtureId = prevFixtureIds.get(vf.urn());
-                    Long newFixtureId = vf.getId();
-                    fixtureIdMap.put(prevFixtureId, newFixtureId);
-                    log.info("new fixture id for " + vf.urn() + " : " + vf.getId());
-                }
                 log.info("migrating NSO resources for " + c.getConnectionId());
-
-                PrettyPrinter.prettyLog(fixtureIdMap);
-
                 Long newScheduleId = c.getReserved().getSchedule().getId();
-                nsoResourceService.migrate(newScheduleId, oldScheduleId, fixtureIdMap);
+                nsoResourceService.migrate(newScheduleId, oldScheduleId, c);
             }
-
 
             log.info("committed " + c.getConnectionId());
 

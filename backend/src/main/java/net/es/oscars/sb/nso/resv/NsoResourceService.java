@@ -33,22 +33,40 @@ public class NsoResourceService {
     @Autowired
     private ScheduleRepository scheduleRepo;
 
-    public void migrate(Long newScheduleId, Long oldScheduleId, Map<Long, Long> fixtureIdMap) {
+    public void migrate(Long newScheduleId, Long oldScheduleId, Connection conn) throws NsoResvException {
         nsoVcIdService.migrate(newScheduleId, oldScheduleId);
         nsoSdpIdService.migrate(newScheduleId, oldScheduleId);
-        nsoQosSapPolicyIdService.migrate(newScheduleId, oldScheduleId, fixtureIdMap);
         nsoSdpVcIdService.migrate(newScheduleId, oldScheduleId);
+
+        // delete old qos ids
+        nsoQosSapPolicyIdService.release(conn);
+
+        // reserve new ones
+        Schedule connectionSchedule = conn.getReserved().getSchedule();
+        List<Schedule> overlappingSchedules = this.overlappingSchedules(connectionSchedule);
+        nsoQosSapPolicyIdService.findAndReserveQosSapPolicyIds(conn, overlappingSchedules);
+
     }
 
     public void reserve(Connection conn) throws NsoResvException {
         log.info("starting NSO resource reservation");
         Schedule connectionSchedule = conn.getReserved().getSchedule();
 
-        // we get all the NsoVcIds; every RESERVED connection should have one.
+        List<Schedule> overlappingSchedules = this.overlappingSchedules(connectionSchedule);
+
+        nsoVcIdService.findAndReserveVcId(conn, overlappingSchedules);
+        nsoQosSapPolicyIdService.findAndReserveQosSapPolicyIds(conn, overlappingSchedules);
+        nsoSdpIdService.findAndReserveNsoSdpIds(conn, overlappingSchedules);
+        nsoSdpVcIdService.findAndReserveNsoSdpVcIds(conn, overlappingSchedules);
+        log.info("completed NSO resource reservation");
+
+    }
+
+    protected List<Schedule> overlappingSchedules(Schedule connectionSchedule) {
+        List<Schedule> result = new ArrayList<>();
         List<NsoVcId> allNsoVcIds = nsoVcIdService.allNsoVcIds();
 
-
-        List<Schedule> overlappingSchedules = new ArrayList<>();
+        // we get all the NsoVcIds; every RESERVED connection should have one.
         for (NsoVcId nsoVcId : allNsoVcIds) {
             // from there we can retrieve the schedule objects associated with each NsoVcId
             scheduleRepo.findById(nsoVcId.getScheduleId()).ifPresent(nsoVcIdSchedule -> {
@@ -67,17 +85,11 @@ public class NsoResourceService {
                     minEnding = connectionSchedule.getEnding();
                 }
                 if (maxBeginning.isBefore(minEnding)) {
-                    overlappingSchedules.add(nsoVcIdSchedule);
+                    result.add(nsoVcIdSchedule);
                 }
             });
         }
-
-        nsoVcIdService.findAndReserveVcId(conn, overlappingSchedules);
-        nsoQosSapPolicyIdService.findAndReserveQosSapPolicyIds(conn, overlappingSchedules);
-        nsoSdpIdService.findAndReserveNsoSdpIds(conn, overlappingSchedules);
-        nsoSdpVcIdService.findAndReserveNsoSdpVcIds(conn, overlappingSchedules);
-        log.info("completed NSO resource reservation");
-
+        return result;
     }
 
 

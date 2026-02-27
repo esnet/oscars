@@ -1,4 +1,9 @@
 # OSCARS Release Notes
+### 1.2.37
+> Feb 2026
+- ESE-361 fix last modified date for L2VPN
+- OS-672 error when modifying VLAN ids
+
 ### 1.2.36
 > Dec 2025
 - OS-661 Add sorting parameters to connection list

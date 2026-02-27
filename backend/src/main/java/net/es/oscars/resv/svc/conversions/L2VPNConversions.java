@@ -185,6 +185,7 @@ public class L2VPNConversions {
                 .trackingId(c.getServiceId())
                 .orchId(null)
                 .projectIds(c.getProjectIds())
+                .lastModified(Instant.ofEpochSecond(c.getLast_modified()))
                 .build();
     }
 
