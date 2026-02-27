@@ -1,0 +1,20 @@
+query ($search: String, $sortProperty:String, $first:Int, $skip:Int) {
+    bandwidthUtilizationList(
+        search: $search,
+        sortProperty: $sortProperty
+        first: $first
+        skip: $skip
+    ) {
+        results: list {
+            id
+            uuid
+            bandwidth
+            remoteSystemId
+            system
+            equipmentInterface {
+                id
+            }
+        }
+        count: totalRecords
+    }
+}

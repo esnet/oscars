@@ -1,34 +1,18 @@
 package net.es.oscars.cuke;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.ctg.UnitTests;
 import net.es.oscars.esdb.ESDBProxy;
-import net.es.oscars.task.EsdbVlanSync;
+import net.es.oscars.task.EsdbDataSync;
 import org.junit.experimental.categories.Category;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.graphql.ResponseError;
-import org.springframework.graphql.client.ClientGraphQlResponse;
-import org.springframework.graphql.client.ClientResponseField;
-import org.springframework.graphql.client.GraphQlClient;
-import org.springframework.graphql.client.HttpSyncGraphQlClient;
-import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.util.List;
-import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 
@@ -36,7 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 @Category({UnitTests.class})
 public class EsdbVlanSyncSteps extends CucumberSteps {
     @Autowired
-    private EsdbVlanSync esdbVlanSync;
+    private EsdbDataSync esdbDataSync;
 
     @Autowired
     private ESDBProxy esdbProxy;
@@ -50,29 +34,29 @@ public class EsdbVlanSyncSteps extends CucumberSteps {
     @Before("@EsdbVlanSyncSteps")
     public void before() throws IOException {
         log.info("EsdbVlanSyncSteps before() called.");
-        esdbVlanSync.setSynchronized(false);
-        esdbVlanSync.getStartup().setInStartup(false);
-        esdbVlanSync.getStartup().setInShutdown(false);
+        esdbDataSync.setSynchronized(false);
+        esdbDataSync.getStartup().setInStartup(false);
+        esdbDataSync.getStartup().setInShutdown(false);
 
         // Override with our mock server URL and port
-        esdbVlanSync.getEsdbProperties().setGraphqlUri("http://localhost:" + mockPort + "/esdb_api/graphql");
-        esdbVlanSync.getEsdbProperties().setUri("http://localhost:" + mockPort + "/esdb_api/v1");
+        esdbDataSync.getEsdbProperties().setGraphqlUri("http://localhost:" + mockPort + "/esdb_api/graphql");
+        esdbDataSync.getEsdbProperties().setUri("http://localhost:" + mockPort + "/esdb_api/v1");
     }
 
     @Given("The ESDB VLAN task is ready")
     public void esdbVlanTaskIsReady() {
-        assert esdbVlanSync != null;
-        assert !esdbVlanSync.isSynchronized();
+        assert esdbDataSync != null;
+        assert !esdbDataSync.isSynchronized();
     }
 
     @When("The ESDB VLAN synchronization is triggered")
     public void theESDBVLANSynchronizationIsTriggered() {
-        esdbVlanSync.processingLoop();
+        esdbDataSync.processingLoop();
     }
 
     @Then("The ESDB VLAN was synchronized")
     public void theESDBVLANWasSynchronized() {
-        assert esdbVlanSync.isSynchronized();
+        assert esdbDataSync.isSynchronized();
     }
 
 }
