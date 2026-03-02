@@ -16,6 +16,11 @@
     "status": 200,
     "match": "organizationList",
     "data": "http/esdb.org-list.json"
+  },
+  {
+    "method": "POST",
+    "status": 200,
+    "match": "bandwidthUtilizationList",
+    "data": "http/esdb.bwutil-list.json"
   }
-
 ]

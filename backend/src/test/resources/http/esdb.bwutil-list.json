@@ -1,0 +1,149 @@
+{
+  "data": {
+    "bandwidthUtilizationList": {
+      "results": [
+        {
+          "id": "191",
+          "uuid": "5e8a17da-a6c6-438e-ab71-24d0c42a31bf",
+          "bandwidth": 10000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "13064"
+          }
+        },
+        {
+          "id": "192",
+          "uuid": "065d0fa0-9bb3-47fe-b3e8-807474661e8d",
+          "bandwidth": 10000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "12128"
+          }
+        },
+        {
+          "id": "193",
+          "uuid": "0c32476d-ec41-4ed8-bbd1-9482ce76dd7b",
+          "bandwidth": 1000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "16742"
+          }
+        },
+        {
+          "id": "194",
+          "uuid": "5afa1e24-6db5-4975-8671-b9cf2d6d5b54",
+          "bandwidth": 1900,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "16730"
+          }
+        },
+        {
+          "id": "195",
+          "uuid": "8a8669ce-5d46-4086-b974-db12a3855004",
+          "bandwidth": 10000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "12805"
+          }
+        },
+        {
+          "id": "196",
+          "uuid": "7225ffe2-1010-411e-b69a-afc25a87a08d",
+          "bandwidth": 10000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "13038"
+          }
+        },
+        {
+          "id": "197",
+          "uuid": "8032be0c-5e28-4d71-aa36-0c608ec10864",
+          "bandwidth": 1900,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "28893"
+          }
+        },
+        {
+          "id": "198",
+          "uuid": "69de235c-cc93-43b0-9e21-2eb38fc082c8",
+          "bandwidth": 10000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "12797"
+          }
+        },
+        {
+          "id": "199",
+          "uuid": "85fd98df-44af-4795-bc8d-56bfb2149b9a",
+          "bandwidth": 10000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "12098"
+          }
+        },
+        {
+          "id": "200",
+          "uuid": "ad02f583-5353-4440-88b3-dab956f936b5",
+          "bandwidth": 10000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "12932"
+          }
+        },
+        {
+          "id": "201",
+          "uuid": "ce4cd760-b842-4d4e-9645-34161b2da423",
+          "bandwidth": 1000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "28901"
+          }
+        },
+        {
+          "id": "202",
+          "uuid": "341e6cfb-b6a7-4d54-8dc5-96797cc31abe",
+          "bandwidth": 10000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "12966"
+          }
+        },
+        {
+          "id": "203",
+          "uuid": "9d288fc8-d38e-4a08-ad59-c0830963e732",
+          "bandwidth": 10000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "16413"
+          }
+        },
+        {
+          "id": "204",
+          "uuid": "ff38f626-a981-4576-8770-245f9f684489",
+          "bandwidth": 10000,
+          "remoteSystemId": "539dcc92-517f-45fc-88c8-311d1b7b9f06",
+          "system": "oscars",
+          "equipmentInterface": {
+            "id": "16402"
+          }
+        }
+      ],
+      "count": 14
+    }
+  }
+}
