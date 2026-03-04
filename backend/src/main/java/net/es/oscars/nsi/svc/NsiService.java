@@ -64,6 +64,10 @@ public class NsiService {
     @Value("${nsi.provider-nsa}")
     private String providerNsa;
 
+    @Value("${nsi.strict-policing:true}")
+    private boolean strictPolicingDefault;
+
+
     final public static String SERVICE_TYPE = "http://services.ogf.org/nsi/2013/12/descriptions/EVTS.A-GOLE";
     final public static String NSI_TYPES = "http://schemas.ogf.org/nsi/2013/12/framework/types";
 
@@ -1046,9 +1050,20 @@ public class NsiService {
         ConnectionMode connectionMode = ConnectionMode.NEW;
         Set<String> projectId = new HashSet<>();
 
+        boolean strictPolicing = strictPolicingDefault;
+
         for (TypeValueType tvt : p2ps.getParameter()) {
             if (tvt.getType().equals("projectId") && tvt.getValue() != null && !tvt.getValue().isEmpty()) {
                 projectId.add(tvt.getValue());
+            }
+
+            if (tvt.getType().equals("policing") && tvt.getValue() != null && !tvt.getValue().isEmpty()) {
+                if (tvt.getValue().strip().equalsIgnoreCase("strict")) {
+                    strictPolicing = true;
+                }
+                if (tvt.getValue().strip().equalsIgnoreCase("soft")) {
+                    strictPolicing = false;
+                }
             }
         }
 
@@ -1068,7 +1083,7 @@ public class NsiService {
                         .build();
             }
             // recreate f, j, p based on reserved w modified mbps if applicable
-            Pair<List<Fixture>, List<Junction>> fjp = nsiMappingService.simpleComponents(c, mbps);
+            Pair<List<Fixture>, List<Junction>> fjp = nsiMappingService.simpleComponents(c, mbps, strictPolicing);
             fixtures = fjp.getLeft();
             junctions = fjp.getRight();
             pipes = nsiMappingService.pipesFor(interval, mbps, junctions, include);
@@ -1087,7 +1102,7 @@ public class NsiService {
             begin = interval.getBeginning().getEpochSecond();
             end = interval.getEnding().getEpochSecond();
 
-            Pair<List<Fixture>, List<Junction>> fjs = nsiMappingService.fixturesAndJunctionsFor(p2ps, interval, oscarsConnectionId);
+            Pair<List<Fixture>, List<Junction>> fjs = nsiMappingService.fixturesAndJunctionsFor(p2ps, interval, oscarsConnectionId, strictPolicing);
             fixtures = fjs.getLeft();
             junctions = fjs.getRight();
 

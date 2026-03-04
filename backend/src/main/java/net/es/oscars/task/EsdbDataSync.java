@@ -7,19 +7,31 @@ import net.es.oscars.app.Startup;
 import net.es.oscars.app.props.EsdbProperties;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.esdb.ESDBProxy;
+import net.es.oscars.model.Interval;
+import net.es.oscars.resv.beans.PeriodBandwidth;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Components;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.VlanFixture;
 import net.es.oscars.resv.enums.Phase;
+import net.es.oscars.resv.svc.ResvLibrary;
+import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.Port;
+import net.es.oscars.topo.beans.PortBwVlan;
+import net.es.oscars.topo.beans.TopoUrn;
+import net.es.oscars.topo.beans.Topology;
+import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.TopologyStore;
+import net.es.topo.common.dto.esdb.EsdbBwUtil;
+import net.es.topo.common.dto.esdb.EsdbBwUtilPayload;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 
@@ -27,7 +39,7 @@ import java.util.*;
 @Component
 @Getter
 @Setter
-public class EsdbVlanSync {
+public class EsdbDataSync {
     public static String PREFIX = "OSCARS";
     private final Startup startup;
     private final ConnectionRepository cr;
@@ -35,14 +47,19 @@ public class EsdbVlanSync {
     private final EsdbProperties esdbProperties;
     private final StartupProperties startupProperties;
     private final TopologyStore topologyStore;
+    private final ResvService resvService;
+
     private boolean isSynchronized = false;
-    public EsdbVlanSync(Startup startup, ConnectionRepository cr, ESDBProxy esdbProxy, EsdbProperties esdbProperties, StartupProperties startupProperties, TopologyStore topologyStore) {
+    public EsdbDataSync(Startup startup, ConnectionRepository cr, ESDBProxy esdbProxy,
+                        EsdbProperties esdbProperties, StartupProperties startupProperties,
+                        TopologyStore topologyStore, ResvService resvService) {
         this.startup = startup;
         this.cr = cr;
         this.esdbProxy = esdbProxy;
         this.esdbProperties = esdbProperties;
         this.startupProperties = startupProperties;
         this.topologyStore = topologyStore;
+        this.resvService = resvService;
     }
 
     @Scheduled(initialDelay = 120000, fixedDelayString ="${esdb.vlan-sync-period}" )
@@ -55,6 +72,32 @@ public class EsdbVlanSync {
         } else if (startup.isInStartup() || startup.isInShutdown()) {
             return;
         }
+        log.info("starting BW utilization sync");
+        List<EsdbBwUtil> currentUtilizations = esdbProxy.gqlBwUtil(null, null, null, null);
+        List<EsdbBwUtil>  bwUtilsToRemove = currentUtilizations.stream()
+                .filter(util -> util.getSystem().equals("oscars"))
+                .toList();
+        if (!bwUtilsToRemove.isEmpty()) {
+            log.info("deleting {}  OSCARS utilizations ", bwUtilsToRemove.size());
+            for (EsdbBwUtil util : bwUtilsToRemove) {
+                esdbProxy.deleteBandwidthUtilization(util.getId());
+            }
+        }
+
+
+        try {
+            topologyStore.getCurrentTopology();
+        } catch (ConsistencyException e) {
+            log.error("failed to get current topology for bandwidth sync", e);
+        }
+        List<EsdbBwUtilPayload> bwUtilsToAdd = this.makeBwPayloads();
+
+        for (EsdbBwUtilPayload bwUtilPayload : bwUtilsToAdd) {
+            esdbProxy.createBandwidthUtilization(bwUtilPayload);
+        }
+        log.info("created {} OSCARS bandwidth utilizations ", bwUtilsToAdd.size());
+
+
         log.info("starting VLAN sync");
         // fetch all ESDB vlans
         // ...Use GraphQL client.
@@ -165,4 +208,55 @@ public class EsdbVlanSync {
 
         return payloads;
     }
+
+    public List<EsdbBwUtilPayload> makeBwPayloads() {
+        List<EsdbBwUtilPayload> payloads = new ArrayList<>();
+        // a random UUID for this run
+        UUID uuid = UUID.randomUUID();
+
+        Interval thisWeek = Interval.builder()
+                .beginning(Instant.now())
+                .ending(Instant.now().plus(7, ChronoUnit.DAYS))
+                .build();
+        // first we collect any reservations overlapping the next week
+        // addy any ports that have a non-zero reservation to a set
+        Set<String> portsWithAnyReservations = new HashSet<>();
+        Map<String, List<PeriodBandwidth>> reservedIngBws = resvService.reservedIngBws(thisWeek, new HashMap<>(), null);
+        for (String portUrn : reservedIngBws.keySet()) {
+            for (PeriodBandwidth bw : reservedIngBws.get(portUrn)) {
+                if (bw.getBandwidth() > 0) {
+                    portsWithAnyReservations.add(portUrn);
+                }
+            }
+        }
+
+        Map<String, List<PeriodBandwidth>> reservedEgBws = resvService.reservedEgBws(thisWeek, new HashMap<>(), null);
+
+
+        Map<String, TopoUrn> topoUrnMap = topologyStore.getTopoUrnMap();
+        Map<String, PortBwVlan> available = ResvLibrary.portBwVlans(topoUrnMap, new ArrayList<>(), reservedIngBws, reservedEgBws);
+
+        for (String portUrn : portsWithAnyReservations) {
+            Optional<Port> p = topologyStore.findPortByUrn(portUrn);
+            if (p.isPresent()) {
+                Port port = p.get();
+                Integer availableBw = available.get(portUrn).getIngressBandwidth();
+                Integer baselineBw = port.getReservableIngressBw();
+                Integer reservedBw = baselineBw - availableBw;
+                EsdbBwUtilPayload payload = EsdbBwUtilPayload.builder()
+                        .bandwidth(reservedBw)
+                        .system("oscars")
+                        .bandwidth(reservedBw)
+                        .equipmentInterface(port.getEsdbEquipmentInterfaceId())
+                        .remoteSystemId(uuid.toString())
+                        .build();
+                payloads.add(payload);
+            } else {
+                log.error("portUrn: {} not found!", portUrn);
+            }
+        }
+
+        return payloads;
+    }
+
 }

@@ -10,9 +10,12 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.EsdbProperties;
 import net.es.oscars.app.util.HeaderRequestInterceptor;
+import net.es.oscars.dto.esdb.gql.GraphqlEsdbBandwidthUtilization;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganization;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganizationType;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbVlan;
+import net.es.topo.common.dto.esdb.EsdbBwUtil;
+import net.es.topo.common.dto.esdb.EsdbBwUtilPayload;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -126,6 +129,8 @@ public class ESDBProxy {
         return this.gqlVlanList(searchQuery, sortProperty, first, skip, null);
     }
 
+
+
     /**
      * Get ESDB organizations from ESDB using GraphQL filtered by org type uuid.
      * @return Returns a list of GraphqlEsdbOrganization objects from the GraphQL response.
@@ -171,6 +176,94 @@ public class ESDBProxy {
                 .toEntityList(GraphqlEsdbOrganizationType.class);
     }
 
+    /**
+     * Get all ESDB bandwidth utilizations from ESDB using GraphQL. Targets vlanList.
+     * @param search The search (string) parameter for vlanList.
+     * @param sortProperty The sortProperty (string) parameter for vlanList.
+     * @param first The first (int) parameter for vlanList.
+     * @param skip The skip (int) parameter for vlanList.
+     * @return Returns a list of EsdbVlan objects from the GraphQL response.
+     */
+    public List<EsdbBwUtil> gqlBwUtil(
+            @Null String search,
+            @Null String sortProperty,
+            @Null Integer first,
+            @Null Integer skip
+    ) {
+        List<EsdbBwUtil> results;
+
+        Map<String, Object> params = new HashMap<>();
+
+        if (search != null && !search.isEmpty()) {
+            params.put("search", search);
+        }
+        if (sortProperty != null && !sortProperty.isEmpty()) {
+            params.put("sortProperty", sortProperty);
+        }
+        if (first != null) {
+            params.put("first", first);
+        }
+        if (skip != null) {
+            params.put("skip", skip);
+        }
+
+        HttpSyncGraphQlClient graphQlClient = createGraphqlClient();
+
+        // Should return a List<EsdbBwUtil> in the "list" property
+        // Example response payload:
+        // {
+        //  "data": {
+        //    "bandwidthUtilizationList": {
+        //      "count": 1646,
+        //      "results": [
+        //        {
+        //          "id": "10943",
+        //          "uuid": "",
+        //          "system": "oscars",
+        //          "remote_system_id": "OSCARS asdf-zyzz",
+        //          "equipmentInterface": {
+        //            "id": "14117"
+        //          }
+        //        },
+        //        ...,
+        //      ]
+        //    }
+        //  }
+        // }
+
+        // See oscars/backend/src/main/resources/graphql-documents/vlanList.graphql
+        // Our GraphQL client can autoload by document name from the graphql-documents/ directory.
+        GraphQlClient.RequestSpec requestSpec = graphQlClient
+                .documentName("bandwidthUtilizationList");
+
+        if (!params.isEmpty()) {
+            requestSpec.variables(params);
+        }
+        ClientGraphQlResponse response = requestSpec.executeSync();
+
+        List<GraphqlEsdbBandwidthUtilization> bwUtilList = response
+                .field("bandwidthUtilizationList.results")
+                .toEntityList(GraphqlEsdbBandwidthUtilization.class);
+
+        results = new ArrayList<>(bwUtilList.size());
+        if (!bwUtilList.isEmpty()) {
+            log.info("ESDBProxy.gqlBwUtil() called. List of bwUtils has a size of {}", bwUtilList.size());
+            for (GraphqlEsdbBandwidthUtilization bwUtil : bwUtilList) {
+                EsdbBwUtil ebw = EsdbBwUtil.builder()
+                        .id(bwUtil.getId())
+                        .bandwidth(bwUtil.getBandwidth())
+                        .equipmentInterface(bwUtil.getEquipmentInterface().getId())
+                        .system(bwUtil.getSystem())
+                        .remoteSystemId(bwUtil.getRemoteSystemId())
+                        .build();
+                results.add(ebw);
+            }
+        } else {
+            log.warn("ESDBProxy.gqlBwUtil() called but none found in ESDB GraphQL response. Returning empty list.");
+        }
+
+        return results;
+    }
 
 
     /**
@@ -308,4 +401,19 @@ public class ESDBProxy {
         log.info("delete rest path: "+restPath);
         restTemplate.delete(restPath);
     }
+
+    public void createBandwidthUtilization(EsdbBwUtilPayload payload) {
+        String restPath = esdbProperties.getUri()+"bandwidth_utilization/";
+        log.info("create rest path: "+restPath);
+        EsdbBwUtil result = restTemplate.postForObject(restPath, payload, EsdbBwUtil.class);
+        if (result != null) {
+            log.info("created a ESDB bandwidth utilization: \n" + result.getEquipmentInterface()+ " : "+ result.getBandwidth());
+        }
+    }
+    public void deleteBandwidthUtilization(Integer bwutilPkId) {
+        String restPath = esdbProperties.getUri()+"bandwidth_utilization/"+bwutilPkId+"/";
+        log.info("delete rest path: "+restPath);
+        restTemplate.delete(restPath);
+    }
+
 }

@@ -59,8 +59,6 @@ public class NsiMappingService {
     private final ResvService resvService;
     private final PceService pceService;
 
-    @Value("${nsi.strict-policing:true}")
-    private boolean strictPolicing;
 
     @Value("${nml.topo-id}")
     private String topoId;
@@ -272,7 +270,7 @@ public class NsiMappingService {
 
     }
 
-    public Pair<List<Fixture>, List<Junction>> simpleComponents(Connection c, int mbps) {
+    public Pair<List<Fixture>, List<Junction>> simpleComponents(Connection c, int mbps, boolean strictPolicing) {
         List<Junction> junctions = new ArrayList<>();
         List<Fixture> fixtures = new ArrayList<>();
         for (VlanFixture vf: c.getReserved().getCmp().getFixtures()) {
@@ -294,7 +292,7 @@ public class NsiMappingService {
         return Pair.of(fixtures, junctions);
     }
 
-    public Pair<List<Fixture>, List<Junction>> fixturesAndJunctionsFor(P2PServiceBaseType p2p, Interval interval, String oscarsConnectionId)
+    public Pair<List<Fixture>, List<Junction>> fixturesAndJunctionsFor(P2PServiceBaseType p2p, Interval interval, String oscarsConnectionId, boolean strictPolicing)
             throws NsiInternalException, NsiValidationException {
         String src = p2p.getSourceSTP();
         String dst = p2p.getDestSTP();
