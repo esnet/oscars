@@ -112,7 +112,7 @@ public class EsdbDataSync {
                 EsdbBwUtilPayload newPayload = updatedBwUtilsByIfceId.get(ifceId);
                 EsdbBwUtil existingBwUtil = existingBwUtilsByIfceId.get(ifceId);
                 if (!existingBwUtil.getBandwidth().equals(newPayload.getBandwidth())) {
-                    bwUtilsToRemove.add(ifceId);
+                    bwUtilsToRemove.add(existingBwUtilsByIfceId.get(ifceId).getId());
                     bwUtilsToAdd.add(updatedBwUtilsByIfceId.get(ifceId));
                 }
             }
@@ -122,7 +122,7 @@ public class EsdbDataSync {
         if (!bwUtilsToRemove.isEmpty()) {
             log.info("deleting {}  OSCARS utilizations ", bwUtilsToRemove.size());
             for (Integer ifceId : bwUtilsToRemove) {
-                esdbProxy.deleteBandwidthUtilization(ifceId);
+                esdbProxy.deleteBandwidthUtilization(existingBwUtilsByIfceId.get(ifceId).getId());
             }
         }
 
