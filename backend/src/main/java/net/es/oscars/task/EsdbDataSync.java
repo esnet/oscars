@@ -98,7 +98,7 @@ public class EsdbDataSync {
         for (Integer ifceId : existingBwUtilsByIfceId.keySet()) {
             // first check if any items existing in ESDB have ifceids that are no longer around; those must be deleted
             if (!updatedBwUtilsByIfceId.containsKey(ifceId)) {
-                bwUtilsToRemove.add(ifceId);
+                bwUtilsToRemove.add(existingBwUtilsByIfceId.get(ifceId).getId());
             }
         }
 
@@ -121,8 +121,8 @@ public class EsdbDataSync {
 
         if (!bwUtilsToRemove.isEmpty()) {
             log.info("deleting {}  OSCARS utilizations ", bwUtilsToRemove.size());
-            for (Integer ifceId : bwUtilsToRemove) {
-                esdbProxy.deleteBandwidthUtilization(existingBwUtilsByIfceId.get(ifceId).getId());
+            for (Integer bwUtilId : bwUtilsToRemove) {
+                esdbProxy.deleteBandwidthUtilization(bwUtilId);
             }
         }
 
