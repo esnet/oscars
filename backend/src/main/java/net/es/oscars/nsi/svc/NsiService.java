@@ -1053,17 +1053,18 @@ public class NsiService {
         boolean strictPolicing = strictPolicingDefault;
 
         for (TypeValueType tvt : p2ps.getParameter()) {
+            log.debug("got a TVT: {} , {}", tvt.getType(), tvt.getValue());
             if (tvt.getType().equals("projectId") && tvt.getValue() != null && !tvt.getValue().isEmpty()) {
                 projectId.add(tvt.getValue());
             }
 
-            if (tvt.getType().equals("policing") && tvt.getValue() != null && !tvt.getValue().isEmpty()) {
+            if (tvt.getType().equals("policing") && tvt.getValue() != null) {
                 if (tvt.getValue().strip().equalsIgnoreCase("strict")) {
                     strictPolicing = true;
-                }
-                if (tvt.getValue().strip().equalsIgnoreCase("soft")) {
+                } else if (tvt.getValue().strip().equalsIgnoreCase("soft")) {
                     strictPolicing = false;
                 }
+                log.info("specific policing requested: {} , strict: {}", tvt.getValue(), strictPolicing);
             }
         }
 
