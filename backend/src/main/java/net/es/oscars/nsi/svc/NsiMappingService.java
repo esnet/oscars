@@ -567,6 +567,8 @@ public class NsiMappingService {
             }
         }
 
+        boolean strictPolicing = false;
+
         String srcStp = mapping.getSrc();
         String dstStp = mapping.getDst();
         long capacity = 0L;
@@ -575,6 +577,9 @@ public class NsiMappingService {
         if (cmp != null) {
             if (!cmp.getFixtures().isEmpty()) {
                 VlanFixture a = cmp.getFixtures().getFirst();
+                if (a.getStrict()) {
+                    strictPolicing = true;
+                }
                 srcStp = this.nsiUrnFromInternal(a.getPortUrn()) + "?vlan=" + a.getVlan().getVlanId();
                 if (mapping.getSrc() != null) {
                     String[] stpParts = StringUtils.split(mapping.getSrc(), "\\?");
@@ -605,6 +610,11 @@ public class NsiMappingService {
                 strEro.add(dstStp);
             }
         }
+        TypeValueType policingTvt = new TypeValueType();
+        policingTvt.setType("policing");
+        String policingValue = strictPolicing ? "strict" : "soft";
+        policingTvt.setValue(policingValue);
+        p2p.getParameter().add(policingTvt);
 
         StpListType ero = new StpListType();
         for (int i = 0; i < strEro.size(); i++) {

@@ -33,6 +33,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -73,29 +74,64 @@ public class EsdbDataSync {
             return;
         }
         log.info("starting BW utilization sync");
-        List<EsdbBwUtil> currentUtilizations = esdbProxy.gqlBwUtil(null, null, null, null);
-        List<EsdbBwUtil>  bwUtilsToRemove = currentUtilizations.stream()
+        List<EsdbBwUtil> allExistingBwUtils = esdbProxy.gqlBwUtil(null, null, null, null);
+        List<EsdbBwUtil> existingOscarsBwUtils = allExistingBwUtils.stream()
                 .filter(util -> util.getSystem().equals("oscars"))
                 .toList();
-        if (!bwUtilsToRemove.isEmpty()) {
-            log.info("deleting {}  OSCARS utilizations ", bwUtilsToRemove.size());
-            for (EsdbBwUtil util : bwUtilsToRemove) {
-                esdbProxy.deleteBandwidthUtilization(util.getId());
-            }
-        }
-
+        Map<Integer, EsdbBwUtil> existingBwUtilsByIfceId = existingOscarsBwUtils
+                .stream()
+                .collect(Collectors.toMap(EsdbBwUtil::getEquipmentInterface, item -> item));
 
         try {
             topologyStore.getCurrentTopology();
         } catch (ConsistencyException e) {
             log.error("failed to get current topology for bandwidth sync", e);
         }
-        List<EsdbBwUtilPayload> bwUtilsToAdd = this.makeBwPayloads();
 
-        for (EsdbBwUtilPayload bwUtilPayload : bwUtilsToAdd) {
-            esdbProxy.createBandwidthUtilization(bwUtilPayload);
+        List<EsdbBwUtilPayload> updatedOscarsBwUtils = this.makeBwPayloads();
+        Map<Integer, EsdbBwUtilPayload> updatedBwUtilsByIfceId = updatedOscarsBwUtils
+                .stream()
+                .collect(Collectors.toMap(EsdbBwUtilPayload::getEquipmentInterface, p -> p));
+
+        Set<Integer> bwUtilsToRemove = new HashSet<>();
+
+        for (Integer ifceId : existingBwUtilsByIfceId.keySet()) {
+            // first check if any items existing in ESDB have ifceids that are no longer around; those must be deleted
+            if (!updatedBwUtilsByIfceId.containsKey(ifceId)) {
+                bwUtilsToRemove.add(existingBwUtilsByIfceId.get(ifceId).getId());
+            }
         }
-        log.info("created {} OSCARS bandwidth utilizations ", bwUtilsToAdd.size());
+
+        List<EsdbBwUtilPayload> bwUtilsToAdd = new ArrayList<>();
+        for (Integer ifceId : updatedBwUtilsByIfceId.keySet()) {
+            // first check if any of the new ifce ids were not previously existing in ESDB; those must be added
+            if (!existingBwUtilsByIfceId.containsKey(ifceId)) {
+                bwUtilsToAdd.add(updatedBwUtilsByIfceId.get(ifceId));
+            } else {
+                // now check if the bandwidth has changed; we will delete and re-add these
+                EsdbBwUtilPayload newPayload = updatedBwUtilsByIfceId.get(ifceId);
+                EsdbBwUtil existingBwUtil = existingBwUtilsByIfceId.get(ifceId);
+                if (!existingBwUtil.getBandwidth().equals(newPayload.getBandwidth())) {
+                    bwUtilsToRemove.add(existingBwUtilsByIfceId.get(ifceId).getId());
+                    bwUtilsToAdd.add(updatedBwUtilsByIfceId.get(ifceId));
+                }
+            }
+        }
+
+
+        if (!bwUtilsToRemove.isEmpty()) {
+            log.info("deleting {}  OSCARS utilizations ", bwUtilsToRemove.size());
+            for (Integer bwUtilId : bwUtilsToRemove) {
+                esdbProxy.deleteBandwidthUtilization(bwUtilId);
+            }
+        }
+
+        if (!bwUtilsToAdd.isEmpty()) {
+            log.info("creating {} OSCARS bandwidth utilizations ", bwUtilsToAdd.size());
+            for (EsdbBwUtilPayload bwUtilPayload : bwUtilsToAdd) {
+                esdbProxy.createBandwidthUtilization(bwUtilPayload);
+            }
+        }
 
 
         log.info("starting VLAN sync");
