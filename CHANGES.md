@@ -1,4 +1,9 @@
 # OSCARS Release Notes
+### 1.2.38
+> Apr 2026
+- OS-678 support NSO 6.7
+- OS-675 optimize bwutil db sync
+
 ### 1.2.37
 > Feb 2026
 - ESE-361 fix last modified date for L2VPN

@@ -70,6 +70,8 @@ public class NsoProxy {
     private RestTemplate restTemplate;
     private RestClient patchClient;
     private RestClient restClient;
+    private ObjectMapper skipEmptyObjectMapper;
+
     final OpenTelemetry openTelemetry;
 
 
@@ -79,7 +81,6 @@ public class NsoProxy {
         this.props = props;
         this.startupProperties = startupProperties;
         this.openTelemetry = openTelemetry;
-        ObjectMapper skipEmptyObjectMapper;
         try {
             // this object mapper makes sure we don't send any empty / null values
             skipEmptyObjectMapper = new ObjectMapper();
@@ -167,7 +168,17 @@ public class NsoProxy {
         log.info("submitting yang patch");
         logNsoObject(wrapped);
 
-        String restPath = props.getUri() + RESTCONF_DATA + "/?rollback-label=" + rollbackLabel;
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("rollback-label", rollbackLabel);
+        String params = "";
+        try {
+            params = encodedParams(paramMap);
+        } catch (JsonProcessingException e) {
+            throw new NsoCommitException("unable to encode params");
+        }
+
+
+        String restPath = props.getUri() + RESTCONF_DATA + params;
 
         UUID errorUuid = UUID.randomUUID();
         String errorRef = "Error reference: [" + errorUuid + "]\n";
@@ -300,7 +311,18 @@ public class NsoProxy {
         }
         log.info("BUILD dry run for "+connectionId);
 
-        String path = RESTCONF_DATA + "/tailf-ncs:services?dry-run=cli&commit-queue=async";
+
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("dry-run", "cli");
+        paramMap.put("commit-queue", "async");
+        String params = "";
+        try {
+            params = encodedParams(paramMap);
+        } catch (JsonProcessingException e) {
+            throw new NsoDryrunException("unable to encode params");
+        }
+
+        String path = RESTCONF_DATA + "/tailf-ncs:services"+params;
         String restPath = props.getUri() + path;
         UUID errorUuid = UUID.randomUUID();
         String errorRef = "Error reference: [" + errorUuid + "]\n";
@@ -349,7 +371,19 @@ public class NsoProxy {
 
     public String yangPatchDryRun(YangPatchWrapper wrapped) throws NsoDryrunException {
         log.info("submitting yang patch dry run");
-        String path = RESTCONF_DATA + "?dry-run=cli&commit-queue=async";
+
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("dry-run", "cli");
+        paramMap.put("commit-queue", "async");
+        String params = "";
+        try {
+            params = encodedParams(paramMap);
+        } catch (JsonProcessingException e) {
+            throw new NsoDryrunException("unable to encode params");
+        }
+
+        String path = RESTCONF_DATA + "/tailf-ncs:services"+params;
+
         String restPath = props.getUri() + path;
 
         try {
@@ -433,9 +467,11 @@ public class NsoProxy {
         String lspKeyArg = '=' + lsp.instanceKey();
         String path = "/tailf-ncs:services/esnet-lsp:lsp" + lspKeyArg;
 
+        List<NsoLSP> lsps = new ArrayList<>();
+        lsps.add(lsp);
         YangPatchLspWrapper lspWrapper = YangPatchLspWrapper
                 .builder()
-                .lsp(lsp)
+                .lsp(lsps)
                 .build();
 
         edits.add(
@@ -477,8 +513,10 @@ public class NsoProxy {
             for (NsoVPLS vpls : wrapper.getVplsInstances()) {
 
                 int vcid = vpls.getVcId();
+                List<NsoVPLS> vplses = new ArrayList<>();
+                vplses.add(vpls);
                 YangPatchVplsWrapper vplsWrapper = YangPatchVplsWrapper.builder()
-                        .vpls(vpls)
+                        .vpls(vplses)
                         .build();
                 String vplsKey = "=" + vcid;
                 String path = "/tailf-ncs:services/esnet-vpls:vpls" + vplsKey;
@@ -497,10 +535,12 @@ public class NsoProxy {
             for (NsoLSP lsp : wrapper.getLspInstances()) {
                 String lspKeyArg = '=' + lsp.instanceKey();
                 String path = "/tailf-ncs:services/esnet-lsp:lsp" + lspKeyArg;
+                List<NsoLSP> lsps = new ArrayList<>();
+                lsps.add(lsp);
 
                 YangPatchLspWrapper lspWrapper = YangPatchLspWrapper
                         .builder()
-                        .lsp(lsp)
+                        .lsp(lsps)
                         .build();
 
                 edits.add(
@@ -543,7 +583,7 @@ public class NsoProxy {
     @AllArgsConstructor
     public static class YangPatchVplsWrapper {
         @JsonProperty("esnet-vpls:vpls")
-        NsoVPLS vpls;
+        List<NsoVPLS> vpls;
     }
 
     @Data
@@ -552,7 +592,7 @@ public class NsoProxy {
     @AllArgsConstructor
     public static class YangPatchLspWrapper {
         @JsonProperty("esnet-lsp:lsp")
-        NsoLSP lsp;
+        List<NsoLSP> lsp;
     }
 
     // NSO live status fdb query stuff
@@ -811,6 +851,12 @@ public class NsoProxy {
         } catch (JsonProcessingException e) {
             log.error(e.getLocalizedMessage(), e);
         }
+    }
+
+    private String encodedParams(Map<String, Object> params) throws JsonProcessingException {
+        String asJson = skipEmptyObjectMapper.writeValueAsString(params);
+        String asBase64 = Base64.getEncoder().encodeToString(asJson.getBytes());
+        return "?params="+asBase64;
     }
 
 }
