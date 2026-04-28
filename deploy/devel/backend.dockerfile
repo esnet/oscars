@@ -1,4 +1,4 @@
-FROM wharf.es.net/dockerhub-proxy/library/maven:3.9.9-amazoncorretto-23-debian  AS builder
+FROM wharf.es.net/dockerhub-proxy/library/maven:3.9.15-amazoncorretto-25-debian  AS builder
 
 ARG JAVA_OPTS=""
 ARG MAVEN_OPTS=""

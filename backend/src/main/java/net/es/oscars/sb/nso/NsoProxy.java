@@ -168,7 +168,7 @@ public class NsoProxy {
         log.info("submitting yang patch");
         logNsoObject(wrapped);
 
-        Map<String, Object> paramMap = new HashMap<>();
+        Map<String, String> paramMap = new HashMap<>();
         paramMap.put("rollback-label", rollbackLabel);
         String params = "";
         try {
@@ -312,7 +312,7 @@ public class NsoProxy {
         log.info("BUILD dry run for "+connectionId);
 
 
-        Map<String, Object> paramMap = new HashMap<>();
+        Map<String, String> paramMap = new HashMap<>();
         paramMap.put("dry-run", "cli");
         paramMap.put("commit-queue", "async");
         String params = "";
@@ -372,7 +372,7 @@ public class NsoProxy {
     public String yangPatchDryRun(YangPatchWrapper wrapped) throws NsoDryrunException {
         log.info("submitting yang patch dry run");
 
-        Map<String, Object> paramMap = new HashMap<>();
+        Map<String, String> paramMap = new HashMap<>();
         paramMap.put("dry-run", "cli");
         paramMap.put("commit-queue", "async");
         String params = "";
@@ -853,10 +853,30 @@ public class NsoProxy {
         }
     }
 
-    private String encodedParams(Map<String, Object> params) throws JsonProcessingException {
-        String asJson = skipEmptyObjectMapper.writeValueAsString(params);
-        String asBase64 = Base64.getEncoder().encodeToString(asJson.getBytes());
-        return "?params="+asBase64;
+    private String encodedParams(Map<String, String> params) throws JsonProcessingException {
+        if (params == null || params.isEmpty()) {
+            return "";
+        }
+        if (this.props.isEncodedRestconfParams()) {
+            String asJson = skipEmptyObjectMapper.writeValueAsString(params);
+            String asBase64 = Base64.getEncoder().encodeToString(asJson.getBytes());
+            return "?params="+asBase64;
+
+        } else {
+            boolean didFirst = false;
+            StringBuilder result = new StringBuilder();
+
+            for (Map.Entry<String, String> entry : params.entrySet()) {
+                if (!didFirst) {
+                    didFirst = true;
+                    result = new StringBuilder(String.format("?%s=%s", entry.getKey(), entry.getValue()));
+                } else {
+                    result.append(String.format("&%s=%s", entry.getKey(), entry.getValue()));
+                }
+            }
+            return result.toString();
+
+        }
     }
 
 }
