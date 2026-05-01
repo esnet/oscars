@@ -1,4 +1,4 @@
-FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:23-alpine
+FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:25-alpine
 
 ARG FILENAME="recording.jfr"
 ENV FILENAME=${FILENAME}
