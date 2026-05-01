@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class EmptyConnectionListCache {
 
-    @Scheduled(fixedDelayString = "${resv.resv.list-cache-max-age}")
+    @Scheduled(fixedDelayString = "${resv.list-cache-max-age}")
     @Transactional
     @CacheEvict(cacheNames="connection_list", allEntries=true)
     public void emptyTheCache() {

@@ -138,9 +138,23 @@ public class ConnService {
     public ConnectionList filter(ConnectionFilter filter) {
 
         List<Connection> reservedAndArchived = new ArrayList<>();
+
         List<Phase> phases = new ArrayList<>();
-        phases.add(Phase.ARCHIVED);
-        phases.add(Phase.RESERVED);
+        if (filter.getPhase() != null) {
+            switch (filter.getPhase()) {
+                case "RESERVED":
+                    phases.add(Phase.RESERVED);
+                    break;
+                case "ARCHIVED":
+                    phases.add(Phase.ARCHIVED);
+                    break;
+                default:
+                    throw  new IllegalArgumentException("Unknown phase " + filter.getPhase());
+            }
+        } else {
+            phases.add(Phase.ARCHIVED);
+            phases.add(Phase.RESERVED);
+        }
 
         // first we don't take into account anything that doesn't have any archived
         // i.e. we discount any temporarily held
@@ -471,6 +485,7 @@ public class ConnService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames="connection_list", allEntries=true)
     public void modifySchedule(Connection c, Instant beginning, Instant ending) throws ModifyException {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
@@ -488,6 +503,7 @@ public class ConnService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames="connection_list", allEntries=true)
     public void modifyBandwidth(Connection c, Integer bandwidth) throws ModifyException {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
