@@ -36,6 +36,8 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.Multigraph;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -132,6 +134,7 @@ public class ConnService {
 
     private Map<String, Connection> held = new HashMap<>();
 
+    @Cacheable("connection_list")
     public ConnectionList filter(ConnectionFilter filter) {
 
         List<Connection> reservedAndArchived = new ArrayList<>();
@@ -574,6 +577,7 @@ public class ConnService {
 
 
     @Transactional
+    @CacheEvict(cacheNames="connection_list", allEntries=true)
     public ConnChangeResult commit(Connection c) throws NsoResvException, PCEException, ConnException {
         log.info("committing {}", c.getConnectionId());
         ReentrantLock connLock = dbAccess.getConnLock();
@@ -696,6 +700,7 @@ public class ConnService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames="connection_list", allEntries=true)
     public ConnChangeResult release(Connection c) {
         // if it is ARCHIVED , nothing to do
         if (c.getPhase().equals(Phase.ARCHIVED)) {
