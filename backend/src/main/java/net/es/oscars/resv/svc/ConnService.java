@@ -137,7 +137,7 @@ public class ConnService {
     @Cacheable("connection_list")
     public ConnectionList filter(ConnectionFilter filter) {
 
-        List<Connection> reservedAndArchived = new ArrayList<>();
+        List<Connection> phaseFiltered = new ArrayList<>();
 
         List<Phase> phases = new ArrayList<>();
         if (filter.getPhase() != null) {
@@ -152,7 +152,7 @@ public class ConnService {
                     throw  new IllegalArgumentException("Unknown phase " + filter.getPhase());
             }
         } else {
-            phases.add(Phase.ARCHIVED);
+            // default to RESERVED only
             phases.add(Phase.RESERVED);
         }
 
@@ -161,7 +161,7 @@ public class ConnService {
         for (Connection c : connRepo.findByPhaseIn(phases)) {
             try {
                 if (c.getArchived() != null) {
-                    reservedAndArchived.add(c);
+                    phaseFiltered.add(c);
                 } else {
                     log.error("no archived components for " + c.getConnectionId());
 
@@ -173,11 +173,11 @@ public class ConnService {
             }
         }
 
-        List<Connection> connIdFiltered = reservedAndArchived;
+        List<Connection> connIdFiltered = phaseFiltered;
 
         if (filter.getConnectionId() != null) {
             connIdFiltered = new ArrayList<>();
-            for (Connection c : reservedAndArchived) {
+            for (Connection c : phaseFiltered) {
                 if (c.getConnectionId().toLowerCase().contains(filter.getConnectionId().toLowerCase())) {
                     connIdFiltered.add(c);
                 }
@@ -204,17 +204,8 @@ public class ConnService {
             }
         }
 
-        List<Connection> phaseFiltered = descFiltered;
-        if (filter.getPhase() != null && !filter.getPhase().equals("ANY")) {
-            phaseFiltered = new ArrayList<>();
-            for (Connection c : descFiltered) {
-                if (c.getPhase().toString().equals(filter.getPhase())) {
-                    phaseFiltered.add(c);
-                }
-            }
-        }
 
-        List<Connection> userFiltered = phaseFiltered;
+        List<Connection> userFiltered = descFiltered;
         if (filter.getUsername() != null) {
             Pattern pattern = Pattern.compile(filter.getUsername(), Pattern.CASE_INSENSITIVE);
             userFiltered = new ArrayList<>();
