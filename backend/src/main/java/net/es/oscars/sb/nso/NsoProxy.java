@@ -383,10 +383,12 @@ public class NsoProxy {
         }
 
         String path = RESTCONF_DATA + params;
-
         String restPath = props.getUri() + path;
 
+
         try {
+            log.info("submitting yang patch to " + restPath);
+            logNsoObject(wrapped);
             NsoDryRun response = patchClient.patch()
                     .uri(restPath)
                     .body(wrapped)
