@@ -382,7 +382,7 @@ public class NsoProxy {
             throw new NsoDryrunException("unable to encode params");
         }
 
-        String path = RESTCONF_DATA + "/tailf-ncs:services"+params;
+        String path = RESTCONF_DATA + params;
 
         String restPath = props.getUri() + path;
 
