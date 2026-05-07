@@ -53,7 +53,7 @@ public class NsoHttpServer {
                 "/restconf/data/tailf-ncs:services/esnet-lsp:lsp",
                 "/restconf/data/tailf-ncs:services",
                 "/restconf/data/tailf-ncs:devices/*",
-                "/restconf/data/",
+                "/restconf/data",
 
                 "/esdb_api/graphql",
                 "/esdb_api/v1/*"
@@ -209,7 +209,7 @@ public class NsoHttpServer {
         protected void customDoPatch(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             String uri = req.getRequestURI();
             log.info("PATCH request received, mocking " + uri);
-            if (uri.startsWith("/restconf/data/")) {
+            if (uri.startsWith("/restconf/data")) {
                 mockPatch(req, resp);
             } else {
                 // Unknown.

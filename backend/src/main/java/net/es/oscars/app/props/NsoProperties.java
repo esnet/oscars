@@ -55,6 +55,8 @@ public class NsoProperties {
 
     public CflowdOptions cflowd;
 
+    public boolean EncodedRestconfParams;
+
     @Getter
     public enum CflowdOptions {
         ENABLED("enabled"), DISABLED("disabled"), NOT_SUPPORTED("not-supported");
