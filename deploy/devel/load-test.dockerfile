@@ -1,4 +1,4 @@
-FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:23-alpine
+FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:25-alpine
 
 ARG TARGET_HOST=oscars-backend:1099
 ARG FILENAME=load-testing-results.csv

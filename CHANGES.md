@@ -1,6 +1,7 @@
 # OSCARS Release Notes
 ### 1.2.38
 > Apr 2026
+- OS-680 improve connection list performance
 - OS-678 support NSO 6.7
 - OS-675 optimize bwutil db sync
 
