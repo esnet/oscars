@@ -400,15 +400,10 @@ public class ESDBProxy {
 
     public void createBandwidthUtilization(EsdbBwUtilPayload payload) {
         String restPath = esdbProperties.getUri()+"bandwidth_utilization/";
-        log.info("create rest path: "+restPath);
-        EsdbBwUtil result = restTemplate.postForObject(restPath, payload, EsdbBwUtil.class);
-        if (result != null) {
-            log.info("created a ESDB bandwidth utilization: \n" + result.getEquipmentInterface()+ " : "+ result.getBandwidth());
-        }
+        restTemplate.postForObject(restPath, payload, EsdbBwUtil.class);
     }
     public void deleteBandwidthUtilization(Integer bwutilPkId) {
         String restPath = esdbProperties.getUri()+"bandwidth_utilization/"+bwutilPkId+"/";
-        log.info("delete rest path: "+restPath);
         restTemplate.delete(restPath);
     }
 
