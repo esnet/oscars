@@ -1053,6 +1053,7 @@ public class NsiService {
         boolean strictPolicing = strictPolicingDefault;
 
         for (TypeValueType tvt : p2ps.getParameter()) {
+            log.debug("got a TVT: {} , {}", tvt.getType(), tvt.getValue());
             if (tvt.getType().equals("projectId") && tvt.getValue() != null && !tvt.getValue().isEmpty()) {
                 projectId.add(tvt.getValue());
             }

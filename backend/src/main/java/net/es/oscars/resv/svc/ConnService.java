@@ -36,6 +36,8 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.Multigraph;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -132,19 +134,34 @@ public class ConnService {
 
     private Map<String, Connection> held = new HashMap<>();
 
+    @Cacheable("connection_list")
     public ConnectionList filter(ConnectionFilter filter) {
 
-        List<Connection> reservedAndArchived = new ArrayList<>();
+        List<Connection> phaseFiltered = new ArrayList<>();
+
         List<Phase> phases = new ArrayList<>();
-        phases.add(Phase.ARCHIVED);
-        phases.add(Phase.RESERVED);
+        if (filter.getPhase() != null) {
+            switch (filter.getPhase()) {
+                case "RESERVED":
+                    phases.add(Phase.RESERVED);
+                    break;
+                case "ARCHIVED":
+                    phases.add(Phase.ARCHIVED);
+                    break;
+                default:
+                    throw  new IllegalArgumentException("Unknown phase " + filter.getPhase());
+            }
+        } else {
+            // default to RESERVED only
+            phases.add(Phase.RESERVED);
+        }
 
         // first we don't take into account anything that doesn't have any archived
         // i.e. we discount any temporarily held
         for (Connection c : connRepo.findByPhaseIn(phases)) {
             try {
                 if (c.getArchived() != null) {
-                    reservedAndArchived.add(c);
+                    phaseFiltered.add(c);
                 } else {
                     log.error("no archived components for " + c.getConnectionId());
 
@@ -156,11 +173,11 @@ public class ConnService {
             }
         }
 
-        List<Connection> connIdFiltered = reservedAndArchived;
+        List<Connection> connIdFiltered = phaseFiltered;
 
         if (filter.getConnectionId() != null) {
             connIdFiltered = new ArrayList<>();
-            for (Connection c : reservedAndArchived) {
+            for (Connection c : phaseFiltered) {
                 if (c.getConnectionId().toLowerCase().contains(filter.getConnectionId().toLowerCase())) {
                     connIdFiltered.add(c);
                 }
@@ -187,17 +204,8 @@ public class ConnService {
             }
         }
 
-        List<Connection> phaseFiltered = descFiltered;
-        if (filter.getPhase() != null && !filter.getPhase().equals("ANY")) {
-            phaseFiltered = new ArrayList<>();
-            for (Connection c : descFiltered) {
-                if (c.getPhase().toString().equals(filter.getPhase())) {
-                    phaseFiltered.add(c);
-                }
-            }
-        }
 
-        List<Connection> userFiltered = phaseFiltered;
+        List<Connection> userFiltered = descFiltered;
         if (filter.getUsername() != null) {
             Pattern pattern = Pattern.compile(filter.getUsername(), Pattern.CASE_INSENSITIVE);
             userFiltered = new ArrayList<>();
@@ -468,6 +476,7 @@ public class ConnService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames="connection_list", allEntries=true)
     public void modifySchedule(Connection c, Instant beginning, Instant ending) throws ModifyException {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
@@ -485,6 +494,7 @@ public class ConnService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames="connection_list", allEntries=true)
     public void modifyBandwidth(Connection c, Integer bandwidth) throws ModifyException {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
@@ -574,6 +584,7 @@ public class ConnService {
 
 
     @Transactional
+    @CacheEvict(cacheNames="connection_list", allEntries=true)
     public ConnChangeResult commit(Connection c) throws NsoResvException, PCEException, ConnException {
         log.info("committing {}", c.getConnectionId());
         ReentrantLock connLock = dbAccess.getConnLock();
@@ -696,6 +707,7 @@ public class ConnService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames="connection_list", allEntries=true)
     public ConnChangeResult release(Connection c) {
         // if it is ARCHIVED , nothing to do
         if (c.getPhase().equals(Phase.ARCHIVED)) {
