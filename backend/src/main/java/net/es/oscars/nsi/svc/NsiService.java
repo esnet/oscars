@@ -1058,13 +1058,13 @@ public class NsiService {
                 projectId.add(tvt.getValue());
             }
 
-            if (tvt.getType().equals("policing") && tvt.getValue() != null) {
+            if (tvt.getType().equals("policing") && tvt.getValue() != null && !tvt.getValue().isEmpty()) {
                 if (tvt.getValue().strip().equalsIgnoreCase("strict")) {
                     strictPolicing = true;
-                } else if (tvt.getValue().strip().equalsIgnoreCase("soft")) {
+                }
+                if (tvt.getValue().strip().equalsIgnoreCase("soft")) {
                     strictPolicing = false;
                 }
-                log.info("specific policing requested: {} , strict: {}", tvt.getValue(), strictPolicing);
             }
         }
 

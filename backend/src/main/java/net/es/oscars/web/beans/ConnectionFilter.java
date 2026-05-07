@@ -28,8 +28,8 @@ public class ConnectionFilter {
     private State state;
     private Interval interval;
 
-    private SortProperty sortProperty = SortProperty.CONNECTION_ID;
-    private SortDirection sortDirection = SortDirection.ASCENDING;
+    private SortProperty sortProperty;
+    private SortDirection sortDirection;
     private int page;
     private int sizePerPage;
 
