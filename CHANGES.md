@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.2.39
+> May 2026
+- ESE-472 add NSO deployment error messages to history
+
 ### 1.2.38
 > Apr 2026
 - OS-680 improve connection list performance
