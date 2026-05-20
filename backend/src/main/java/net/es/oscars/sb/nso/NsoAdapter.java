@@ -99,8 +99,6 @@ public class NsoAdapter {
         String dryRun = "";
         ConfigStatus configStatus = ConfigStatus.NONE;
 
-        boolean shouldWriteHistory = false;
-
         if (commandType.equals(CommandType.BUILD) || commandType.equals(CommandType.DISMANTLE) || commandType.equals(CommandType.REDEPLOY)) {
             log.info("generating NSO payload for "+conn.getConnectionId()+" "+commandType);
             try {
@@ -133,14 +131,15 @@ public class NsoAdapter {
                     }
                 }
                 // only set this after all has gone well
-                shouldWriteHistory = true;
             } catch (NsoDryrunException ex) {
-                log.error("dry run error"+ex.getMessage());
+                log.error("dry run error "+ex.getMessage());
                 commands = ex.getMessage();
+                configStatus = ConfigStatus.ERROR;
                 newDepState = failureDepState;
                 newState = State.FAILED;
             } catch (NsoCommitException | NsoGenException ex) {
-                log.error("commit or gen error"+ex.getMessage());
+                log.error("commit or gen error "+ex.getMessage());
+                commands = ex.getMessage();
                 configStatus = ConfigStatus.ERROR;
                 newDepState = failureDepState;
                 newState = State.FAILED;
@@ -150,35 +149,32 @@ public class NsoAdapter {
             newState = State.FAILED;
         }
 
-        if (shouldWriteHistory && !commandType.equals(CommandType.REDEPLOY)) {
-        // save the NSO service config and dry-run; we don't save redeploys
-            Components cmp;
-            if (conn.getReserved() != null) {
-                cmp = conn.getReserved().getCmp();
-            } else {
-                cmp = conn.getArchived().getCmp();
-            }
-            for (VlanJunction j : cmp.getJunctions()) {
-                RouterCommands rcb = RouterCommands.builder()
-                        .connectionId(conn.getConnectionId())
-                        .deviceUrn(j.getDeviceUrn())
-                        .contents(commands)
-                        .templateVersion(NSO_TEMPLATE_VERSION)
-                        .type(commandType)
-                        .build();
-                rcr.save(rcb);
-                RouterCommandHistory rch = RouterCommandHistory.builder()
-                        .deviceUrn(j.getDeviceUrn())
-                        .templateVersion(NSO_TEMPLATE_VERSION)
-                        .connectionId(conn.getConnectionId())
-                        .date(Instant.now())
-                        .commands(commands)
-                        .output(dryRun)
-                        .configStatus(configStatus)
-                        .type(commandType)
-                        .build();
-                historyRepo.save(rch);
-            }
+        Components cmp;
+        if (conn.getReserved() != null) {
+            cmp = conn.getReserved().getCmp();
+        } else {
+            cmp = conn.getArchived().getCmp();
+        }
+        for (VlanJunction j : cmp.getJunctions()) {
+            RouterCommands rcb = RouterCommands.builder()
+                    .connectionId(conn.getConnectionId())
+                    .deviceUrn(j.getDeviceUrn())
+                    .contents(commands)
+                    .templateVersion(NSO_TEMPLATE_VERSION)
+                    .type(commandType)
+                    .build();
+            rcr.save(rcb);
+            RouterCommandHistory rch = RouterCommandHistory.builder()
+                    .deviceUrn(j.getDeviceUrn())
+                    .templateVersion(NSO_TEMPLATE_VERSION)
+                    .connectionId(conn.getConnectionId())
+                    .date(Instant.now())
+                    .commands(commands)
+                    .output(dryRun)
+                    .configStatus(configStatus)
+                    .type(commandType)
+                    .build();
+            historyRepo.save(rch);
         }
         log.info("completed NSO task {} {} {}; new states {}/{}", conn.getConnectionId(), commandType, intent, newState, newDepState);
 
