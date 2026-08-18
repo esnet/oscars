@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.2.40
+> Aug 2026
+- Spring boot 4 update
+
 ### 1.2.38
 > Apr 2026
 - OS-680 improve connection list performance

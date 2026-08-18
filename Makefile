@@ -30,7 +30,7 @@ endif
 .PHONY: mirror-prod-db
 mirror-prod-db:  ## Mirror prod db to local db (must be in "docker" group on prod server)
 	@echo "creating dump from oscars-prod.es.net..."
-	@ssh oscars-prod.es.net 'docker exec -i oscars-db pg_dumpall -U oscars > /tmp/oscars.sql'
+	@ssh oscars-prod.es.net 'sudo docker exec -i oscars-db pg_dumpall -U oscars > /tmp/oscars.sql'
 	@ssh oscars-prod.es.net 'gzip /tmp/oscars.sql'
 	@scp oscars-prod.es.net:/tmp/oscars.sql.gz /tmp/oscars.sql.gz
 	@ssh oscars-prod.es.net 'rm /tmp/oscars.sql.gz'

@@ -1,7 +1,6 @@
 package net.es.oscars.cuke;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
@@ -39,10 +38,11 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -95,15 +95,15 @@ public class EseApiControllerSteps extends CucumberSteps {
     @MockitoBean
     ConnService connSvc;
 
-    private ObjectMapper mapper;
+    private JsonMapper mapper;
 
     @Autowired
     private EseApiController controller;
 
     @Before("@EseApiControllerSteps")
     public void before() throws Exception {
-        mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
+        mapper = JsonMapper.builder()
+                .build();
 
         try {
             Topology t = topoPopulator.loadTopology("topo/esnet.json");

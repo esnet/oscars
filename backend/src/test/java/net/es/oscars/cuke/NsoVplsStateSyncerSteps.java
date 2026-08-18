@@ -1,6 +1,6 @@
 package net.es.oscars.cuke;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -343,7 +343,7 @@ public class NsoVplsStateSyncerSteps extends CucumberSteps {
 
 
     private List<NsoVPLS> loadNsoVplsListFromJson(String path) throws Throwable {
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
         NsoVPLS[] vplsList = null;
         List<NsoVPLS> loadedVplsList = new ArrayList<>();
 

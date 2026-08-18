@@ -1,6 +1,6 @@
 package net.es.oscars.cuke;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -14,7 +14,7 @@ import org.springframework.http.HttpMethod;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
 import org.springframework.util.StreamUtils;
@@ -118,7 +118,7 @@ public class NsoSyncControllerSteps extends CucumberSteps {
         InputStream bodyInputStream = new ClassPathResource(arg0).getInputStream();
         String payload = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
 
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
         NsoStateResponse expectedResponse = mapper.readValue(payload, NsoStateResponse.class);
         NsoStateResponse actualResponse = mapper.readValue(response.getBody(), NsoStateResponse.class);
 
@@ -137,7 +137,7 @@ public class NsoSyncControllerSteps extends CucumberSteps {
     @Then("the client receives a true synchronization flag")
     public void theClientReceivesASynchronizationFlag() throws Throwable {
 
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
         NsoStateResponse actualResponse = mapper.readValue(response.getBody(), NsoStateResponse.class);
 
         assertTrue(actualResponse.isSynchronized());

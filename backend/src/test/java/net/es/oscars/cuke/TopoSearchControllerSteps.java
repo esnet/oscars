@@ -1,6 +1,6 @@
 package net.es.oscars.cuke;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
@@ -31,7 +31,7 @@ import org.junit.experimental.categories.Category;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -279,7 +279,7 @@ public class TopoSearchControllerSteps {
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-            ObjectMapper mapper = new ObjectMapper();
+            JsonMapper mapper = new JsonMapper();
             mapper.registerModule(new JavaTimeModule());
             Instant now = Instant.now();
 
@@ -319,7 +319,7 @@ public class TopoSearchControllerSteps {
 
     @Then("The TopoSearchController response is a valid list of EdgePort objects")
     public void theTopoSearchControllerResponseIsAValidListOfEdgePortObjects() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
         assertNotNull(response.getBody());
         String payload = response.getBody();
 

@@ -1,12 +1,13 @@
 package net.es.oscars;
 
 import io.cucumber.spring.CucumberContextConfiguration;
-import org.junit.runner.RunWith;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
+@AutoConfigureRestTestClient
+@AutoConfigureTestRestTemplate
 @SpringBootTest(
     classes = BackendTestConfiguration.class,
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
