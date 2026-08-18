@@ -27,15 +27,15 @@ import net.es.oscars.web.beans.v2.ValidationResponse;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
+import org.springframework.test.web.servlet.client.EntityExchangeResult;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
@@ -54,7 +54,7 @@ public class L2vpnSteps extends CucumberSteps {
     private boolean gotSubmitException;
     private boolean gotListException;
     private L2VPNList l2VPNList;
-    private ResponseEntity<String> response;
+    private EntityExchangeResult<String> response;
 
     @Autowired
     private CucumberWorld world;
@@ -75,7 +75,7 @@ public class L2vpnSteps extends CucumberSteps {
     private JsonMapper jsonMapper;
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private RestTestClient restTestClient;
 
     @Before("@L2vpnSteps")
     public void prepare()  {
@@ -187,13 +187,13 @@ public class L2vpnSteps extends CucumberSteps {
         try {
             log.info("Executing {} on path {}", httpMethod, httpPath);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
             String payload = jsonMapper.writeValueAsString(request);
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
 
-            response = restTemplate.exchange(httpPath, method, entity, String.class);
+            response = restTestClient.method(method).uri(httpPath)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .exchange().returnResult(String.class);
 
         } catch (Exception ex) {
             world.add(ex);
@@ -202,7 +202,7 @@ public class L2vpnSteps extends CucumberSteps {
     }
     @Then("The REST client received a status code of {int}")
     public void theClientReceivedAStatusCodeOf(int statusCode) {
-        log.info("response status code: " + response.getStatusCode());
-        assertEquals(statusCode, response.getStatusCode().value());
+        log.info("response status code: " + response.getStatus());
+        assertEquals(statusCode, response.getStatus().value());
     }
 }

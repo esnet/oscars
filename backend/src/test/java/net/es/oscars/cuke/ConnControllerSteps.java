@@ -9,11 +9,10 @@ import net.es.oscars.app.Startup;
 import net.es.oscars.ctg.UnitTests;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.*;
-
-import java.util.Collections;
+import org.springframework.test.web.servlet.client.EntityExchangeResult;
+import org.springframework.test.web.servlet.client.RestTestClient;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -28,8 +27,8 @@ public class ConnControllerSteps extends CucumberSteps {
     private Startup startup;
 
     @Autowired
-    private TestRestTemplate restTemplate;
-    private ResponseEntity<String> response;
+    private RestTestClient restTestClient;
+    private EntityExchangeResult<String> response;
 
     @Before("@ConnControllerSteps")
     public void before() {
@@ -56,19 +55,15 @@ public class ConnControllerSteps extends CucumberSteps {
         try {
             log.info("Executing " + httpMethod + " on ConnController path " + httpPath);
             if (method == HttpMethod.GET) {
-                response = restTemplate.getForEntity(httpPath, String.class);
+                response = restTestClient.get().uri(httpPath).exchange().returnResult(String.class);
             } else if (method == HttpMethod.DELETE) {
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-                headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-                HttpEntity<String> entity = new HttpEntity<>("", headers);
-
-                response = restTemplate.exchange(httpPath, HttpMethod.DELETE, entity, String.class);
+                response = restTestClient.delete().uri(httpPath)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .exchange().returnResult(String.class);
             } else {
                 throw new Throwable("Unsupported HTTP method " + method);
             }
-            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertEquals(HttpStatus.OK, response.getStatus());
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -82,20 +77,20 @@ public class ConnControllerSteps extends CucumberSteps {
 
     @Then("The client receives a ConnController response status code of {int}")
     public void theClientReceivesTheStatusCodeOf(int statusCode) throws Throwable {
-        log.info("response status code: " + response.getStatusCode());
-        assertEquals(statusCode, response.getStatusCode().value());
+        log.info("response status code: " + response.getStatus());
+        assertEquals(statusCode, response.getStatus().value());
     }
 
     @Then("The client receives a ConnController response payload")
     public void theClientReceivesThePayload() throws Throwable {
-        log.info("response body: " + response.getBody());
-        assertNotNull(response.getBody());
+        log.info("response body: " + response.getResponseBody());
+        assertNotNull(response.getResponseBody());
     }
 
     @Then("The ConnController generated ID is valid")
     public void theConnControllerGeneratedIDIsValid() throws Throwable {
-        assertNotNull(response.getBody());
-        assert(response.getBody().matches("^[A-Z0-9]{4,}"));
+        assertNotNull(response.getResponseBody());
+        assert(response.getResponseBody().matches("^[A-Z0-9]{4,}"));
     }
 
 }

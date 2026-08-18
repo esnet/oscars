@@ -27,13 +27,13 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.*;
+import org.springframework.test.web.servlet.client.EntityExchangeResult;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
@@ -54,7 +54,7 @@ public class ModifyControllerSteps extends CucumberSteps {
     private CucumberWorld world;
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private RestTestClient restTestClient;
 
     @Autowired
     private MockSimpleConnectionHelper helper;
@@ -71,7 +71,7 @@ public class ModifyControllerSteps extends CucumberSteps {
     @Autowired
     private ModifyController controller;
 
-    private ResponseEntity<String> response;
+    private EntityExchangeResult<String> response;
 
     private void setupDatasources() throws Exception {
         setupMockConnRepo();
@@ -163,16 +163,11 @@ public class ModifyControllerSteps extends CucumberSteps {
     }
     @Given("The client executes POST with a new description payload on ModifyController path {string}")
     public void theClientExecutesPOSTWithANewDescriptionPayloadOnModifyControllerPath(String httpPath) throws Exception {
-        HttpMethod method = HttpMethod.POST;
         try {
-            log.info("Executing " + method + " on ModifyController path " + httpPath);
+            log.info("Executing POST on ModifyController path " + httpPath);
             JsonMapper mapper = JsonMapper.builder()
                 .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_EMPTY))
                 .build();
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
             DescriptionModifyRequest descriptionModifyRequest = DescriptionModifyRequest.builder()
                 .connectionId("ABCD")
@@ -181,9 +176,11 @@ public class ModifyControllerSteps extends CucumberSteps {
 
             String payload = mapper.writeValueAsString(descriptionModifyRequest);
 
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
-
-            response = restTemplate.exchange(httpPath, method, entity, String.class);
+            response = restTestClient.post().uri(httpPath)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .exchange().returnResult(String.class);
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -192,16 +189,11 @@ public class ModifyControllerSteps extends CucumberSteps {
 
     @Given("The client executes POST with a ScheduleRangeRequest payload on ModifyController path {string}")
     public void theClientExecutesPOSTWithAScheduleRangeRequestPayloadOnModifyControllerPath(String httpPath) throws Exception {
-        HttpMethod method = HttpMethod.POST;
         try {
-            log.info("Executing " + method + " on ModifyController path " + httpPath);
+            log.info("Executing POST on ModifyController path " + httpPath);
             JsonMapper mapper = JsonMapper.builder()
                     .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_EMPTY))
                     .build();
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
             ScheduleRangeRequest scheduleRangeRequest = ScheduleRangeRequest.builder()
                 .connectionId("ABCD")
@@ -210,9 +202,11 @@ public class ModifyControllerSteps extends CucumberSteps {
 
             String payload = mapper.writeValueAsString(scheduleRangeRequest);
 
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
-
-            response = restTemplate.exchange(httpPath, method, entity, String.class);
+            response = restTestClient.post().uri(httpPath)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .exchange().returnResult(String.class);
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -221,16 +215,11 @@ public class ModifyControllerSteps extends CucumberSteps {
 
     @Given("The client executes POST with a ScheduleModifyRequest payload on ModifyController path {string}")
     public void theClientExecutesPOSTWithAScheduleModifyRequestPayloadOnModifyControllerPath(String httpPath) throws Exception {
-        HttpMethod method = HttpMethod.POST;
         try {
-            log.info("Executing " + method + " on ModifyController path " + httpPath);
+            log.info("Executing POST on ModifyController path " + httpPath);
             JsonMapper mapper = JsonMapper.builder()
                     .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_EMPTY))
                     .build();
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
             ScheduleModifyRequest scheduleModifyRequest = ScheduleModifyRequest.builder()
                     .connectionId("ABCD")
@@ -240,9 +229,11 @@ public class ModifyControllerSteps extends CucumberSteps {
 
             String payload = mapper.writeValueAsString(scheduleModifyRequest);
 
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
-
-            response = restTemplate.exchange(httpPath, method, entity, String.class);
+            response = restTestClient.post().uri(httpPath)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .exchange().returnResult(String.class);
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -251,13 +242,9 @@ public class ModifyControllerSteps extends CucumberSteps {
 
     @Given("The client executes POST with a BandwidthModifyRequest payload on ModifyController path {string}")
     public void theClientExecutesPOSTWithABandwidthModifyRequestPayloadOnModifyControllerPath(String httpPath) throws Exception {
-        HttpMethod method = HttpMethod.POST;
         try {
-            log.info("Executing " + method + " on ModifyController path " + httpPath);
+            log.info("Executing POST on ModifyController path " + httpPath);
             JsonMapper mapper = new JsonMapper();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
             BandwidthModifyRequest bandwidthModifyRequest = BandwidthModifyRequest.builder()
                 .connectionId("ABCD")
@@ -266,9 +253,11 @@ public class ModifyControllerSteps extends CucumberSteps {
 
             String payload = mapper.writeValueAsString(bandwidthModifyRequest);
 
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
-
-            response = restTemplate.exchange(httpPath, method, entity, String.class);
+            response = restTestClient.post().uri(httpPath)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .exchange().returnResult(String.class);
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -277,13 +266,9 @@ public class ModifyControllerSteps extends CucumberSteps {
 
     @Given("The client executes POST with a BandwidthRangeRequest payload on ModifyController path {string}")
     public void theClientExecutesPOSTWithABandwidthRangeRequestPayloadOnModifyControllerPath(String httpPath) throws Exception {
-        HttpMethod method = HttpMethod.POST;
         try {
-            log.info("Executing " + method + " on ModifyController path " + httpPath);
+            log.info("Executing POST on ModifyController path " + httpPath);
             JsonMapper mapper = new JsonMapper();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
             BandwidthRangeRequest bandwidthRangeRequest = BandwidthRangeRequest.builder()
                 .connectionId("ABCD")
@@ -291,9 +276,11 @@ public class ModifyControllerSteps extends CucumberSteps {
 
             String payload = mapper.writeValueAsString(bandwidthRangeRequest);
 
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
-
-            response = restTemplate.exchange(httpPath, method, entity, String.class);
+            response = restTestClient.post().uri(httpPath)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .exchange().returnResult(String.class);
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -307,8 +294,8 @@ public class ModifyControllerSteps extends CucumberSteps {
 
     @Then("The client receives a ModifyController response status code of {int}")
     public void theClientReceivesAModifyControllerResponseStatusCodeOf(int statusCode) {
-        log.info("response status code: " + response.getStatusCode());
-        assertEquals(statusCode, response.getStatusCode().value());
+        log.info("response status code: " + response.getStatus());
+        assertEquals(statusCode, response.getStatus().value());
     }
 
     @Then("The ModifyController response is a valid ScheduleRangeResponse object")
@@ -316,7 +303,7 @@ public class ModifyControllerSteps extends CucumberSteps {
         assert response != null;
         JsonMapper mapper = new JsonMapper();
 
-        String payload = response.getBody();
+        String payload = response.getResponseBody();
         ScheduleRangeRequest scheduleRangeRequest = mapper.readValue(
             payload,
             ScheduleRangeRequest.class
@@ -330,7 +317,7 @@ public class ModifyControllerSteps extends CucumberSteps {
         assert response != null;
         JsonMapper mapper = new JsonMapper();
 
-        String payload = response.getBody();
+        String payload = response.getResponseBody();
         log.info("response: " + payload);
         ModifyResponse modifyResponse = mapper.readValue(
             payload,
@@ -344,7 +331,7 @@ public class ModifyControllerSteps extends CucumberSteps {
         assert response != null;
         JsonMapper mapper = new JsonMapper();
 
-        String payload = response.getBody();
+        String payload = response.getResponseBody();
         log.info("response: " + payload);
         BandwidthRangeResponse bandwidthRangeResponse = mapper.readValue(
             payload,

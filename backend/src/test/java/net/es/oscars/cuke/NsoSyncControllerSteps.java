@@ -14,14 +14,14 @@ import org.springframework.http.HttpMethod;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
+import org.springframework.test.web.servlet.client.EntityExchangeResult;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.util.StreamUtils;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -33,11 +33,11 @@ import static org.junit.Assert.*;
 public class NsoSyncControllerSteps extends CucumberSteps {
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private RestTestClient restTestClient;
     @Autowired
     private Startup startup;
 
-    private ResponseEntity<String> response;
+    private EntityExchangeResult<String> response;
 
     @Before("@RestNsoSync")
     public void before() {
@@ -48,19 +48,15 @@ public class NsoSyncControllerSteps extends CucumberSteps {
     public void theClientExecutesOn(String arg0, String arg1) throws Throwable {
         HttpMethod method = HttpMethod.valueOf(arg0);
         if (method == HttpMethod.GET) {
-            response = restTemplate.getForEntity(arg1, String.class);
+            response = restTestClient.get().uri(arg1).exchange().returnResult(String.class);
         } else if (method == HttpMethod.DELETE) {
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            HttpEntity<String> entity = new HttpEntity<>("", headers);
-
-            response = restTemplate.exchange(arg1, HttpMethod.DELETE, entity, String.class);
+            response = restTestClient.delete().uri(arg1)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .exchange().returnResult(String.class);
         } else {
             throw new Throwable("Unsupported HTTP method " + method);
         }
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatus());
     }
 
     @Given("the client executes {string} on {string} with payload from {string}")
@@ -70,25 +66,23 @@ public class NsoSyncControllerSteps extends CucumberSteps {
 
             InputStream bodyInputStream = new ClassPathResource(arg2).getInputStream();
             String payload = StreamUtils.copyToString(bodyInputStream, Charset.defaultCharset());
-            response = new ResponseEntity<>("", HttpStatus.NOT_FOUND);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
 
             switch (arg0.toUpperCase()) {
                 case "POST":
-                    response = restTemplate.postForEntity(arg1, entity, String.class);
+                    response = restTestClient.post().uri(arg1)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(payload)
+                            .exchange().returnResult(String.class);
                     break;
                 case "PUT":
-
-                    restTemplate.put(arg1, entity);
-                    response = new ResponseEntity<>("", HttpStatus.OK);
-
+                    response = restTestClient.put().uri(arg1)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(payload)
+                            .exchange().returnResult(String.class);
                     break;
                 case "DELETE":
-                    restTemplate.delete(arg1, entity, String.class);
-                    response = new ResponseEntity<>("", HttpStatus.OK);
+                    response = restTestClient.delete().uri(arg1)
+                            .exchange().returnResult(String.class);
                     break;
                 default:
                     throw new Throwable("Unsupported HTTP method " + method);
@@ -97,7 +91,7 @@ public class NsoSyncControllerSteps extends CucumberSteps {
             log.error(e.getMessage(), e);
             throw new Throwable(e);
         }
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatus());
     }
 
     @When("the client receives the response")
@@ -105,12 +99,12 @@ public class NsoSyncControllerSteps extends CucumberSteps {
 
     @Then("the client receives the status code of {int}")
     public void theClientReceivesTheStatusCodeOf(int statusCode) throws Throwable {
-        assert response.getStatusCode() == HttpStatus.valueOf(statusCode);
+        assert response.getStatus() == HttpStatus.valueOf(statusCode);
     }
 
     @Then("the client receives the payload")
     public void theClientReceivesThePayload() throws Throwable {
-        assertNotNull(response.getBody());
+        assertNotNull(response.getResponseBody());
     }
 
     @Then("the client receives the payload {string}")
@@ -120,7 +114,7 @@ public class NsoSyncControllerSteps extends CucumberSteps {
 
         JsonMapper mapper = new JsonMapper();
         NsoStateResponse expectedResponse = mapper.readValue(payload, NsoStateResponse.class);
-        NsoStateResponse actualResponse = mapper.readValue(response.getBody(), NsoStateResponse.class);
+        NsoStateResponse actualResponse = mapper.readValue(response.getResponseBody(), NsoStateResponse.class);
 
         Comparator<NsoVPLS> expectedComparator = Comparator.comparingInt(NsoVPLS::getVcId);
         Comparator<NsoVPLS> actualComparator = Comparator.comparingInt(NsoVPLS::getVcId);
@@ -138,7 +132,7 @@ public class NsoSyncControllerSteps extends CucumberSteps {
     public void theClientReceivesASynchronizationFlag() throws Throwable {
 
         JsonMapper mapper = new JsonMapper();
-        NsoStateResponse actualResponse = mapper.readValue(response.getBody(), NsoStateResponse.class);
+        NsoStateResponse actualResponse = mapper.readValue(response.getResponseBody(), NsoStateResponse.class);
 
         assertTrue(actualResponse.isSynchronized());
     }

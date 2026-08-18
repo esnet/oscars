@@ -16,13 +16,13 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.text.StringSubstitutor;
 import org.junit.experimental.categories.Category;
-import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.client.EntityExchangeResult;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.util.StreamUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -83,7 +83,7 @@ public class NsiProviderSteps extends CucumberSteps {
     private final CucumberWorld world;
     private final Startup startup;
 
-    private final TestRestTemplate restTemplate;
+    private final RestTestClient restTestClient;
 
     private final TopologyStore topoService;
 
@@ -103,7 +103,7 @@ public class NsiProviderSteps extends CucumberSteps {
 
     private final NsiAsyncQueue asyncQueue;
 
-    private ResponseEntity<String> response;
+    private EntityExchangeResult<String> response;
 
     private String testConnectionId;
     private String nsiResponseString;
@@ -471,16 +471,13 @@ public class NsiProviderSteps extends CucumberSteps {
 
         payload = sub.replace(payload);
 
-        response = new ResponseEntity<>("", HttpStatus.NOT_FOUND);
+        response = restTestClient.method(method).uri(url)
+                .contentType(MediaType.APPLICATION_XML)
+                .body(payload)
+                .exchange().returnResult(String.class);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_XML);
-        HttpEntity<String> entity = new HttpEntity<>(payload, headers);
-
-        response = restTemplate.exchange(url, method, entity, String.class);
-
-        assert response.getStatusCode() == HttpStatus.OK;
-        String body = response.getBody();
+        assert response.getStatus() == HttpStatus.OK;
+        String body = response.getResponseBody();
         Thread.sleep(1000);
 
         return body;

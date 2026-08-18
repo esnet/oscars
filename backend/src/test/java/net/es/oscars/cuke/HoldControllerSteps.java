@@ -23,8 +23,9 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.*;
+import org.springframework.test.web.servlet.client.EntityExchangeResult;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Instant;
@@ -49,7 +50,7 @@ public class HoldControllerSteps {
     private CucumberWorld world;
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private RestTestClient restTestClient;
 
     @Autowired
     private MockSimpleConnectionHelper helper;
@@ -66,7 +67,7 @@ public class HoldControllerSteps {
     @Autowired
     private HoldController controller;
 
-    private ResponseEntity<String> response;
+    private EntityExchangeResult<String> response;
 
     @Before("@HoldControllerSteps")
     public void before() throws Exception {
@@ -209,15 +210,11 @@ public class HoldControllerSteps {
         try {
             log.info("Executing " + httpMethod + " on HoldController path " + httpPath);
             if (method == HttpMethod.GET) {
-                 response = restTemplate.getForEntity(httpPath, String.class);
+                response = restTestClient.get().uri(httpPath).exchange().returnResult(String.class);
             } else if (method == HttpMethod.DELETE) {
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-                headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-                HttpEntity<String> entity = new HttpEntity<>("", headers);
-
-                response = restTemplate.exchange(httpPath, HttpMethod.DELETE, entity, String.class);
+                response = restTestClient.delete().uri(httpPath)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .exchange().returnResult(String.class);
             } else {
                 throw new Throwable("Unsupported HTTP method " + method);
             }
@@ -229,13 +226,8 @@ public class HoldControllerSteps {
 
     @Given("The client executes POST with SimpleConnection payload on HoldController path {string}")
     public void theClientExecutesWithSimpleConnectionPayloadOnHoldControllerPath(String httpPath) throws Throwable {
-        HttpMethod method = HttpMethod.POST;
         try {
-            log.info("Executing " + method + " on HoldController path " + httpPath);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            log.info("Executing POST on HoldController path " + httpPath);
 
             JsonMapper mapper = new JsonMapper();
             SimpleConnection simpleConnection = helper.createSimpleConnection(
@@ -248,9 +240,11 @@ public class HoldControllerSteps {
             );
             String payload = mapper.writeValueAsString(simpleConnection);
 
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
-
-            response = restTemplate.exchange(httpPath, method, entity, String.class);
+            response = restTestClient.post().uri(httpPath)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .exchange().returnResult(String.class);
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -259,13 +253,8 @@ public class HoldControllerSteps {
 
     @Given("The client executes POST with SimpleConnection payload on HoldController path {string} and projectId {string}")
     public void theClientExecutesWithSimpleConnectionPayloadOnHoldControllerPathAndProjectId(String httpPath, String projectId) throws Throwable {
-        HttpMethod method = HttpMethod.POST;
         try {
-            log.info("Executing " + method + " on HoldController path " + httpPath);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            log.info("Executing POST on HoldController path " + httpPath);
 
             JsonMapper mapper = new JsonMapper();
             SimpleConnection simpleConnection = helper.createSimpleConnection(
@@ -279,10 +268,12 @@ public class HoldControllerSteps {
             );
             String payload = mapper.writeValueAsString(simpleConnection);
 
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
-
-            response = restTemplate.exchange(httpPath, method, entity, String.class);
-            log.info("response from {} is {}", httpPath, response.getStatusCode());
+            response = restTestClient.post().uri(httpPath)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .exchange().returnResult(String.class);
+            log.info("response from {} is {}", httpPath, response.getStatus());
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -296,15 +287,15 @@ public class HoldControllerSteps {
 
     @Then("The client receives a HoldController response status code of {int}")
     public void theClientReceivesTheStatusCodeOf(int statusCode) throws Throwable {
-        log.info("response status code: " + response.getStatusCode());
-        assertEquals(statusCode, response.getStatusCode().value());
+        log.info("response status code: " + response.getStatus());
+        assertEquals(statusCode, response.getStatus().value());
     }
 
     @Then("The HoldController response is a valid list of CurrentlyHeldEntry objects")
     public void theConnControllerGeneratedIDIsValid() throws Throwable {
         JsonMapper mapper = new JsonMapper();
-        assertNotNull(response.getBody());
-        String payload = response.getBody();
+        assertNotNull(response.getResponseBody());
+        String payload = response.getResponseBody();
 
         CurrentlyHeldEntry[] currentlyHeldEntries = mapper.readValue(payload, CurrentlyHeldEntry[].class);
         List<CurrentlyHeldEntry> list = Arrays.asList(currentlyHeldEntries);
@@ -315,8 +306,8 @@ public class HoldControllerSteps {
 
     @Then("The HoldController response is a valid Instant object")
     public void theHoldControllerResponseIsAValidInstantObject() {
-        assertNotNull(response.getBody());
-        String payload = response.getBody();
+        assertNotNull(response.getResponseBody());
+        String payload = response.getResponseBody();
         log.error(payload);
         double timestampDouble = Double.parseDouble(payload);
         long seconds = (long) timestampDouble;
@@ -328,8 +319,8 @@ public class HoldControllerSteps {
 
     @Then("The HoldController response is a valid SimpleConnection")
     public void theHoldControllerResponseIsAValidSimpleConnection() {
-        assertNotNull(response.getBody());
-        String payload = response.getBody();
+        assertNotNull(response.getResponseBody());
+        String payload = response.getResponseBody();
         JsonMapper mapper = new JsonMapper();
         try {
             SimpleConnection simpleConnection = mapper.readValue(payload, SimpleConnection.class);

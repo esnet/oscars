@@ -1,26 +1,18 @@
 package net.es.oscars.cuke;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import io.cucumber.java.hu.Ha;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.BackendTestConfiguration;
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.util.UsernameGetter;
 import net.es.oscars.ctg.UnitTests;
-import net.es.oscars.model.Bundle;
-import net.es.oscars.model.Endpoint;
-import net.es.oscars.model.Interval;
 import net.es.oscars.model.L2VPN;
 import net.es.oscars.resv.db.ConnectionRepository;
-import net.es.oscars.resv.ent.Components;
-import net.es.oscars.resv.ent.Connection;
-import net.es.oscars.resv.ent.Held;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.L2VPNService;
@@ -34,12 +26,12 @@ import net.es.oscars.web.beans.v2.L2VPNList;
 import net.es.oscars.web.beans.v2.ValidationResponse;
 import net.es.oscars.web.rest.v2.EseApiController;
 import org.junit.experimental.categories.Category;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.*;
+import org.springframework.test.web.servlet.client.EntityExchangeResult;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import tools.jackson.databind.json.JsonMapper;
@@ -70,7 +62,7 @@ public class EseApiControllerSteps extends CucumberSteps {
     private CucumberWorld world;
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private RestTestClient restTestClient;
 
     @Autowired
     private Startup startup;
@@ -78,7 +70,7 @@ public class EseApiControllerSteps extends CucumberSteps {
     @MockitoBean
     private Authentication authentication;
 
-    private ResponseEntity<String> response;
+    private EntityExchangeResult<String> response;
 
     @Autowired
     private TopoPopulator topoPopulator;
@@ -133,15 +125,11 @@ public class EseApiControllerSteps extends CucumberSteps {
         try {
             log.info("Executing " + httpMethod + " on EseApiController path " + httpPath);
             if (method == HttpMethod.GET) {
-                response = restTemplate.getForEntity(httpPath, String.class);
+                response = restTestClient.get().uri(httpPath).exchange().returnResult(String.class);
             } else if (method == HttpMethod.DELETE) {
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-                headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-                HttpEntity<String> entity = new HttpEntity<>("", headers);
-
-                response = restTemplate.exchange(httpPath, HttpMethod.DELETE, entity, String.class);
+                response = restTestClient.delete().uri(httpPath)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .exchange().returnResult(String.class);
             } else {
                 throw new Throwable("Unsupported HTTP method " + method);
             }
@@ -153,12 +141,8 @@ public class EseApiControllerSteps extends CucumberSteps {
 
     @Given("The client executes POST with a ConnectionFilter payload on EseApiController path {string}")
     public void theClientExecutesPOSTWithAConnectionFilterPayloadOnEseApiControllerPath(String httpPath) throws Throwable {
-        HttpMethod method = HttpMethod.POST;
         try {
-            log.info("Executing " + method + " on EseApiController path " + httpPath);
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            log.info("Executing POST on EseApiController path " + httpPath);
 
             ConnectionFilter requestPayload = ConnectionFilter.builder()
                 .connectionId("ABCD")
@@ -168,9 +152,11 @@ public class EseApiControllerSteps extends CucumberSteps {
 
             String payload = mapper.writeValueAsString(requestPayload);
 
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
-
-            response = restTemplate.exchange(httpPath, method, entity, String.class);
+            response = restTestClient.post().uri(httpPath)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .exchange().returnResult(String.class);
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -179,21 +165,18 @@ public class EseApiControllerSteps extends CucumberSteps {
 
     @Given("The client executes POST with a L2VPN payload on EseApiController path {string}")
     public void theClientExecutesPOSTWithALVPNPayloadOnEseApiControllerPath(String httpPath) throws Throwable {
-        HttpMethod method = HttpMethod.POST;
         try {
-            log.info("Executing " + method + " on EseApiController path " + httpPath);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            log.info("Executing POST on EseApiController path " + httpPath);
 
             L2VPN requestPayload = world.l2vpn;
 
             String payload = mapper.writeValueAsString(requestPayload);
 
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
-
-            response = restTemplate.exchange(httpPath, method, entity, String.class);
+            response = restTestClient.post().uri(httpPath)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .exchange().returnResult(String.class);
         } catch (Exception ex) {
             world.add(ex);
             log.error(ex.getLocalizedMessage(), ex);
@@ -207,15 +190,15 @@ public class EseApiControllerSteps extends CucumberSteps {
 
     @Then("The client receives a EseApiController response status code of {int}")
     public void theClientReceivesAEseApiControllerResponseStatusCodeOf(int statusCode) {
-        log.info("response status code: " + response.getStatusCode());
-        assertEquals(statusCode, response.getStatusCode().value());
+        log.info("response status code: " + response.getStatus());
+        assertEquals(statusCode, response.getStatus().value());
     }
 
     @Then("The EseApiController response is a valid L2VPN object")
     public void theEseApiControllerResponseIsAValidLVPNObject() throws Exception {
         assert response != null;
 
-        String payload = response.getBody();
+        String payload = response.getResponseBody();
         L2VPN responseObject = mapper.readValue(
             payload,
             L2VPN.class
@@ -227,7 +210,7 @@ public class EseApiControllerSteps extends CucumberSteps {
     public void theEseApiControllerResponseIsAValidLVPNListObject() throws Exception {
         assert response != null;
 
-        String payload = response.getBody();
+        String payload = response.getResponseBody();
         L2VPNList responseObject = mapper.readValue(
             payload,
             L2VPNList.class
@@ -238,7 +221,7 @@ public class EseApiControllerSteps extends CucumberSteps {
     @Then("The EseApiController response L2VPN object's meta username property matches {string}")
     public void theEseApiControllerResponseMetaUsernamePropertyMatches(String expectedUsername) throws JsonProcessingException {
         assert response != null;
-        String payload = response.getBody();
+        String payload = response.getResponseBody();
         L2VPN responseObject = mapper.readValue(
             payload,
             L2VPN.class
@@ -250,7 +233,7 @@ public class EseApiControllerSteps extends CucumberSteps {
     @Then("The EseApiController response is a valid BandwidthAvailabilityResponse object")
     public void theEseApiControllerResponseIsAValidBandwidthAvailabilityResponseObject() throws JsonProcessingException {
         assert response != null;
-        String payload = response.getBody();
+        String payload = response.getResponseBody();
         BandwidthAvailabilityResponse responseObject = mapper.readValue(
             payload,
             BandwidthAvailabilityResponse.class
@@ -262,7 +245,7 @@ public class EseApiControllerSteps extends CucumberSteps {
     @And("The EseApiController response is a valid ValidationResponse object")
     public void theEseApiControllerResponseIsAValidValidationResponseObject() throws JsonProcessingException {
         assert response != null;
-        String payload = response.getBody();
+        String payload = response.getResponseBody();
         ValidationResponse responseObject = mapper.readValue(payload, ValidationResponse.class);
         assert responseObject != null;
         assert responseObject.isValid();
