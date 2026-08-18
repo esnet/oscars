@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn package -DskipTests --offline
 # copy / extract jar file
 ARG JAR_FILE=target/*.jar
 RUN mv ${JAR_FILE} backend.jar
-RUN java -Djarmode=layertools -jar backend.jar extract
+RUN java -Djarmode=tools -jar backend.jar extract --layers --destination layers
 
 # 2. run stage
 FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:25-alpine
@@ -34,10 +34,10 @@ RUN chown oscars -R /app
 USER oscars
 WORKDIR /app
 RUN mkdir -p /app/log
-COPY --from=builder /build/backend/dependencies/ ./
-COPY --from=builder /build/backend/spring-boot-loader ./
-COPY --from=builder /build/backend/snapshot-dependencies/ ./
-COPY --from=builder /build/backend/application/ ./
+COPY --from=builder /build/backend/layers/dependencies/ ./
+COPY --from=builder /build/backend/layers/spring-boot-loader ./
+COPY --from=builder /build/backend/layers/snapshot-dependencies/ ./
+COPY --from=builder /build/backend/layers/application/ ./
 
 # run the application
-ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher", "--spring.config.location=/app/config/application.properties"]
+ENTRYPOINT sh -c 'java -jar backend.jar --spring.config.location=/app/config/application.properties'
