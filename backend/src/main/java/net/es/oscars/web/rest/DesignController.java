@@ -10,7 +10,6 @@ import net.es.oscars.resv.ent.Design;
 import net.es.oscars.resv.svc.DesignService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;

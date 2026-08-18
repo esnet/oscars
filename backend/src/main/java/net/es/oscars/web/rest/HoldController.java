@@ -61,12 +61,10 @@ public class HoldController {
 
     @RequestMapping(value = "/protected/extend_hold/{connectionId:.+}", method = RequestMethod.GET)
     @Transactional
-    public Instant extendHold(@PathVariable String connectionId)
+    public Long extendHold(@PathVariable String connectionId)
             throws StartupException, NoSuchElementException {
         this.checkStartup();
-
-
-        return connSvc.extendHold(connectionId);
+        return connSvc.extendHold(connectionId).getEpochSecond();
     }
 
 

@@ -13,9 +13,7 @@ import net.es.oscars.topo.beans.Device;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.beans.v2.BackbonePort;
-import net.es.oscars.topo.beans.v2.Bandwidth;
 import net.es.oscars.topo.beans.v2.EdgePort;
-import net.es.oscars.topo.beans.v2.VlanAvailability;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.model.Interval;
@@ -23,9 +21,7 @@ import net.es.oscars.web.beans.v2.LspWaypoint;
 import net.es.oscars.web.beans.v2.LspWaypointSearchRequest;
 import net.es.oscars.web.beans.v2.PortSearchRequest;
 import net.es.oscars.web.beans.v2.ConnectionEdgePortRequest;
-import net.es.topo.common.model.oscars1.EthernetEncapsulation;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -103,7 +99,6 @@ public class TopoSearchController {
         } else if (psr.getInterval().getEnding() == null) {
             throw new SearchException("null interval ending");
         }
-
 
         Map<String, PortBwVlan> available = resvService.available(psr.getInterval(), connService.getHeld(), psr.getConnectionId());
         Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(psr.getInterval(), connService.getHeld(), psr.getConnectionId());

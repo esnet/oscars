@@ -39,6 +39,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static net.es.oscars.app.util.PrettyPrinter.prettyLog;
+
 /**
  * Test steps for NsiService class.
  *  - See draft-nsi-cs-protocol-2dot1-v13.pdf, page 12.
@@ -264,6 +266,9 @@ public class NsiServiceSteps extends CucumberSteps {
             Mockito.any()
         );
 
+        mockReserveType.getCriteria().getAny().add(mockP2PService.get());
+
+
         // Mock the NsiMappingService.save() method
         Mockito.doReturn(
             mockNsiMapping
@@ -357,6 +362,8 @@ public class NsiServiceSteps extends CucumberSteps {
         //
         // ... If the main try-catch-block catches an exception
 
+        log.info("mock-reserve");
+        prettyLog(mockReserveType);
 
         reserved = nsiService.reserve(
             mockCommonHeaderType,

@@ -1,6 +1,5 @@
 package net.es.oscars.resv.svc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
@@ -43,6 +42,7 @@ import org.springframework.stereotype.Service;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.*;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -100,7 +100,7 @@ public class ConnService {
     private PipeRepository pipeRepo;
 
     @Autowired
-    private ObjectMapper jacksonObjectMapper;
+    private JsonMapper jsonMapper;
 
     @Autowired
     private DbAccess dbAccess;

@@ -1,6 +1,6 @@
 package net.es.oscars.cuke;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -89,7 +89,7 @@ public class ProjectIdSteps extends CucumberSteps {
 
     @When("I load a SimpleConnection from {string}")
     public void iLoadASimpleConnectionFrom(String path) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
         InputStream stream = new ClassPathResource(path).getInputStream();
         this.simpleConnection = mapper.readValue(stream, SimpleConnection.class);
 
