@@ -1,6 +1,5 @@
 package net.es.oscars.topo.pop;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.extern.slf4j.Slf4j;
@@ -16,12 +15,13 @@ import net.es.oscars.topo.svc.ConsistencyService;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.topo.common.model.oscars1.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.util.*;
@@ -54,7 +54,7 @@ public class TopoPopulator {
         SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
 
         this.restTemplate = restTemplateBuilder.build();
-        this.restTemplate.getInterceptors().add(telemetry.newInterceptor());
+        this.restTemplate.getInterceptors().add(telemetry.createInterceptor());
 
         this.startupProperties = startupProperties;
         this.featuresProperties = featuresProperties;
@@ -85,7 +85,7 @@ public class TopoPopulator {
 
 
         OscarsOneTopo oscarsOneTopo;
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
 
         if (filePath != null) {
             var jsonFile = new ClassPathResource(filePath).getFile();

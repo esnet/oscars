@@ -15,7 +15,7 @@ Feature: Test the ModifyController endpoints (Happy)
     And The ModifyController response is a valid ScheduleRangeResponse object
 
   Scenario: Modify the schedule at endpoint "/protected/modify/schedule"
-    Given The client executes POST with a ScheduleRangeRequest payload on ModifyController path "/protected/modify/schedule"
+    Given The client executes POST with a ScheduleModifyRequest payload on ModifyController path "/protected/modify/schedule"
     When The client receives a response from ModifyController
     Then The client receives a ModifyController response status code of 200
     And The ModifyController response is a valid ModifyResponse object

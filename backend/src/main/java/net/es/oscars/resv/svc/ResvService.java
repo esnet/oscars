@@ -11,7 +11,6 @@ import net.es.oscars.topo.beans.*;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.oscars.model.Interval;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -22,9 +21,6 @@ import static net.es.oscars.app.util.PrettyPrinter.prettyLog;
 @Slf4j
 @Data
 public class ResvService {
-    @Autowired
-    private Jackson2ObjectMapperBuilder builder;
-
     @Autowired
     private ScheduleRepository scheduleRepo;
 
@@ -288,15 +284,6 @@ public class ResvService {
 
     public Map<String, Integer> availableEgBws(Interval interval) {
         Map<String, List<PeriodBandwidth>> reservedEgBws = reservedEgBws(interval, new HashMap<>(), null);
-        /*
-        try {
-            ObjectMapper mapper = builder.build();
-            log.info(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reservedEgBws));
-        } catch (JsonProcessingException ex) {
-            log.error(ex.getMessage());
-        }
-        */
-
         Map<String, TopoUrn> baseline = topologyStore.getTopoUrnMap();
         return ResvLibrary.availableBandwidthMap(BwDirection.EGRESS, baseline, reservedEgBws);
     }

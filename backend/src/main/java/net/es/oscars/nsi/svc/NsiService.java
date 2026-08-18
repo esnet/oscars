@@ -1,7 +1,5 @@
 package net.es.oscars.nsi.svc;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.bind.JAXBException;
@@ -79,12 +77,11 @@ public class NsiService {
     public ConnService connSvc;
     public NsiMappingService nsiMappingService;
     public NsiSoapClientUtil nsiSoapClientUtil;
-    public ObjectMapper jacksonObjectMapper;
     public NsiConnectionEventService nsiConnectionEventService;
 
     public NsiService(ConnectionRepository connRepo, NsiRequestManager nsiRequestManager, NsiHeaderUtils nsiHeaderUtils,
                       NsiStateEngine nsiStateEngine, ConnService connSvc, NsiMappingService nsiMappingService,
-                      NsiSoapClientUtil nsiSoapClientUtil, ObjectMapper jacksonObjectMapper, NsiQueries nsiQueries,
+                      NsiSoapClientUtil nsiSoapClientUtil, NsiQueries nsiQueries,
                       NsiNotifications nsiNotifications, NsiConnectionEventService nsiConnectionEventService) {
         this.connRepo = connRepo;
         this.nsiRequestManager = nsiRequestManager;
@@ -93,7 +90,6 @@ public class NsiService {
         this.connSvc = connSvc;
         this.nsiMappingService = nsiMappingService;
         this.nsiSoapClientUtil = nsiSoapClientUtil;
-        this.jacksonObjectMapper = jacksonObjectMapper;
         this.nsiQueries = nsiQueries;
         this.nsiNotifications = nsiNotifications;
         this.nsiConnectionEventService = nsiConnectionEventService;
@@ -1146,13 +1142,9 @@ public class NsiService {
                     .username("nsi")
                     .projectIds(projectId)
                     .build();
-            try {
-                String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(simpleConnection);
-                log.debug("simple conn: \n{}", pretty);
 
-            } catch (JsonProcessingException ex) {
-                log.error(ex.getMessage(), ex);
-            }
+
+
             // add a validity check
             try {
 
@@ -1192,14 +1184,6 @@ public class NsiService {
                         .errorMessage(results.getLeft().getValidity().getMessage())
                         .tvps(tvps)
                         .build();
-            }
-
-            try {
-                String pretty = jacksonObjectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(c);
-                log.debug("full conn: \n{}", pretty);
-
-            } catch (JsonProcessingException jpe) {
-                // do nothing, this is just for debugging
             }
 
             mapping.setOscarsConnectionId(c.getConnectionId());

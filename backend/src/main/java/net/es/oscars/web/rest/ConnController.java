@@ -1,12 +1,7 @@
 package net.es.oscars.web.rest;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.Startup;
-import net.es.oscars.app.exc.NsiException;
-import net.es.oscars.app.exc.NsiMappingException;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.util.UsernameGetter;
@@ -24,8 +19,6 @@ import net.es.oscars.resv.enums.State;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.svc.ConnUtils;
 import net.es.oscars.web.beans.*;
-import net.es.oscars.web.simple.SimpleConnection;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
