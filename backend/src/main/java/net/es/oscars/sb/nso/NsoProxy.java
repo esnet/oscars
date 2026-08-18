@@ -4,7 +4,6 @@ package net.es.oscars.sb.nso;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.*;
@@ -25,12 +24,12 @@ import net.es.topo.common.dto.nso.*;
 
 import net.es.topo.common.dto.nso.enums.NsoCheckSyncState;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
@@ -42,6 +41,7 @@ import org.springframework.web.client.RestTemplate;
 import net.es.topo.common.dto.nso.enums.NsoService;
 import net.es.oscars.sb.nso.dto.NsoLspResponse;
 import net.es.oscars.sb.nso.dto.NsoVplsResponse;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -70,7 +70,7 @@ public class NsoProxy {
     private RestTemplate restTemplate;
     private RestClient patchClient;
     private RestClient restClient;
-    private ObjectMapper skipEmptyObjectMapper;
+    private JsonMapper skipEmptyObjectMapper;
 
     final OpenTelemetry openTelemetry;
 
@@ -83,18 +83,18 @@ public class NsoProxy {
         this.openTelemetry = openTelemetry;
         try {
             // this object mapper makes sure we don't send any empty / null values
-            skipEmptyObjectMapper = new ObjectMapper();
-            skipEmptyObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            skipEmptyObjectMapper = JsonMapper.builder()
+                    .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_EMPTY))
+                    .build();
+
+
             SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
 
             patchClient = RestClient.builder()
                     .requestFactory(new HttpComponentsClientHttpRequestFactory())
-                    .messageConverters(converters -> {
-                        for (HttpMessageConverter<?> converter : converters) {
-                            if (converter instanceof MappingJackson2HttpMessageConverter jacksonConverter) {
-                                jacksonConverter.setObjectMapper(skipEmptyObjectMapper);
-                            }
-                        }
+
+                    .configureMessageConverters(client -> {
+                        client.registerDefaults().withJsonConverter(new JacksonJsonHttpMessageConverter(skipEmptyObjectMapper));
                     })
                     .defaultHeaders(headers -> {
                         headers.add(HttpHeaders.ACCEPT, APPLICATION_YANG_DATA_JSON);
@@ -102,18 +102,14 @@ public class NsoProxy {
                     })
                     .requestInterceptors(interceptors -> {
                         interceptors.add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
-                        interceptors.add(telemetry.newInterceptor());
+                        interceptors.add(telemetry.createInterceptor());
                     })
                     .build();
 
             restClient = RestClient.builder()
                     .requestFactory(new HttpComponentsClientHttpRequestFactory())
-                    .messageConverters(converters -> {
-                        for (HttpMessageConverter<?> converter : converters) {
-                            if (converter instanceof MappingJackson2HttpMessageConverter jacksonConverter) {
-                                jacksonConverter.setObjectMapper(skipEmptyObjectMapper);
-                            }
-                        }
+                    .configureMessageConverters(client -> {
+                        client.registerDefaults().withJsonConverter(new JacksonJsonHttpMessageConverter(skipEmptyObjectMapper));
                     })
                     .defaultHeaders(headers -> {
                         headers.add(HttpHeaders.ACCEPT, APPLICATION_YANG_DATA_JSON);
@@ -121,21 +117,18 @@ public class NsoProxy {
                     })
                     .requestInterceptors(interceptors -> {
                         interceptors.add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
-                        interceptors.add(telemetry.newInterceptor());
+                        interceptors.add(telemetry.createInterceptor());
                     })
                     .build();
 
-            this.restTemplate = builder.build();
+            this.restTemplate = builder
+                    .messageConverters(new JacksonJsonHttpMessageConverter(skipEmptyObjectMapper))
+                    .build();
             restTemplate.setErrorHandler(restErrorHandler);
             restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
             restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, APPLICATION_YANG_DATA_JSON));
             restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, APPLICATION_YANG_DATA_JSON));
-            restTemplate.getInterceptors().add(telemetry.newInterceptor());
-            for (HttpMessageConverter<?> converter : restTemplate.getMessageConverters()) {
-                if (converter instanceof MappingJackson2HttpMessageConverter jacksonConverter) {
-                    jacksonConverter.setObjectMapper(skipEmptyObjectMapper);
-                }
-            }
+            restTemplate.getInterceptors().add(telemetry.createInterceptor());
 
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
@@ -194,16 +187,13 @@ public class NsoProxy {
             if (response.getStatusCode().isError()) {
                 log.error("raw error: " + response.getBody() + "\n" + response.getHeaders());
                 StringBuilder errorStr = new StringBuilder();
-                try {
-                    ObjectMapper mapper = new ObjectMapper();
-                    YangPatchErrorResponse errorResponse = mapper.readValue(response.getBody(), YangPatchErrorResponse.class);
-                    for (YangPatchErrorResponse.YangPatchError errObj : errorResponse.getStatus().getErrors().getErrorList()) {
-                        errorStr.append(errObj.getErrorMessage()).append("\n");
-                    }
-                } catch (JsonProcessingException ex) {
-                    log.error(errorRef + ex.getMessage() + "\n" + response.getBody());
-                    throw new NsoCommitException(errorRef + "Unable to YANG patch. NSO response parse error.");
+
+                JsonMapper mapper = new JsonMapper();
+                YangPatchErrorResponse errorResponse = mapper.readValue(response.getBody(), YangPatchErrorResponse.class);
+                for (YangPatchErrorResponse.YangPatchError errObj : errorResponse.getStatus().getErrors().getErrorList()) {
+                    errorStr.append(errObj.getErrorMessage()).append("\n");
                 }
+
                 log.error(errorRef + "Unable to YANG patch. NSO error(s): " + errorStr);
                 throw new NsoCommitException(errorRef + "Unable to YANG patch. NSO error(s): " + errorStr);
             }
@@ -706,9 +696,11 @@ public class NsoProxy {
                 // or
                 // Attempt to deserialize as IetfRestconfErrorResponse
                 try {
+                    JsonMapper mapper = JsonMapper.builder()
 
-                    ObjectMapper mapper = new ObjectMapper();
-                    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+                            .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
+                            .build();
+
                     LinkedHashMap<String, String> body = ((LinkedHashMap<String, String>) responseEntity.getBody());
 
                     String json = mapper.writeValueAsString(body);
@@ -733,8 +725,10 @@ public class NsoProxy {
         } catch (RestClientException re) {
             try {
                 if (responseEntity != null) {
-                    ObjectMapper mapper = new ObjectMapper();
-                    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+                    JsonMapper jsonMapper = JsonMapper.builder()
+                            .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
+                            .build();
+
                     LinkedHashMap<String, String> body = ((LinkedHashMap<String, String>) responseEntity.getBody());
 
                     // protect against nulls
@@ -742,10 +736,10 @@ public class NsoProxy {
                         body = new LinkedHashMap<>();
                     }
 
-                    String json = mapper.writeValueAsString(body);
+                    String json = jsonMapper.writeValueAsString(body);
 
                     if (body.containsKey("ietf-restconf:errors")) {
-                        IetfRestconfErrorResponse ietfError = mapper.readValue(json, IetfRestconfErrorResponse.class);
+                        IetfRestconfErrorResponse ietfError = jsonMapper.readValue(json, IetfRestconfErrorResponse.class);
                         for (IetfRestconfErrorResponse.IetfError error : ietfError.getErrors().getErrorList()) {
                             errorStr.append(error.getErrorMessage()).append("\n");
                         }
@@ -767,23 +761,23 @@ public class NsoProxy {
 
     public NsoVplsResponse getVpls() throws Exception {
         FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS);
-        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
+        return new JsonMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
     }
 
     public NsoVplsResponse getVpls(String path) throws Exception {
         FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS, path);
-        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
+        return new JsonMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
     }
 
 
     public NsoLspResponse getLsps() throws Exception {
         FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP);
-        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
+        return new JsonMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
     }
 
     public NsoLspResponse getLsps(String path) throws Exception {
         FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP, path);
-        return new ObjectMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
+        return new JsonMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
     }
 
     public String getNsoServiceConfigRestPath(NsoService service) throws Exception {
@@ -844,15 +838,12 @@ public class NsoProxy {
 
     // this logs the object using the custom object mapper that the restClient / restTemplate use
     public static void logNsoObject(Object o) {
-        try {
-            ObjectMapper skipEmptyObjMapper = new ObjectMapper();
-            skipEmptyObjMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        JsonMapper jsonMapper = JsonMapper.builder()
+                .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_EMPTY))
+                .build();
 
-            String pretty = skipEmptyObjMapper.writerWithDefaultPrettyPrinter().writeValueAsString(o);
-            log.info(pretty);
-        } catch (JsonProcessingException e) {
-            log.error(e.getLocalizedMessage(), e);
-        }
+        String pretty = jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(o);
+        log.info(pretty);
     }
 
     private String encodedParams(Map<String, String> params) throws JsonProcessingException {

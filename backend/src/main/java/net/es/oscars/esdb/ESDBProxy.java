@@ -1,7 +1,5 @@
 package net.es.oscars.esdb;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import jakarta.validation.constraints.Null;
@@ -19,17 +17,20 @@ import net.es.topo.common.dto.esdb.EsdbBwUtilPayload;
 import net.es.topo.common.dto.esdb.EsdbVlan;
 import net.es.topo.common.dto.esdb.EsdbVlanPayload;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.graphql.client.ClientGraphQlResponse;
 import org.springframework.graphql.client.GraphQlClient;
 import org.springframework.graphql.client.HttpSyncGraphQlClient;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.*;
+
+import static tools.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
 @Slf4j
 @Component
@@ -49,18 +50,17 @@ public class ESDBProxy {
         this.openTelemetry = openTelemetry;
         SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
 
-        ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-        converter.setObjectMapper(mapper);
+        JsonMapper mapper = JsonMapper.builder().disable(FAIL_ON_UNKNOWN_PROPERTIES).build();
+;
 
         this.restTemplate = builder
                 .additionalInterceptors(
                         new HeaderRequestInterceptor("Authorization", "Token "+props.getApiKey()),
                         new HeaderRequestInterceptor("Accept", MediaType.APPLICATION_JSON_VALUE),
                         new HeaderRequestInterceptor("Content-Type", MediaType.APPLICATION_JSON_VALUE),
-                        telemetry.newInterceptor()
+                        telemetry.createInterceptor()
                 )
-                .messageConverters(converter)
+                .messageConverters(new JacksonJsonHttpMessageConverter(mapper))
                 .build();
 
     }

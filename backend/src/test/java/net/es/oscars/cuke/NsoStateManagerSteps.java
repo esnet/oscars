@@ -1,6 +1,6 @@
 package net.es.oscars.cuke;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -261,7 +261,7 @@ public class NsoStateManagerSteps extends CucumberSteps {
         return foundLsp;
     }
     private NsoLSP[] loadLspsFromJson(String lspJsonFile) throws Exception {
-        return new ObjectMapper()
+        return new JsonMapper()
             .readValue(
                 new ClassPathResource(lspJsonFile).getFile(),
                 NsoLSP[].class
@@ -281,7 +281,7 @@ public class NsoStateManagerSteps extends CucumberSteps {
     }
 
     private NsoVPLS[] loadAllVplsFromJson(String vplsJsonFile) throws Exception {
-        return new ObjectMapper()
+        return new JsonMapper()
             .readValue(
                 new ClassPathResource(vplsJsonFile).getFile(),
                 NsoVPLS[].class

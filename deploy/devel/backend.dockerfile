@@ -36,7 +36,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn package -DskipTests --offline
 # copy / extract jar file
 ARG JAR_FILE=target/*.jar
 RUN mv ${JAR_FILE} backend.jar
-RUN java $JAVA_OPTS -Djarmode=layertools -jar backend.jar extract
+RUN java -Djarmode=tools -jar backend.jar extract --layers --destination layers
 
 FROM builder AS test
 WORKDIR /build/backend
@@ -56,13 +56,13 @@ RUN mkdir -p /app/log
 RUN mkdir -p -m 760 /app/profiling
 
 COPY ./backend/config ./config
-COPY --from=builder /build/backend/dependencies/ ./
-COPY --from=builder /build/backend/spring-boot-loader ./
-COPY --from=builder /build/backend/snapshot-dependencies/ ./
-COPY --from=builder /build/backend/application/ ./
+COPY --from=builder /build/backend/layers/dependencies/ ./
+COPY --from=builder /build/backend/layers/spring-boot-loader ./
+COPY --from=builder /build/backend/layers/snapshot-dependencies/ ./
+COPY --from=builder /build/backend/layers/application/ ./
 
 # Debugger port
 EXPOSE 9201
 
 # run the application with debug and profiling options enabled
-ENTRYPOINT sh -c 'java ${JAVA_OPTS} org.springframework.boot.loader.launch.JarLauncher'
+ENTRYPOINT sh -c 'java ${JAVA_OPTS} -jar backend.jar'

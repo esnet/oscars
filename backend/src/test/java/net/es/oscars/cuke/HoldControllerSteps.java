@@ -1,6 +1,6 @@
 package net.es.oscars.cuke;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -23,7 +23,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -237,7 +237,7 @@ public class HoldControllerSteps {
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-            ObjectMapper mapper = new ObjectMapper();
+            JsonMapper mapper = new JsonMapper();
             SimpleConnection simpleConnection = helper.createSimpleConnection(
                 "ABCD",
                 10000,
@@ -267,7 +267,7 @@ public class HoldControllerSteps {
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-            ObjectMapper mapper = new ObjectMapper();
+            JsonMapper mapper = new JsonMapper();
             SimpleConnection simpleConnection = helper.createSimpleConnection(
                 "ABCD",
                 10000,
@@ -302,7 +302,7 @@ public class HoldControllerSteps {
 
     @Then("The HoldController response is a valid list of CurrentlyHeldEntry objects")
     public void theConnControllerGeneratedIDIsValid() throws Throwable {
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
         assertNotNull(response.getBody());
         String payload = response.getBody();
 
@@ -317,6 +317,7 @@ public class HoldControllerSteps {
     public void theHoldControllerResponseIsAValidInstantObject() {
         assertNotNull(response.getBody());
         String payload = response.getBody();
+        log.error(payload);
         double timestampDouble = Double.parseDouble(payload);
         long seconds = (long) timestampDouble;
         long nanos = (long) ((timestampDouble - seconds) * 1_000_000_000);
@@ -329,7 +330,7 @@ public class HoldControllerSteps {
     public void theHoldControllerResponseIsAValidSimpleConnection() {
         assertNotNull(response.getBody());
         String payload = response.getBody();
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
         try {
             SimpleConnection simpleConnection = mapper.readValue(payload, SimpleConnection.class);
             assertNotNull(simpleConnection);

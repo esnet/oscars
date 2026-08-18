@@ -1,7 +1,9 @@
 package net.es.oscars.cuke;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
@@ -15,7 +17,6 @@ import net.es.oscars.model.Interval;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.Components;
 import net.es.oscars.resv.ent.Connection;
-import net.es.oscars.resv.ent.Held;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.web.beans.*;
@@ -26,12 +27,12 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Instant;
-import java.util.ArrayList;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -165,7 +166,10 @@ public class ModifyControllerSteps extends CucumberSteps {
         HttpMethod method = HttpMethod.POST;
         try {
             log.info("Executing " + method + " on ModifyController path " + httpPath);
-            ObjectMapper mapper = new ObjectMapper();
+            JsonMapper mapper = JsonMapper.builder()
+                .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_EMPTY))
+                .build();
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -191,7 +195,10 @@ public class ModifyControllerSteps extends CucumberSteps {
         HttpMethod method = HttpMethod.POST;
         try {
             log.info("Executing " + method + " on ModifyController path " + httpPath);
-            ObjectMapper mapper = new ObjectMapper();
+            JsonMapper mapper = JsonMapper.builder()
+                    .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_EMPTY))
+                    .build();
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -212,23 +219,52 @@ public class ModifyControllerSteps extends CucumberSteps {
         }
     }
 
-    @Given("The client executes POST with a BandwidthModifyRequest payload on ModifyController path {string}")
-    public void theClientExecutesPOSTWithABandwidthModifyRequestPayloadOnModifyControllerPath(String httpPath) throws Exception {
+    @Given("The client executes POST with a ScheduleModifyRequest payload on ModifyController path {string}")
+    public void theClientExecutesPOSTWithAScheduleModifyRequestPayloadOnModifyControllerPath(String httpPath) throws Exception {
         HttpMethod method = HttpMethod.POST;
         try {
             log.info("Executing " + method + " on ModifyController path " + httpPath);
-            ObjectMapper mapper = new ObjectMapper();
+            JsonMapper mapper = JsonMapper.builder()
+                    .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_EMPTY))
+                    .build();
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
             ScheduleModifyRequest scheduleModifyRequest = ScheduleModifyRequest.builder()
-                .connectionId("ABCD")
-                .type(ScheduleModifyType.BEGIN)
-                .timestamp(Instant.now().toEpochMilli())
-                .build();
+                    .connectionId("ABCD")
+                    .type(ScheduleModifyType.BEGIN)
+                    .timestamp(Instant.now().plus(10, ChronoUnit.SECONDS).toEpochMilli())
+                    .build();
 
             String payload = mapper.writeValueAsString(scheduleModifyRequest);
+
+            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+
+            response = restTemplate.exchange(httpPath, method, entity, String.class);
+        } catch (Exception ex) {
+            world.add(ex);
+            log.error(ex.getLocalizedMessage(), ex);
+        }
+    }
+
+    @Given("The client executes POST with a BandwidthModifyRequest payload on ModifyController path {string}")
+    public void theClientExecutesPOSTWithABandwidthModifyRequestPayloadOnModifyControllerPath(String httpPath) throws Exception {
+        HttpMethod method = HttpMethod.POST;
+        try {
+            log.info("Executing " + method + " on ModifyController path " + httpPath);
+            JsonMapper mapper = new JsonMapper();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+            BandwidthModifyRequest bandwidthModifyRequest = BandwidthModifyRequest.builder()
+                .connectionId("ABCD")
+                .bandwidth(100)
+                .build();
+
+            String payload = mapper.writeValueAsString(bandwidthModifyRequest);
 
             HttpEntity<String> entity = new HttpEntity<>(payload, headers);
 
@@ -244,7 +280,7 @@ public class ModifyControllerSteps extends CucumberSteps {
         HttpMethod method = HttpMethod.POST;
         try {
             log.info("Executing " + method + " on ModifyController path " + httpPath);
-            ObjectMapper mapper = new ObjectMapper();
+            JsonMapper mapper = new JsonMapper();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -278,7 +314,8 @@ public class ModifyControllerSteps extends CucumberSteps {
     @Then("The ModifyController response is a valid ScheduleRangeResponse object")
     public void theModifyControllerResponseIsAValidScheduleRangeResponseObject() throws JsonProcessingException {
         assert response != null;
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
+
         String payload = response.getBody();
         ScheduleRangeRequest scheduleRangeRequest = mapper.readValue(
             payload,
@@ -291,8 +328,7 @@ public class ModifyControllerSteps extends CucumberSteps {
     @Then("The ModifyController response is a valid ModifyResponse object")
     public void theModifyControllerResponseIsAValidModifyResponseObject() throws JsonProcessingException {
         assert response != null;
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
+        JsonMapper mapper = new JsonMapper();
 
         String payload = response.getBody();
         log.info("response: " + payload);
@@ -306,8 +342,7 @@ public class ModifyControllerSteps extends CucumberSteps {
     @Then("The ModifyController response is a valid BandwidthRangeResponse object")
     public void theModifyControllerResponseIsAValidBandwidthRangeResponseObject() throws JsonProcessingException {
         assert response != null;
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
+        JsonMapper mapper = new JsonMapper();
 
         String payload = response.getBody();
         log.info("response: " + payload);

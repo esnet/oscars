@@ -16,8 +16,8 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.text.StringSubstitutor;
 import org.junit.experimental.categories.Category;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -83,7 +83,7 @@ public class NsiProviderSteps extends CucumberSteps {
     private final CucumberWorld world;
     private final Startup startup;
 
-    private final  TestRestTemplate restTemplate;
+    private final TestRestTemplate restTemplate;
 
     private final TopologyStore topoService;
 

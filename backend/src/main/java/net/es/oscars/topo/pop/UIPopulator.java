@@ -1,6 +1,5 @@
 package net.es.oscars.topo.pop;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.StartupComponent;
@@ -11,9 +10,9 @@ import net.es.oscars.topo.beans.CategoryConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -40,29 +39,21 @@ public class UIPopulator implements StartupComponent {
 
 
     public void startup() throws StartupException {
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
 
         if (topoProperties.getPositionsFile() != null) {
             String filename = "./config/"+topoProperties.getPositionsFile();
             File jsonFile = new File(filename);
-            try {
-                positions = mapper.readValue(jsonFile, DevicePositions.class);
-            } catch (IOException e) {
-                throw new StartupException(e.getMessage());
-            }
+            positions = mapper.readValue(jsonFile, DevicePositions.class);
             log.info("positions imported for devices: " + positions.getPositions().size());
 
         }
 
         ctgConfigs = new ArrayList<>();
 
-        try {
-            for (File f : ctgConfigFiles) {
-                CategoryConfig[] ctgConfs = mapper.readValue(f, CategoryConfig[].class);
-                ctgConfigs.addAll(Arrays.asList(ctgConfs));
-            }
-        } catch (IOException e) {
-            throw new StartupException(e.getMessage());
+        for (File f : ctgConfigFiles) {
+            CategoryConfig[] ctgConfs = mapper.readValue(f, CategoryConfig[].class);
+            ctgConfigs.addAll(Arrays.asList(ctgConfs));
         }
         log.info("category configs imported: " + ctgConfigs.size());
 

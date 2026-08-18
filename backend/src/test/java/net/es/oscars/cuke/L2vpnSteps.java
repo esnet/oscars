@@ -1,7 +1,6 @@
 package net.es.oscars.cuke;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -28,9 +27,10 @@ import net.es.oscars.web.beans.v2.ValidationResponse;
 import org.junit.experimental.categories.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -72,7 +72,7 @@ public class L2vpnSteps extends CucumberSteps {
     private L2VPNService l2VPNService;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JsonMapper jsonMapper;
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -93,7 +93,7 @@ public class L2vpnSteps extends CucumberSteps {
     public void iHaveLoadedTheL2VPNRequest(String path) throws IOException {
         var jsonFile = new ClassPathResource(path).getFile();
 
-        request = objectMapper.readValue(
+        request = jsonMapper.readValue(
                 jsonFile,
                 L2VPN.class
         );
@@ -190,7 +190,7 @@ public class L2vpnSteps extends CucumberSteps {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            String payload = objectMapper.writeValueAsString(request);
+            String payload = jsonMapper.writeValueAsString(request);
             HttpEntity<String> entity = new HttpEntity<>(payload, headers);
 
             response = restTemplate.exchange(httpPath, method, entity, String.class);

@@ -1,6 +1,6 @@
 package net.es.oscars.cuke;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +32,7 @@ public class MapPositionSteps extends CucumberSteps {
 
     @Given("^I load my positionMap from \"([^\"]*)\"$")
     public void my_position_map(String path) {
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
 
         try {
             File jsonFile = SharedSteps.loadResource(path).getFile();
@@ -44,7 +44,7 @@ public class MapPositionSteps extends CucumberSteps {
 
     @Given("^I load devices from \"([^\"]*)\"$")
     public void my_devices(String path) {
-        ObjectMapper mapper = new ObjectMapper();
+        JsonMapper mapper = new JsonMapper();
         try {
             File jsonFile = SharedSteps.loadResource(path).getFile();
             devices = Arrays.asList(mapper.readValue(jsonFile, Device[].class));

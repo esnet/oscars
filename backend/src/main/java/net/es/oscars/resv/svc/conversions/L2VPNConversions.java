@@ -44,6 +44,7 @@ public class L2VPNConversions {
 
 
     public L2VPN fromConnection(Connection c) throws ConsistencyException{
+        log.debug("Converting connection {}", c.getConnectionId());
 
         L2VPN l2VPN = L2VPN.builder()
                 .name(c.getConnectionId())
@@ -61,17 +62,22 @@ public class L2VPNConversions {
         for (Bundle b : l2VPN.getBundles()) {
             b.setL2vpn(l2VPN);
         }
+        log.debug("Done converting connection {}", c.getConnectionId());
 
         return l2VPN;
     }
 
     public List<Endpoint> getEndpoints(Connection c) {
+        log.debug("Getting endpoints for connection {}", c.getConnectionId());
         List<Endpoint> endpoints = new ArrayList<>();
         Components cmp = getComponents(c);
         Topology topology = null;
 
+        log.debug("Getting available...");
         Map<String, PortBwVlan> available = resvService.available(getInterval(c), connSvc.getHeld(), c.getConnectionId());
+        log.debug("Getting vlan usage...");
         Map<String, Map<Integer, Set<String>>> vlanUsageMap = resvService.vlanUsage(getInterval(c), connSvc.getHeld(), c.getConnectionId());
+        log.debug("Converting fixtures...");
 
 
         for (VlanFixture f: cmp.getFixtures()) {
@@ -101,12 +107,14 @@ public class L2VPNConversions {
 
             endpoints.add(endpoint);
         }
+        log.debug("done endpoints for connection {}", c.getConnectionId());
 
         return endpoints;
     }
 
 
     public List<Bundle> getBundles(Connection c) throws ConsistencyException {
+        log.debug("Getting bundles for connection {}", c.getConnectionId());
         List<Bundle> bundles = new ArrayList<>();
         Components cmp = getComponents(c);
         Topology topology = topologyStore.getCurrentTopology();
@@ -146,6 +154,7 @@ public class L2VPNConversions {
                     .build());
             bundles.add(b);
         }
+        log.debug("Done bundles for connection {}", c.getConnectionId());
         return bundles;
     }
     public List<String> eroAsStringList(List<EroHop> ero) {
@@ -158,6 +167,7 @@ public class L2VPNConversions {
     }
 
     public static List<Waypoint> eroAsWaypointList(List<EroHop> ero, Topology topology) {
+        log.debug("Getting waypoints");
         List<Waypoint> list = new ArrayList<>();
         ero.forEach(e -> {
             UrnType urnType = UrnType.UNKNOWN;
@@ -173,9 +183,8 @@ public class L2VPNConversions {
                     .build();
             list.add(waypoint);
         });
+        log.debug("Done waypoints");
         return list;
-
-
     }
 
     public L2VPN.Meta getMeta(Connection c) {
@@ -255,14 +264,17 @@ public class L2VPNConversions {
     }
 
     public Components getComponents(Connection c) {
+        log.debug("Getting components for connection {}", c.getConnectionId());
+        Components cmp;
         if (c.getPhase().equals(Phase.HELD)) {
-            return c.getHeld().getCmp();
+            cmp = c.getHeld().getCmp();
         } else if (c.getPhase().equals(Phase.RESERVED)) {
-            return c.getReserved().getCmp();
+            cmp =  c.getReserved().getCmp();
         } else {
-            return c.getArchived().getCmp();
+            cmp = c.getArchived().getCmp();
         }
-
+        log.debug("Done components for connection {}", c.getConnectionId());
+        return cmp;
     }
 
     public Interval getInterval(Connection c) {
