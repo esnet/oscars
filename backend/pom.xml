@@ -18,8 +18,8 @@
 
     <description>OSCARS backend</description>
     <properties>
-        <java.version>21</java.version>
-        <maven.compiler.release>21</maven.compiler.release>
+        <java.version>25</java.version>
+        <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <cucumber.options>--tags @unit --strict</cucumber.options>
@@ -79,7 +79,7 @@
         <dependency>
             <groupId>net.es.topo.common</groupId>
             <artifactId>topo-common</artifactId>
-            <version>0.0.46</version>
+            <version>0.0.47</version>
         </dependency>
         <dependency>
             <groupId>net.es.nsi</groupId>

@@ -1,4 +1,8 @@
 # OSCARS Release Notes
+### 1.2.41
+> Sep 2026
+- Generate NSO identifiers from NSO state, not database 
+
 ### 1.2.40
 > Aug 2026
 - Spring boot 4 update

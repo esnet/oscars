@@ -28,7 +28,6 @@ import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.sb.SouthboundTaskResult;
-import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.soap.NsiSoapClientUtil;
 import net.es.oscars.web.beans.*;
 import net.es.oscars.web.simple.*;
@@ -268,7 +267,7 @@ public class NsiService {
                 succeeded = true;
                 return succeeded;
 
-            } catch (PCEException | ConnException | NsoResvException ex) {
+            } catch (PCEException | ConnException  ex) {
                 log.error("commit failed: {}", ex.getMessage(), ex);
                 errorCode = NsiErrors.RESV_ERROR;
                 errorMessage = ex.getMessage();

@@ -7,7 +7,6 @@ import net.es.oscars.model.*;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.*;
 import net.es.oscars.resv.svc.conversions.L2VPNConversions;
-import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.web.beans.BandwidthAvailabilityResponse;
 import net.es.oscars.web.beans.ConnException;
@@ -81,7 +80,7 @@ public class L2VPNService {
             Pair<SimpleConnection, Connection> holdResult = connSvc.holdConnection(in);
             try {
                 connSvc.commit(holdResult.getRight());
-            } catch (NsoResvException | PCEException e) {
+            } catch (PCEException e) {
                 throw new ConnException(e.getMessage());
             }
         } else {

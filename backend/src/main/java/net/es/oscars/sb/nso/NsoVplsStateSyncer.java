@@ -7,7 +7,6 @@ import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.sb.nso.exc.NsoDryrunException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
-import net.es.oscars.sb.nso.resv.NsoVcIdService;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.enums.NsoService;
 import org.apache.commons.lang3.tuple.Triple;
@@ -20,6 +19,7 @@ import net.es.topo.common.dto.nso.NsoVPLS;
 import java.util.*;
 
 import static net.es.oscars.sb.nso.NsoAdapter.VPLS_NAME_PREFIX;
+import static net.es.oscars.sb.nso.IntegerSet.singleSetFromExpr;
 
 /**
  * NSO VPLS State Synchronizer.
@@ -734,7 +734,7 @@ public class NsoVplsStateSyncer extends NsoStateSyncer<NsoStateWrapper<NsoVPLS>>
     }
 
     public boolean isOscarsManaged(NsoVPLS vpls) {
-        Set<Integer> managedVcIds = NsoVcIdService.singleSetFromExpr(nsoProperties.getVcIdRange());
+        Set<Integer> managedVcIds = singleSetFromExpr(nsoProperties.getVcIdRange());
         return managedVcIds.contains(vpls.getVcId());
     }
 }

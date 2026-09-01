@@ -7,7 +7,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.app.props.StartupProperties;
-import net.es.oscars.sb.nso.resv.LegacyPopulator;
 import net.es.oscars.topo.beans.TopoException;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.pop.TopoPopulator;
@@ -29,7 +28,6 @@ public class Startup {
     private final List<StartupComponent> components;
     private final StartupProperties startupProperties;
     private final TopoPopulator topoPopulator;
-    private final LegacyPopulator legacyPopulator;
 
     @Setter
     @Getter
@@ -47,10 +45,9 @@ public class Startup {
     @Autowired
     public Startup(StartupProperties startupProperties,
                    TopoPopulator topoPopulator,
-                   UIPopulator uiPopulator, LegacyPopulator legacyPopulator) {
+                   UIPopulator uiPopulator) {
         this.startupProperties = startupProperties;
         this.topoPopulator = topoPopulator;
-        this.legacyPopulator = legacyPopulator;
 
         components = new ArrayList<>();
         components.add(uiPopulator);
@@ -74,7 +71,6 @@ public class Startup {
             System.exit(0);
         }
         topoPopulator.refresh();
-        legacyPopulator.importPssToNso();
 
         try {
             for (StartupComponent sc : this.components) {
