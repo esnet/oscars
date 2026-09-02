@@ -163,7 +163,12 @@ public class NsoLiveStatusController {
         int serviceId = requestData.getServiceId();
 
 
+        // if the user tells us when to refresh then use their timestamp,
+        // otherwise we cache operational info for up to 60 seconds
         Instant timestamp = request.getRefreshIfOlderThan();
+        if (timestamp == null) {
+            timestamp = Instant.now().minusSeconds(60);
+        }
 
         List<OperationalStateInfoResult> results = new ArrayList<>();
         ArrayList<LiveStatusSdpResult> allSdpsForAllDevices = new ArrayList<>();
