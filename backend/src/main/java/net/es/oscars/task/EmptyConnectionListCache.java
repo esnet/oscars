@@ -14,7 +14,7 @@ public class EmptyConnectionListCache {
 
     @Scheduled(fixedDelayString = "${resv.list-cache-max-age}")
     @Transactional
-    @CacheEvict(cacheNames="connection_list", allEntries=true)
+    @CacheEvict(cacheNames="connection-list", allEntries=true)
     public void emptyTheCache() {
         // just there to run the cacheevict annotation
     }
