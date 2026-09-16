@@ -8,6 +8,7 @@ import net.es.oscars.app.props.TopoProperties;
 import net.es.oscars.app.props.FeaturesProperties;
 import net.es.oscars.dto.topo.DeviceModel;
 import net.es.oscars.topo.beans.*;
+import net.es.oscars.topo.svc.TopoGenerator;
 import net.es.topo.common.model.oscars1.IntRange;
 import net.es.oscars.topo.enums.DeviceType;
 import net.es.oscars.topo.enums.Layer;
@@ -37,6 +38,7 @@ public class TopoPopulator {
     private final TopologyStore topologyStore;
     private final ConsistencyService consistencySvc;
     private final RestTemplate restTemplate;
+    private final TopoGenerator topoGenerator;
     final OpenTelemetry openTelemetry;
 
     @Autowired
@@ -46,11 +48,12 @@ public class TopoPopulator {
                          StartupProperties startupProperties,
                          RestTemplateBuilder restTemplateBuilder,
                          OpenTelemetry openTelemetry,
-                         FeaturesProperties featuresProperties) {
+                         FeaturesProperties featuresProperties, TopoGenerator topoGenerator) {
         this.topoProperties = topoProperties;
         this.consistencySvc = consistencySvc;
         this.topologyStore = topologyStore;
         this.openTelemetry = openTelemetry;
+        this.topoGenerator = topoGenerator;
         SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
 
         this.restTemplate = restTemplateBuilder.build();
@@ -96,7 +99,7 @@ public class TopoPopulator {
             var jsonFile = new ClassPathResource("config/topology.json").getFile();
             oscarsOneTopo = mapper.readValue(jsonFile, OscarsOneTopo.class);
         } else {
-            oscarsOneTopo = restTemplate.getForObject(topoProperties.getUrl(), OscarsOneTopo.class);
+            oscarsOneTopo = topoGenerator.processConfigs();
         }
 
         log.info("loading topology from discovery");

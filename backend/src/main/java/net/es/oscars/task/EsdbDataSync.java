@@ -7,6 +7,7 @@ import net.es.oscars.app.Startup;
 import net.es.oscars.app.props.EsdbProperties;
 import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.esdb.ESDBProxy;
+import net.es.oscars.esdb.EsdbVlanProxy;
 import net.es.oscars.model.Interval;
 import net.es.oscars.resv.beans.PeriodBandwidth;
 import net.es.oscars.resv.db.ConnectionRepository;
@@ -19,7 +20,6 @@ import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.Port;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.beans.TopoUrn;
-import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.topo.common.dto.esdb.EsdbBwUtil;
@@ -45,18 +45,21 @@ public class EsdbDataSync {
     private final Startup startup;
     private final ConnectionRepository cr;
     private final ESDBProxy esdbProxy;
+    private final EsdbVlanProxy esdbVlanProxy;
+
     private final EsdbProperties esdbProperties;
     private final StartupProperties startupProperties;
     private final TopologyStore topologyStore;
     private final ResvService resvService;
 
     private boolean isSynchronized = false;
-    public EsdbDataSync(Startup startup, ConnectionRepository cr, ESDBProxy esdbProxy,
+    public EsdbDataSync(Startup startup, ConnectionRepository cr, ESDBProxy esdbProxy, EsdbVlanProxy esdbVlanProxy,
                         EsdbProperties esdbProperties, StartupProperties startupProperties,
                         TopologyStore topologyStore, ResvService resvService) {
         this.startup = startup;
         this.cr = cr;
         this.esdbProxy = esdbProxy;
+        this.esdbVlanProxy = esdbVlanProxy;
         this.esdbProperties = esdbProperties;
         this.startupProperties = startupProperties;
         this.topologyStore = topologyStore;
@@ -137,7 +140,7 @@ public class EsdbDataSync {
         log.info("starting VLAN sync");
         // fetch all ESDB vlans
         // ...Use GraphQL client.
-        List<EsdbVlan> currentEsdbVlans = esdbProxy.gqlVlanList();
+        List<EsdbVlan> currentEsdbVlans = esdbVlanProxy.gqlVlanList();
 
         // generate all the EsdbVlanPayloads from our RESERVED connections
         Set<EsdbVlanPayload> fromReserved = new HashSet<>();
@@ -171,7 +174,7 @@ public class EsdbDataSync {
         // delete all EsdbVlans that need to be deleted...
         for (EsdbVlan ev : delete) {
             log.info("deleting ESDB vlan "+ev.getId());
-            esdbProxy.deleteVlan(ev.getId());
+            esdbVlanProxy.deleteVlan(ev.getId());
         }
 
         // Decide what should be added
@@ -212,7 +215,7 @@ public class EsdbDataSync {
                 continue;
             }
 
-            esdbProxy.createVlan(evp);
+            esdbVlanProxy.createVlan(evp);
         }
 
         isSynchronized = true;

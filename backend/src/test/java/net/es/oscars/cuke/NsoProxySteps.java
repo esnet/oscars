@@ -4,7 +4,7 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.ctg.UnitTests;
-import net.es.oscars.sb.nso.LiveStatusOperationalStateCacheManager;
+import net.es.oscars.sb.nso.NsoLiveStatusMgr;
 import net.es.oscars.sb.nso.NsoProxy;
 import net.es.oscars.sb.nso.rest.*;
 import org.junit.experimental.categories.Category;
@@ -23,7 +23,7 @@ public class NsoProxySteps extends CucumberSteps {
     private NsoProxy proxy;
 
     @Autowired
-    LiveStatusOperationalStateCacheManager liveStatusOperationalStateCacheManager;
+    NsoLiveStatusMgr nsoLiveStatusMgr;
 
     String liveStatus = "";
     RestClientException restClientException;
@@ -36,8 +36,7 @@ public class NsoProxySteps extends CucumberSteps {
 
     @When("^The getLiveStatusShow method is called with device \"([^\"]*)\" and arguments \"([^\"]*)\"$")
     public void theGetLiveStatusShowMethodIsCalledWithDeviceAndArguments(String arg0, String arg1) throws Throwable {
-        LiveStatusRequest liveStatusRequest = new LiveStatusRequest(arg0, arg1);
-        liveStatus = proxy.getLiveStatusShow(liveStatusRequest);
+        liveStatus = proxy.getLiveStatusShowArgs(arg0, arg1);
         // log.info(liveStatus);
     }
 
@@ -49,22 +48,22 @@ public class NsoProxySteps extends CucumberSteps {
 
     @When("I get macs for device {string} and service id {int}")
     public void getMacs(String arg0, Integer arg1) {
-        macInfoServiceResult = liveStatusOperationalStateCacheManager.getMacs(arg0, arg1, Instant.now());
+        macInfoServiceResult = nsoLiveStatusMgr.getMacs(arg0, arg1, Instant.now());
     }
 
     @When("I get SDPs for device {string} and service id {int}")
     public void getSDPs(String arg0, Integer arg1) {
-        sdpResults = liveStatusOperationalStateCacheManager.getSdp(arg0, arg1, Instant.now());
+        sdpResults = nsoLiveStatusMgr.getSdp(arg0, arg1, Instant.now());
     }
 
     @When("I get SAPs for device {string} and service id {int}")
     public void getSAPs(String arg0, Integer arg1) {
-        sapResults = liveStatusOperationalStateCacheManager.getSap(arg0, arg1, Instant.now());
+        sapResults = nsoLiveStatusMgr.getSap(arg0, arg1, Instant.now());
     }
 
     @When("I get LSPs for device {string}")
     public void getLSPs(String arg0) {
-        lspResults = liveStatusOperationalStateCacheManager.getLsp(arg0, Instant.now());
+        lspResults = nsoLiveStatusMgr.getLsp(arg0, Instant.now());
         for (LiveStatusLspResult lspResult : lspResults) {
             assert lspResult.getStatus().equals(true);
         }

@@ -5,12 +5,8 @@ import lombok.Data;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
-public class GraphqlEsdbEquipmentInterface {
+public class GraphqlEsdbEquipmentRole {
     private String id;
-    private String equipmentInterface;
-    private GraphqlEsdbEquipmentInterfaceBandwidth interfaceBandwidth;
-    private boolean tagged;
-    private Integer oscarsBandwidth;
 
     public Integer getId() {
         return Integer.parseInt(id);

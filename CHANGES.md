@@ -2,6 +2,7 @@
 ### 1.2.41
 > Sep 2026
 - Generate NSO identifiers from NSO state, not database 
+- Generate topology inside OSCARS, not from external service
 
 ### 1.2.40
 > Aug 2026

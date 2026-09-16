@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.NsoProperties;
+import net.es.oscars.sb.nso.cache.NsoServiceConfigCache;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.dto.pss.cmd.CommandType;
@@ -22,6 +23,7 @@ import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.sb.SouthboundTaskResult;
+import net.es.oscars.sb.nso.exc.NsoReadException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
@@ -55,8 +57,9 @@ public class NsoAdapter {
 
 
     private final NsoProperties nsoProperties;
-
     private final NsoProxy nsoProxy;
+
+    private final NsoServiceConfigCache serviceConfigCache;
 
 
     private final CommandHistoryRepository historyRepo;
@@ -65,9 +68,13 @@ public class NsoAdapter {
 
     private final MiscHelper miscHelper;
 
-    public NsoAdapter(NsoProperties nsoProperties, NsoProxy nsoProxy, MiscHelper miscHelper,
+    public NsoAdapter(NsoProperties nsoProperties,
+                      NsoServiceConfigCache serviceConfigCache,
+                      NsoProxy nsoProxy,
+                      MiscHelper miscHelper,
                       CommandHistoryRepository historyRepo, RouterCommandsRepository rcr) {
         this.nsoProperties = nsoProperties;
+        this.serviceConfigCache = serviceConfigCache;
         this.nsoProxy = nsoProxy;
         this.historyRepo = historyRepo;
         this.rcr = rcr;
@@ -267,7 +274,12 @@ public class NsoAdapter {
         if (connectionId == null || connectionId.isEmpty()) {
             throw new NsoGenException("connectionId is null or empty");
         }
-        OscarsNsoState nsoState = this.fetchNsoState();
+        OscarsNsoState nsoState = null;
+        try {
+            nsoState = this.fetchNsoState(true);
+        } catch (NsoReadException e) {
+            throw new NsoGenException(e.getMessage());
+        }
         if (!nsoState.getServiceMap().containsKey(connectionId)) {
             return Optional.empty();
         } else {
@@ -340,7 +352,12 @@ public class NsoAdapter {
         Map<String, NsoVPLS.DeviceContainer> vplsDeviceMap = new HashMap<>();
 
         String connectionId = conn.getConnectionId();
-        OscarsNsoState nsoState = this.fetchNsoState();
+        OscarsNsoState nsoState = null;
+        try {
+            nsoState = this.fetchNsoState(true);
+        } catch (NsoReadException e) {
+            throw new NsoGenException(e.getMessage());
+        }
 
         Integer vcId = getVplsVcId(connectionId, nsoState);
 
@@ -534,15 +551,20 @@ public class NsoAdapter {
 
 
     // pull in state from NSO, map things to OSCARS connection ids
-    public OscarsNsoState fetchNsoState() throws NsoGenException {
+    public OscarsNsoState fetchNsoState(boolean refresh) throws NsoReadException {
         Set<String> connectionIds = new HashSet<>();
         List<NsoVPLS> allVplsList;
         List<NsoLSP> allLspList;
         try {
-            allVplsList = nsoProxy.getVpls().getNsoVpls();
-            allLspList = nsoProxy.getLsps().getNsoLSPs();
+            if (refresh) {
+                serviceConfigCache.evictSingleValue(NsoServiceConfigCache.VPLS);
+                serviceConfigCache.evictSingleValue(NsoServiceConfigCache.LSP);
+            }
+
+            allVplsList = serviceConfigCache.getVpls().getNsoVpls();
+            allLspList = serviceConfigCache.getLsps().getNsoLSPs();
         } catch (Exception ex) {
-            throw new NsoGenException("error retrieving NSO state");
+            throw new NsoReadException("error retrieving NSO state");
         }
 
         List<NsoVPLS> vplsList = allVplsList.stream()
@@ -636,13 +658,12 @@ public class NsoAdapter {
         }
     }
 
+    // get the vc id if it exists, or generate a new one
     public Integer getVplsVcId(String connectionId, OscarsNsoState nsoState) throws NsoGenException {
         if (nsoState.getServiceMap().containsKey(connectionId)) {
-            // we might already have a vcId for this VPLS, so return it
+            // If we already have a vcId for this VPLS, return it
             NsoVPLS nsoVPLS = nsoState.getServiceMap().get(connectionId).getFirst();
-            if (nsoVPLS != null) {
-                return nsoVPLS.getVcId();
-            }
+            return nsoVPLS.getVcId();
         }
         // all
         Set<Integer> usedVcIds = nsoState.getAllVplsList().stream().map(NsoVPLS::getVcId).collect(Collectors.toSet());
@@ -653,6 +674,7 @@ public class NsoAdapter {
         return Collections.min(availableVcIds);
     }
 
+    // get SAP QoS ids if they exist, generate new one(s) as needed
     public Map<Long, Integer> getSapQosIds(Integer vcId, List<VlanFixture> fixtures, OscarsNsoState nsoState) throws NsoGenException {
 
         Map<String, Set<Integer>> inUseOnDevice = new HashMap<>();
@@ -716,6 +738,7 @@ public class NsoAdapter {
 
     }
 
+    // get SDP ids if they exist, generate new one(s) as needed
     public Map<Long, Map<NsoVplsSdpPrecedence, Integer>> getSdpIds(List<VlanPipe> pipes, Integer vcId, OscarsNsoState nsoState) throws NsoGenException {
         // we mark SDP ids as in use globally even though they just need to be unique on each device
 
@@ -771,6 +794,7 @@ public class NsoAdapter {
         return result;
     }
 
+    // get SDP vc-ids if they exist, generate new one(s) as needed
     public Map<Long, Map<AZWithPrecedence, Integer>> getSdpVcIds(List<VlanPipe> pipes, Integer vcId, OscarsNsoState nsoState) throws NsoGenException {
         // we mark SDP VC ids as in use globally even though they just need to be unique and match per (A, Z) pair
 
@@ -870,6 +894,8 @@ public class NsoAdapter {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class NsoOscarsDismantle {
         private String connectionId;
         private int vcId;

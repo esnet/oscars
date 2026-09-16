@@ -129,7 +129,7 @@ public class ConnService {
 
     private Map<String, Connection> held = new HashMap<>();
 
-    @Cacheable("connection_list")
+    @Cacheable("connection-list")
     public ConnectionList filter(ConnectionFilter filter) {
 
         List<Connection> phaseFiltered = new ArrayList<>();
@@ -471,7 +471,7 @@ public class ConnService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames="connection_list", allEntries=true)
+    @CacheEvict(cacheNames="connection-list", allEntries=true)
     public void modifySchedule(Connection c, Instant beginning, Instant ending) throws ModifyException {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
@@ -489,7 +489,7 @@ public class ConnService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames="connection_list", allEntries=true)
+    @CacheEvict(cacheNames="connection-list", allEntries=true)
     public void modifyBandwidth(Connection c, Integer bandwidth) throws ModifyException {
         if (!c.getPhase().equals(Phase.RESERVED)) {
             throw new ModifyException("May only change schedule when RESERVED");
@@ -570,7 +570,7 @@ public class ConnService {
 
     public Validity verifyModification(Connection c) {
         try {
-            return this.validate(connUtils.fromConnection(c, false), ConnectionMode.MODIFY);
+            return this.validate(connUtils.fromConnection(c), ConnectionMode.MODIFY);
         } catch (ConnException e) {
             throw new RuntimeException(e);
         }
@@ -579,7 +579,7 @@ public class ConnService {
 
 
     @Transactional
-    @CacheEvict(cacheNames="connection_list", allEntries=true)
+    @CacheEvict(cacheNames="connection-list", allEntries=true)
     public ConnChangeResult commit(Connection c) throws PCEException, ConnException {
         log.info("committing {}", c.getConnectionId());
         ReentrantLock connLock = dbAccess.getConnLock();
@@ -694,7 +694,7 @@ public class ConnService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames="connection_list", allEntries=true)
+    @CacheEvict(cacheNames="connection-list", allEntries=true)
     public ConnChangeResult release(Connection c) {
         // if it is ARCHIVED , nothing to do
         if (c.getPhase().equals(Phase.ARCHIVED)) {
@@ -809,7 +809,7 @@ public class ConnService {
 
     public Validity validateCommit(Connection in) throws ConnException {
 
-        Validity v = this.validate(connUtils.fromConnection(in, false), ConnectionMode.NEW);
+        Validity v = this.validate(connUtils.fromConnection(in), ConnectionMode.NEW);
 
         StringBuilder error = new StringBuilder(v.getMessage());
         boolean valid = v.isValid();

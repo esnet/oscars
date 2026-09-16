@@ -1,0 +1,32 @@
+query vlanWithDetailsList($search: String, $sortProperty:String, $first:Int, $skip:Int) {
+    vlanList(search: $search, sortProperty: $sortProperty, first: $first, skip: $skip) {
+        totalRecords
+        list {
+            id,
+            uuid,
+            vlanId,
+            description,
+            # @TODO Where do we get this ID?
+            # bridge_id,
+            equipment {
+                id
+            },
+            equipmentInterface {
+                id
+            },
+            serviceEdges {
+                id
+                # @TODO The url field does not exist here
+                # url
+                name
+                # @TODO Where do we get this ID?
+                # serviceEdgeId
+            }
+            switchPorts {
+                id
+                # @TODO Is this switchPort as String?
+                remotePort
+            }
+        }
+    }
+}
