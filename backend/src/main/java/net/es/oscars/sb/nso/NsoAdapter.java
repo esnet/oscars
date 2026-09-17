@@ -771,9 +771,11 @@ public class NsoAdapter {
                     } else {
                         // for all other instances, mark their SdpIds as in-use
                         nsoVPLS.getDevice().forEach(device -> {
-                            nsoVPLS.getSdp().forEach(sdp -> {
-                                inUseGlobally.add(sdp.getSdpId());
-                            });
+                            if (nsoVPLS.getSdp() != null) {
+                                nsoVPLS.getSdp().forEach(sdp -> {
+                                    inUseGlobally.add(sdp.getSdpId());
+                                });
+                            }
                         });
                     }
                 });
