@@ -37,27 +37,7 @@ ARG JAR_FILE=target/*.jar
 RUN mv ${JAR_FILE} backend.jar
 RUN java -Djarmode=tools -jar backend.jar extract --layers --destination layers
 
-# 2. run stage
-FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:25-alpine
-RUN addgroup -S oscars && adduser -S oscars -G oscars
-RUN mkdir -p /app
-
-RUN chown oscars -R /app
-USER oscars
-
-# for development we copy config
-WORKDIR /app
-RUN mkdir -p /app/log
-RUN mkdir -p -m 760 /app/profiling
-
+FROM builder AS test
+WORKDIR /build/backend
 COPY ./backend/config ./config
-COPY --from=builder /build/backend/layers/dependencies/ ./
-COPY --from=builder /build/backend/layers/spring-boot-loader ./
-COPY --from=builder /build/backend/layers/snapshot-dependencies/ ./
-COPY --from=builder /build/backend/layers/application/ ./
-
-# Debugger port
-EXPOSE 9201
-
-# run the application with debug and profiling options enabled
-ENTRYPOINT sh -c 'java ${JAVA_OPTS} -jar backend.jar'
+RUN --mount=type=cache,target=/root/.m2 mvn test
