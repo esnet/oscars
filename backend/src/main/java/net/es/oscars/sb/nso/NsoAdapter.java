@@ -611,7 +611,6 @@ public class NsoAdapter {
                 .vplsList(vplsList)
                 .serviceMap(serviceMap)
                 .build();
-        DevelUtils.dumpDebug("oscarsNsoState", result);
 
         return result;
     }
