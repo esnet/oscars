@@ -82,8 +82,8 @@ public class NsoAdapter {
     }
 
 
-    public SouthboundTaskResult processTask(Connection conn, CommandType commandType, State intent)  {
-        log.info("processing southbound NSO task "+conn.getConnectionId()+" "+commandType+ " " +intent);
+    public SouthboundTaskResult processTask(Connection conn, CommandType commandType, State intent) {
+        log.info("processing southbound NSO task " + conn.getConnectionId() + " " + commandType + " " + intent);
 
         // we ass-u-me that incoming deployment state is the opposite of what is asked
         DeploymentState failureDepState = DeploymentState.DEPLOY_FAILED;
@@ -104,35 +104,35 @@ public class NsoAdapter {
         boolean shouldWriteHistory = false;
 
         if (commandType.equals(CommandType.BUILD) || commandType.equals(CommandType.DISMANTLE) || commandType.equals(CommandType.REDEPLOY)) {
-            log.info("generating NSO payload for "+conn.getConnectionId()+" "+commandType);
+            log.info("generating NSO payload for " + conn.getConnectionId() + " " + commandType);
             try {
                 switch (commandType) {
                     case BUILD -> {
                         NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
                         commands = oscarsServices.asCliCommands();
-                        log.info("BUILD cli commands\n"+commands);
+                        log.info("BUILD cli commands\n" + commands);
                         dryRun = nsoProxy.buildDryRun(oscarsServices, conn.getConnectionId());
                         nsoProxy.buildServices(oscarsServices, conn.getConnectionId());
                         newDepState = DeploymentState.DEPLOYED;
 
                     }
-                    case DISMANTLE ->  {
+                    case DISMANTLE -> {
                         Optional<NsoOscarsDismantle> maybeDismantle = this.nsoOscarsDismantle(connectionId);
                         if (maybeDismantle.isPresent()) {
                             NsoOscarsDismantle dismantle = maybeDismantle.get();
                             commands = dismantle.asCliCommands();
-                            log.info("DISMANTLE cli \n"+commands);
+                            log.info("DISMANTLE cli \n" + commands);
                             dryRun = nsoProxy.dismantleDryRun(dismantle);
                             nsoProxy.deleteServices(dismantle);
                             newDepState = DeploymentState.UNDEPLOYED;
 
                         } else {
-                            log.info("DISMANTLE "+connectionId+" - no NSO action required \n");
+                            log.info("DISMANTLE " + connectionId + " - no NSO action required \n");
                             newDepState = DeploymentState.UNDEPLOYED;
                         }
 
                     }
-                    case REDEPLOY ->  {
+                    case REDEPLOY -> {
                         NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
                         nsoProxy.redeployServices(oscarsServices, conn.getConnectionId());
                         newDepState = DeploymentState.DEPLOYED;
@@ -144,12 +144,12 @@ public class NsoAdapter {
                 // only set this after all has gone well
                 shouldWriteHistory = true;
             } catch (NsoDryrunException ex) {
-                log.error("dry run error"+ex.getMessage());
+                log.error("dry run error" + ex.getMessage());
                 commands = ex.getMessage();
                 newDepState = failureDepState;
                 newState = State.FAILED;
             } catch (NsoCommitException | NsoGenException ex) {
-                log.error("commit or gen error"+ex.getMessage());
+                log.error("commit or gen error" + ex.getMessage());
                 configStatus = ConfigStatus.ERROR;
                 newDepState = failureDepState;
                 newState = State.FAILED;
@@ -160,7 +160,7 @@ public class NsoAdapter {
         }
 
         if (shouldWriteHistory && !commandType.equals(CommandType.REDEPLOY)) {
-        // save the NSO service config and dry-run; we don't save redeploys
+            // save the NSO service config and dry-run; we don't save redeploys
             Components cmp;
             if (conn.getReserved() != null) {
                 cmp = conn.getReserved().getCmp();
@@ -198,6 +198,7 @@ public class NsoAdapter {
                 .commandType(commandType)
                 .build();
     }
+
     public NsoLSP makeNsoLSP(Connection conn, VlanJunction thisJunction, VlanJunction otherJunction, List<EroHop> hops, boolean isProtect) throws NsoGenException {
 
         int holdSetupPriority = 5;
@@ -253,7 +254,7 @@ public class NsoAdapter {
             if (validateServiceId(c.getServiceId())) {
                 parts.add(c.getServiceId());
             } else {
-                log.info("serviceId "+c.getServiceId()+" did not pass validation");
+                log.info("serviceId " + c.getServiceId() + " did not pass validation");
             }
         }
 
@@ -267,7 +268,6 @@ public class NsoAdapter {
 
         return String.join(LSP_NAME_DELIMITER, parts);
     }
-
 
 
     public Optional<NsoOscarsDismantle> nsoOscarsDismantle(String connectionId) throws NsoGenException {
@@ -289,7 +289,7 @@ public class NsoAdapter {
 
             List<String> lspInstanceKeys = new ArrayList<>();
             for (NsoLSP nsoLSP : nsoLSPs) {
-                String instanceKey = nsoLSP.getName()+","+nsoLSP.getTarget();
+                String instanceKey = nsoLSP.getName() + "," + nsoLSP.getTarget();
                 lspInstanceKeys.add(instanceKey);
             }
             return Optional.of(NsoOscarsDismantle.builder()
@@ -302,7 +302,7 @@ public class NsoAdapter {
     }
 
     public NsoServicesWrapper nsoOscarsServices(Connection conn) throws NsoGenException {
-        log.info("making NSO services wrapper for "+conn.getConnectionId());
+        log.info("making NSO services wrapper for " + conn.getConnectionId());
         Map<LspMapKey, String> lspNames = new HashMap<>();
         List<NsoLSP> lspInstances = new ArrayList<>();
 
@@ -365,7 +365,7 @@ public class NsoAdapter {
 
         for (VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
             String deviceUrn = f.getJunction().getDeviceUrn();
-            log.info("working on fixture "+f.getPortUrn()+" id "+f.getId());
+            log.info("working on fixture " + f.getPortUrn() + " id " + f.getId());
 
             // FIXME: this needs to be populated correctly as a separate property instead of relying on string split
             String portUrn = f.getPortUrn();
@@ -425,13 +425,15 @@ public class NsoAdapter {
         HashSet<NsoVPLS.SDP> sdps = new HashSet<>();
         for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
             Integer primarySdpId = sdpIdMap.get(pipe.getId()).get(NsoVplsSdpPrecedence.PRIMARY);
-            Integer protectSdpId = sdpIdMap.get(pipe.getId()).get(NsoVplsSdpPrecedence.SECONDARY);;
+            Integer protectSdpId = sdpIdMap.get(pipe.getId()).get(NsoVplsSdpPrecedence.SECONDARY);
+            ;
 
             AZWithPrecedence priKey = new AZWithPrecedence(pipe.getA().getDeviceUrn(), pipe.getZ().getDeviceUrn(), NsoVplsSdpPrecedence.PRIMARY);
             AZWithPrecedence secKey = new AZWithPrecedence(pipe.getA().getDeviceUrn(), pipe.getZ().getDeviceUrn(), NsoVplsSdpPrecedence.SECONDARY);
 
             Integer primarySdpVcId = sdpVcIdMap.get(pipe.getId()).get(priKey);
-            Integer protectSdpVcId = sdpVcIdMap.get(pipe.getId()).get(secKey);;
+            Integer protectSdpVcId = sdpVcIdMap.get(pipe.getId()).get(secKey);
+            ;
 
 
             if (primarySdpId == null) {
@@ -528,7 +530,7 @@ public class NsoAdapter {
 
         NsoVPLS vpls = NsoVPLS.builder()
                 .description(nsoDescription)
-                .name(VPLS_NAME_PREFIX+conn.getConnectionId())
+                .name(VPLS_NAME_PREFIX + conn.getConnectionId())
                 .qosMode(NsoVplsQosMode.GUARANTEED)
                 .routingDomain(nsoProperties.getRoutingDomain())
                 .vcId(vcId)
@@ -547,7 +549,6 @@ public class NsoAdapter {
                 .vplsInstances(vplsInstances)
                 .build();
     }
-
 
 
     // pull in state from NSO, map things to OSCARS connection ids
@@ -595,10 +596,17 @@ public class NsoAdapter {
 
         Map<String, Pair<NsoVPLS, List<NsoLSP>>> serviceMap = new HashMap<>();
         for (String connectionId : connectionIds) {
-            serviceMap.put(connectionId, Pair.of(vplsMap.get(connectionId), lspMap.get(connectionId)));
+            List<NsoLSP> lsps = new ArrayList<>();
+            if (lspMap.containsKey(connectionId)) {
+                lsps = lspMap.get(connectionId);
+            }
+
+            if (vplsMap.containsKey(connectionId)) {
+                serviceMap.put(connectionId, Pair.of(vplsMap.get(connectionId), lsps));
+            }
         }
 
-        return(OscarsNsoState.builder()
+        return (OscarsNsoState.builder()
                 .allLspList(allLspList)
                 .lspList(lspList)
                 .allVplsList(allVplsList)
@@ -688,14 +696,14 @@ public class NsoAdapter {
                         nsoVPLS.getDevice().forEach(deviceContainer -> {
                             deviceContainer.getEndpoint().forEach(endpoint -> {
                                 if (endpoint.getQos() != null) {
-                                    String fixtureKey = deviceContainer.getDevice()+":"+endpoint.getIfce()+":"+endpoint.getVlanId();
+                                    String fixtureKey = deviceContainer.getDevice() + ":" + endpoint.getIfce() + ":" + endpoint.getVlanId();
                                     inUseByExistingInstance.put(fixtureKey, endpoint.getQos().getQosId());
                                 }
                             });
                         });
 
                     } else {
-                    // for all other instances, mark their QosIds as in-use
+                        // for all other instances, mark their QosIds as in-use
                         nsoVPLS.getDevice().forEach(device -> {
                             if (!inUseOnDevice.containsKey(device.getDevice())) {
                                 inUseOnDevice.put(device.getDevice(), new HashSet<>());
@@ -714,7 +722,7 @@ public class NsoAdapter {
             Integer sapQosId;
             String deviceId = fixture.getJunction().getDeviceUrn();
             Set<Integer> usedSapQosIds = inUseOnDevice.get(deviceId);
-            String fixtureKey = fixture.getPortUrn()+":"+fixture.getVlan().getVlanId();
+            String fixtureKey = fixture.getPortUrn() + ":" + fixture.getVlan().getVlanId();
 
             // if there was a QosId for that fixture, reuse it
             if (inUseByExistingInstance.containsKey(fixtureKey)) {
@@ -861,6 +869,7 @@ public class NsoAdapter {
         }
         return result;
     }
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -900,6 +909,7 @@ public class NsoAdapter {
         private String connectionId;
         private int vcId;
         private List<String> lspNsoKeys;
+
         public String asCliCommands() {
             StringBuilder cmds = new StringBuilder();
             cmds.append("delete services vpls %d%n".formatted(vcId));
