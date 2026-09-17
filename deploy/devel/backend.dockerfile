@@ -16,12 +16,14 @@ COPY backend/pom.xml pom.xml
 RUN --mount=type=cache,target=/root/.m2 mvn  \
     org.apache.maven.plugins:maven-dependency-plugin:3.8.1:resolve-plugins  \
     org.apache.maven.plugins:maven-dependency-plugin:3.8.1:go-offline  \
+    -Daether.dependencyCollector.impl=bf -Daether.dependencyCollector.bf.threads=10 \
     -Daether.remoteRepositoryFilter.groupId=true  \
     -Daether.remoteRepositoryFilter.groupId.basedir=/build/backend/.remoteRepositoryFilters
 
 # another layer that downloads and resolves stuff from maven with a goal of `package`
 RUN --mount=type=cache,target=/root/.m2 mvn  \
     package --fail-never  \
+    -Daether.dependencyCollector.impl=bf -Daether.dependencyCollector.bf.threads=10 \
     -Daether.remoteRepositoryFilter.groupId=true  \
     -Daether.remoteRepositoryFilter.groupId.basedir=/build/backend/.remoteRepositoryFilters
 
