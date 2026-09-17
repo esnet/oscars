@@ -833,10 +833,13 @@ public class NsoAdapter {
                     } else {
                         // for all other instances, mark all their SdpVcIds as in-use
                         nsoVPLS.getDevice().forEach(device -> {
-                            nsoVPLS.getSdp().forEach(sdp -> {
-                                inUseGlobally.add(sdp.getA().getVcId());
-                                inUseGlobally.add(sdp.getZ().getVcId());
-                            });
+                            if (nsoVPLS.getSdp() != null) {
+                                nsoVPLS.getSdp().forEach(sdp -> {
+                                    inUseGlobally.add(sdp.getA().getVcId());
+                                    inUseGlobally.add(sdp.getZ().getVcId());
+                                });
+
+                            }
                         });
                     }
                 });
