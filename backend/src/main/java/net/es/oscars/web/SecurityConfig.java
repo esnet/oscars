@@ -53,12 +53,12 @@ public class SecurityConfig {
 
     @Order(1)
     @Bean
-    public SecurityFilterChain clientFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain clientFilterChain(HttpSecurity http) {
 
         http.securityMatcher("/api/**", "/services/**")
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize ->
-                    authorize.anyRequest().permitAll()
+                        authorize.anyRequest().permitAll()
                 )
                 .csrf(AbstractHttpConfigurer::disable);
 
@@ -67,7 +67,7 @@ public class SecurityConfig {
 
     @Order(2)
     @Bean
-    public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) {
         if (!authProperties.isOauthEnabled()) {
             http.securityMatcher("/protected/**")
                     .cors(Customizer.withDefaults())
@@ -89,6 +89,15 @@ public class SecurityConfig {
                     .csrf(AbstractHttpConfigurer::disable);
         }
         return http.build();
+    }
+
+    @Order(3)
+    @Bean
+    public SecurityFilterChain rejectChain(HttpSecurity http) {
+        return http.securityMatcher("/", "/*")
+            .authorizeHttpRequests(authorize ->
+                authorize.anyRequest().denyAll()
+            ).build();
     }
 
 
