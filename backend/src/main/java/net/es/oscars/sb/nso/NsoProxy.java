@@ -30,6 +30,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.*;
 
 import net.es.topo.common.dto.nso.enums.NsoService;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.*;
@@ -283,7 +284,6 @@ public class NsoProxy {
                     .retrieve()
                     .toEntity(NsoDryRun.class);
 
-
             if (dryRunResponse.getStatusCode().isError()) {
                 log.error("raw error: " + dryRunResponse.getBody());
                 throw new NsoDryrunException("unable to perform dry run " + dryRunResponse.getBody());
@@ -344,17 +344,18 @@ public class NsoProxy {
         try {
             log.info("submitting yang patch to " + restPath);
             logNsoObject(wrapped);
-            NsoDryRun response = patchClient.patch()
+            HttpEntity<NsoDryRun> response = patchClient.patch()
                     .uri(restPath)
                     .body(wrapped)
                     .retrieve()
-                    .body(NsoDryRun.class);
+                    .toEntity(NsoDryRun.class);
 
-            if (response != null && response.getDryRunResult() != null) {
+            NsoDryRun dryRun = response.getBody();
+            if (dryRun != null) {
                 NsoProxy.logNsoObject(response);
-                if (response.getDryRunResult() != null && response.getDryRunResult().getCli() != null) {
-                    if (response.getDryRunResult().getCli().getLocalNode() != null) {
-                        return response.getDryRunResult().getCli().getLocalNode().getData();
+                if (dryRun.getDryRunResult() != null && dryRun.getDryRunResult().getCli() != null) {
+                    if (dryRun.getDryRunResult().getCli().getLocalNode() != null) {
+                        return dryRun.getDryRunResult().getCli().getLocalNode().getData();
                     } else {
                         /*
                         an empty dry run looks like this:
@@ -585,32 +586,54 @@ public class NsoProxy {
 
         StringBuilder errorStr = new StringBuilder();
         errorStr.append("esnet-status error\n");
+        try {
+            HttpEntity<LiveStatusOutput> response = restClient.post()
+                    .uri(restPath)
+                    .body(request)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        String resBody = new String(res.getBody().readAllBytes());
 
-        final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(request);
+                        throw new LiveStatusException(resBody);
+                    })
+                    .toEntity(LiveStatusOutput.class);
+            if (response.getBody() != null) {
+                return response.getBody().getOutput();
+            }
+            errorStr.append("null response from server\n");
 
-        DeserializerUtils.EitherLiveStatusOrError response = restClient.post()
-                .uri(restPath)
-                .body(requestEntity)
-                .retrieve()
-                .body(DeserializerUtils.EitherLiveStatusOrError.class);
+        } catch (RestClientException e) {
+            log.error("Error while calling esnet-status api", e);
+            errorStr.append(e.getMessage());
 
-        if (response == null) {
+        } catch (LiveStatusException ex) {
+            try {
+                JsonMapper jsonMapper = JsonMapper.builder()
+                        .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
+                        .build();
 
-        } else {
-            LiveStatusOutput lso = response.getStatusOutput();
-            IetfRestconfErrorResponse err = response.getErrorResponse();
-            if (lso != null) {
-                return lso.getOutput();
-            } else if (err != null) {
-
-                for (IetfRestconfErrorResponse.IetfError error : err.getErrors().getErrorList()) {
+                IetfRestconfErrorResponse ietfError = jsonMapper.readValue(ex.getResponse(), IetfRestconfErrorResponse.class);
+                for (IetfRestconfErrorResponse.IetfError error : ietfError.getErrors().getErrorList()) {
                     errorStr.append(error.getErrorMessage()).append("\n");
                 }
-                return errorStr.toString();
-
+                log.error(jsonMapper.writeValueAsString(ietfError));
+            } catch (JacksonException exc) {
+                log.error("error deserializing server error response", exc);
+                errorStr.append(exc.getMessage());
             }
         }
+
         return errorStr.toString();
+    }
+    public static class LiveStatusException  extends RuntimeException {
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        @Getter
+        private final String response;
+        public LiveStatusException(String response) {
+            this.response = response;
+        }
     }
 
     public FromNsoServiceConfig getNsoServiceConfig(NsoService service) {
@@ -642,8 +665,8 @@ public class NsoProxy {
 
         String restPath = props.getUri() + req;
         try {
-            String response = restClient.get().uri(restPath).retrieve().body(String.class);
-            result.setConfig(response);
+            HttpEntity<String> response = restClient.get().uri(restPath).retrieve().toEntity(String.class);
+            result.setConfig(response.getBody());
             result.setSuccessful(true);
             log.debug("%s: get service COMPLETE ".formatted(service.toString()));
         } catch (RestClientException ex) {
