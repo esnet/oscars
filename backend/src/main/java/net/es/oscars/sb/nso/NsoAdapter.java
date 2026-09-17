@@ -25,6 +25,7 @@ import net.es.oscars.resv.enums.State;
 import net.es.oscars.sb.SouthboundTaskResult;
 import net.es.oscars.sb.nso.exc.NsoReadException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
+import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.*;
@@ -274,7 +275,7 @@ public class NsoAdapter {
         if (connectionId == null || connectionId.isEmpty()) {
             throw new NsoGenException("connectionId is null or empty");
         }
-        OscarsNsoState nsoState = null;
+        OscarsNsoState nsoState;
         try {
             nsoState = this.fetchNsoState(true);
         } catch (NsoReadException e) {
@@ -287,11 +288,8 @@ public class NsoAdapter {
             NsoVPLS nsoVPLS = nsoServices.getFirst();
             List<NsoLSP> nsoLSPs = nsoServices.getSecond();
 
-            List<String> lspInstanceKeys = new ArrayList<>();
-            for (NsoLSP nsoLSP : nsoLSPs) {
-                String instanceKey = nsoLSP.getName() + "," + nsoLSP.getTarget().getDevice();
-                lspInstanceKeys.add(instanceKey);
-            }
+            List<String> lspInstanceKeys = nsoLSPs.stream().map(NsoLSP::instanceKey).collect(Collectors.toList());
+
             return Optional.of(NsoOscarsDismantle.builder()
                     .connectionId(connectionId)
                     .vcId(nsoVPLS.getVcId())
@@ -606,13 +604,16 @@ public class NsoAdapter {
             }
         }
 
-        return (OscarsNsoState.builder()
+        OscarsNsoState result = OscarsNsoState.builder()
                 .allLspList(allLspList)
                 .lspList(lspList)
                 .allVplsList(allVplsList)
                 .vplsList(vplsList)
                 .serviceMap(serviceMap)
-                .build());
+                .build();
+        DevelUtils.dumpDebug("oscarsNsoState", result);
+
+        return result;
     }
 
     public boolean isOscarsManaged(NsoVPLS vpls) {
