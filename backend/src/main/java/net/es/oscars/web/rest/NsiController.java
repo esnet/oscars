@@ -63,7 +63,7 @@ public class NsiController {
     public ResponseEntity<?> getNsiTopology() throws DatatypeConfigurationException {
         OscarsOneTopo oscarsOneTopo = null;
         try {
-            oscarsOneTopo = topoGenerator.processConfigs();
+            oscarsOneTopo = topoGenerator.generate();
         } catch (IOException e) {
             log.error("Unable to load OSCARS topology", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());

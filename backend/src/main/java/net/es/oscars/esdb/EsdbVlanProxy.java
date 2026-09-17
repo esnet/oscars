@@ -32,9 +32,6 @@ public class EsdbVlanProxy {
      */
     public List<EsdbVlan> gqlVlanList() {
         List<EsdbVlan> results;
-
-        Map<String, Object> params = new HashMap<>();
-
         HttpSyncGraphQlClient graphQlClient = esdbProxy.createGraphqlClient();
 
         // Should return a List<EsdbVlan> in the "list" property
@@ -154,11 +151,18 @@ public class EsdbVlanProxy {
 
     public void createVlan(EsdbVlanPayload payload) {
         String restPath = esdbProxy.getEsdbProperties().getUri()+"vlan/";
-        esdbProxy.getRestTemplate().postForObject(restPath, payload, EsdbVlan.class);
-
+        esdbProxy.getRestClient().post()
+                .uri(restPath)
+                .body(payload)
+                .retrieve()
+                .toEntity(EsdbVlan.class);
     }
+
     public void deleteVlan(Integer vlanPkId) {
         String restPath = esdbProxy.getEsdbProperties().getUri()+"vlan/"+vlanPkId+"/";
-        esdbProxy.getRestTemplate().delete(restPath);
+        esdbProxy.getRestClient().delete()
+                .uri(restPath)
+                .retrieve()
+                .toBodilessEntity();
     }
 }

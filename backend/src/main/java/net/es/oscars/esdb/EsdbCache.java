@@ -32,22 +32,22 @@ public class EsdbCache {
     public void evictAllData() {}
 
 
-    @Cacheable(value = "esdb-data", key = EQUIP)
+    @Cacheable(value = "esdb-data", key = "#root.target.EQUIP")
     public List<EsdbEquip> getEquip() {
         return esdbEquipProxy.getEsdbEquip();
     }
 
-    @Cacheable(value = "esdb-data", key = VLAN)
+    @Cacheable(value = "esdb-data", key = "#root.target.VLAN")
     public List<EsdbVlanWithDetails> getVlanWithDetails(){
         return esdbVlanProxy.gqlEsdbVlanWithDetailsList();
     }
 
-    @Cacheable(value = "esdb-data", key = NSI_PEERING)
+    @Cacheable(value = "esdb-data", key = "#root.target.NSI_PEERING")
     public List<GraphqlEsdbNsiPeering> getNsiPeering(){
         return esdbEquipProxy.gqlEsdbNsiPeeringList();
     }
 
-    @Cacheable(value = "esdb-data", key = EQ_IFCE_BW)
+    @Cacheable(value = "esdb-data", key = "#root.target.EQ_IFCE_BW")
     public List<EsdbEqIfceBw> getEqIfceBw() {
         return esdbEquipProxy.gqlEsdbEquipmentInterfaceBandwidthList();
 

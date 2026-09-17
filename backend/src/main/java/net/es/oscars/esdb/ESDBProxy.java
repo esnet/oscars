@@ -8,23 +8,20 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.EsdbProperties;
-import net.es.oscars.app.util.HeaderRequestInterceptor;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbBandwidthUtilization;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganization;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganizationType;
-import net.es.oscars.dto.esdb.gql.GraphqlEsdbVlan;
 import net.es.topo.common.dto.esdb.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.graphql.client.ClientGraphQlResponse;
 import org.springframework.graphql.client.GraphQlClient;
 import org.springframework.graphql.client.HttpSyncGraphQlClient;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.*;
@@ -36,7 +33,7 @@ import static tools.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROP
 public class ESDBProxy {
 
     @Getter
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
 
     @Getter
     @Setter
@@ -44,24 +41,27 @@ public class ESDBProxy {
     final OpenTelemetry openTelemetry;
 
     @Autowired
-    public ESDBProxy(EsdbProperties props, OpenTelemetry openTelemetry, RestTemplateBuilder builder) {
+    public ESDBProxy(EsdbProperties props, OpenTelemetry openTelemetry) {
         this.esdbProperties = props;
         this.openTelemetry = openTelemetry;
         SpringWebTelemetry telemetry = SpringWebTelemetry.create(openTelemetry);
 
         JsonMapper mapper = JsonMapper.builder().disable(FAIL_ON_UNKNOWN_PROPERTIES).build();
 ;
-
-        this.restTemplate = builder
-                .additionalInterceptors(
-                        new HeaderRequestInterceptor("Authorization", "Token "+props.getApiKey()),
-                        new HeaderRequestInterceptor("Accept", MediaType.APPLICATION_JSON_VALUE),
-                        new HeaderRequestInterceptor("Content-Type", MediaType.APPLICATION_JSON_VALUE),
-                        telemetry.createInterceptor()
-                )
-                .messageConverters(new JacksonJsonHttpMessageConverter(mapper))
+        restClient = RestClient.builder()
+                .requestFactory(new HttpComponentsClientHttpRequestFactory())
+                .configureMessageConverters(client -> {
+                    client.registerDefaults().withJsonConverter(new JacksonJsonHttpMessageConverter(mapper));
+                })
+                .defaultHeaders(headers -> {
+                    headers.add(HttpHeaders.AUTHORIZATION, "Token "+props.getApiKey());
+                    headers.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
+                    headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+                })
+                .requestInterceptors(interceptors -> {
+                    interceptors.add(telemetry.createInterceptor());
+                })
                 .build();
-
     }
 
 
@@ -218,11 +218,18 @@ public class ESDBProxy {
 
     public void createBandwidthUtilization(EsdbBwUtilPayload payload) {
         String restPath = esdbProperties.getUri()+"bandwidth_utilization/";
-        restTemplate.postForObject(restPath, payload, EsdbBwUtil.class);
+        restClient.post()
+                .uri(restPath)
+                .body(payload)
+                .retrieve()
+                .toEntity(EsdbBwUtil.class);
     }
     public void deleteBandwidthUtilization(Integer bwutilPkId) {
         String restPath = esdbProperties.getUri()+"bandwidth_utilization/"+bwutilPkId+"/";
-        restTemplate.delete(restPath);
+        restClient.delete()
+                .uri(restPath)
+                .retrieve()
+                .toBodilessEntity();
     }
 
 

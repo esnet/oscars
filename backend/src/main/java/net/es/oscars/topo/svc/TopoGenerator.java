@@ -33,7 +33,7 @@ public class TopoGenerator {
     private final NsoServiceConfigCache serviceConfigCache;
     private final ServiceToOscars serviceToOscars;
 
-    @Value("classpath:custom-bw.json")
+    @Value("file:config/custom-bw.json")
     protected Resource customBwResource;
 
     public TopoGenerator(EsdbCache esdbCache, NsoServiceConfigCache serviceConfigCache, ServiceToOscars serviceToOscars) {
@@ -43,8 +43,8 @@ public class TopoGenerator {
     }
 
 
-    @Cacheable("topology")
-    public OscarsOneTopo processConfigs() throws IOException {
+    @Cacheable(value = "topology", key = "#root.methodName")
+    public OscarsOneTopo generate() throws IOException {
 
         List<OscarsOneDevice> oscarsDevices = new ArrayList<>();
 

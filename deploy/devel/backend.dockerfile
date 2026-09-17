@@ -27,7 +27,6 @@ RUN --mount=type=cache,target=/root/.m2 mvn  \
 
 # now finally build and package spring app
 COPY backend/src ./src
-COPY backend/config ./config
 
 # layers that actually compile and package the project
 RUN --mount=type=cache,target=/root/.m2 mvn compile --offline

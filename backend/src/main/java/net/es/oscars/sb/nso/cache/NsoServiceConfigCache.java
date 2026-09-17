@@ -35,41 +35,56 @@ public class NsoServiceConfigCache {
     public void evictAllServiceConfigs() {
     }
 
-    @Cacheable(value = "service-config", key = VPLS)
+    @Cacheable(value = "service-config", key = "#root.target.VPLS")
     public NsoVplsResponse getVpls() {
         FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.VPLS);
+        if (serviceConfig == null || !serviceConfig.getSuccessful()) {
+            return NsoVplsResponse.builder().build();
+        }
         return new JsonMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
     }
 
 
-    @Cacheable(value = "service-config", key = LSP)
+    @Cacheable(value = "service-config", key = "#root.target.LSP")
     public NsoLspResponse getLsps() {
         FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.LSP);
+        if (serviceConfig == null || !serviceConfig.getSuccessful()) {
+            return NsoLspResponse.builder().build();
+        }
         return new JsonMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
     }
 
 
-    @Cacheable(value = "service-config", key = PORT)
+    @Cacheable(value = "service-config", key = "#root.target.PORT")
     public NsoPortResponse getPort() {
         FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.PORT);
+        if (serviceConfig == null || !serviceConfig.getSuccessful()) {
+            return NsoPortResponse.builder().build();
+        }
         return new JsonMapper().readValue(serviceConfig.getConfig(), NsoPortResponse.class);
     }
 
 
-    @Cacheable(value = "service-config", key = SYSTEM)
+    @Cacheable(value = "service-config", key = "#root.target.SYSTEM")
     public NsoSystemResponse getSystem() {
         FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.SYSTEM);
+        if (serviceConfig == null || !serviceConfig.getSuccessful()) {
+            return NsoSystemResponse.builder().build();
+        }
         return new JsonMapper().readValue(serviceConfig.getConfig(), NsoSystemResponse.class);
     }
 
 
-    @Cacheable(value = "service-config", key = BBL)
+    @Cacheable(value = "service-config", key = "#root.target.BBL")
     public NsoBBLResponse getBBL() {
         FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.BBL);
+        if (serviceConfig == null || !serviceConfig.getSuccessful()) {
+            return NsoBBLResponse.builder().build();
+        }
         return new JsonMapper().readValue(serviceConfig.getConfig(), NsoBBLResponse.class);
     }
 
-    @Cacheable(value = "service-config", key = DEVICE_LIST)
+    @Cacheable(value = "service-config", key = "#root.target.DEVICE_LIST")
     public FromNsoDeviceList getDeviceList() {
         return nsoProxy.getNsoDeviceList();
     }
