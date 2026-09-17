@@ -8,7 +8,6 @@ import net.es.oscars.app.util.UsernameGetter;
 import net.es.oscars.nsi.ent.NsiMapping;
 import net.es.oscars.nsi.svc.NsiMappingService;
 import net.es.oscars.nsi.svc.NsiService;
-import net.es.oscars.sb.nso.resv.NsoResvException;
 import net.es.oscars.sb.ent.RouterCommandHistory;
 import net.es.oscars.resv.db.CommandHistoryRepository;
 import net.es.oscars.resv.db.ConnectionRepository;
@@ -88,7 +87,7 @@ public class ConnController {
     @RequestMapping(value = "/protected/conn/commit", method = RequestMethod.POST)
     @ResponseBody
     public ConnChangeResult commit(Authentication authentication, @RequestBody String connectionId)
-            throws StartupException, NsoResvException, PCEException, ConnException {
+            throws StartupException, PCEException, ConnException {
         this.checkStartup();
 
 

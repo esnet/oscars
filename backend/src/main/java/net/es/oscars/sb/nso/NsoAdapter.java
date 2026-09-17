@@ -1,22 +1,18 @@
 package net.es.oscars.sb.nso;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.NsoProperties;
-import net.es.oscars.sb.nso.db.NsoSdpVcIdDAO;
-import net.es.oscars.sb.nso.ent.NsoSdpVcId;
+import net.es.oscars.sb.nso.cache.NsoServiceConfigCache;
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.app.exc.PSSException;
 import net.es.oscars.dto.pss.cmd.CommandType;
 import net.es.oscars.dto.pss.st.ConfigStatus;
 import net.es.oscars.sb.nso.exc.NsoDryrunException;
 import net.es.oscars.sb.nso.exc.NsoGenException;
-import net.es.oscars.sb.nso.db.NsoQosSapPolicyIdDAO;
-import net.es.oscars.sb.nso.db.NsoSdpIdDAO;
-import net.es.oscars.sb.nso.db.NsoVcIdDAO;
-import net.es.oscars.sb.nso.ent.NsoQosSapPolicyId;
-import net.es.oscars.sb.nso.ent.NsoSdpId;
 import net.es.oscars.sb.db.RouterCommandsRepository;
 import net.es.oscars.sb.ent.RouterCommandHistory;
 import net.es.oscars.sb.ent.RouterCommands;
@@ -27,17 +23,24 @@ import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.State;
 import net.es.oscars.sb.SouthboundTaskResult;
+import net.es.oscars.sb.nso.exc.NsoReadException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
+import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.*;
+import org.apache.commons.lang3.tuple.Triple;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static net.es.oscars.resv.svc.ResvLibrary.validateServiceId;
+import static net.es.oscars.sb.nso.IntegerSet.*;
 
 @Component
 @Slf4j
@@ -47,18 +50,18 @@ public class NsoAdapter {
     public static String PROTECT_LSP_NAME_PIECE = "PRT";
     public static String LSP_NAME_DELIMITER = "-";
     public static String VPLS_NAME_PREFIX = "OSCARS-";
+    public static String LSP_ORCHID_PREFIX = "OSCARS-";
+    public static String VPLS_ORCHID_PREFIX = "OSCARS-";
+
+    private final String regexPatternOscarsManagedLsp = "(.*)" + LSP_NAME_DELIMITER + "(" + WORK_LSP_NAME_PIECE + "|" + PROTECT_LSP_NAME_PIECE + ")" + LSP_NAME_DELIMITER + "(.*)";
+    private final Pattern oscarsManagedLspPattern = Pattern.compile(regexPatternOscarsManagedLsp);
+
 
     private final NsoProperties nsoProperties;
-
     private final NsoProxy nsoProxy;
 
-    private final NsoVcIdDAO nsoVcIdDAO;
+    private final NsoServiceConfigCache serviceConfigCache;
 
-    private final NsoQosSapPolicyIdDAO nsoQosSapPolicyIdDAO;
-
-    private final NsoSdpIdDAO nsoSdpIdDAO;
-
-    private final NsoSdpVcIdDAO nsoSdpVcIdDAO;
 
     private final CommandHistoryRepository historyRepo;
 
@@ -66,23 +69,22 @@ public class NsoAdapter {
 
     private final MiscHelper miscHelper;
 
-    public NsoAdapter(NsoProperties nsoProperties, NsoProxy nsoProxy, MiscHelper miscHelper,
-                      NsoVcIdDAO nsoVcIdDAO, NsoQosSapPolicyIdDAO nsoQosSapPolicyIdDAO, NsoSdpIdDAO nsoSdpIdDAO,
-                      NsoSdpVcIdDAO nsoSdpVcIdDAO, CommandHistoryRepository historyRepo, RouterCommandsRepository rcr) {
+    public NsoAdapter(NsoProperties nsoProperties,
+                      NsoServiceConfigCache serviceConfigCache,
+                      NsoProxy nsoProxy,
+                      MiscHelper miscHelper,
+                      CommandHistoryRepository historyRepo, RouterCommandsRepository rcr) {
         this.nsoProperties = nsoProperties;
+        this.serviceConfigCache = serviceConfigCache;
         this.nsoProxy = nsoProxy;
-        this.nsoVcIdDAO = nsoVcIdDAO;
-        this.nsoQosSapPolicyIdDAO = nsoQosSapPolicyIdDAO;
-        this.nsoSdpIdDAO = nsoSdpIdDAO;
-        this.nsoSdpVcIdDAO = nsoSdpVcIdDAO;
         this.historyRepo = historyRepo;
         this.rcr = rcr;
         this.miscHelper = miscHelper;
     }
 
 
-    public SouthboundTaskResult processTask(Connection conn, CommandType commandType, State intent)  {
-        log.info("processing southbound NSO task "+conn.getConnectionId()+" "+commandType+ " " +intent);
+    public SouthboundTaskResult processTask(Connection conn, CommandType commandType, State intent) {
+        log.info("processing southbound NSO task " + conn.getConnectionId() + " " + commandType + " " + intent);
 
         // we ass-u-me that incoming deployment state is the opposite of what is asked
         DeploymentState failureDepState = DeploymentState.DEPLOY_FAILED;
@@ -98,34 +100,52 @@ public class NsoAdapter {
         String commands = "";
         String dryRun = "";
         ConfigStatus configStatus = ConfigStatus.NONE;
+        String connectionId = conn.getConnectionId();
 
         boolean shouldWriteHistory = false;
 
         if (commandType.equals(CommandType.BUILD) || commandType.equals(CommandType.DISMANTLE) || commandType.equals(CommandType.REDEPLOY)) {
-            log.info("generating NSO payload for "+conn.getConnectionId()+" "+commandType);
+            log.info("generating NSO payload for " + conn.getConnectionId() + " " + commandType);
             try {
                 switch (commandType) {
                     case BUILD -> {
                         NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
                         commands = oscarsServices.asCliCommands();
-                        log.info("BUILD cli commands\n"+commands);
+                        log.info("BUILD cli commands\n" + commands);
                         dryRun = nsoProxy.buildDryRun(oscarsServices, conn.getConnectionId());
                         nsoProxy.buildServices(oscarsServices, conn.getConnectionId());
+
+                        //
+                        serviceConfigCache.evictSingleValue(NsoServiceConfigCache.VPLS);
+                        serviceConfigCache.evictSingleValue(NsoServiceConfigCache.LSP);
                         newDepState = DeploymentState.DEPLOYED;
 
                     }
-                    case DISMANTLE ->  {
-                        NsoOscarsDismantle dismantle = this.nsoOscarsDismantle(conn);
-                        commands = dismantle.asCliCommands();
-                        log.info("DISMANTLE cli \n"+commands);
-                        dryRun = nsoProxy.dismantleDryRun(dismantle);
-                        nsoProxy.deleteServices(dismantle);
-                        newDepState = DeploymentState.UNDEPLOYED;
+                    case DISMANTLE -> {
+                        Optional<NsoOscarsDismantle> maybeDismantle = this.nsoOscarsDismantle(connectionId);
+                        if (maybeDismantle.isPresent()) {
+                            NsoOscarsDismantle dismantle = maybeDismantle.get();
+                            commands = dismantle.asCliCommands();
+                            log.info("DISMANTLE cli \n" + commands);
+                            dryRun = nsoProxy.dismantleDryRun(dismantle);
+                            nsoProxy.deleteServices(dismantle);
+
+                            serviceConfigCache.evictSingleValue(NsoServiceConfigCache.VPLS);
+                            serviceConfigCache.evictSingleValue(NsoServiceConfigCache.LSP);
+
+                            newDepState = DeploymentState.UNDEPLOYED;
+
+                        } else {
+                            log.info("DISMANTLE " + connectionId + " - no NSO action required \n");
+                            newDepState = DeploymentState.UNDEPLOYED;
+                        }
 
                     }
-                    case REDEPLOY ->  {
+                    case REDEPLOY -> {
                         NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
                         nsoProxy.redeployServices(oscarsServices, conn.getConnectionId());
+                        serviceConfigCache.evictSingleValue(NsoServiceConfigCache.VPLS);
+                        serviceConfigCache.evictSingleValue(NsoServiceConfigCache.LSP);
                         newDepState = DeploymentState.DEPLOYED;
                     }
                     default -> {
@@ -135,12 +155,12 @@ public class NsoAdapter {
                 // only set this after all has gone well
                 shouldWriteHistory = true;
             } catch (NsoDryrunException ex) {
-                log.error("dry run error"+ex.getMessage());
+                log.error("dry run error" + ex.getMessage());
                 commands = ex.getMessage();
                 newDepState = failureDepState;
                 newState = State.FAILED;
             } catch (NsoCommitException | NsoGenException ex) {
-                log.error("commit or gen error"+ex.getMessage());
+                log.error("commit or gen error" + ex.getMessage());
                 configStatus = ConfigStatus.ERROR;
                 newDepState = failureDepState;
                 newState = State.FAILED;
@@ -151,7 +171,7 @@ public class NsoAdapter {
         }
 
         if (shouldWriteHistory && !commandType.equals(CommandType.REDEPLOY)) {
-        // save the NSO service config and dry-run; we don't save redeploys
+            // save the NSO service config and dry-run; we don't save redeploys
             Components cmp;
             if (conn.getReserved() != null) {
                 cmp = conn.getReserved().getCmp();
@@ -189,6 +209,7 @@ public class NsoAdapter {
                 .commandType(commandType)
                 .build();
     }
+
     public NsoLSP makeNsoLSP(Connection conn, VlanJunction thisJunction, VlanJunction otherJunction, List<EroHop> hops, boolean isProtect) throws NsoGenException {
 
         int holdSetupPriority = 5;
@@ -244,7 +265,7 @@ public class NsoAdapter {
             if (validateServiceId(c.getServiceId())) {
                 parts.add(c.getServiceId());
             } else {
-                log.info("serviceId "+c.getServiceId()+" did not pass validation");
+                log.info("serviceId " + c.getServiceId() + " did not pass validation");
             }
         }
 
@@ -260,48 +281,36 @@ public class NsoAdapter {
     }
 
 
-
-    public NsoOscarsDismantle nsoOscarsDismantle(Connection conn) {
-        Integer vcId = nsoVcIdDAO.findNsoVcIdByConnectionId(conn.getConnectionId()).orElseThrow().getVcId();
-        Components cmp;
-        if (conn.getReserved() != null) {
-            cmp = conn.getReserved().getCmp();
+    public Optional<NsoOscarsDismantle> nsoOscarsDismantle(String connectionId) throws NsoGenException {
+        if (connectionId == null || connectionId.isEmpty()) {
+            throw new NsoGenException("connectionId is null or empty");
+        }
+        OscarsNsoState nsoState;
+        try {
+            nsoState = this.fetchNsoState(true);
+        } catch (NsoReadException e) {
+            throw new NsoGenException(e.getMessage());
+        }
+        if (!nsoState.getServiceMap().containsKey(connectionId)) {
+            return Optional.empty();
         } else {
-            cmp = conn.getArchived().getCmp();
+            Pair<NsoVPLS, List<NsoLSP>> nsoServices = nsoState.getServiceMap().get(connectionId);
+            NsoVPLS nsoVPLS = nsoServices.getFirst();
+            List<NsoLSP> nsoLSPs = nsoServices.getSecond();
+
+            List<String> lspInstanceKeys = nsoLSPs.stream().map(NsoLSP::instanceKey).collect(Collectors.toList());
+
+            return Optional.of(NsoOscarsDismantle.builder()
+                    .connectionId(connectionId)
+                    .vcId(nsoVPLS.getVcId())
+                    .lspNsoKeys(lspInstanceKeys)
+                    .build());
+
         }
-        List<String> lspInstanceKeys = new ArrayList<>();
-        for (VlanPipe pipe : cmp.getPipes()) {
-            // LSP instance key is "lspname,device"
-            // we do it both for A-Z and Z-A
-            String azLspName = lspName(conn, false, pipe.getZ().getDeviceUrn());
-            String zaLspName = lspName(conn, false, pipe.getA().getDeviceUrn());
-
-            String azInstanceKey = azLspName+","+pipe.getA().getDeviceUrn();
-            String zaInstanceKey = zaLspName+","+pipe.getZ().getDeviceUrn();
-            lspInstanceKeys.add(azInstanceKey);
-            lspInstanceKeys.add(zaInstanceKey);
-
-            if (pipe.getProtect()) {
-                azLspName = lspName(conn, true, pipe.getZ().getDeviceUrn());
-                zaLspName = lspName(conn, true, pipe.getA().getDeviceUrn());
-
-                azInstanceKey = azLspName+","+pipe.getA().getDeviceUrn();
-                zaInstanceKey = zaLspName+","+pipe.getZ().getDeviceUrn();
-
-                lspInstanceKeys.add(azInstanceKey);
-                lspInstanceKeys.add(zaInstanceKey);
-            }
-        }
-
-        return NsoOscarsDismantle.builder()
-                .connectionId(conn.getConnectionId())
-                .vcId(vcId)
-                .lspNsoKeys(lspInstanceKeys)
-                .build();
     }
 
     public NsoServicesWrapper nsoOscarsServices(Connection conn) throws NsoGenException {
-        log.info("making NSO services wrapper for "+conn.getConnectionId());
+        log.info("making NSO services wrapper for " + conn.getConnectionId());
         Map<LspMapKey, String> lspNames = new HashMap<>();
         List<NsoLSP> lspInstances = new ArrayList<>();
 
@@ -349,10 +358,22 @@ public class NsoAdapter {
         }
 
         Map<String, NsoVPLS.DeviceContainer> vplsDeviceMap = new HashMap<>();
-        Integer vcid = nsoVcIdDAO.findNsoVcIdByConnectionId(conn.getConnectionId()).orElseThrow().getVcId();
+
+        String connectionId = conn.getConnectionId();
+        OscarsNsoState nsoState = null;
+        try {
+            nsoState = this.fetchNsoState(true);
+        } catch (NsoReadException e) {
+            throw new NsoGenException(e.getMessage());
+        }
+
+        Integer vcId = getVplsVcId(connectionId, nsoState);
+
+        Map<Long, Integer> sapQosIds = getSapQosIds(vcId, conn.getReserved().getCmp().getFixtures(), nsoState);
+
         for (VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
             String deviceUrn = f.getJunction().getDeviceUrn();
-            log.info("working on fixture "+f.getPortUrn()+" id "+f.getId());
+            log.info("working on fixture " + f.getPortUrn() + " id " + f.getId());
 
             // FIXME: this needs to be populated correctly as a separate property instead of relying on string split
             String portUrn = f.getPortUrn();
@@ -370,11 +391,7 @@ public class NsoAdapter {
                         .build();
                 vplsDeviceMap.put(deviceUrn, dc);
             }
-            Optional<NsoQosSapPolicyId> maybeSapQosId = nsoQosSapPolicyIdDAO.findNsoQosSapPolicyIdByFixtureId(f.getId());
-            if (maybeSapQosId.isEmpty()) {
-                throw new NsoGenException("unable to retrieve NSO SAP QoS id");
-            }
-            NsoQosSapPolicyId sapQosId = maybeSapQosId.get();
+            Integer sapQosId = sapQosIds.get(f.getId());
 
             NsoVPLS.DeviceContainer dc = vplsDeviceMap.get(deviceUrn);
 
@@ -388,7 +405,7 @@ public class NsoAdapter {
                 egBw = 1;
             }
             NsoVPLS.QoS qos = NsoVPLS.QoS.builder()
-                    .qosId(sapQosId.getPolicyId())
+                    .qosId(sapQosId)
                     .excessAction(NsoVplsQosExcessAction.KEEP)
                     .ingressMbps(ingBw)
                     .egressMbps(egBw)
@@ -409,33 +426,28 @@ public class NsoAdapter {
                     .build();
             dc.getEndpoint().add(endpoint);
         }
-        HashSet<NsoVPLS.SDP> sdps = new HashSet<>();
-        List<NsoSdpId> sdpIds = nsoSdpIdDAO.findNsoSdpIdByConnectionId(conn.getConnectionId());
-        List<NsoSdpVcId> sdpVcIds = nsoSdpVcIdDAO.findNsoSdpVcIdByConnectionId(conn.getConnectionId());
-        for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
-            NsoSdpId primarySdpId = null;
-            NsoSdpId protectSdpId = null;
-            NsoSdpVcId primarySdpVcId = null;
-            NsoSdpVcId protectSdpVcId = null;
+        Map<Long, Map<NsoVplsSdpPrecedence, Integer>> sdpIdMap = getSdpIds(conn.getReserved().getCmp().getPipes(), vcId, nsoState);
 
-            for (NsoSdpId sdpId : sdpIds) {
-                if (sdpId.getDevice().equals(pipe.getA().getDeviceUrn()) && sdpId.getTarget().equals(pipe.getZ().getDeviceUrn())) {
-                    if (sdpId.getPrecedence().equals(NsoVplsSdpPrecedence.PRIMARY.toString())) {
-                        primarySdpId = sdpId;
-                    } else if (sdpId.getPrecedence().equals(NsoVplsSdpPrecedence.SECONDARY.toString())) {
-                        protectSdpId = sdpId;
-                    }
-                }
-            }
+        Map<Long, Map<AZWithPrecedence, Integer>> sdpVcIdMap = getSdpVcIds(conn.getReserved().getCmp().getPipes(), vcId, nsoState);
+
+        HashSet<NsoVPLS.SDP> sdps = new HashSet<>();
+        for (VlanPipe pipe : conn.getReserved().getCmp().getPipes()) {
+            Integer primarySdpId = sdpIdMap.get(pipe.getId()).get(NsoVplsSdpPrecedence.PRIMARY);
+            Integer protectSdpId = sdpIdMap.get(pipe.getId()).get(NsoVplsSdpPrecedence.SECONDARY);
+            ;
+
+            AZWithPrecedence priKey = new AZWithPrecedence(pipe.getA().getDeviceUrn(), pipe.getZ().getDeviceUrn(), NsoVplsSdpPrecedence.PRIMARY);
+            AZWithPrecedence secKey = new AZWithPrecedence(pipe.getA().getDeviceUrn(), pipe.getZ().getDeviceUrn(), NsoVplsSdpPrecedence.SECONDARY);
+
+            Integer primarySdpVcId = sdpVcIdMap.get(pipe.getId()).get(priKey);
+            Integer protectSdpVcId = sdpVcIdMap.get(pipe.getId()).get(secKey);
+            ;
+
+
             if (primarySdpId == null) {
                 throw new NsoGenException("could not locate primary SDP id");
             }
-            for (NsoSdpVcId sdpVcId: sdpVcIds) {
-                if (sdpVcId.getDevice().equals(primarySdpId.getDevice()) &&
-                        sdpVcId.getSdpId().equals(primarySdpId.getSdpId())) {
-                    primarySdpVcId = sdpVcId;
-                }
-            }
+
             if (primarySdpVcId == null) {
                 throw new NsoGenException("could not locate primary SDP VC id");
             }
@@ -455,13 +467,13 @@ public class NsoAdapter {
             NsoVPLS.SDPMember a = NsoVPLS.SDPMember.builder()
                     .device(pipe.getA().getDeviceUrn())
                     .lsp(azLspName)
-                    .vcId(primarySdpVcId.getVcId())
+                    .vcId(primarySdpVcId)
                     .mode(NsoVplsSdpMode.SPOKE)
                     .build();
             NsoVPLS.SDPMember z = NsoVPLS.SDPMember.builder()
                     .device(pipe.getZ().getDeviceUrn())
                     .lsp(zaLspName)
-                    .vcId(primarySdpVcId.getVcId())
+                    .vcId(primarySdpVcId)
                     .mode(NsoVplsSdpMode.SPOKE)
                     .build();
             NsoVPLS.SDP sdp = NsoVPLS.SDP.builder()
@@ -469,19 +481,13 @@ public class NsoAdapter {
                     .precedence(NsoVplsSdpPrecedence.PRIMARY)
                     .a(a)
                     .z(z)
-                    .sdpId(primarySdpId.getSdpId())
+                    .sdpId(primarySdpId)
                     .build();
             sdps.add(sdp);
 
             if (pipe.getProtect()) {
                 if (protectSdpId == null) {
                     throw new NsoGenException("could not locate protect SDP id");
-                }
-                for (NsoSdpVcId sdpVcId: sdpVcIds) {
-                    if (sdpVcId.getDevice().equals(protectSdpId.getDevice()) &&
-                            sdpVcId.getSdpId().equals(protectSdpId.getSdpId())) {
-                        protectSdpVcId = sdpVcId;
-                    }
                 }
                 if (protectSdpVcId == null) {
                     throw new NsoGenException("could not locate protect SDP VC id");
@@ -502,14 +508,14 @@ public class NsoAdapter {
                 NsoVPLS.SDPMember protectA = NsoVPLS.SDPMember.builder()
                         .device(pipe.getA().getDeviceUrn())
                         .lsp(azProtectLspName)
-                        .vcId(protectSdpVcId.getVcId())
+                        .vcId(protectSdpVcId)
                         .mode(NsoVplsSdpMode.SPOKE)
                         .build();
                 NsoVPLS.SDPMember protectZ = NsoVPLS.SDPMember.builder()
                         .device(pipe.getZ().getDeviceUrn())
                         .lsp(zaProtectLspName)
                         .mode(NsoVplsSdpMode.SPOKE)
-                        .vcId(protectSdpVcId.getVcId())
+                        .vcId(protectSdpVcId)
                         .build();
 
                 NsoVPLS.SDP protectSdp = NsoVPLS.SDP.builder()
@@ -517,7 +523,7 @@ public class NsoAdapter {
                         .precedence(NsoVplsSdpPrecedence.SECONDARY)
                         .a(protectA)
                         .z(protectZ)
-                        .sdpId(protectSdpId.getSdpId())
+                        .sdpId(protectSdpId)
                         .build();
                 sdps.add(protectSdp);
 
@@ -532,10 +538,10 @@ public class NsoAdapter {
 
         NsoVPLS vpls = NsoVPLS.builder()
                 .description(nsoDescription)
-                .name(VPLS_NAME_PREFIX+conn.getConnectionId())
+                .name(VPLS_NAME_PREFIX + conn.getConnectionId())
                 .qosMode(NsoVplsQosMode.GUARANTEED)
                 .routingDomain(nsoProperties.getRoutingDomain())
-                .vcId(vcid)
+                .vcId(vcId)
                 .sdp(sdps)
                 .device(new HashSet<>(vplsDeviceMap.values()))
                 .build();
@@ -553,12 +559,378 @@ public class NsoAdapter {
     }
 
 
+    // pull in state from NSO, map things to OSCARS connection ids
+    public OscarsNsoState fetchNsoState(boolean refresh) throws NsoReadException {
+        Set<String> connectionIds = new HashSet<>();
+        List<NsoVPLS> allVplsList;
+        List<NsoLSP> allLspList;
+        try {
+            if (refresh) {
+                serviceConfigCache.evictSingleValue(NsoServiceConfigCache.VPLS);
+                serviceConfigCache.evictSingleValue(NsoServiceConfigCache.LSP);
+            }
+
+            allVplsList = serviceConfigCache.getVpls().getNsoVpls();
+            allLspList = serviceConfigCache.getLsps().getNsoLSPs();
+        } catch (Exception ex) {
+            throw new NsoReadException("error retrieving NSO state");
+        }
+
+        List<NsoVPLS> vplsList = allVplsList.stream()
+                .filter(this::isOscarsManaged)
+                .toList();
+        Map<String, NsoVPLS> vplsMap = new HashMap<>();
+        for (NsoVPLS nsoVPLS : vplsList) {
+            String connectionId = oscarsConnectionId(nsoVPLS);
+            connectionIds.add(connectionId);
+            vplsMap.put(connectionId, nsoVPLS);
+        }
+
+
+        List<NsoLSP> lspList = allLspList.stream()
+                .filter(this::isOscarsManaged)
+                .toList();
+
+        Map<String, List<NsoLSP>> lspMap = new HashMap<>();
+        lspList.forEach(nsoLSP -> {
+            this.oscarsConnectionId(nsoLSP).ifPresent(connectionId -> {
+                if (!lspMap.containsKey(connectionId)) {
+                    lspMap.put(connectionId, new ArrayList<>());
+                }
+                lspMap.get(connectionId).add(nsoLSP);
+                connectionIds.add(connectionId);
+            });
+        });
+
+        Map<String, Pair<NsoVPLS, List<NsoLSP>>> serviceMap = new HashMap<>();
+        for (String connectionId : connectionIds) {
+            List<NsoLSP> lsps = new ArrayList<>();
+            if (lspMap.containsKey(connectionId)) {
+                lsps = lspMap.get(connectionId);
+            }
+
+            if (vplsMap.containsKey(connectionId)) {
+                serviceMap.put(connectionId, Pair.of(vplsMap.get(connectionId), lsps));
+            }
+        }
+
+        OscarsNsoState result = OscarsNsoState.builder()
+                .allLspList(allLspList)
+                .lspList(lspList)
+                .allVplsList(allVplsList)
+                .vplsList(vplsList)
+                .serviceMap(serviceMap)
+                .build();
+
+        return result;
+    }
+
+    public boolean isOscarsManaged(NsoVPLS vpls) {
+        Set<Integer> managedVcIds = singleSetFromExpr(nsoProperties.getVcIdRange());
+        return managedVcIds.contains(vpls.getVcId());
+    }
+
+    public boolean isOscarsManaged(NsoLSP lsp) {
+        String candidate = lsp.getOrchId();
+        // try the orch-id first; only ones with OSCARS- as the prefix are ours
+        if (candidate != null && !candidate.isEmpty()) {
+            return candidate.startsWith(LSP_ORCHID_PREFIX);
+        } else {
+            // if there's no orch-id, see if the LSP name matches our pattern
+            candidate = lsp.getName();
+            Matcher matcher = oscarsManagedLspPattern.matcher(candidate);
+            return matcher.find();
+        }
+    }
+
+
+    public String oscarsConnectionId(NsoVPLS vpls) {
+        String candidate = vpls.getOrchId();
+        if (candidate == null || candidate.isEmpty()) {
+            candidate = vpls.getName();
+            return (candidate.replace(VPLS_NAME_PREFIX, ""));
+        } else {
+            return (candidate.replace(VPLS_ORCHID_PREFIX, ""));
+        }
+
+    }
+
+
+    public Optional<String> oscarsConnectionId(NsoLSP lsp) {
+        String candidate = lsp.getOrchId();
+        // try the orch-id first. return the non "OSCARS-" bit
+        if (candidate != null && !candidate.isEmpty()) {
+            if (candidate.startsWith(LSP_ORCHID_PREFIX)) {
+                return Optional.of(candidate.replace(LSP_ORCHID_PREFIX, ""));
+            } else {
+                return Optional.empty();
+            }
+        } else {
+            // if there's no orch-id, see if the name matches our pattern
+            Matcher matcher = oscarsManagedLspPattern.matcher(lsp.getName());
+            if (matcher.find()) {
+                return Optional.of(matcher.group(1));
+            } else {
+                return Optional.empty();
+            }
+        }
+    }
+
+    // get the vc id if it exists, or generate a new one
+    public Integer getVplsVcId(String connectionId, OscarsNsoState nsoState) throws NsoGenException {
+        if (nsoState.getServiceMap().containsKey(connectionId)) {
+            // If we already have a vcId for this VPLS, return it
+            NsoVPLS nsoVPLS = nsoState.getServiceMap().get(connectionId).getFirst();
+            return nsoVPLS.getVcId();
+        }
+        // all
+        Set<Integer> usedVcIds = nsoState.getAllVplsList().stream().map(NsoVPLS::getVcId).collect(Collectors.toSet());
+        Set<Integer> availableVcIds = availableFromUsedSetAndAllowedString(usedVcIds, nsoProperties.getVcIdRange());
+        if (availableVcIds.isEmpty()) {
+            throw new NsoGenException("no VC id available");
+        }
+        return Collections.min(availableVcIds);
+    }
+
+    // get SAP QoS ids if they exist, generate new one(s) as needed
+    public Map<Long, Integer> getSapQosIds(Integer vcId, List<VlanFixture> fixtures, OscarsNsoState nsoState) throws NsoGenException {
+
+        Map<String, Set<Integer>> inUseOnDevice = new HashMap<>();
+        Map<String, Integer> inUseByExistingInstance = new HashMap<>();
+
+        // collect all Qos ids in use
+        nsoState.getAllVplsList()
+                .forEach(nsoVPLS -> {
+                    // if we find an existing instance, keep it
+                    if (nsoVPLS.getVcId().equals(vcId)) {
+                        nsoVPLS.getDevice().forEach(deviceContainer -> {
+                            deviceContainer.getEndpoint().forEach(endpoint -> {
+                                if (endpoint.getQos() != null) {
+                                    String fixtureKey = deviceContainer.getDevice() + ":" + endpoint.getIfce() + ":" + endpoint.getVlanId();
+                                    inUseByExistingInstance.put(fixtureKey, endpoint.getQos().getQosId());
+                                }
+                            });
+                        });
+
+                    } else {
+                        // for all other instances, mark their QosIds as in-use
+                        nsoVPLS.getDevice().forEach(device -> {
+                            if (!inUseOnDevice.containsKey(device.getDevice())) {
+                                inUseOnDevice.put(device.getDevice(), new HashSet<>());
+                            }
+                            device.getEndpoint().forEach(endpoint -> {
+                                if (endpoint.getQos() != null) {
+                                    inUseOnDevice.get(device.getDevice()).add(endpoint.getQos().getQosId());
+                                }
+                            });
+                        });
+                    }
+                });
+
+        Map<Long, Integer> result = new HashMap<>();
+        for (VlanFixture fixture : fixtures) {
+            Integer sapQosId;
+            String deviceId = fixture.getJunction().getDeviceUrn();
+            Set<Integer> usedSapQosIds = new HashSet<>();
+            if (inUseOnDevice.containsKey(deviceId)) {
+                usedSapQosIds = inUseOnDevice.get(deviceId);
+            } else {
+                inUseOnDevice.put(deviceId, usedSapQosIds);
+            }
+
+            String fixtureKey = fixture.getPortUrn() + ":" + fixture.getVlan().getVlanId();
+
+            // if there was a QosId for that fixture, reuse it
+            if (inUseByExistingInstance.containsKey(fixtureKey)) {
+                sapQosId = inUseByExistingInstance.get(fixtureKey);
+            } else {
+
+                Set<Integer> availableSapQosIds = availableFromUsedSetAndAllowedString(usedSapQosIds, nsoProperties.getSapQosIdRange());
+                if (availableSapQosIds.isEmpty()) {
+                    throw new NsoGenException("no SAP QoS id available for device: " + deviceId);
+                }
+                // choose the lowest value
+                sapQosId = Collections.min(availableSapQosIds);
+            }
+
+            // mark it as being used
+            inUseOnDevice.get(deviceId).add(sapQosId);
+            result.put(fixture.getId(), sapQosId);
+        }
+
+        return result;
+
+    }
+
+    // get SDP ids if they exist, generate new one(s) as needed
+    public Map<Long, Map<NsoVplsSdpPrecedence, Integer>> getSdpIds(List<VlanPipe> pipes, Integer vcId, OscarsNsoState nsoState) throws NsoGenException {
+        // we mark SDP ids as in use globally even though they just need to be unique on each device
+
+        Set<Integer> allowedSdpIds = singleSetFromExpr(nsoProperties.getSdpIdRange());
+        Set<Integer> inUseGlobally = new HashSet<>();
+        Map<AZWithPrecedence, Integer> inUseByExistingInstance = new HashMap<>();
+
+        nsoState.getAllVplsList()
+                .forEach(nsoVPLS -> {
+                    // if we find an existing instance, keep it around
+                    if (nsoVPLS.getVcId().equals(vcId)) {
+                        nsoVPLS.getSdp().forEach(sdp -> {
+                            AZWithPrecedence pipeKey = new AZWithPrecedence(sdp.getA().getDevice(), sdp.getZ().getDevice(), sdp.getPrecedence());
+                            inUseByExistingInstance.put(pipeKey, sdp.getSdpId());
+                        });
+                    } else {
+                        // for all other instances, mark their SdpIds as in-use
+                        nsoVPLS.getDevice().forEach(device -> {
+                            if (nsoVPLS.getSdp() != null) {
+                                nsoVPLS.getSdp().forEach(sdp -> {
+                                    inUseGlobally.add(sdp.getSdpId());
+                                });
+                            }
+                        });
+                    }
+                });
+        Map<Long, Map<NsoVplsSdpPrecedence, Integer>> result = new HashMap<>();
+        for (VlanPipe pipe : pipes) {
+            result.put(pipe.getId(), new HashMap<>());
+
+            for (NsoVplsSdpPrecedence precedence : NsoVplsSdpPrecedence.values()) {
+                // we don't do the work for SECONDARY if there's no protect on the pipe
+                if (precedence.equals(NsoVplsSdpPrecedence.SECONDARY) && !pipe.getProtect()) {
+                    continue;
+                }
+
+                Integer sdpId;
+                AZWithPrecedence pipeKey = new AZWithPrecedence(pipe.getA().getDeviceUrn(), pipe.getZ().getDeviceUrn(), precedence);
+                if (inUseByExistingInstance.containsKey(pipeKey)) {
+                    // reuse the existing sdp id
+                    sdpId = inUseByExistingInstance.get(pipeKey);
+
+                } else {
+                    Set<Integer> availableSdpIds = availableFromUsedAndAllowedSets(inUseGlobally, allowedSdpIds);
+                    if (availableSdpIds.isEmpty()) {
+                        throw new NsoGenException("no SDP id available ");
+                    }
+                    // choose the lowest value
+                    sdpId = Collections.min(availableSdpIds);
+                }
+                inUseGlobally.add(sdpId);
+                result.get(pipe.getId()).put(precedence, sdpId);
+            }
+        }
+        return result;
+    }
+
+    // get SDP vc-ids if they exist, generate new one(s) as needed
+    public Map<Long, Map<AZWithPrecedence, Integer>> getSdpVcIds(List<VlanPipe> pipes, Integer vcId, OscarsNsoState nsoState) throws NsoGenException {
+        // we mark SDP VC ids as in use globally even though they just need to be unique and match per (A, Z) pair
+
+        Set<Integer> allowedSdpVcIds = singleSetFromExpr(nsoProperties.getVcIdRange());
+        Set<Integer> inUseGlobally = new HashSet<>();
+
+        Map<AZWithPrecedence, Integer> inUseByExistingInstance = new HashMap<>();
+
+        nsoState.getAllVplsList()
+                .forEach(nsoVPLS -> {
+                    // if we find an existing instance, keep around what sdpVcIds it is currently using
+                    if (nsoVPLS.getVcId().equals(vcId)) {
+                        nsoVPLS.getSdp().forEach(sdp -> {
+                            AZWithPrecedence pipeAzKey = new AZWithPrecedence(sdp.getA().getDevice(), sdp.getZ().getDevice(), sdp.getPrecedence());
+                            inUseByExistingInstance.put(pipeAzKey, sdp.getA().getVcId());
+
+                            AZWithPrecedence pipeZaKey = new AZWithPrecedence(sdp.getZ().getDevice(), sdp.getA().getDevice(), sdp.getPrecedence());
+                            inUseByExistingInstance.put(pipeZaKey, sdp.getZ().getVcId());
+                        });
+                    } else {
+                        // for all other instances, mark all their SdpVcIds as in-use
+                        nsoVPLS.getDevice().forEach(device -> {
+                            if (nsoVPLS.getSdp() != null) {
+                                nsoVPLS.getSdp().forEach(sdp -> {
+                                    inUseGlobally.add(sdp.getA().getVcId());
+                                    inUseGlobally.add(sdp.getZ().getVcId());
+                                });
+
+                            }
+                        });
+                    }
+                });
+
+        Map<Long, Map<AZWithPrecedence, Integer>> result = new HashMap<>();
+        for (VlanPipe pipe : pipes) {
+            result.put(pipe.getId(), new HashMap<>());
+
+            for (NsoVplsSdpPrecedence precedence : NsoVplsSdpPrecedence.values()) {
+                // we don't do the work for SECONDARY if there's no protect on the pipe
+                if (precedence.equals(NsoVplsSdpPrecedence.SECONDARY) && !pipe.getProtect()) {
+                    continue;
+                }
+                Pair<String, String> az = Pair.of(pipe.getA().getDeviceUrn(), pipe.getZ().getDeviceUrn());
+                Pair<String, String> za = Pair.of(pipe.getZ().getDeviceUrn(), pipe.getA().getDeviceUrn());
+                List<Pair<String, String>> pairs = new ArrayList<>();
+                pairs.add(az);
+                pairs.add(za);
+
+                for (Pair<String, String> pair : pairs) {
+                    Integer sdpVcId;
+                    AZWithPrecedence pipeKey = new AZWithPrecedence(pair.getFirst(), pair.getSecond(), precedence);
+                    if (inUseByExistingInstance.containsKey(pipeKey)) {
+                        // reuse the existing sdp id
+                        sdpVcId = inUseByExistingInstance.get(pipeKey);
+                    } else {
+                        Set<Integer> availableSdpVcIds = availableFromUsedAndAllowedSets(inUseGlobally, allowedSdpVcIds);
+                        if (availableSdpVcIds.isEmpty()) {
+                            throw new NsoGenException("no SDP vc id available ");
+                        }
+                        // choose the lowest value
+                        sdpVcId = Collections.min(availableSdpVcIds);
+                    }
+                    inUseGlobally.add(sdpVcId);
+                    result.get(pipe.getId()).put(pipeKey, sdpVcId);
+                }
+            }
+        }
+        return result;
+    }
+
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OscarsNsoState {
+        @Builder.Default
+        public List<NsoLSP> lspList = new ArrayList<>();
+        @Builder.Default
+        public List<NsoLSP> allLspList = new ArrayList<>();
+
+        @Builder.Default
+        public List<NsoVPLS> allVplsList = new ArrayList<>();
+        @Builder.Default
+        public List<NsoVPLS> vplsList = new ArrayList<>();
+        @Builder.Default
+        public Map<String, Pair<NsoVPLS, List<NsoLSP>>> serviceMap = new HashMap<>();
+
+    }
+
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AZWithPrecedence {
+        String a;
+        String z;
+        NsoVplsSdpPrecedence precedence;
+    }
+
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class NsoOscarsDismantle {
         private String connectionId;
         private int vcId;
         private List<String> lspNsoKeys;
+
         public String asCliCommands() {
             StringBuilder cmds = new StringBuilder();
             cmds.append("delete services vpls %d%n".formatted(vcId));

@@ -7,6 +7,11 @@ import lombok.Data;
 @Data
 public class GraphqlEsdbEquipmentInterface {
     private String id;
+    private String equipmentInterface;
+    private GraphqlEsdbEquipmentInterfaceBandwidth interfaceBandwidth;
+    private boolean tagged;
+    private Integer oscarsBandwidth;
+
     public Integer getId() {
         return Integer.parseInt(id);
     }
