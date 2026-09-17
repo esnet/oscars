@@ -724,6 +724,8 @@ public class NsoAdapter {
             Set<Integer> usedSapQosIds = new HashSet<>();
             if (inUseOnDevice.containsKey(deviceId)) {
                 usedSapQosIds = inUseOnDevice.get(deviceId);
+            } else {
+                inUseOnDevice.put(deviceId, usedSapQosIds);
             }
 
             String fixtureKey = fixture.getPortUrn() + ":" + fixture.getVlan().getVlanId();
