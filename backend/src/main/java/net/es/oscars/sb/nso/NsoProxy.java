@@ -661,16 +661,19 @@ public class NsoProxy {
                 .service(service)
                 .successful(false)
                 .build();
-        String req = RESTCONF_DATA+"tailf-ncs:services%s".formatted(path);
+        String req = RESTCONF_DATA+"/tailf-ncs:services%s".formatted(path);
 
         String restPath = props.getUri() + req;
+
         try {
             HttpEntity<String> response = restClient.get().uri(restPath).retrieve().toEntity(String.class);
-            result.setConfig(response.getBody());
-            result.setSuccessful(true);
+            if (response.getBody() != null && !response.getBody().isEmpty()) {
+                result.setConfig(response.getBody());
+                result.setSuccessful(true);
+            }
             log.debug("%s: get service COMPLETE ".formatted(service.toString()));
         } catch (RestClientException ex) {
-            log.warn("%s: get service config FAILED ".formatted(service.toString()));
+            log.warn("%s get service config from %s FAILED ".formatted(service.toString(),restPath));
         }
         return result;
     }
