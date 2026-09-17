@@ -114,6 +114,10 @@ public class NsoAdapter {
                         log.info("BUILD cli commands\n" + commands);
                         dryRun = nsoProxy.buildDryRun(oscarsServices, conn.getConnectionId());
                         nsoProxy.buildServices(oscarsServices, conn.getConnectionId());
+
+                        //
+                        serviceConfigCache.evictSingleValue(NsoServiceConfigCache.VPLS);
+                        serviceConfigCache.evictSingleValue(NsoServiceConfigCache.LSP);
                         newDepState = DeploymentState.DEPLOYED;
 
                     }
@@ -125,6 +129,10 @@ public class NsoAdapter {
                             log.info("DISMANTLE cli \n" + commands);
                             dryRun = nsoProxy.dismantleDryRun(dismantle);
                             nsoProxy.deleteServices(dismantle);
+
+                            serviceConfigCache.evictSingleValue(NsoServiceConfigCache.VPLS);
+                            serviceConfigCache.evictSingleValue(NsoServiceConfigCache.LSP);
+
                             newDepState = DeploymentState.UNDEPLOYED;
 
                         } else {
@@ -136,6 +144,8 @@ public class NsoAdapter {
                     case REDEPLOY -> {
                         NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
                         nsoProxy.redeployServices(oscarsServices, conn.getConnectionId());
+                        serviceConfigCache.evictSingleValue(NsoServiceConfigCache.VPLS);
+                        serviceConfigCache.evictSingleValue(NsoServiceConfigCache.LSP);
                         newDepState = DeploymentState.DEPLOYED;
                     }
                     default -> {
