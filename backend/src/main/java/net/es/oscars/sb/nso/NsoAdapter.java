@@ -289,7 +289,7 @@ public class NsoAdapter {
 
             List<String> lspInstanceKeys = new ArrayList<>();
             for (NsoLSP nsoLSP : nsoLSPs) {
-                String instanceKey = nsoLSP.getName() + "," + nsoLSP.getTarget();
+                String instanceKey = nsoLSP.getName() + "," + nsoLSP.getTarget().getDevice();
                 lspInstanceKeys.add(instanceKey);
             }
             return Optional.of(NsoOscarsDismantle.builder()
