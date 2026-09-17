@@ -721,7 +721,11 @@ public class NsoAdapter {
         for (VlanFixture fixture : fixtures) {
             Integer sapQosId;
             String deviceId = fixture.getJunction().getDeviceUrn();
-            Set<Integer> usedSapQosIds = inUseOnDevice.get(deviceId);
+            Set<Integer> usedSapQosIds = new HashSet<>();
+            if (inUseOnDevice.containsKey(deviceId)) {
+                usedSapQosIds = inUseOnDevice.get(deviceId);
+            }
+
             String fixtureKey = fixture.getPortUrn() + ":" + fixture.getVlan().getVlanId();
 
             // if there was a QosId for that fixture, reuse it
