@@ -95,7 +95,6 @@ public class NsiController {
         nsiTopology.setLifetime(lifeTime);
 
         // get esdb nsi peers and equipment
-        Instant refreshIfOlderThan = Instant.now().minus(30, ChronoUnit.SECONDS);
         List<GraphqlEsdbNsiPeering> nsiPeerings = esdbCache.getNsiPeering();
 
         if (nsiPeerings == null ||  oscarsOneTopo == null) {

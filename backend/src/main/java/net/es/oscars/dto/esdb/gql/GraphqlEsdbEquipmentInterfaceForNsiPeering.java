@@ -24,6 +24,8 @@ public class GraphqlEsdbEquipmentInterfaceForNsiPeering {
     @JsonIgnoreProperties(ignoreUnknown = true)
     @Data
     @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class DeviceContainer {
         private String id;
         public Integer getId() {
@@ -37,12 +39,17 @@ public class GraphqlEsdbEquipmentInterfaceForNsiPeering {
     @JsonIgnoreProperties(ignoreUnknown = true)
     @Data
     @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class Bandwidth {
         private Integer speed;
     }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     @Data
     @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class LocationContainer {
         private String id;
         public Integer getId() {
