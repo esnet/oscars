@@ -25,11 +25,9 @@ import net.es.oscars.resv.enums.State;
 import net.es.oscars.sb.SouthboundTaskResult;
 import net.es.oscars.sb.nso.exc.NsoReadException;
 import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
-import net.es.topo.common.devel.DevelUtils;
 import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.*;
-import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 
@@ -59,7 +57,6 @@ public class NsoAdapter {
 
     private final NsoProperties nsoProperties;
     private final NsoProxy nsoProxy;
-    private final NsoAdapter nsoAdapter;
 
     private final NsoServiceConfigCache serviceConfigCache;
 
@@ -70,13 +67,12 @@ public class NsoAdapter {
 
     private final MiscHelper miscHelper;
 
-    public NsoAdapter(NsoProperties nsoProperties, NsoAdapter nsoAdapter,
+    public NsoAdapter(NsoProperties nsoProperties,
                       NsoServiceConfigCache serviceConfigCache,
                       NsoProxy nsoProxy,
                       MiscHelper miscHelper,
                       CommandHistoryRepository historyRepo, RouterCommandsRepository rcr) {
         this.nsoProperties = nsoProperties;
-        this.nsoAdapter = nsoAdapter;
         this.serviceConfigCache = serviceConfigCache;
         this.nsoProxy = nsoProxy;
         this.historyRepo = historyRepo;
@@ -109,7 +105,7 @@ public class NsoAdapter {
         if (commandType.equals(CommandType.BUILD) || commandType.equals(CommandType.DISMANTLE) || commandType.equals(CommandType.REDEPLOY)) {
             log.info("generating NSO payload for " + conn.getConnectionId() + " " + commandType);
             try {
-                NsoAdapter.OscarsNsoState nsoState = nsoAdapter.fetchNsoState(true);
+                NsoAdapter.OscarsNsoState nsoState = this.fetchNsoState(true);
 
                 switch (commandType) {
                     case BUILD -> {
