@@ -151,13 +151,14 @@ public class SimpleApiController {
                 Pair<NsoVPLS, List<NsoLSP>> nsoServices = nsoState.getServiceMap().get(c.getConnectionId());
                 if (nsoServices == null) {
                     log.info("Couldn't find NSO config for " + c.getConnectionId());
-                    throw new NoSuchElementException();
+                } else {
+                    NsoVPLS nsoVpls = nsoServices.getFirst();
+                    Integer vcid = nsoVpls.getVcId();
+                    sc.getFixtures().forEach(fixture -> {
+                        fixture.setSvcId(vcid);
+                    });
+
                 }
-                NsoVPLS nsoVpls = nsoServices.getFirst();
-                Integer vcid = nsoVpls.getVcId();
-                sc.getFixtures().forEach(fixture -> {
-                    fixture.setSvcId(vcid);
-                });
             }
 
             result.add(sc);
