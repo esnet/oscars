@@ -58,7 +58,7 @@ public class NsoProxySteps extends CucumberSteps {
 
     @When("I get SAPs for device {string} and service id {int}")
     public void getSAPs(String arg0, Integer arg1) {
-        sapResults = nsoLiveStatusMgr.getSap(arg0, arg1, Instant.now());
+        sapResults = nsoLiveStatusMgr.getSap(arg0, arg1);
     }
 
     @When("I get LSPs for device {string}")

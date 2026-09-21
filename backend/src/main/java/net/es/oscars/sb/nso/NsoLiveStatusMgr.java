@@ -125,7 +125,7 @@ public class NsoLiveStatusMgr {
     }
 
     // SAP
-    public ArrayList<LiveStatusSapResult> getSap(String device, int serviceId, Instant olderThanTimestamp) {
+    public ArrayList<LiveStatusSapResult> getSap(String device, int serviceId) {
 
         log.info("Refresh SAP info for " + device + " service ID " + serviceId);
 
@@ -155,31 +155,49 @@ public class NsoLiveStatusMgr {
 
             String line = sapsList.get(i);
             log.debug("LINE :" + line);
-            String[] sapIdAndInfo = line.split(":");
 
-            if (sapIdAndInfo.length != 2) {
-                log.error("SAP data parsing error - line format error: SAP ID and info");
+            /* this can look like this
+===============================================================================
+PortId                          SvcId      Ing.  Ing.    Egr.  Egr.   Adm  Opr
+                                           QoS   Fltr    QoS   Fltr
+-------------------------------------------------------------------------------
+1/1/c3/1:3422                   7125       7010  none    7010  none   Up   Up
+but, when vlan id = 0 untagged
+2/1/c13/2                       7058       7003  none    7003  none   Up   Up
+             */
+
+            // split the line by whitespace
+            String[] sapInfo = line.split("\\s+");
+            int sapInfoElements = 8;
+            if (sapInfo.length != sapInfoElements) {
+                log.error("SAP data parsing error - line format error: "+sapInfo.length+" data arguments");
                 break;
             }
 
-            result.setPort(sapIdAndInfo[0]);
+            String port;
+            String vlanStr;
 
-            String singleWhitespace = sapIdAndInfo[1].replaceAll("\\s{2,}", " ");
-            String[] sapInfo = singleWhitespace.split(" ");
+            String sapAndVlan = sapInfo[0];
+            if (sapAndVlan.contains(":")) {
+                String[] sapAndVlanParts =  sapAndVlan.split(":");
+                port = sapAndVlanParts[0];
+                vlanStr = sapAndVlanParts[1];
 
-            int remainingElements = 8;
-            if (sapInfo.length != remainingElements) {
-                log.error("SAP data parsing error - line format error: data arguments");
-                break;
+            } else {
+                // if there is no ":" character in the sap id, that means we have an untagged SAP
+                port = sapAndVlan;
+                vlanStr = "0";
             }
+
+            result.setPort(port);
 
             int vlanId = 0;
             int ingresQos = 0;
             int egressQos = 0;
             try {
-                vlanId = Integer.parseInt(sapInfo[0]);
-                ingresQos = Integer.parseInt(sapInfo[0]);
-                egressQos = Integer.parseInt(sapInfo[0]);
+                vlanId = Integer.parseInt(vlanStr);
+                ingresQos = Integer.parseInt(sapInfo[2]);
+                egressQos = Integer.parseInt(sapInfo[4]);
             } catch (NumberFormatException error) {
                 log.error("Couldn't parse SAP VLAN ID or ingress / egress QoS");
                 error.printStackTrace();

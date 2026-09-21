@@ -178,7 +178,7 @@ public class NsoLiveStatusController {
                     conn.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
                 log.info("Fetch SDPs, SAPs, and LSPs from LiveStatusCacheManager for " + device + " service id " + serviceId);
                 List<LiveStatusSdpResult> sdpsOnDevice = nsoLiveStatusMgr.getSdp(device, serviceId, timestamp);
-                List<LiveStatusSapResult> sapsOnDevice = nsoLiveStatusMgr.getSap(device, serviceId, timestamp);
+                List<LiveStatusSapResult> sapsOnDevice = nsoLiveStatusMgr.getSap(device, serviceId);
 
                 // get SDPs, SAPs, and LSPs from cache manager
                 allSdpsForAllDevices.addAll(sdpsOnDevice);
