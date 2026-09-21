@@ -62,9 +62,9 @@ public class NsoStaleReport {
             for (String connectionId : nsoState.getServiceMap().keySet()) {
                 if (!shouldBeDeployed.containsKey(connectionId)) {
                     staleConnections.put(connectionId, nsoState.getServiceMap().get(connectionId));
-                    log.info("Stale on NSO: {}", connectionId);
                 }
             }
+            StringBuilder report = new StringBuilder();
 
             // generate NSO commands for cleaning stale connections
             for (String connectionId : staleConnections.keySet()) {
@@ -72,9 +72,11 @@ public class NsoStaleReport {
                 if (maybeDismantle.isPresent()) {
                     NsoAdapter.NsoOscarsDismantle dismantle = maybeDismantle.get();
                     String commands = dismantle.asCliCommands();
-                    log.info("    DISMANTLE {} :\n{}", connectionId, commands);
+                    report.append(String.format("    DISMANTLE commands for stale connection %s :\n%s", connectionId, commands));
+
                 }
             }
+            log.info("Staleness report:\n" + report);
 
         } catch (NsoReadException | NsoGenException e) {
             log.error("Error creating NSO staleness report", e);
