@@ -72,7 +72,7 @@ public class NsoStaleReport {
                 if (maybeDismantle.isPresent()) {
                     NsoAdapter.NsoOscarsDismantle dismantle = maybeDismantle.get();
                     String commands = dismantle.asCliCommands();
-                    log.info("    DISMANTLE {}+ :\n{}", connectionId, commands);
+                    log.info("    DISMANTLE {} :\n{}", connectionId, commands);
                 }
             }
 
