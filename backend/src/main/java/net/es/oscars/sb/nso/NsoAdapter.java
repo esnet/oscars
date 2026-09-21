@@ -59,6 +59,7 @@ public class NsoAdapter {
 
     private final NsoProperties nsoProperties;
     private final NsoProxy nsoProxy;
+    private final NsoAdapter nsoAdapter;
 
     private final NsoServiceConfigCache serviceConfigCache;
 
@@ -69,12 +70,13 @@ public class NsoAdapter {
 
     private final MiscHelper miscHelper;
 
-    public NsoAdapter(NsoProperties nsoProperties,
+    public NsoAdapter(NsoProperties nsoProperties, NsoAdapter nsoAdapter,
                       NsoServiceConfigCache serviceConfigCache,
                       NsoProxy nsoProxy,
                       MiscHelper miscHelper,
                       CommandHistoryRepository historyRepo, RouterCommandsRepository rcr) {
         this.nsoProperties = nsoProperties;
+        this.nsoAdapter = nsoAdapter;
         this.serviceConfigCache = serviceConfigCache;
         this.nsoProxy = nsoProxy;
         this.historyRepo = historyRepo;
@@ -107,9 +109,11 @@ public class NsoAdapter {
         if (commandType.equals(CommandType.BUILD) || commandType.equals(CommandType.DISMANTLE) || commandType.equals(CommandType.REDEPLOY)) {
             log.info("generating NSO payload for " + conn.getConnectionId() + " " + commandType);
             try {
+                NsoAdapter.OscarsNsoState nsoState = nsoAdapter.fetchNsoState(true);
+
                 switch (commandType) {
                     case BUILD -> {
-                        NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
+                        NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn, nsoState);
                         commands = oscarsServices.asCliCommands();
                         log.info("BUILD cli commands\n" + commands);
                         dryRun = nsoProxy.buildDryRun(oscarsServices, conn.getConnectionId());
@@ -122,7 +126,7 @@ public class NsoAdapter {
 
                     }
                     case DISMANTLE -> {
-                        Optional<NsoOscarsDismantle> maybeDismantle = this.nsoOscarsDismantle(connectionId);
+                        Optional<NsoOscarsDismantle> maybeDismantle = this.nsoOscarsDismantle(connectionId, nsoState);
                         if (maybeDismantle.isPresent()) {
                             NsoOscarsDismantle dismantle = maybeDismantle.get();
                             commands = dismantle.asCliCommands();
@@ -142,7 +146,7 @@ public class NsoAdapter {
 
                     }
                     case REDEPLOY -> {
-                        NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn);
+                        NsoServicesWrapper oscarsServices = this.nsoOscarsServices(conn, nsoState);
                         nsoProxy.redeployServices(oscarsServices, conn.getConnectionId());
                         serviceConfigCache.evictSingleValue(NsoServiceConfigCache.VPLS);
                         serviceConfigCache.evictSingleValue(NsoServiceConfigCache.LSP);
@@ -159,7 +163,7 @@ public class NsoAdapter {
                 commands = ex.getMessage();
                 newDepState = failureDepState;
                 newState = State.FAILED;
-            } catch (NsoCommitException | NsoGenException ex) {
+            } catch (NsoCommitException | NsoGenException | NsoReadException ex) {
                 log.error("commit or gen error" + ex.getMessage());
                 configStatus = ConfigStatus.ERROR;
                 newDepState = failureDepState;
@@ -281,15 +285,9 @@ public class NsoAdapter {
     }
 
 
-    public Optional<NsoOscarsDismantle> nsoOscarsDismantle(String connectionId) throws NsoGenException {
+    public Optional<NsoOscarsDismantle> nsoOscarsDismantle(String connectionId, OscarsNsoState nsoState) throws NsoGenException {
         if (connectionId == null || connectionId.isEmpty()) {
             throw new NsoGenException("connectionId is null or empty");
-        }
-        OscarsNsoState nsoState;
-        try {
-            nsoState = this.fetchNsoState(true);
-        } catch (NsoReadException e) {
-            throw new NsoGenException(e.getMessage());
         }
         if (!nsoState.getServiceMap().containsKey(connectionId)) {
             return Optional.empty();
@@ -309,7 +307,7 @@ public class NsoAdapter {
         }
     }
 
-    public NsoServicesWrapper nsoOscarsServices(Connection conn) throws NsoGenException {
+    public NsoServicesWrapper nsoOscarsServices(Connection conn, OscarsNsoState nsoState) throws NsoGenException {
         log.info("making NSO services wrapper for " + conn.getConnectionId());
         Map<LspMapKey, String> lspNames = new HashMap<>();
         List<NsoLSP> lspInstances = new ArrayList<>();
@@ -360,13 +358,6 @@ public class NsoAdapter {
         Map<String, NsoVPLS.DeviceContainer> vplsDeviceMap = new HashMap<>();
 
         String connectionId = conn.getConnectionId();
-        OscarsNsoState nsoState = null;
-        try {
-            nsoState = this.fetchNsoState(true);
-        } catch (NsoReadException e) {
-            throw new NsoGenException(e.getMessage());
-        }
-
         Integer vcId = getVplsVcId(connectionId, nsoState);
 
         Map<Long, Integer> sapQosIds = getSapQosIds(vcId, conn.getReserved().getCmp().getFixtures(), nsoState);

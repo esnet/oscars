@@ -55,7 +55,7 @@ public class NsoStaleReport {
         }
 
         try {
-            NsoAdapter.OscarsNsoState nsoState = nsoAdapter.fetchNsoState(true);
+            NsoAdapter.OscarsNsoState nsoState = nsoAdapter.fetchNsoState(false);
 
             // see what is actually deployed - if it is not supposed to, it is "stale"
             Map<String, Pair<NsoVPLS, List<NsoLSP>>> staleConnections = new HashMap<>();
@@ -68,7 +68,7 @@ public class NsoStaleReport {
 
             // generate NSO commands for cleaning stale connections
             for (String connectionId : staleConnections.keySet()) {
-                Optional<NsoAdapter.NsoOscarsDismantle> maybeDismantle = nsoAdapter.nsoOscarsDismantle(connectionId);
+                Optional<NsoAdapter.NsoOscarsDismantle> maybeDismantle = nsoAdapter.nsoOscarsDismantle(connectionId, nsoState);
                 if (maybeDismantle.isPresent()) {
                     NsoAdapter.NsoOscarsDismantle dismantle = maybeDismantle.get();
                     String commands = dismantle.asCliCommands();
