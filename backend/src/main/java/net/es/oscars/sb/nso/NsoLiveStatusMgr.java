@@ -58,7 +58,7 @@ public class NsoLiveStatusMgr {
         LiveStatusSdpResult result = new LiveStatusSdpResult();
 
         String reply = liveStatusCache.getLiveStatusServiceSdp(device, serviceId);
-        log.info("sdp live status:"+ reply);
+        //        log.info("sdp live status:\n"+ reply);
 
         if (!checkLiveStatusReply(reply)) {
             result = (LiveStatusSdpResult) createErrorResult(reply, now);
@@ -135,7 +135,7 @@ public class NsoLiveStatusMgr {
 
         // create local key and query device
         String reply = liveStatusCache.getLiveStatusServiceSap(device, serviceId);
-        log.info("sap live status:"+ reply);
+        // log.info("sap live status:\n"+ reply);
 
         if (!checkLiveStatusReply(reply)) {
             result = (LiveStatusSapResult) createErrorResult(reply, now);

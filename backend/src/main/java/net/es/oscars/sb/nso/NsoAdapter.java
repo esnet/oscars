@@ -922,7 +922,12 @@ public class NsoAdapter {
             StringBuilder cmds = new StringBuilder();
             cmds.append("delete services vpls %d%n".formatted(vcId));
             for (String lspNsoKey : lspNsoKeys) {
-                cmds.append("delete services lsp %s%n".formatted(lspNsoKey));
+                String[] parts = lspNsoKey.split(",");
+                if (parts.length == 2) {
+                    cmds.append("delete services lsp %s %s%n".formatted(parts[0], parts[1]));
+                } else {
+                    log.error("NSO lsp service key format error for {}", lspNsoKey);
+                }
             }
             return cmds.toString();
         }

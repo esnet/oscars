@@ -21,19 +21,19 @@ import java.util.*;
 
 @Component
 @Slf4j
-public class NsoStaleReport {
+public class NsoSyncReport {
     private final ConnectionRepository connRepo;
     private final Startup startup;
     private final NsoAdapter nsoAdapter;
 
-    public NsoStaleReport(ConnectionRepository connRepo, Startup startup, NsoAdapter nsoAdapter) {
+    public NsoSyncReport(ConnectionRepository connRepo, Startup startup, NsoAdapter nsoAdapter) {
         this.connRepo = connRepo;
         this.startup = startup;
         this.nsoAdapter = nsoAdapter;
     }
 
 
-    @Scheduled(fixedDelayString = "${nso.stale-report-interval}")
+    @Scheduled(fixedDelayString = "${nso.sync-report-interval}")
     @Transactional
     public void generateReport() {
         if (startup.isInStartup() || startup.isInShutdown()) {
@@ -64,6 +64,16 @@ public class NsoStaleReport {
                     staleConnections.put(connectionId, nsoState.getServiceMap().get(connectionId));
                 }
             }
+
+            // now check for any connections that should be deployed but actually aren't
+            Set<String> notDeployed = new HashSet<>();
+            for (String connectionId : shouldBeDeployed.keySet()) {
+                if (!nsoState.getServiceMap().containsKey(connectionId)) {
+                    notDeployed.add(connectionId);
+                }
+            }
+
+
             StringBuilder report = new StringBuilder();
 
             // generate NSO commands for cleaning stale connections
@@ -72,11 +82,16 @@ public class NsoStaleReport {
                 if (maybeDismantle.isPresent()) {
                     NsoAdapter.NsoOscarsDismantle dismantle = maybeDismantle.get();
                     String commands = dismantle.asCliCommands();
-                    report.append(String.format("    DISMANTLE commands for stale connection %s :\n%s", connectionId, commands));
+                    report.append(String.format("    DISMANTLE commands for stale %s :\n%s", connectionId, commands));
 
                 }
             }
-            log.info("Staleness report:\n" + report);
+            report.append("Should be deployed (but aren't):\n");
+            for (String connectionId : notDeployed) {
+                report.append(String.format("    Not-deployed: %s", connectionId));
+            }
+
+            log.info("NSO sync report:\n{}", report);
 
         } catch (NsoReadException | NsoGenException e) {
             log.error("Error creating NSO staleness report", e);
