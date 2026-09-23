@@ -78,7 +78,6 @@ public class NsiQueries {
 
     @Transactional
     public QuerySummaryConfirmedType querySummary(QueryType query, Map<String, NsiMapping> initialReserveMappings) throws NsiInternalException {
-        log.info("querySummary");
 
         QuerySummaryConfirmedType qsct = new QuerySummaryConfirmedType();
 
@@ -114,7 +113,6 @@ public class NsiQueries {
             // we then add all the remaining reserve mappings
             mappings.addAll(initialReserveMappings.values());
 
-            log.debug("added all mappings: " + mappings.size());
         } else {
 
             for (String connId : query.getConnectionId()) {
@@ -149,7 +147,6 @@ public class NsiQueries {
                 resultId++;
             }
         }
-        log.debug("returning results, total: " + resultId);
         return qsct;
     }
 

@@ -83,18 +83,21 @@ public class NsoSyncReport {
                     NsoAdapter.NsoOscarsDismantle dismantle = maybeDismantle.get();
                     String commands = dismantle.asCliCommands();
                     report.append(String.format("    DISMANTLE commands for stale %s :\n%s", connectionId, commands));
-
                 }
             }
-            report.append("Should be deployed (but aren't):\n");
-            for (String connectionId : notDeployed) {
-                report.append(String.format("    Not-deployed: %s", connectionId));
+            if (!notDeployed.isEmpty()) {
+                report.append("Should be deployed (but aren't):\n");
+                for (String connectionId : notDeployed) {
+                    report.append(String.format("    Not-deployed: %s", connectionId));
+                }
+            }
+            if (!report.isEmpty()) {
+                log.info("NSO sync report:\n{}", report);
             }
 
-            log.info("NSO sync report:\n{}", report);
 
         } catch (NsoReadException | NsoGenException e) {
-            log.error("Error creating NSO staleness report", e);
+            log.error("Error creating NSO sync report", e);
         }
     }
 }

@@ -211,7 +211,7 @@ public class EsdbDataSync {
         for (EsdbVlanPayload evp: add) {
             // ESDB doesn't let us create VLANS with id -
             if (evp.getVlanId() == 0) {
-                log.info("skipping a vlan on an untagged port, equipIfceId: "+evp.getEquipmentInterface());
+                // log.info("skipping a vlan on an untagged port, equipIfceId: "+evp.getEquipmentInterface());
                 continue;
             }
 

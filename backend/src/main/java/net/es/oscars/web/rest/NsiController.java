@@ -114,7 +114,7 @@ public class NsiController {
 
             boolean inOscars = this.existsInOscars(deviceName, portName, oscarsOneTopo);
             if (!inOscars) {
-                log.error("Could not locate " + deviceName + ":" + portName + " in OSCARS topology, skipping");
+                // log.error("Could not locate " + deviceName + ":" + portName + " in OSCARS topology, skipping");
                 continue;
             }
             portName = portName.replace("/", "_");
