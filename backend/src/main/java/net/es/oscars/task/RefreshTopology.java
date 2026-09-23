@@ -7,6 +7,7 @@ import net.es.oscars.topo.beans.TopoException;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.pop.TopoPopulator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +28,7 @@ public class RefreshTopology {
     private TopoPopulator topoPopulator;
 
     @Scheduled(fixedDelay = 300*1000) // millisecs
+    @CacheEvict("topology")
     public void processingLoop() {
         if (startup.isInStartup() || startup.isInShutdown()) {
             return;

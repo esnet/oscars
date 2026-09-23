@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.List;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 public class GraphqlEsdbVlan {
@@ -12,20 +14,18 @@ public class GraphqlEsdbVlan {
     private String uuid;
     private Integer vlanId;
     private String description;
+
     @JsonProperty("bridgeId")
     private String bridge_id;
     private GraphqlEsdbEquipment equipment = new GraphqlEsdbEquipment();
     private GraphqlEsdbEquipmentInterface equipmentInterface = new GraphqlEsdbEquipmentInterface();
 
+    private List<GraphqlEsdbVlanServiceEdge> serviceEdges;
+    private List<GraphqlEsdbVlanSwitchPort> switchPorts;
+
     public Integer getId() {
         return Integer.parseInt(id);
     }
 
-    public Integer getEquipment() {
-        return equipment.getId();
-    }
 
-    public Integer getEquipmentInterface() {
-        return equipmentInterface.getId();
-    }
 }

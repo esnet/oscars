@@ -4,8 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.resv.db.ConnectionRepository;
 import net.es.oscars.resv.ent.*;
 import net.es.oscars.resv.enums.*;
-import net.es.oscars.sb.nso.db.NsoVcIdDAO;
-import net.es.oscars.sb.nso.ent.NsoVcId;
 import net.es.oscars.web.simple.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,8 +24,6 @@ public class ConnUtils {
     @Autowired
     private ConnectionRepository connRepo;
 
-    @Autowired
-    private NsoVcIdDAO nsoVcIdDAO;
 
     public String genUniqueConnectionId() {
         boolean found = false;
@@ -373,7 +369,7 @@ public class ConnUtils {
         return c;
     }
 
-    public SimpleConnection fromConnection(Connection c, Boolean return_svc_ids) {
+    public SimpleConnection fromConnection(Connection c) {
         Schedule s;
         Components cmp;
 
@@ -416,20 +412,6 @@ public class ConnUtils {
         List<Junction> junctions = new ArrayList<>();
         List<Pipe> pipes = new ArrayList<>();
 
-        Integer vcid;
-        if (return_svc_ids) {
-            vcid = nsoVcIdDAO.findNsoVcIdByConnectionId(c.getConnectionId())
-                    .orElse(NsoVcId.builder()
-                            .connectionId(c.getConnectionId())
-                            .vcId(-1)
-                            .scheduleId(null)
-                            .id(null)
-                            .build())
-                    .getVcId();
-        } else {
-            vcid = null;
-        }
-
         cmp.getFixtures().forEach(f -> {
             Fixture simpleF = Fixture.builder()
                     .inMbps(f.getIngressBandwidth())
@@ -439,10 +421,6 @@ public class ConnUtils {
                     .junction(f.getJunction().getDeviceUrn())
                     .vlan(f.getVlan().getVlanId())
                     .build();
-            if (return_svc_ids) {
-                simpleF.setSvcId(vcid);
-            }
-
             fixtures.add(simpleF);
         });
         cmp.getJunctions().forEach(j -> junctions.add(Junction.builder()

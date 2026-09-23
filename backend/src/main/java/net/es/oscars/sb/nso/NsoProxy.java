@@ -9,42 +9,32 @@ import io.opentelemetry.instrumentation.spring.web.v3_1.SpringWebTelemetry;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.StartupProperties;
-import net.es.oscars.app.util.HeaderRequestInterceptor;
 
 import net.es.oscars.sb.nso.exc.NsoCommitException;
 import net.es.oscars.app.props.NsoProperties;
 import net.es.oscars.sb.nso.exc.NsoDryrunException;
-import net.es.oscars.sb.nso.rest.NsoDryRun;
-import net.es.oscars.sb.nso.rest.NsoResponseErrorHandler;
-import net.es.oscars.sb.nso.rest.NsoServicesWrapper;
-import net.es.oscars.sb.nso.rest.LiveStatusRequest;
-import net.es.oscars.sb.nso.rest.LiveStatusMockData;
-import net.es.oscars.sb.nso.rest.LiveStatusOutput;
+import net.es.oscars.sb.nso.rest.*;
 import net.es.topo.common.dto.nso.*;
 
-import net.es.topo.common.dto.nso.enums.NsoCheckSyncState;
+import net.es.topo.common.dto.nso.enums.NsoPlatform;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.restclient.RestTemplateBuilder;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
-import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestClientResponseException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.*;
 
 import net.es.topo.common.dto.nso.enums.NsoService;
-import net.es.oscars.sb.nso.dto.NsoLspResponse;
-import net.es.oscars.sb.nso.dto.NsoVplsResponse;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Slf4j
@@ -52,11 +42,15 @@ import java.util.*;
 public class NsoProxy {
 
     public static final String APPLICATION_YANG_DATA_JSON = "application/yang-data+json";
+    public static final String APPLICATION_YANG_DATA_XML = "application/yang-data+xml";
     public static final String APPLICATION_YANG_PATCH_JSON = "application/yang-patch+json";
     public static final String RESTCONF_DATA = "restconf/data";
 
     private final NsoProperties props;
     private final StartupProperties startupProperties;
+
+    @Value("classpath:device-list-query.xml")
+    private Resource deviceListQueryResource;
 
     @Getter
     @Setter
@@ -66,9 +60,9 @@ public class NsoProxy {
     @Setter
     static NsoResponseErrorHandler patchErrorHandler = new NsoResponseErrorHandler();
 
-    @Setter
-    private RestTemplate restTemplate;
+
     private RestClient patchClient;
+    private RestClient xmlClient;
     private RestClient restClient;
     private JsonMapper skipEmptyObjectMapper;
 
@@ -76,7 +70,7 @@ public class NsoProxy {
 
 
     @Autowired
-    public NsoProxy(NsoProperties props, StartupProperties startupProperties, RestTemplateBuilder builder, OpenTelemetry openTelemetry) {
+    public NsoProxy(NsoProperties props, StartupProperties startupProperties, OpenTelemetry openTelemetry) {
 
         this.props = props;
         this.startupProperties = startupProperties;
@@ -121,14 +115,21 @@ public class NsoProxy {
                     })
                     .build();
 
-            this.restTemplate = builder
-                    .messageConverters(new JacksonJsonHttpMessageConverter(skipEmptyObjectMapper))
+            xmlClient = RestClient.builder()
+                    .requestFactory(new HttpComponentsClientHttpRequestFactory())
+                    .configureMessageConverters(client -> {
+                        client.registerDefaults().withJsonConverter(new JacksonJsonHttpMessageConverter(skipEmptyObjectMapper));
+                    })
+                    .defaultHeaders(headers -> {
+                        headers.add(HttpHeaders.ACCEPT, APPLICATION_YANG_DATA_JSON);
+                        headers.add(HttpHeaders.CONTENT_TYPE, APPLICATION_YANG_DATA_XML);
+                    })
+                    .requestInterceptors(interceptors -> {
+                        interceptors.add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
+                        interceptors.add(telemetry.createInterceptor());
+                    })
                     .build();
-            restTemplate.setErrorHandler(restErrorHandler);
-            restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(props.getUsername(), props.getPassword()));
-            restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.ACCEPT, APPLICATION_YANG_DATA_JSON));
-            restTemplate.getInterceptors().add(new HeaderRequestInterceptor(HttpHeaders.CONTENT_TYPE, APPLICATION_YANG_DATA_JSON));
-            restTemplate.getInterceptors().add(telemetry.createInterceptor());
+
 
         } catch (Exception ex) {
             log.error(ex.getMessage(), ex);
@@ -203,39 +204,6 @@ public class NsoProxy {
         }
     }
 
-    public NsoCheckSyncState checkSync(String device) {
-        if (startupProperties.getStandalone()) {
-            log.info("standalone mode - returning in-sync for {}", device);
-            return NsoCheckSyncState.IN_SYNC;
-        }
-        String path = RESTCONF_DATA + "/tailf-ncs:devices/device=" + device + "/check-sync";
-        String restPath = props.getUri() + path;
-        log.info("checking sync " + restPath);
-        ResponseEntity<FromNsoCheckSync> response = restTemplate.postForEntity(restPath, null, FromNsoCheckSync.class);
-
-        if (response.getStatusCode().isError()) {
-            log.error("REST error during check-sync for {} : {}", device, response.getBody());
-            return NsoCheckSyncState.UNKNOWN;
-        } else {
-            if (response.getBody() == null) {
-                log.error("empty check-sync for {} : null body", device);
-                return NsoCheckSyncState.UNKNOWN;
-            } else if (response.getBody().getOutput() == null) {
-                log.error("empty check-sync for {} : null output", device);
-                return NsoCheckSyncState.UNKNOWN;
-            } else if (response.getBody().getOutput().getResult() == null) {
-                log.error("empty check-sync for {} : null result", device);
-                return NsoCheckSyncState.UNKNOWN;
-            } else {
-                if (response.getBody().getOutput().getResult().equals(NsoCheckSyncState.ERROR)) {
-                    log.error("NSO error during check-sync for {} : {}", device, response.getBody().getOutput().getInfo());
-                }
-                return response.getBody().getOutput().getResult();
-            }
-        }
-
-
-    }
 
     @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
     public void buildServices(NsoServicesWrapper wrapper, String connectionId) throws NsoCommitException {
@@ -255,7 +223,11 @@ public class NsoProxy {
         logNsoObject(wrapper);
 
         try {
-            ResponseEntity<IetfRestconfErrorResponse> response = restTemplate.postForEntity(restPath, wrapper, IetfRestconfErrorResponse.class);
+            ResponseEntity<IetfRestconfErrorResponse> response = restClient.post()
+                    .uri(restPath)
+                    .body(wrapper)
+                    .retrieve()
+                    .toEntity(IetfRestconfErrorResponse.class);
 
             if (response.getStatusCode().isError()) {
                 log.error("raw error: " + response.getBody());
@@ -282,18 +254,6 @@ public class NsoProxy {
         }
     }
 
-    @Retryable(backoff = @Backoff(delayExpression = "${nso.backoff-milliseconds}"), maxAttemptsExpression = "${nso.retry-attempts}")
-    public void syncFrom(String device) {
-        if (startupProperties.getStandalone()) {
-            log.info("standalone mode - skipping southbound");
-            return;
-        }
-
-        String path = "restconf/data/tailf-ncs:devices/device=%s/sync-from".formatted(device);
-        String restPath = props.getUri() + path;
-        restTemplate.postForLocation(restPath, HttpEntity.EMPTY);
-    }
-
     public String buildDryRun(NsoServicesWrapper wrapper, String connectionId) throws NsoDryrunException {
         if (startupProperties.getStandalone()) {
             log.info("standalone mode - skipping southbound");
@@ -318,7 +278,12 @@ public class NsoProxy {
         String errorRef = "Error reference: [" + errorUuid + "]\n";
 
         try {
-            ResponseEntity<NsoDryRun> dryRunResponse = restTemplate.postForEntity(restPath, wrapper, NsoDryRun.class);
+            ResponseEntity<NsoDryRun> dryRunResponse = restClient.post()
+                    .uri(restPath)
+                    .body(wrapper)
+                    .retrieve()
+                    .toEntity(NsoDryRun.class);
+
             if (dryRunResponse.getStatusCode().isError()) {
                 log.error("raw error: " + dryRunResponse.getBody());
                 throw new NsoDryrunException("unable to perform dry run " + dryRunResponse.getBody());
@@ -379,17 +344,18 @@ public class NsoProxy {
         try {
             log.info("submitting yang patch to " + restPath);
             logNsoObject(wrapped);
-            NsoDryRun response = patchClient.patch()
+            HttpEntity<NsoDryRun> response = patchClient.patch()
                     .uri(restPath)
                     .body(wrapped)
                     .retrieve()
-                    .body(NsoDryRun.class);
+                    .toEntity(NsoDryRun.class);
 
-            if (response != null && response.getDryRunResult() != null) {
+            NsoDryRun dryRun = response.getBody();
+            if (dryRun != null) {
                 NsoProxy.logNsoObject(response);
-                if (response.getDryRunResult() != null && response.getDryRunResult().getCli() != null) {
-                    if (response.getDryRunResult().getCli().getLocalNode() != null) {
-                        return response.getDryRunResult().getCli().getLocalNode().getData();
+                if (dryRun.getDryRunResult() != null && dryRun.getDryRunResult().getCli() != null) {
+                    if (dryRun.getDryRunResult().getCli().getLocalNode() != null) {
+                        return dryRun.getDryRunResult().getCli().getLocalNode().getData();
                     } else {
                         /*
                         an empty dry run looks like this:
@@ -587,58 +553,6 @@ public class NsoProxy {
         List<NsoLSP> lsp;
     }
 
-    // NSO live status fdb query stuff
-    public String getLiveStatusFdbInfo(String device) {
-        String args = "service fdb-info";
-        if (props.isMockLiveShowCommands()) {
-            return "This is mock data for 'show " + args + "'";
-        }
-        return getLiveStatusShowArgs(device, args);
-    }
-
-    public String getLiveStatusAllFdbMacs(String device) {
-        String args = "service fdb-mac";
-        if (props.isMockLiveShowCommands()) {
-            return "This is mock data for 'show " + args + "'";
-        }
-        return getLiveStatusShowArgs(device, args);
-    }
-
-    public String getLiveStatusServiceMacs(String device, int serviceId) {
-        String args = "service id " + serviceId + " fdb detail";
-        log.info("getLiveStatusServiceMacs " + args);
-        if (props.isMockLiveShowCommands()) {
-            return "This is mock data for 'show " + args + "'";
-        }
-        return getLiveStatusShowArgs(device, args);
-    }
-
-    // SDP
-    public String getLiveStatusServiceSdp(String device, int serviceId) {
-        String args = "service id " + serviceId + " sdp";
-        if (props.isMockLiveShowCommands()) {
-            return LiveStatusMockData.SDP_MOCK_DATA;
-        }
-        return getLiveStatusShowArgs(device, args);
-    }
-
-    // SAP
-    public String getLiveStatusServiceSap(String device, int serviceId) {
-        String args = "service id " + serviceId + " sap";
-        if (props.isMockLiveShowCommands()) {
-            return LiveStatusMockData.SAP_MOCK_DATA;
-        }
-        return getLiveStatusShowArgs(device, args);
-    }
-
-    // LSP
-    public String getLiveStatusRouterMplsLsp(String device) {
-        String args = "router mpls lsp";
-        if (props.isMockLiveShowCommands()) {
-            return LiveStatusMockData.LSP_MOCK_DATA;
-        }
-        return getLiveStatusShowArgs(device, args);
-    }
 
     /**
      * Formats live status query arguments and executes and live status query
@@ -656,184 +570,112 @@ public class NsoProxy {
             log.error("No args provided");
             return null;
         }
-        LiveStatusRequest request = new LiveStatusRequest();
-        request.setArgs(args);
-        request.setDevice(device);
-        return getLiveStatusShow(request);
-    }
 
-    /**
-     * Executes a live status query via the NSO REST API
-     *
-     * @param liveStatusRequest the request parameters
-     * @return the result as returned by NSO as a string
-     */
-    public String getLiveStatusShow(LiveStatusRequest liveStatusRequest) {
         if (startupProperties.getStandalone()) {
             log.info("standalone mode - skipping southbound");
             return "standalone live status";
         }
+        log.info(device+ " "+args);
+
+        LiveStatusRequest request = new LiveStatusRequest();
+        request.setArgs(args);
+        request.setDevice(device);
 
         String path = RESTCONF_DATA + "/esnet-status:esnet-status/nokia-show";
         String restPath = props.getUri() + path;
 
         StringBuilder errorStr = new StringBuilder();
         errorStr.append("esnet-status error\n");
-        final HttpEntity<LiveStatusRequest> requestEntity = new HttpEntity<>(liveStatusRequest);
-        // first, try to get a LiveStatusOutput
-        ResponseEntity<Object> responseEntity = null;
         try {
-            responseEntity = restTemplate.postForEntity(restPath, requestEntity, Object.class);
-            if (responseEntity.getStatusCode() != HttpStatus.OK) {
-                if (responseEntity.getStatusCode() == HttpStatus.BAD_REQUEST) {
-                    throw new RestClientException("Bad request reported by server. Processing error message:\n" + responseEntity.getBody());
-                } else {
-                    throw new Exception("URL " + restPath + ". Unexpected response code: " + responseEntity.getStatusCode() + ", body:\n" + responseEntity.getBody().toString());
-                }
+            HttpEntity<LiveStatusOutput> response = restClient.post()
+                    .uri(restPath)
+                    .body(request)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        String resBody = new String(res.getBody().readAllBytes());
+
+                        throw new LiveStatusException(resBody);
+                    })
+                    .toEntity(LiveStatusOutput.class);
+            if (response.getBody() != null) {
+                return response.getBody().getOutput();
             }
-            if (responseEntity.getBody() != null) {
-                // Attempt to deserialize as LiveStatusOutput
-                // or
-                // Attempt to deserialize as IetfRestconfErrorResponse
-                try {
-                    JsonMapper mapper = JsonMapper.builder()
+            errorStr.append("null response from server\n");
 
-                            .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
-                            .build();
+        } catch (RestClientException e) {
+            log.error("Error while calling esnet-status api", e);
+            errorStr.append(e.getMessage());
 
-                    LinkedHashMap<String, String> body = ((LinkedHashMap<String, String>) responseEntity.getBody());
-
-                    String json = mapper.writeValueAsString(body);
-
-                    if (body.containsKey("esnet-status:output")) {
-                        LiveStatusOutput liveOutput = mapper.readValue(json, LiveStatusOutput.class);
-
-                        return liveOutput.getOutput();
-                    } else {
-                        // Cannot figure out what this is.
-                        throw new Exception("Unknown body content received. Cannot deserialize as LiveStatusOutput or IetfRestconfErrorResponse:\n" + json);
-                    }
-
-                } catch (Exception e) {
-                    // Unknown exception
-                    log.error("NsoProxy.getLiveStatusShow() - Error while attempting to process response for LiveStatusOutput:\n" + e.getMessage());
-                }
-
-            } else {
-                errorStr.append("null response body\n");
-            }
-        } catch (RestClientException re) {
+        } catch (LiveStatusException ex) {
             try {
-                if (responseEntity != null) {
-                    JsonMapper jsonMapper = JsonMapper.builder()
-                            .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
-                            .build();
+                JsonMapper jsonMapper = JsonMapper.builder()
+                        .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
+                        .build();
 
-                    LinkedHashMap<String, String> body = ((LinkedHashMap<String, String>) responseEntity.getBody());
-
-                    // protect against nulls
-                    if (body == null) {
-                        body = new LinkedHashMap<>();
-                    }
-
-                    String json = jsonMapper.writeValueAsString(body);
-
-                    if (body.containsKey("ietf-restconf:errors")) {
-                        IetfRestconfErrorResponse ietfError = jsonMapper.readValue(json, IetfRestconfErrorResponse.class);
-                        for (IetfRestconfErrorResponse.IetfError error : ietfError.getErrors().getErrorList()) {
-                            errorStr.append(error.getErrorMessage()).append("\n");
-                        }
-                    } else {
-                        throw new Exception("NsoProxy.getLiveStatusShow() - Error while attempting to process response for IetfRestconfErrorResponse:\n" + json);
-                    }
+                IetfRestconfErrorResponse ietfError = jsonMapper.readValue(ex.getResponse(), IetfRestconfErrorResponse.class);
+                for (IetfRestconfErrorResponse.IetfError error : ietfError.getErrors().getErrorList()) {
+                    errorStr.append(error.getErrorMessage()).append("\n");
                 }
-            } catch (Exception e) {
-                log.error(e.getLocalizedMessage(), e);
+                log.error(jsonMapper.writeValueAsString(ietfError));
+            } catch (JacksonException exc) {
+                log.error("error deserializing server error response", exc);
+                errorStr.append(exc.getMessage());
             }
-        } catch (Exception e) {
-            // Not something we can deserialize.
-            log.error(e.getLocalizedMessage(), e);
         }
 
         return errorStr.toString();
     }
+    public static class LiveStatusException  extends RuntimeException {
+        @Serial
+        private static final long serialVersionUID = 1L;
 
-
-    public NsoVplsResponse getVpls() throws Exception {
-        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS);
-        return new JsonMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
-    }
-
-    public NsoVplsResponse getVpls(String path) throws Exception {
-        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.VPLS, path);
-        return new JsonMapper().readValue(serviceConfig.getConfig(), NsoVplsResponse.class);
-    }
-
-
-    public NsoLspResponse getLsps() throws Exception {
-        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP);
-        return new JsonMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
-    }
-
-    public NsoLspResponse getLsps(String path) throws Exception {
-        FromNsoServiceConfig serviceConfig = getNsoServiceConfig(NsoService.LSP, path);
-        return new JsonMapper().readValue(serviceConfig.getConfig(), NsoLspResponse.class);
-    }
-
-    public String getNsoServiceConfigRestPath(NsoService service) throws Exception {
-        String path = switch (service) {
-            case VPLS -> "/esnet-vpls:vpls";
-            case LSP -> "/esnet-lsp:lsp";
-            default -> null;
-        };
-        if (path == null) {
-            throw new Exception("Could not determine service path type. Please use VPLS or LSP.");
+        @Getter
+        private final String response;
+        public LiveStatusException(String response) {
+            this.response = response;
         }
-        String req = "restconf/data/tailf-ncs:services%s".formatted(path);
-
-        return props.getUri() + req;
     }
 
-    public FromNsoServiceConfig getNsoServiceConfig(NsoService service) throws Exception {
-        String restPath = getNsoServiceConfigRestPath(service);
-        return getNsoServiceConfig(service, restPath);
-    }
-
-    public FromNsoServiceConfig getNsoServiceConfig(NsoService service, String path) throws Exception {
-        if (service != NsoService.VPLS && service != NsoService.LSP) {
-            throw new Exception("Unknown service " + service);
-        }
-
+    public FromNsoServiceConfig getNsoServiceConfig(NsoService service) {
         log.info("get service config START %s ".formatted(service));
+
+        String path = switch (service) {
+            case BBL -> "/esnet-bbl:bbl";
+            case BRIDGE -> "/esnet-bridge:bridge";
+            case PORT -> "/esnet-port:port";
+            case HOST -> "/esnet-host:host";
+            case SYSTEM -> "/esnet-system:system";
+            case L3_INTERFACE -> "/esnet-layer3:l3-interface";
+            case L3_CUSTOMER -> "/esnet-layer3:l3-customer";
+            case LSP -> "/esnet-lsp:lsp";
+            case VPLS ->   "/esnet-vpls:vpls";
+            // this does not fetch any of the prefix-lists cos that's mega slow and typically unnecessary
+            // we can add that later tho
+            // with prefix-lists:    310 sec 97Mb
+            // without prefix-lists: 0.6 sec 400Kb
+            case L3_PEER -> "?fields=esnet-layer3:l3-peer(asn;long-name;short-name;routing-domain(name;route-table(name;peer-type;device;v4(prefix-limit;filter-prefixes);v6(prefix-limit;filter-prefixes))))";
+            case L3_TRANSIT -> "/esnet-layer3:l3-transit";
+        };
+
+        FromNsoServiceConfig result = FromNsoServiceConfig.builder()
+                .service(service)
+                .successful(false)
+                .build();
+        String req = RESTCONF_DATA+"/tailf-ncs:services%s".formatted(path);
+
+        String restPath = props.getUri() + req;
+
         try {
-
-            ResponseEntity<String> response = restClient.get()
-                    .uri(path)
-                    .retrieve()
-                    .toEntity(String.class);
-
-            if (response.getStatusCode().isError()) {
-                String errorStr = "%s: get config FAILED (error response status.) ".formatted(service.toString());
-                log.error(errorStr);
-                throw new Exception(errorStr);
-
-            } else {
-                FromNsoServiceConfig result = new FromNsoServiceConfig();
-                String body = response.getBody();
-                if (body != null) {
-                    result.setConfig(body);
-                } else {
-                    switch (service) {
-                        case NsoService.VPLS -> result.setConfig("{\"esnet-vpls:vpls\": []}");
-                        case NsoService.LSP -> result.setConfig("{\"esnet-lsp:lsp\": []}");
-                    }
-                }
-                return result;
+            HttpEntity<String> response = restClient.get().uri(restPath).retrieve().toEntity(String.class);
+            if (response.getBody() != null && !response.getBody().isEmpty()) {
+                result.setConfig(response.getBody());
+                result.setSuccessful(true);
             }
+            log.debug("%s: get service COMPLETE ".formatted(service.toString()));
         } catch (RestClientException ex) {
-            log.error(ex.getLocalizedMessage(), ex);
-            throw ex;
+            log.warn("%s get service config from %s FAILED ".formatted(service.toString(),restPath));
         }
+        return result;
     }
 
     // this logs the object using the custom object mapper that the restClient / restTemplate use
@@ -872,4 +714,58 @@ public class NsoProxy {
         }
     }
 
+    public FromNsoDeviceList getNsoDeviceList() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+
+        String restPath = props.getUri() + "restconf/tailf/query";
+
+        try {
+
+            InputStream inputStream = deviceListQueryResource.getInputStream();
+
+            String xmlPayload = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+
+
+            ResponseEntity<FromNsoImmediateQueryResult> response = xmlClient.post()
+                            .uri(restPath)
+                            .body(xmlPayload)
+                            .retrieve()
+                            .toEntity(FromNsoImmediateQueryResult.class);
+
+            FromNsoDeviceList fdl = FromNsoDeviceList.mapQueryToDeviceList(response.getBody());
+            FromNsoDeviceList result = FromNsoDeviceList.builder()
+                    .devices(new ArrayList<>())
+                    .build();
+            for (FromNsoDevice device: fdl.getDevices()) {
+                // workaround for ocd-stack returning "" for platform name
+                if (device.getPlatform().getName().equals(NsoPlatform.UNKNOWN) && device.getNed().getNedId().startsWith("alu-sr")) {
+                    device.getPlatform().setName(NsoPlatform.NOKIA);
+                }
+                result.setSuccessful(fdl.getSuccessful());
+                result.getDevices().add(device);
+            }
+            // DevelUtils.dumpDebug("nso-device-list", fdl);
+            return result;
+        } catch (IOException ex) {
+            log.error("Unable to load query file: "+ex.getMessage());
+            ex.printStackTrace(pw);
+            log.error(sw.toString());
+
+            return FromNsoDeviceList.builder()
+                    .devices(new ArrayList<>())
+                    .successful(false)
+                    .build();
+        } catch (HttpClientErrorException ex) {
+            log.error("Unable to get device list: "+ex.getMessage());
+            ex.printStackTrace(pw);
+            log.error(sw.toString());
+
+            return FromNsoDeviceList.builder()
+                    .devices(new ArrayList<>())
+                    .successful(false)
+                    .build();
+        }
+
+    }
 }

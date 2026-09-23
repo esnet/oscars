@@ -77,8 +77,8 @@ public class ConnectionSorters {
 
         @Override
         public int compare(Connection o1, Connection o2) {
-            SimpleConnection c1 = connUtils.fromConnection(o1, true);
-            SimpleConnection c2 = connUtils.fromConnection(o2, true);
+            SimpleConnection c1 = connUtils.fromConnection(o1);
+            SimpleConnection c2 = connUtils.fromConnection(o2);
             boolean c1Empty = (c1.getFixtures() == null || c1.getFixtures().isEmpty());
             boolean c2Empty = (c2.getFixtures() == null || c2.getFixtures().isEmpty());
             if (c1Empty && c2Empty) {
@@ -103,8 +103,8 @@ public class ConnectionSorters {
 
         @Override
         public int compare(Connection o1, Connection o2) {
-            SimpleConnection c1 = connUtils.fromConnection(o1, true);
-            SimpleConnection c2 = connUtils.fromConnection(o2, true);
+            SimpleConnection c1 = connUtils.fromConnection(o1);
+            SimpleConnection c2 = connUtils.fromConnection(o2);
             boolean c1Empty = (c1.getTags() == null || c1.getTags().isEmpty());
             boolean c2Empty = (c2.getTags() == null || c2.getTags().isEmpty());
             if (c1Empty && c2Empty) {
@@ -132,8 +132,8 @@ public class ConnectionSorters {
 
         @Override
         public int compare(Connection o1, Connection o2) {
-            SimpleConnection c1 = connUtils.fromConnection(o1, true);
-            SimpleConnection c2 = connUtils.fromConnection(o2, true);
+            SimpleConnection c1 = connUtils.fromConnection(o1);
+            SimpleConnection c2 = connUtils.fromConnection(o2);
             boolean c1Empty = (c1.getFixtures() == null || c1.getFixtures().isEmpty());
             boolean c2Empty = (c2.getFixtures() == null || c2.getFixtures().isEmpty());
             if (c1Empty && c2Empty) {

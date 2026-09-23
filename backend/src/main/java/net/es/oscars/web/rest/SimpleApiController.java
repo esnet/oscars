@@ -6,11 +6,16 @@ import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.svc.ConnUtils;
+import net.es.oscars.sb.nso.NsoAdapter;
+import net.es.oscars.sb.nso.exc.NsoReadException;
 import net.es.oscars.web.beans.ConnectionFilter;
 import net.es.oscars.model.Interval;
 import net.es.oscars.web.simple.*;
 import net.es.oscars.web.beans.PceRequest;
+import net.es.topo.common.dto.nso.NsoLSP;
+import net.es.topo.common.dto.nso.NsoVPLS;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.util.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +32,7 @@ public class SimpleApiController {
     private ConnController connController;
 
     @Autowired ConnUtils connUtils;
+    @Autowired NsoAdapter nsoAdapter;
 
 
     @Autowired
@@ -105,14 +111,14 @@ public class SimpleApiController {
         if (c == null) {
             return  null;
         } else {
-            return connUtils.fromConnection(c, false);
+            return connUtils.fromConnection(c);
         }
 
     }
 
     @RequestMapping(value = "/api/conn/simplelist", method = RequestMethod.GET)
     @ResponseBody
-    public List<SimpleConnection> simpleList(@RequestParam(defaultValue = "0", required = false) Integer include_svc_id) throws StartupException {
+    public List<SimpleConnection> simpleList(@RequestParam(defaultValue = "0", required = false) Integer include_svc_id) throws StartupException, NsoReadException {
         if (startup.isInStartup()) {
             throw new StartupException("OSCARS starting up");
         } else if (startup.isInShutdown()) {
@@ -139,7 +145,23 @@ public class SimpleApiController {
         List<Connection> connections = connController.list(f).getConnections();
         List<SimpleConnection> result = new ArrayList<>();
         for (Connection c : connections) {
-            result.add(connUtils.fromConnection(c, return_svc_ids));
+            SimpleConnection sc = connUtils.fromConnection(c);
+            if (return_svc_ids) {
+                NsoAdapter.OscarsNsoState nsoState = nsoAdapter.fetchNsoState(false);
+                Pair<NsoVPLS, List<NsoLSP>> nsoServices = nsoState.getServiceMap().get(c.getConnectionId());
+                if (nsoServices == null) {
+                    log.info("Couldn't find NSO config for " + c.getConnectionId());
+                } else {
+                    NsoVPLS nsoVpls = nsoServices.getFirst();
+                    Integer vcid = nsoVpls.getVcId();
+                    sc.getFixtures().forEach(fixture -> {
+                        fixture.setSvcId(vcid);
+                    });
+
+                }
+            }
+
+            result.add(sc);
         }
         return result;
     }
@@ -155,7 +177,7 @@ public class SimpleApiController {
         List<Connection> connections = connController.list(f).getConnections();
         List<SimpleConnection> result = new ArrayList<>();
         for (Connection c : connections) {
-            result.add(connUtils.fromConnection(c, false));
+            result.add(connUtils.fromConnection(c));
         }
         return result;
     }

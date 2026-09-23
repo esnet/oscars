@@ -194,7 +194,6 @@ public class NsiProvider implements ConnectionProviderPort {
             // we do not want to update the requester callback URL when
             // processing the header from this sync operation
             nsiHeaderUtils.processHeader(header.value, false);
-            log.info("starting sync QuerySummary");
             QuerySummaryConfirmedType qsct = nsiQueries.querySummary(query, nsiMappingService.getInitialReserveMappings());
             nsiHeaderUtils.makeResponseHeader(header.value);
             return qsct;

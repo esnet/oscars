@@ -12,8 +12,8 @@ import net.es.oscars.app.exc.StartupException;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
-import net.es.oscars.sb.nso.db.NsoSdpIdDAO;
-import net.es.oscars.sb.nso.ent.NsoSdpId;
+import net.es.oscars.sb.nso.NsoAdapter;
+import net.es.oscars.sb.nso.exc.NsoReadException;
 import net.es.oscars.web.beans.NsoLiveStatusRequest;
 import net.es.oscars.web.beans.OperationalState;
 import net.es.oscars.web.beans.OperationalStateInfoResponse;
@@ -25,16 +25,18 @@ import net.es.oscars.sb.nso.rest.OperationalStateInfoResult;
 import net.es.oscars.resv.svc.ConnService;
 import net.es.oscars.resv.ent.Connection;
 import net.es.oscars.resv.ent.VlanFixture;
-import net.es.oscars.sb.nso.LiveStatusOperationalStateCacheManager;
-import net.es.oscars.sb.nso.db.NsoVcIdDAO;
-import net.es.oscars.sb.nso.ent.NsoVcId;
+import net.es.oscars.sb.nso.NsoLiveStatusMgr;
 
+import net.es.topo.common.dto.nso.NsoLSP;
+import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
+import org.springframework.data.util.Pair;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.*;
 
+import static net.es.oscars.web.beans.OperationalStateInfoResponse.UpDown.DOWN;
 import static net.es.oscars.web.beans.OperationalStateInfoResponse.UpDown.UP;
 import static net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence.PRIMARY;
 import static net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence.SECONDARY;
@@ -42,29 +44,25 @@ import static net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence.SECONDARY;
 @Slf4j
 @RestController
 public class NsoLiveStatusController {
-
-    private final LiveStatusOperationalStateCacheManager operationalStateCacheManager;
-    private final NsoVcIdDAO nsoVcIdDAO;
+    private final NsoAdapter nsoAdapter;
+    private final NsoLiveStatusMgr nsoLiveStatusMgr;
     private final ConnService connSvc;
-    private final NsoSdpIdDAO nsoSdpIdDAO;
 
     private final Startup startup;
 
     public NsoLiveStatusController(
-            LiveStatusOperationalStateCacheManager operationalStateCacheManager,
-            NsoVcIdDAO nsoVcIdDAO,
-            ConnService connSvc, NsoSdpIdDAO nsoSdpIdDAO, Startup startup) {
-        this.operationalStateCacheManager = operationalStateCacheManager;
-        this.nsoVcIdDAO = nsoVcIdDAO;
+            NsoAdapter nsoAdapter, NsoLiveStatusMgr nsoLiveStatusMgr,
+            ConnService connSvc, Startup startup) {
+        this.nsoAdapter = nsoAdapter;
+        this.nsoLiveStatusMgr = nsoLiveStatusMgr;
         this.connSvc = connSvc;
-        this.nsoSdpIdDAO = nsoSdpIdDAO;
         this.startup = startup;
     }
 
     @RequestMapping(value = "/api/mac/info", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public MacInfoResponse getMacInfo(@RequestBody NsoLiveStatusRequest request) throws StartupException {
+    public MacInfoResponse getMacInfo(@RequestBody NsoLiveStatusRequest request) throws StartupException, NsoReadException {
         log.debug("MAC info request");
         startup.startupCheck();
 
@@ -97,11 +95,7 @@ public class NsoLiveStatusController {
         }
 
         // filter and extract request data
-        RequestData requestData = getRequestData(request, conn);
-        if (requestData == null) {
-            log.info("Couldn't extract REST request data");
-            throw new NoSuchElementException();
-        }
+        RequestData requestData = requestData = getRequestData(request, conn);
 
         // the question is if we move this into the list with the results
         // since entries can have a different timestamp based on the if-older-than criteria
@@ -110,7 +104,7 @@ public class NsoLiveStatusController {
         log.debug("Run live-status request on devices");
         for (String device : requestData.getDevices()) {
             log.debug("Fetch FDB from LiveStatusCacheManager for {} service id {}", device, requestData.getServiceId());
-            results.add(operationalStateCacheManager
+            results.add(nsoLiveStatusMgr
                     .getMacs(device, requestData.getServiceId(), request.getRefreshIfOlderThan())
                     .getMacInfoResult());
 
@@ -122,12 +116,14 @@ public class NsoLiveStatusController {
     @RequestMapping(value = "/api/operational-state/info", method = RequestMethod.POST)
     @ResponseBody
     @Transactional
-    public OperationalStateInfoResponse getOperationalStateInfo(@RequestBody NsoLiveStatusRequest request) throws StartupException {
+    public OperationalStateInfoResponse getOperationalStateInfo(@RequestBody NsoLiveStatusRequest request) throws StartupException, NsoReadException {
         log.info("Operational state (SDPs, SAPs, LSPs) info request");
         startup.startupCheck();
 
+        String connectionId = request.getConnectionId();
+
         // find devices in circuit
-        Connection conn = connSvc.findConnection(request.getConnectionId()).orElseThrow(NoSuchElementException::new);
+        Connection conn = connSvc.findConnection(connectionId).orElseThrow(NoSuchElementException::new);
 
         // start building REST return
         OperationalStateInfoResponse response = new OperationalStateInfoResponse();
@@ -163,27 +159,30 @@ public class NsoLiveStatusController {
         int serviceId = requestData.getServiceId();
 
 
+        // if the user tells us when to refresh then use their timestamp,
+        // otherwise we cache operational info for up to 60 seconds
         Instant timestamp = request.getRefreshIfOlderThan();
+        if (timestamp == null) {
+            timestamp = Instant.now().minusSeconds(60);
+        }
 
         List<OperationalStateInfoResult> results = new ArrayList<>();
         ArrayList<LiveStatusSdpResult> allSdpsForAllDevices = new ArrayList<>();
+        Map<String, List<LiveStatusSdpResult>> sdpsByDevice =  new HashMap<>();
         Map<String, ArrayList<LiveStatusSapResult>> allSapsForDevice = new HashMap<>();
         // Map<String, ArrayList<LiveStatusLspResult>> allLspsForDevice = new HashMap<>();
-
-        // this collects nsoSdpIds that oscars would set up, keyed off the device
-        List<NsoSdpId> nsoSdpIds = nsoSdpIdDAO.findNsoSdpIdByConnectionId(conn.getConnectionId());
-
 
         log.debug("Run live-status request on devices and collect operational states");
         for (String device : devices) {
             if (conn.getState().equals(State.ACTIVE) &&
                     conn.getDeploymentState().equals(DeploymentState.DEPLOYED)) {
                 log.info("Fetch SDPs, SAPs, and LSPs from LiveStatusCacheManager for " + device + " service id " + serviceId);
-                List<LiveStatusSdpResult> sdpsOnDevice = operationalStateCacheManager.getSdp(device, serviceId, timestamp);
-                List<LiveStatusSapResult> sapsOnDevice = operationalStateCacheManager.getSap(device, serviceId, timestamp);
+                List<LiveStatusSdpResult> sdpsOnDevice = nsoLiveStatusMgr.getSdp(device, serviceId, timestamp);
+                List<LiveStatusSapResult> sapsOnDevice = nsoLiveStatusMgr.getSap(device, serviceId);
 
                 // get SDPs, SAPs, and LSPs from cache manager
                 allSdpsForAllDevices.addAll(sdpsOnDevice);
+                sdpsByDevice.put(device, sdpsOnDevice);
                 allSapsForDevice.put(device, new ArrayList<>(sapsOnDevice));
                 // allLspsForDevice.put(device, operationalStateCacheManager.getLsp(device, timestamp));
 
@@ -227,6 +226,84 @@ public class NsoLiveStatusController {
         // dumpDebug("allsdps", allSdpsForAllDevices);
         // dumpDebug("nsoSdpIds", nsoSdpIds);
 
+        // collect the NSO configuration state
+        NsoAdapter.OscarsNsoState nsoState = nsoAdapter.fetchNsoState(false);
+        Pair<NsoVPLS, List<NsoLSP>> nsoServices = nsoState.getServiceMap().get(connectionId);
+        NsoVPLS nsoVpls = nsoServices.getFirst();
+
+        // now we can start generating the live status
+
+        // Define our tunnels. Each tunnel...
+        // - goes FROM a "device" TO a "remote" (device) - that pair is the key to the hashmap
+        // - can contain multiple SDPs with different precedences
+        //
+        Map<Pair<String, String>, OperationalStateInfoResponse.TunnelOpInfo> tunnelMap = new HashMap<>();
+        nsoVpls.getSdp().forEach(sdp -> {
+            String aDevice = sdp.getA().getDevice();
+            String zDevice = sdp.getZ().getDevice();
+
+            Set<Pair<String, String>> keys = new HashSet<>();
+            keys.add(Pair.of(aDevice, zDevice));
+            keys.add(Pair.of(zDevice, aDevice));
+            for (Pair<String, String> key : keys) {
+                if (!tunnelMap.containsKey(key)) {
+                    tunnelMap.put(key, OperationalStateInfoResponse.TunnelOpInfo.builder()
+                            .state(OperationalState.DOWN)
+                            .device(key.getFirst())
+                            .remote(key.getSecond())
+                            .sdps(new ArrayList<>())
+                            .build());
+                }
+
+                OperationalStateInfoResponse.UpDown sdpAdminState = DOWN;
+                OperationalStateInfoResponse.UpDown sdpOperState = DOWN;
+
+                for (LiveStatusSdpResult sdpResult : sdpsByDevice.get(key.getFirst())) {
+                    if (sdpResult.getSdpId().equals(sdp.getSdpId())) {
+                        sdpAdminState = sdpResult.getAdminState() ? UP : OperationalStateInfoResponse.UpDown.DOWN;
+                        sdpOperState = sdpResult.getOperationalState() ? UP : OperationalStateInfoResponse.UpDown.DOWN;
+                    }
+                }
+
+                tunnelMap.get(key).getSdps().add(OperationalStateInfoResponse.SdpOpInfo.builder()
+                        .sdpId(sdp.getSdpId())
+                        .vcId(sdp.getA().getVcId())
+                        .precedence(sdp.getPrecedence())
+                        .adminState(sdpAdminState)
+                        .operState(sdpOperState)
+                        .build());
+            }
+        });
+
+        // we should have all the tunnels with their SDPs and the SDP states at this point
+        // we will decide the overall tunnel state:
+        // - the tunnel is DOWN , unless...
+        // - a secondary SDP exists _and_ is UP, the tunnel is DEGRADED, unless...
+        // - the primary SDP exists _and_ is UP : the tunnel is UP
+
+        for (Pair<String, String> key : tunnelMap.keySet()) {
+            Map<NsoVplsSdpPrecedence, OperationalStateInfoResponse.UpDown> sdpStates = new HashMap<>();
+            tunnelMap.get(key).getSdps().forEach(sdp -> {
+                sdpStates.put(sdp.getPrecedence(), sdp.getOperState());
+            });
+
+            OperationalState tunnelState = OperationalState.DOWN;
+            if (sdpStates.containsKey(SECONDARY)) {
+                if (sdpStates.get(SECONDARY).equals(UP)) {
+                    tunnelState = OperationalState.DEGRADED;
+                }
+            }
+            if (sdpStates.containsKey(PRIMARY)) {
+                if (sdpStates.get(PRIMARY).equals(UP)) {
+                    tunnelState = OperationalState.UP;
+                }
+            }
+            tunnelMap.get(key).setState(tunnelState);
+
+            response.getTunnels().add(tunnelMap.get(key));
+        }
+
+        // next, go device by device and populate SAP results
         for (OperationalStateInfoResult result : response.getResults()) {
             String device = result.getDevice();
 
@@ -248,86 +325,6 @@ public class NsoLiveStatusController {
                         .adminState(adminState)
                         .state(endpointState)
                         .build());
-            }
-
-            // mapping SDPs is slightly more complicated though
-            List<NsoSdpId> deviceSdpIds = nsoSdpIds.stream().filter(sdpId -> sdpId.getDevice().equals(device)).toList();
-            // dumpDebug("deviceSdpIds", deviceSdpIds);
-
-            // first collect our desired SDP ids and group them by remote end
-            Map<String, Set<NsoSdpId>> byTarget = new HashMap<>();
-            for (NsoSdpId nsoSdpId : deviceSdpIds) {
-                if (!byTarget.containsKey(nsoSdpId.getTarget())) {
-                    byTarget.put(nsoSdpId.getTarget(), new HashSet<>());
-                }
-                byTarget.get(nsoSdpId.getTarget()).add(nsoSdpId);
-            }
-            // dumpDebug("byTarget on "+device, byTarget);
-
-            // for each far end, make a tunnel, then we have to figure out the health of the tunnel
-            // each tunnel is composed of a primary SDP and maybe a secondary one as well.
-            for (String target : byTarget.keySet()) {
-                Map<NsoVplsSdpPrecedence, Boolean> okByPrecedence = new HashMap<>();
-                Set<OperationalStateInfoResponse.SdpOpInfo> sdpOpInfos = new HashSet<>();
-                for (NsoSdpId nsoSdpId : byTarget.get(target)) {
-                    log.info("checking status for nsoSdpId "+nsoSdpId.getDevice()+" "+nsoSdpId.getSdpId());
-                    for (LiveStatusSdpResult sdpResult : allSdpsForAllDevices) {
-                        log.info("examining sdpResult for "+sdpResult.getDevice()+" "+sdpResult.getSdpId());
-                        if (sdpResult.getDevice().equals(nsoSdpId.getDevice()) && sdpResult.getSdpId().equals(nsoSdpId.getSdpId())) {
-                            log.info("matched! ");
-                            OperationalStateInfoResponse.UpDown operState = sdpResult.getOperationalState() ?
-                                    UP : OperationalStateInfoResponse.UpDown.DOWN;
-                            OperationalStateInfoResponse.UpDown adminState = sdpResult.getAdminState() ?
-                                    UP : OperationalStateInfoResponse.UpDown.DOWN;
-                            String precedenceStr = nsoSdpId.getPrecedence();
-                            NsoVplsSdpPrecedence precedence = PRIMARY;
-                            if (precedenceStr.equals(SECONDARY.toString())) {
-                                precedence = SECONDARY;
-                            }
-                            if (operState.equals(UP) && adminState.equals(UP)) {
-                                okByPrecedence.put(precedence, true);
-                            } else {
-                                okByPrecedence.put(precedence, false);
-                            }
-
-                            sdpOpInfos.add(OperationalStateInfoResponse.SdpOpInfo.builder()
-                                    .sdpId(sdpResult.getSdpId())
-                                    .vcId(sdpResult.getVcId())
-                                    .operState(operState)
-                                    .adminState(adminState)
-                                    .precedence(precedence)
-                                    .build());
-                            break;
-                        }
-                    }
-
-                }
-                // dumpDebug("sdpOpInfos", sdpOpInfos);
-                // dumpDebug("okByPrecedence", okByPrecedence);
-
-                // the rule is...
-                // - if the primary SDP exists and is UP the tunnel is UP
-                //    - otherwise, if the secondary exists and is UP the tunnel is DEGRADED
-                //       - otherwise, the tunnel is DOWN
-                OperationalState tunnelState = OperationalState.DOWN;
-                if (okByPrecedence.containsKey(PRIMARY)) {
-                    if (okByPrecedence.get(PRIMARY)) {
-                        tunnelState = OperationalState.UP;
-                    } else {
-                        if (okByPrecedence.containsKey(NsoVplsSdpPrecedence.SECONDARY)) {
-                            if (okByPrecedence.get(NsoVplsSdpPrecedence.SECONDARY)) {
-                                tunnelState = OperationalState.DEGRADED;
-                            }
-                        }
-                    }
-                }
-                response.getTunnels().add(OperationalStateInfoResponse.TunnelOpInfo.builder()
-                        .state(tunnelState)
-                        .sdps(sdpOpInfos.stream().toList())
-                        .device(device)
-                        .remote(target)
-                        .build());
-
             }
         }
 
@@ -380,7 +377,7 @@ public class NsoLiveStatusController {
         private int serviceId;
     }
 
-    private RequestData getRequestData(NsoLiveStatusRequest request, Connection conn) {
+    private RequestData getRequestData(NsoLiveStatusRequest request, Connection conn) throws NsoReadException {
         log.info("Request:" + request.toString());
 
         String connectionId = request.getConnectionId();
@@ -393,15 +390,15 @@ public class NsoLiveStatusController {
         List<String> devicesFromRest = request.getDeviceIds();
         List<String> devices = new ArrayList<String>();
 
-        // get circuit vc-id / service id
-        Optional<NsoVcId> optVcid = nsoVcIdDAO.findNsoVcIdByConnectionId(connectionId);
-        Integer vcid = 0;
-        if (optVcid.isPresent()) {
-            vcid = optVcid.get().getVcId();
-        } else {
-            log.info("Couldn't find VC-ID for OSCARS circuit " + connectionId);
+        NsoAdapter.OscarsNsoState nsoState = nsoAdapter.fetchNsoState(false);
+        Pair<NsoVPLS, List<NsoLSP>> nsoServices = nsoState.getServiceMap().get(connectionId);
+        if (nsoServices == null) {
+            log.info("Couldn't find NSO config for " + connectionId);
             throw new NoSuchElementException();
         }
+
+        NsoVPLS nsoVpls = nsoServices.getFirst();
+        Integer vcid = nsoVpls.getVcId();
 
         for (VlanFixture f : conn.getReserved().getCmp().getFixtures()) {
             String deviceUrn = f.getJunction().getDeviceUrn();
