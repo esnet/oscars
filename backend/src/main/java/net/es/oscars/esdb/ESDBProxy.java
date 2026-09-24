@@ -9,7 +9,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.EsdbProperties;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbBandwidthUtilization;
-import net.es.oscars.dto.esdb.gql.GraphqlEsdbBandwidthUtilization;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganization;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganizationType;
 import net.es.topo.common.dto.esdb.*;
@@ -23,7 +22,6 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.*;

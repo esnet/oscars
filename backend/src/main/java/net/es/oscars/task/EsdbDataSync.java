@@ -20,7 +20,6 @@ import net.es.oscars.resv.svc.ResvService;
 import net.es.oscars.topo.beans.Port;
 import net.es.oscars.topo.beans.PortBwVlan;
 import net.es.oscars.topo.beans.TopoUrn;
-import net.es.oscars.topo.beans.Topology;
 import net.es.oscars.topo.pop.ConsistencyException;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.topo.common.dto.esdb.EsdbBwUtil;
