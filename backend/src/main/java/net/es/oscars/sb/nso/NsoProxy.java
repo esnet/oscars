@@ -32,7 +32,6 @@ import org.springframework.web.client.*;
 import net.es.topo.common.dto.nso.enums.NsoService;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;

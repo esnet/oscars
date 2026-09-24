@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.web.client.ResourceAccessException;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.util.*;
