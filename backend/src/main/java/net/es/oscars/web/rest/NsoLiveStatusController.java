@@ -107,7 +107,6 @@ public class NsoLiveStatusController {
             results.add(nsoLiveStatusMgr
                     .getMacs(device, requestData.getServiceId(), request.getRefreshIfOlderThan())
                     .getMacInfoResult());
-
         }
         response.setResults(results);
         return response;

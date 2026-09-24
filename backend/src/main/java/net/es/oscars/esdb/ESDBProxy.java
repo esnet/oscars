@@ -66,6 +66,8 @@ public class ESDBProxy {
 
 
 
+
+
     /**
      * Get ESDB organizations from ESDB using GraphQL filtered by org type uuid.
      * @return Returns a list of GraphqlEsdbOrganization objects from the GraphQL response.
