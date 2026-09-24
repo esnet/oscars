@@ -28,7 +28,9 @@ public class ConnectionFilter {
     private State state;
     private Interval interval;
 
+    @Builder.Default
     private SortProperty sortProperty = SortProperty.CONNECTION_ID;
+    @Builder.Default
     private SortDirection sortDirection = SortDirection.ASCENDING;
     private int page;
     private int sizePerPage;

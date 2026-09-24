@@ -26,6 +26,9 @@ public class LiveStatusOutput {
     }
 
     public String getOutput() {
+        if (output == null) {
+            return null;
+        }
         return output.getResult();
     }
 

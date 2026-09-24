@@ -1,0 +1,35 @@
+query nsiPeeringList($search: String, $sortProperty:String, $first:Int, $skip:Int) {
+    nsiPeeringList(search: $search, sortProperty: $sortProperty, first: $first, skip: $skip) {
+        totalRecords
+        list {
+            id
+            localName
+            inAlias
+            outAlias
+            biAlias
+            equipmentInterface {
+                device {
+                    id
+                    name
+                    location {
+                        id
+                        shortName
+                        latitude
+                        longitude
+                    }
+                }
+                interfaceBandwidth {
+                    speed
+                }
+                interfaceName: interface
+            }
+            bandwidth
+            uuid
+            allowedVlanRanges {
+                id
+                beginRange
+                endRange
+            }
+        }
+    }
+}

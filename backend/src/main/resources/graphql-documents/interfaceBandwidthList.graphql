@@ -1,0 +1,9 @@
+query interfaceBandwidthList($search: String, $sortProperty:String, $first:Int, $skip:Int) {
+    interfaceBandwidthList(search: $search, sortProperty: $sortProperty, first: $first, skip: $skip) {
+        totalRecords
+        list {
+            id
+            speed
+        }
+    }
+}

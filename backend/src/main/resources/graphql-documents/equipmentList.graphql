@@ -1,0 +1,53 @@
+query equipmentList($search:String, $sortProperty:String, $first:Int, $skip:Int, $uuids:[UUID], $roles:[UUID], $states: [UUID]) {
+    equipmentList(search:$search, sortProperty:$sortProperty, first:$first, skip:$skip, uuids:$uuids, roles:$roles, states: $states) {
+        totalRecords
+        list {
+            id
+            name
+            # url
+            orchId : orchestratorId
+            role {
+                id
+            }
+            equipmentState {
+                id
+            }
+            network {
+                id
+            }
+            location {
+                id
+                shortName
+            }
+            model {
+                id
+                # url
+                name
+                manufacturer {
+                    fullName # could be shortName
+                    shortName
+                }
+            }
+            platform {
+                id
+                # url
+                name
+                manufacturer {
+                    fullName # could be shortName
+                    shortName
+                }
+                description
+            }
+            interfaces {
+                id
+                equipmentInterface: interface
+                interfaceBandwidth {
+                    id
+                    speed
+                }
+                tagged
+                oscarsBandwidth
+            }
+        }
+    }
+}

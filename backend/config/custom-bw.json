@@ -1,0 +1,12 @@
+[
+  {
+    "device": "eqxld8-cr6",
+    "port": "2/1/c19/1",
+    "mbps": 300000
+  },
+  {
+    "device": "newy32aoa-cr6",
+    "port": "2/1/c19/1",
+    "mbps": 300000
+  }
+]

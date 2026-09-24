@@ -136,7 +136,7 @@ public class TransitionStates {
                 connLock.unlock();
             }
         } else {
-            log.debug("unable to lock; waiting for next run ");
+//            log.debug("unable to lock; waiting for next run ");
         }
     }
 
