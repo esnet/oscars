@@ -15,7 +15,9 @@ import net.es.oscars.topo.svc.ConsistencyService;
 import net.es.oscars.topo.svc.TopologyStore;
 import net.es.topo.common.model.oscars1.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 import org.springframework.web.client.ResourceAccessException;
@@ -35,6 +37,9 @@ public class TopoPopulator {
     private final ConsistencyService consistencySvc;
     private final TopoGenerator topoGenerator;
     final OpenTelemetry openTelemetry;
+
+    @Value("file:config/topology.json")
+    protected Resource standaloneTopologyResource;
 
     @Autowired
     public TopoPopulator(TopologyStore topologyStore,
@@ -87,7 +92,10 @@ public class TopoPopulator {
 
         } else if (startupProperties.getStandalone()) {
             log.info("loading standalone topology from config/topology.json");
-            var jsonFile = new ClassPathResource("config/topology.json").getFile();
+            // config/topology.json is copied onto disk next to the jar (not packaged
+            // inside it or placed on the classpath), so it must be read from the
+            // filesystem, matching the file: pattern TopoGenerator uses for custom-bw.json.
+            var jsonFile = standaloneTopologyResource.getFile();
             oscarsOneTopo = mapper.readValue(jsonFile, OscarsOneTopo.class);
         } else {
             oscarsOneTopo = topoGenerator.generate();

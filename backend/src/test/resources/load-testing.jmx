@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="OSCARS NSI SOAP API">
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="OSCARS Load Test">
       <boolProp name="TestPlan.functional_mode">true</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
@@ -25,6 +25,26 @@
             <stringProp name="Argument.value">${__P(host,oscars-backend)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
+          <elementProp name="threadCount" elementType="Argument">
+            <stringProp name="Argument.name">threadCount</stringProp>
+            <stringProp name="Argument.value">${__P(threadCount,5)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="rampTime" elementType="Argument">
+            <stringProp name="Argument.name">rampTime</stringProp>
+            <stringProp name="Argument.value">${__P(rampTime,5)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="duration" elementType="Argument">
+            <stringProp name="Argument.name">duration</stringProp>
+            <stringProp name="Argument.value">${__P(duration,60)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="thinkTimeMs" elementType="Argument">
+            <stringProp name="Argument.name">thinkTimeMs</stringProp>
+            <stringProp name="Argument.value">${__P(thinkTimeMs,200)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
         </collectionProp>
       </Arguments>
       <hashTree/>
@@ -33,52 +53,50 @@
         <stringProp name="HTTPSampler.port">8201</stringProp>
         <stringProp name="HTTPSampler.protocol">http</stringProp>
         <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
-        <stringProp name="HTTPSampler.path">/services/provider</stringProp>
-        <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
-          <collectionProp name="Arguments.arguments">
-            <elementProp name="ServiceName" elementType="HTTPArgument">
-              <boolProp name="HTTPArgument.always_encode">true</boolProp>
-              <stringProp name="Argument.value">NsiProviderService</stringProp>
-              <stringProp name="Argument.metadata">=</stringProp>
-              <boolProp name="HTTPArgument.use_equals">true</boolProp>
-              <stringProp name="Argument.name">ServiceName</stringProp>
-            </elementProp>
-            <elementProp name="PortName" elementType="HTTPArgument">
-              <boolProp name="HTTPArgument.always_encode">true</boolProp>
-              <stringProp name="Argument.value">NsiProviderPort</stringProp>
-              <stringProp name="Argument.metadata">=</stringProp>
-              <boolProp name="HTTPArgument.use_equals">true</boolProp>
-              <stringProp name="Argument.name">PortName</stringProp>
-            </elementProp>
-            <elementProp name="PortTypeName" elementType="HTTPArgument">
-              <boolProp name="HTTPArgument.always_encode">true</boolProp>
-              <stringProp name="Argument.value">ConnectionProviderPort</stringProp>
-              <stringProp name="Argument.metadata">=</stringProp>
-              <boolProp name="HTTPArgument.use_equals">true</boolProp>
-              <stringProp name="Argument.name">PortTypeName</stringProp>
-            </elementProp>
-          </collectionProp>
-        </elementProp>
         <stringProp name="HTTPSampler.implementation"></stringProp>
       </ConfigTestElement>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Number of Users">
+      <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Device Pairs CSV">
+        <stringProp name="filename">load-testing-pairs.csv</stringProp>
+        <stringProp name="fileEncoding">UTF-8</stringProp>
+        <stringProp name="variableNames">deviceA,deviceZ,ero,aPort,aVlan,zPort,zVlan,sourceStp,destStp</stringProp>
+        <boolProp name="ignoreFirstLine">true</boolProp>
+        <stringProp name="delimiter">,</stringProp>
+        <boolProp name="quotedData">false</boolProp>
+        <boolProp name="recycle">true</boolProp>
+        <boolProp name="stopThread">false</boolProp>
+        <stringProp name="shareMode">shareMode.all</stringProp>
+      </CSVDataSet>
+      <hashTree/>
+
+      <!-- Scenario 1: NSI SOAP reserve() - the original smoke test, now driven by CSV-sourced
+           STPs/VLANs per iteration instead of a single hardcoded pair, and run with real
+           concurrency/duration instead of a single thread/single loop. -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="NSI Reserve">
         <boolProp name="ThreadGroup.delayedStart">true</boolProp>
-        <intProp name="ThreadGroup.num_threads">1</intProp>
-        <intProp name="ThreadGroup.ramp_time">5</intProp>
+        <stringProp name="ThreadGroup.num_threads">${threadCount}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${rampTime}</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.duration">${duration}</stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
-          <stringProp name="LoopController.loops">1</stringProp>
-          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">-1</stringProp>
+          <boolProp name="LoopController.continue_forever">true</boolProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
+        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time">
+          <stringProp name="ConstantTimer.delay">${thinkTimeMs}</stringProp>
+        </ConstantTimer>
+        <hashTree/>
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Soap Request">
           <stringProp name="HTTPSampler.domain">${host}</stringProp>
           <stringProp name="HTTPSampler.port">8201</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
+          <stringProp name="HTTPSampler.path">/services/provider?ServiceName=NsiProviderService&amp;PortName=NsiProviderPort&amp;PortTypeName=ConnectionProviderPort</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
@@ -91,7 +109,7 @@
   &lt;ns2:Header&gt;&#xd;
     &lt;ns9:nsiHeader&gt;&#xd;
       &lt;protocolVersion&gt;application/vnd.ogf.nsi.cs.v2.provider+soap&lt;/protocolVersion&gt;&#xd;
-      &lt;correlationId&gt;fae29d4f-e61e-4987-a19a-asd12&lt;/correlationId&gt;&#xd;
+      &lt;correlationId&gt;${__UUID()}&lt;/correlationId&gt;&#xd;
       &lt;requesterNSA&gt;urn:ogf:network:sense-rm.es.net:2013:esnet&lt;/requesterNSA&gt;&#xd;
       &lt;providerNSA&gt;urn:ogf:network:es.net:2013:nsa&lt;/providerNSA&gt;&#xd;
       &lt;replyTo&gt;&lt;/replyTo&gt;&#xd;
@@ -111,8 +129,8 @@
           &lt;capacity&gt;150000&lt;/capacity&gt;&#xd;
           &lt;directionality&gt;Bidirectional&lt;/directionality&gt;&#xd;
           &lt;symmetricPath&gt;true&lt;/symmetricPath&gt;&#xd;
-          &lt;sourceSTP&gt;urn:ogf:network:es.net:2013::losa-cr6:2_1_c4_1:+?vlan=3700&lt;/sourceSTP&gt;&#xd;
-          &lt;destSTP&gt;urn:ogf:network:es.net:2013::fnalfcc-cr6:lag-2:+?vlan=3700&lt;/destSTP&gt;&#xd;
+          &lt;sourceSTP&gt;${sourceStp}&lt;/sourceSTP&gt;&#xd;
+          &lt;destSTP&gt;${destStp}&lt;/destSTP&gt;&#xd;
         &lt;/ns8:p2ps&gt;&#xd;
       &lt;/criteria&gt;&#xd;
     &lt;/ns3:reserve&gt;&#xd;
@@ -154,6 +172,280 @@
           <hashTree/>
         </hashTree>
       </hashTree>
+
+      <!-- Scenario 2: PCE pathfinding (/api/pce/paths) - no auth required, exercises the
+           likely CPU-heaviest code path (YenkEngine k-shortest-paths over the full topology). -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="PCE Paths">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${threadCount}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${rampTime}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.duration">${duration}</stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">-1</stringProp>
+          <boolProp name="LoopController.continue_forever">true</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time">
+          <stringProp name="ConstantTimer.delay">${thinkTimeMs}</stringProp>
+        </ConstantTimer>
+        <hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="PCE Paths Request">
+          <stringProp name="HTTPSampler.domain">${host}</stringProp>
+          <stringProp name="HTTPSampler.port">8201</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
+          <stringProp name="HTTPSampler.path">/api/pce/paths</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{&#xd;
+  &quot;interval&quot;: {&quot;beginning&quot;: 1900000000, &quot;ending&quot;: 1900001000},&#xd;
+  &quot;a&quot;: &quot;${deviceA}&quot;,&#xd;
+  &quot;z&quot;: &quot;${deviceZ}&quot;,&#xd;
+  &quot;azBw&quot;: 10,&#xd;
+  &quot;zaBw&quot;: 10,&#xd;
+  &quot;include&quot;: [&quot;${deviceA}&quot;, &quot;${deviceZ}&quot;]&#xd;
+}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="pce-paths-response">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="TestPlan.comments">Verify HTTP 200 response from OSCARS PCE paths API</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">2</intProp>
+            <stringProp name="Assertion.custom_message">PCE PATHS FAILED</stringProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+
+      <!-- Scenario 3: REST hold -> commit flow (/protected/hold, /protected/conn/commit) -
+           generates a fresh connectionId per iteration, so concurrent/repeated iterations
+           never collide on connectionId (though two threads landing on the same CSV row at
+           the same time may legitimately fail to hold the same port/VLAN pair - that
+           contention is expected and left visible in the results rather than avoided). -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="REST Hold and Commit">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${threadCount}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${rampTime}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.duration">${duration}</stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">-1</stringProp>
+          <boolProp name="LoopController.continue_forever">true</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time">
+          <stringProp name="ConstantTimer.delay">${thinkTimeMs}</stringProp>
+        </ConstantTimer>
+        <hashTree/>
+        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Build ERO JSON array">
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="script">vars.put('eroJson', '["' + vars.get('ero').split('\\|').join('","') + '"]')</stringProp>
+        </JSR223PreProcessor>
+        <hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Generate Connection Id">
+          <stringProp name="HTTPSampler.domain">${host}</stringProp>
+          <stringProp name="HTTPSampler.port">8201</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
+          <stringProp name="HTTPSampler.path">/protected/conn/generateId</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="generate-id-response">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">2</intProp>
+            <stringProp name="Assertion.custom_message">GENERATE ID FAILED</stringProp>
+          </ResponseAssertion>
+          <hashTree/>
+          <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Extract Connection Id">
+            <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+            <stringProp name="RegexExtractor.refname">connectionId</stringProp>
+            <stringProp name="RegexExtractor.regex">(.+)</stringProp>
+            <stringProp name="RegexExtractor.template">$1$</stringProp>
+            <stringProp name="RegexExtractor.default">NONE</stringProp>
+            <intProp name="RegexExtractor.match_number">1</intProp>
+          </RegexExtractor>
+          <hashTree/>
+        </hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Hold Request">
+          <stringProp name="HTTPSampler.domain">${host}</stringProp>
+          <stringProp name="HTTPSampler.port">8201</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
+          <stringProp name="HTTPSampler.path">/protected/hold</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{&#xd;
+  &quot;connectionId&quot;: &quot;${connectionId}&quot;,&#xd;
+  &quot;begin&quot;: 1900000000,&#xd;
+  &quot;end&quot;: 1900001000,&#xd;
+  &quot;mode&quot;: &quot;MANUAL&quot;,&#xd;
+  &quot;description&quot;: &quot;load test&quot;,&#xd;
+  &quot;connection_mtu&quot;: 1500,&#xd;
+  &quot;junctions&quot;: [{&quot;device&quot;: &quot;${deviceA}&quot;}, {&quot;device&quot;: &quot;${deviceZ}&quot;}],&#xd;
+  &quot;pipes&quot;: [{&quot;a&quot;: &quot;${deviceA}&quot;, &quot;z&quot;: &quot;${deviceZ}&quot;, &quot;azMbps&quot;: 10, &quot;zaMbps&quot;: 10, &quot;ero&quot;: ${eroJson}}],&#xd;
+  &quot;fixtures&quot;: [&#xd;
+    {&quot;junction&quot;: &quot;${deviceA}&quot;, &quot;port&quot;: &quot;${aPort}&quot;, &quot;vlan&quot;: ${aVlan}, &quot;mbps&quot;: 10},&#xd;
+    {&quot;junction&quot;: &quot;${deviceZ}&quot;, &quot;port&quot;: &quot;${zPort}&quot;, &quot;vlan&quot;: ${zVlan}, &quot;mbps&quot;: 10}&#xd;
+  ]&#xd;
+}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="hold-response">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="TestPlan.comments">Verify HTTP 200 response from OSCARS hold API. A 403/other failure here can legitimately happen if a concurrent thread already holds the same port/VLAN from the same CSV row.</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">2</intProp>
+            <stringProp name="Assertion.custom_message">HOLD FAILED</stringProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Commit Request">
+          <stringProp name="HTTPSampler.domain">${host}</stringProp>
+          <stringProp name="HTTPSampler.port">8201</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
+          <stringProp name="HTTPSampler.path">/protected/conn/commit</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">${connectionId}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">text/plain</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="commit-response">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="TestPlan.comments">Verify HTTP 200 response from OSCARS commit API</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">2</intProp>
+            <stringProp name="Assertion.custom_message">COMMIT FAILED</stringProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Release Request">
+          <stringProp name="HTTPSampler.domain">${host}</stringProp>
+          <stringProp name="HTTPSampler.port">8201</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
+          <stringProp name="HTTPSampler.path">/protected/conn/release</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">${connectionId}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">text/plain</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="release-response">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="TestPlan.comments">Releases the connection immediately after commit, freeing its port/VLAN for reuse by the next iteration (the CSV pool is small and shared across threads).</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">2</intProp>
+            <stringProp name="Assertion.custom_message">RELEASE FAILED</stringProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+
       <ResultCollector guiclass="StatGraphVisualizer" testclass="ResultCollector" testname="Aggregate Graph">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>

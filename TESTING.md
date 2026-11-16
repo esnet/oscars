@@ -37,6 +37,20 @@ A JMeter-based load test (`backend/src/test/resources/load-testing.jmx`) can be 
 make loadtest
 ```
 
-This builds and runs `docker-compose.loadtest.yml`'s `oscars-load-test` service, which spins up `oscars-db` + `oscars-backend` (with `NSO_SYNC` disabled, so southbound NSO calls are stubbed out) and runs the JMeter plan against it. Results (a CSV and an HTML report) land in `./backend/load-testing/`.
+This builds and runs `docker-compose.loadtest.yml`'s `oscars-load-test` service, which spins up `oscars-db` + `oscars-backend` (with `NSO_SYNC` disabled, so southbound NSO calls are stubbed out, and `AUTH_OAUTH_ENABLED=false` so load-testing doesn't require minting JWTs) and runs the JMeter plan against it. Results (a CSV and an HTML report) land in `./backend/load-testing/`.
 
 The same job is also available as a manual-only `backend:loadtest` stage in GitLab CI — it never runs automatically; trigger it from the pipeline UI when you want results.
+
+The plan runs three concurrent scenarios, each paced with a configurable think-time delay so they don't starve each other's server threads:
+- **NSI Reserve** — the original NSI SOAP `reserve()` smoke test, now parameterized per iteration from `backend/src/test/resources/load-testing-pairs.csv` instead of a single hardcoded STP pair.
+- **PCE Paths** — `POST /api/pce/paths`, exercising path computation (`YenkEngine`) over the full topology.
+- **REST Hold and Commit** — the `generateId` → `hold` → `commit` → `release` REST flow. The CSV only has a handful of device/port/VLAN pairs, so at higher concurrency some `hold` calls will legitimately fail with "vlan not available" when two threads race for the same pair — that's expected contention, not a bug.
+
+Override defaults with JMeter `-J` properties, e.g.:
+
+```shell
+docker compose -f docker-compose.loadtest.yml run --rm oscars-load-test \
+  jmeter -n -t ./load-testing.jmx -Jhost=oscars-backend \
+  -JthreadCount=10 -Jduration=120 -JrampTime=10 -JthinkTimeMs=100 \
+  -l /app/load-testing/results.csv -e -o /app/load-testing/report
+```

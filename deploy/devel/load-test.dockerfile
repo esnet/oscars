@@ -27,6 +27,7 @@ RUN mkdir -p /app && cd /app
 RUN mkdir -p /app/load-testing
 WORKDIR /app
 COPY ../../backend/src/test/resources/load-testing.jmx ./load-testing.jmx
+COPY ../../backend/src/test/resources/load-testing-pairs.csv ./load-testing-pairs.csv
 # VOLUME [ "/app/${WEB_REPORT_DIR}" ]
 ENTRYPOINT jmeter -n -t ./load-testing.jmx -Jhost="${TARGET_HOST}" -l "/app/load-testing/${FILENAME}" -e -o "/app/load-testing/${WEB_REPORT_DIR}"
 

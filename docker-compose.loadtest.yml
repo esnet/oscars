@@ -33,7 +33,15 @@ services:
       oscars-db:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: test
+      # Use the "default" Spring profile (not "test"): SecurityConfig is
+      # @Profile("default") only, so under "test" it never registers and
+      # Spring Security's blanket auto-config takes over instead, redirecting
+      # every request (even /api/**) into an OAuth2 login flow. AUTH_OAUTH_ENABLED
+      # disables the OAuth-gated /protected/** rules for load testing purposes,
+      # mirroring what testing.properties' auth.oauth-enabled=false does for
+      # the Cucumber test suite.
+      SPRING_PROFILES_ACTIVE: default
+      AUTH_OAUTH_ENABLED: "false"
       HOSTNAME: ${HOSTNAME}
       JAVA_OPTS: ${JAVA_OPTS}
       MAVEN_OPTS: ${MAVEN_OPTS}
