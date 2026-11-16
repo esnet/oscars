@@ -28,3 +28,15 @@ mvn test -Dcucumber.filter.tags="@RestNsoSync"
 # Test all tests with tag @RestNsoSync, but exlcude some other tag(s)
 mvn test -Dcucumber.filter.tags="@RestNsoSync and not @Unit"
 ```
+
+## Load testing
+
+A JMeter-based load test (`backend/src/test/resources/load-testing.jmx`) can be run locally against a dockerized `oscars-backend`:
+
+```shell
+make loadtest
+```
+
+This builds and runs `docker-compose.loadtest.yml`'s `oscars-load-test` service, which spins up `oscars-db` + `oscars-backend` (with `NSO_SYNC` disabled, so southbound NSO calls are stubbed out) and runs the JMeter plan against it. Results (a CSV and an HTML report) land in `./backend/load-testing/`.
+
+The same job is also available as a manual-only `backend:loadtest` stage in GitLab CI — it never runs automatically; trigger it from the pipeline UI when you want results.

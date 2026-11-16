@@ -66,20 +66,20 @@ services:
     depends_on:
       oscars-backend:
         condition: service_healthy
-    build: 
+    build:
       context: ./
       args:
-        TARGET_HOST: oscars-backend:1099
+        TARGET_HOST: oscars-backend
         FILENAME: load-testing-results.csv
         WEB_REPORT_DIR: load-testing
       dockerfile: ./deploy/devel/load-test.dockerfile
     environment:
-      TARGET_HOST: oscars-backend:1099
+      TARGET_HOST: oscars-backend
       FILENAME: load-testing-results.csv
       WEB_REPORT_DIR: load-testing-web
     volumes:
       - ./backend/load-testing:/app/load-testing:rw
     links:
-      - "oscars-backend:1099"
+      - "oscars-backend:8201"
     networks:
       - oscars-loadtest-net

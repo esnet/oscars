@@ -15,6 +15,7 @@ variables:
 stages:
   - build
   - test
+  - loadtest
   - push
 
 .wharf_logout: &wharf_logout |-
@@ -54,6 +55,24 @@ backend:test:
     CONTEXT_PATH: ./
   script:
     - DOCKER_BUILDKIT=1 docker build --progress=plain --target=test --no-cache -f $DOCKERFILE_PATH $CONTEXT_PATH
+
+backend:loadtest:
+  stage: loadtest
+  before_script:
+    - mkdir -p ./backend/load-testing
+  after_script:
+    - ls -la ./backend/load-testing
+    - docker compose -f docker-compose.loadtest.yml down
+  services:
+    - docker:28.2.2-dind
+  needs: ["backend:build_image", "backend:test"]
+  rules:
+    - when: manual
+  artifacts:
+    paths:
+      - ./backend/load-testing
+  script:
+    - docker compose --progress=plain -f docker-compose.loadtest.yml up --build --abort-on-container-exit oscars-load-test
 
 .backend:push:
   stage: push

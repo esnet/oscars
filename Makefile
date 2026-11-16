@@ -27,6 +27,11 @@ oscars_compose := $(ocd_compose) --profile oscars
 endif
 
 
+.PHONY: loadtest
+loadtest:  ## Run the JMeter load test locally against a dockerized oscars-backend
+	docker compose -f docker-compose.loadtest.yml up --build --abort-on-container-exit oscars-load-test
+	docker compose -f docker-compose.loadtest.yml down
+
 .PHONY: mirror-prod-db
 mirror-prod-db:  ## Mirror prod db to local db (must be in "docker" group on prod server)
 	@echo "creating dump from oscars-prod.es.net..."

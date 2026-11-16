@@ -1,6 +1,6 @@
 FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:25-alpine
 
-ARG TARGET_HOST=oscars-backend:1099
+ARG TARGET_HOST=oscars-backend
 ARG FILENAME=load-testing-results.csv
 ARG WEB_REPORT_DIR=load-testing-web
 
@@ -15,9 +15,6 @@ ENV TARGET_HOST=${TARGET_HOST}
 ENV FILENAME=${FILENAME}
 ENV WEB_REPORT_DIR=${WEB_REPORT_DIR}
 
-# Remote hosts, comma-delimited
-RUN sed -i "s/remote_hosts=127.0.0.1/remote_hosts=${TARGET_HOST}/g" ${JMETER_HOME}/bin/jmeter.properties
-
 # ================================================================================
 # Don't use GUI mode for load testing !, only for Test creation and Test debugging.
 # For load testing, use CLI Mode (was NON GUI):
@@ -31,5 +28,5 @@ RUN mkdir -p /app/load-testing
 WORKDIR /app
 COPY ../../backend/src/test/resources/load-testing.jmx ./load-testing.jmx
 # VOLUME [ "/app/${WEB_REPORT_DIR}" ]
-ENTRYPOINT jmeter -n -t ./load-testing.jmx -l "/app/load-testing/${FILENAME}" -e -o "/app/load-testing/${WEB_REPORT_DIR}"
+ENTRYPOINT jmeter -n -t ./load-testing.jmx -Jhost="${TARGET_HOST}" -l "/app/load-testing/${FILENAME}" -e -o "/app/load-testing/${WEB_REPORT_DIR}"
 
