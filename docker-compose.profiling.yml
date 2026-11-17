@@ -33,7 +33,11 @@ services:
       oscars-db:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: test
+      # See docker-compose.loadtest.yml: SecurityConfig is @Profile("default")
+      # only, so SPRING_PROFILES_ACTIVE=test disables it and Spring Security's
+      # default auto-config redirects every request to OAuth login instead.
+      SPRING_PROFILES_ACTIVE: default
+      AUTH_OAUTH_ENABLED: "false"
       HOSTNAME: ${HOSTNAME}
       JAVA_OPTS: ${JAVA_OPTS}
       MAVEN_OPTS: ${MAVEN_OPTS}
@@ -53,6 +57,7 @@ services:
       - "8201:8201"
       - "9201:9201" # Debugger port
       - "1099:1099" # profiler port
+      - "8211:8211" # Actuator/Prometheus management port
     volumes:
       - ./backend/profiling:/app/profiling:rw
     healthcheck:
@@ -73,6 +78,7 @@ services:
       args:
         TARGET_HOST: "oscars-backend:1099"
         FILENAME: "${FILENAME:-profiling/latest.recording.jfr}"
+        WEB_TARGET_HOST: "oscars-backend"
     image: oscars-backend-image:latest
     environment:
       SPRING_PROFILES_ACTIVE: "test"
@@ -81,13 +87,26 @@ services:
       SPRING_DATASOURCE_PASSWORD: ""
       SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
       TARGET_HOST: "oscars-backend:1099"
+      WEB_TARGET_HOST: "oscars-backend"
       FILENAME: "${FILENAME:-profiling/latest.recording.jfr}"
       DELAY_MIN: "0m"
       DURATION_MIN: "1m"
+      # 500_loadtest.sh's JMeter run - see backend/src/test/profiling/500_loadtest.sh
+      LOADTEST_THREAD_COUNT: "${LOADTEST_THREAD_COUNT:-5}"
+      LOADTEST_DURATION: "${LOADTEST_DURATION:-60}"
+      LOADTEST_RAMP_TIME: "${LOADTEST_RAMP_TIME:-5}"
+      LOADTEST_THINK_TIME_MS: "${LOADTEST_THINK_TIME_MS:-200}"
       OSCARS_BACKEND_WEB_PORT: 8201
     links:
       - "oscars-backend:1099"
       - "oscars-backend:8201"
+    volumes:
+      # Mounted at a path distinct from /app/profiling (which holds the numbered
+      # profiling .sh scripts copied into the image) so this bind mount doesn't
+      # shadow them. 500_loadtest.sh writes its JMeter CSV/HTML report here,
+      # into the same host directory the JFR recording itself lands in (dumped
+      # by oscars-backend, which mounts ./backend/profiling at /app/profiling).
+      - ./backend/profiling:/app/loadtest-output:rw
     networks:
       - oscars-local-net
       

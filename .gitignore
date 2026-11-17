@@ -14,3 +14,5 @@ backend/log
 **/.env.*
 backend/web-report
 backend/load-testing/
+backend/profiling/*
+!backend/profiling/.gitkeep
