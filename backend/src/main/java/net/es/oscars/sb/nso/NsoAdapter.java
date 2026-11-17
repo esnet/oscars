@@ -1,5 +1,7 @@
 package net.es.oscars.sb.nso;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -67,21 +69,32 @@ public class NsoAdapter {
 
     private final MiscHelper miscHelper;
 
+    private final MeterRegistry meterRegistry;
+
     public NsoAdapter(NsoProperties nsoProperties,
                       NsoServiceConfigCache serviceConfigCache,
                       NsoProxy nsoProxy,
                       MiscHelper miscHelper,
-                      CommandHistoryRepository historyRepo, RouterCommandsRepository rcr) {
+                      CommandHistoryRepository historyRepo, RouterCommandsRepository rcr,
+                      MeterRegistry meterRegistry) {
         this.nsoProperties = nsoProperties;
         this.serviceConfigCache = serviceConfigCache;
         this.nsoProxy = nsoProxy;
         this.historyRepo = historyRepo;
         this.rcr = rcr;
         this.miscHelper = miscHelper;
+        this.meterRegistry = meterRegistry;
     }
 
-
     public SouthboundTaskResult processTask(Connection conn, CommandType commandType, State intent) {
+        return Timer.builder("oscars.nso.process_task")
+                .description("Time spent compiling and pushing (or dry-running) NSO config for a connection")
+                .tag("commandType", commandType.toString())
+                .register(meterRegistry)
+                .record(() -> processTaskInternal(conn, commandType, intent));
+    }
+
+    private SouthboundTaskResult processTaskInternal(Connection conn, CommandType commandType, State intent) {
         log.info("processing southbound NSO task " + conn.getConnectionId() + " " + commandType + " " + intent);
 
         // we ass-u-me that incoming deployment state is the opposite of what is asked

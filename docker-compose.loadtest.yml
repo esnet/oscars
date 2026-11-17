@@ -61,6 +61,7 @@ services:
       - "8201:8201"
       - "9201:9201" # Debugger port
       - "1099:1099" # profiler port
+      - "8211:8211" # Actuator/Prometheus management port
     volumes:
       - ./backend/profiling:/app/profiling:rw
     healthcheck:

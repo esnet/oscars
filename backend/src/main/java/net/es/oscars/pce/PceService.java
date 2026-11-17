@@ -1,5 +1,7 @@
 package net.es.oscars.pce;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.exc.PCEException;
 import net.es.oscars.model.Bundle;
@@ -37,16 +39,36 @@ public class PceService {
     private final Engine pceEngine;
     private final TopologyStore topologyStore;
     private final ConnService connService;
+    private final Timer calculatePathsTimer;
+    private final Timer calculateAllPathsTimer;
 
-    public PceService(ResvService resvService, Engine pceEngine, TopologyStore topologyStore, ConnService connService) {
+    public PceService(ResvService resvService, Engine pceEngine, TopologyStore topologyStore, ConnService connService, MeterRegistry meterRegistry) {
         this.resvService = resvService;
         this.pceEngine = pceEngine;
         this.topologyStore = topologyStore;
         this.connService = connService;
+        this.calculatePathsTimer = Timer.builder("oscars.pce.calculate_paths")
+                .description("Time spent computing candidate paths for a single A/Z pair")
+                .register(meterRegistry);
+        this.calculateAllPathsTimer = Timer.builder("oscars.pce.calculate_all_paths")
+                .description("Time spent computing candidate paths across a batch of pipes")
+                .register(meterRegistry);
     }
 
 
     public AllPathsPceResponse calculateAllPaths(AllPathsPceRequest request) throws PCEException {
+        try {
+            return calculateAllPathsTimer.recordCallable(() -> calculateAllPathsInternal(request));
+        } catch (PCEException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            // recordCallable's Callable<T> only declares `throws Exception`; calculateAllPathsInternal
+            // only ever throws the checked PCEException above, so this branch is unreachable in practice.
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private AllPathsPceResponse calculateAllPathsInternal(AllPathsPceRequest request) throws PCEException {
         // get the baseline topology, then remove all bandwidth reserved by other reservations
         // over the specified interval
 
@@ -160,6 +182,17 @@ public class PceService {
     }
 
     public PceResponse calculatePaths(PceRequest request) throws PCEException {
+        try {
+            return calculatePathsTimer.recordCallable(() -> calculatePathsInternal(request));
+        } catch (PCEException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            // see calculateAllPaths: calculatePathsInternal only ever throws PCEException.
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private PceResponse calculatePathsInternal(PceRequest request) throws PCEException {
         if (request.getA().equals(request.getZ())) {
             throw new PCEException("invalid path request: A is the same as Z "+request.getA());
         }

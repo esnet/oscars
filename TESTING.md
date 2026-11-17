@@ -54,3 +54,14 @@ docker compose -f docker-compose.loadtest.yml run --rm oscars-load-test \
   -JthreadCount=10 -Jduration=120 -JrampTime=10 -JthinkTimeMs=100 \
   -l /app/load-testing/results.csv -e -o /app/load-testing/report
 ```
+
+### Server-side metrics during a load test
+
+`oscars-backend` exposes Actuator/Micrometer metrics on a separate management port (`8211` by default, override with `OSCARS_BACKEND_MANAGEMENT_PORT`) so they never share the `/api`/`/protected`/`/admin` security filter chains and aren't reachable on the main web port at all:
+
+- `http://localhost:8211/actuator/health`
+- `http://localhost:8211/actuator/prometheus` — Prometheus-formatted metrics: JVM/GC, HikariCP connection pool, Caffeine cache sizes, per-endpoint `http_server_requests_seconds` timings, and two OSCARS-specific timers:
+  - `oscars_pce_calculate_paths_seconds` / `oscars_pce_calculate_all_paths_seconds` — time spent in `PceService`'s path computation (`YenkEngine`), the likely CPU-heaviest code path.
+  - `oscars_nso_process_task_seconds{commandType="BUILD|DISMANTLE|REDEPLOY"}` — time spent in `NsoAdapter.processTask` compiling and (dry-run) pushing southbound config.
+
+During a `make loadtest` run, scrape `/actuator/prometheus` (e.g. with `watch curl` or a local Prometheus instance) to correlate these with the JMeter report for the same time window. In production/staging this traffic can also be sent to the existing OpenTelemetry/Stardust pipeline by flipping `otel.sdk.disabled=false` and uncommenting the exporter properties in `backend/config/application.properties` for a given run.
