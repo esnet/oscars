@@ -71,7 +71,11 @@ they're long and mostly already distilled here and in memory.
 
 `docs/okteto_debugging.md` is the full walkthrough (personal namespace setup, `okteto up
 oscars-backend`, IntelliJ/VSCode/NetBeans attach steps) — point developers there instead of
-re-explaining it. The short version, for your own reference:
+re-explaining it. Day-to-day commands go through `make okteto-deploy`/`okteto-up`/`okteto-down`/
+`okteto-build-dev` (see the root `Makefile`), not raw `okteto`/`docker` invocations — this repo
+deliberately stayed on `make` rather than adding a `Justfile` (see commit `30098994`'s message; `just`
+is reserved for `ocd-charts`' infra-tier chart recipes, not this repo). The short version, for your
+own reference:
 
 - `deploy/devel/backend.dockerfile` has a `dev` stage (`FROM builder`) wired up via the
   `oscars-backend-dev` build key in `okteto.yaml` — kept **separate** from the `oscars-backend` key

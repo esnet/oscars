@@ -42,8 +42,11 @@ shared namespace someone else is actively using.
 From the repo root:
 
 ```bash
-okteto deploy
+make okteto-deploy
 ```
+
+(equivalent to running `okteto deploy` directly — the `make` target is just a documented shortcut,
+see the Makefile's own `make help` for all available targets, Okteto and otherwise)
 
 This builds and pushes the production `oscars-backend` image (per `okteto.yaml`'s `build.oscars-backend`
 key) and runs the `helm upgrade ocd-stack ...` command in `okteto.yaml`'s `deploy.commands`, which
@@ -67,7 +70,7 @@ no-placeholder-secrets convention.
 ## 3. Enter dev mode with debugging + hot-reload
 
 ```bash
-okteto up oscars-backend
+make okteto-up
 ```
 
 This swaps the running `oscars-backend` pod for a dev-mode container (built from the `dev` stage in
@@ -97,7 +100,7 @@ change instead of relying on the in-place restart.
 To exit dev mode and restore the normal pod:
 
 ```bash
-okteto down oscars-backend
+make okteto-down
 ```
 
 ## 4. Attach your IDE's debugger
@@ -158,6 +161,6 @@ way they would for a local launch config.
   in-container `mvn compile`/`spring-boot:run` loop is *not* run with `--offline`, so it should fetch
   new dependencies on its own as long as the Okteto namespace has network egress to Maven Central /
   `gitlab.es.net`. If that egress is locked down in your cluster, you'll need to re-run
-  `okteto build oscars-backend-dev` after changing `pom.xml` instead.
+  `make okteto-build-dev` after changing `pom.xml` instead.
 - **This all works with a scratch/demo secrets setup, but real deploys still need real Vault
   values** — see CLAUDE.md's "Okteto/Kubernetes migration" section for the current blocker list.

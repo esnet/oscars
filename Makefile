@@ -32,6 +32,24 @@ loadtest:  ## Run the JMeter load test locally against a dockerized oscars-backe
 	docker compose -f docker-compose.loadtest.yml up --build --abort-on-container-exit oscars-load-test
 	docker compose -f docker-compose.loadtest.yml down
 
+##### Okteto dev/debug targets - see docs/okteto_debugging.md for the full walkthrough #####
+
+.PHONY: okteto-deploy
+okteto-deploy:  ## Build and deploy oscars-backend (production image) into your current Okteto namespace
+	okteto deploy
+
+.PHONY: okteto-up
+okteto-up:  ## Swap oscars-backend for a dev container with JDWP debugging (port 9201) + hot-reload
+	okteto up oscars-backend
+
+.PHONY: okteto-down
+okteto-down:  ## Exit dev mode and restore the normal oscars-backend pod
+	okteto down oscars-backend
+
+.PHONY: okteto-build-dev
+okteto-build-dev:  ## Rebuild just the oscars-backend dev image (e.g. after changing pom.xml)
+	okteto build oscars-backend-dev
+
 # PROVISIONAL - see deploy/deploy_staging_west.yml for open questions (deploy
 # mechanism unconfirmed, no AAP template registered yet). Mirrors esnet-esdb's
 # deploy-staging-west target/pattern.
