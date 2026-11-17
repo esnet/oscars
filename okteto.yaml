@@ -18,11 +18,21 @@ build:
   oscars-backend:
     context: .
     dockerfile: deploy/devel/backend.dockerfile
+  oscars-backend-dev:
+    context: .
+    dockerfile: deploy/devel/backend.dockerfile
+    target: dev
 
 dev:
   oscars-backend:
-    image: "registry.ocd-staging.es.net/${OKTETO_NAMESPACE}/oscars-backend:okteto"
+    image: "${OKTETO_BUILD_OSCARS_BACKEND_DEV_IMAGE}"
+    command: ["/usr/local/bin/dev-entrypoint.sh"]
+    environment:
+      JAVA_OPTS: >
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:9201
     forward:
       - 9201:9201
+      - 8201:8201
+      - 8211:8211
     sync:
       - ./backend/src:/build/backend/src

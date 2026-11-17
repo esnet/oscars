@@ -39,6 +39,26 @@ ARG JAR_FILE=target/*.jar
 RUN mv ${JAR_FILE} backend.jar
 RUN java -Djarmode=tools -jar backend.jar extract --layers --destination layers
 
+# 3. dev stage - used only by Okteto's inner dev loop, never for real deploys
+FROM builder AS dev
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends entr \
+    && rm -rf /var/lib/apt/lists/*
+
+# BuildKit cache mounts (--mount=type=cache) never land in committed image
+# layers, so a plain `FROM builder` has an EMPTY ~/.m2 at runtime even though
+# the image built fine. Materialize it into a real layer.
+RUN --mount=type=cache,target=/root/.m2 \
+    mkdir -p /opt/m2-repo && cp -a /root/.m2/. /opt/m2-repo/
+ENV MAVEN_OPTS="${MAVEN_OPTS} -Dmaven.repo.local=/opt/m2-repo"
+
+COPY deploy/devel/dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
+RUN chmod +x /usr/local/bin/dev-entrypoint.sh
+
+EXPOSE 9201
+CMD ["/usr/local/bin/dev-entrypoint.sh"]
+
 # 2. run stage
 FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:25-alpine
 RUN addgroup -S oscars && adduser -S oscars -G oscars
