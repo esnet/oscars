@@ -1,0 +1,18 @@
+---
+# tasks file for oscars_deploy
+#
+# Deliberately left as a placeholder. Per deploy_staging_west.yml's comment,
+# OSCARS's actual target deployment mechanism on oscars-staging.es.net
+# (docker-compose pulling the backend:publish-tagged image is the natural
+# fit, matching how this repo's own .gitlab-ci.yml already tags images - but
+# this needs confirming with whoever sets up the real AAP template) is still
+# an open question. Do not build this out until that's resolved; mechanically
+# copying esnet-esdb's own esdb_deploy role here would carry over assumptions
+# (nginx/gunicorn, Django migrations, that service's specific compose
+# topology) that don't apply to OSCARS.
+
+- name: placeholder - confirm OSCARS's staging deployment mechanism before filling this in
+  debug:
+    msg: >
+      oscars_deploy role not yet implemented.
+      See deploy_staging_west.yml and CLAUDE.md for context.

@@ -32,6 +32,13 @@ loadtest:  ## Run the JMeter load test locally against a dockerized oscars-backe
 	docker compose -f docker-compose.loadtest.yml up --build --abort-on-container-exit oscars-load-test
 	docker compose -f docker-compose.loadtest.yml down
 
+# PROVISIONAL - see deploy/deploy_staging_west.yml for open questions (deploy
+# mechanism unconfirmed, no AAP template registered yet). Mirrors esnet-esdb's
+# deploy-staging-west target/pattern.
+.PHONY: deploy-staging
+deploy-staging:  ## Deploy oscars-backend to oscars-staging.es.net (provisional, see deploy/deploy_staging_west.yml)
+	cd deploy && ansible-playbook -i staging -u $(USER) -b deploy_staging_west.yml -e "backend_image_tag=$(BACKEND_IMAGE_TAG)" --ask-vault-pass
+
 .PHONY: mirror-prod-db
 mirror-prod-db:  ## Mirror prod db to local db (must be in "docker" group on prod server)
 	@echo "creating dump from oscars-prod.es.net..."

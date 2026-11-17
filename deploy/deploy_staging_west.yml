@@ -1,0 +1,42 @@
+---
+# Deploys oscars-backend to oscars-staging.es.net via the "oscars_deploy" role.
+#
+# NOTE: this playbook is a starting scaffold, not a verified working deploy.
+# It follows the pattern used by esnet-esdb's deploy_staging_west.yml (single
+# host play, vault-encrypted secrets, environment passthrough to one role),
+# but OSCARS has no deploy automation today, and two things are still open
+# before this can actually run:
+#   1. Whether oscars-staging.es.net's deployment mechanism should be plain
+#      docker-compose (pulling the backend:publish-tagged image from
+#      .gitlab-ci.yml), something closer to the local dev compose setup, or
+#      something else entirely - this determines the whole shape of the
+#      oscars_deploy role, which is currently an empty placeholder.
+#   2. Whether registering a new AAP job template pointing at this playbook
+#      (e.g. "Deploy OSCARS staging West1", mirroring ESDB's "Deploy ESDB
+#      staging West1") is self-service in barad-dur, or requires going
+#      through an infra/INF team - ESDB's own docs don't document this.
+#
+# Also note: this repo (and its siblings) is being migrated off ocd-stack
+# onto Okteto-managed Kubernetes. If OSCARS's own Okteto migration lands
+# before this AAP/Ansible path is built out, staging deploys may end up
+# going through Okteto/Helm instead - confirm which path is current before
+# investing further here.
+- name: deploy oscars staging west
+  hosts: oscars-staging.es.net
+  vars:
+    backend_image_tag: "{{ backend_image_tag }}"
+    # Secrets below are placeholders (plain strings, NOT vault-encrypted).
+    # Replace with `ansible-vault encrypt_string` output before this playbook
+    # is used against a real host, following esnet-esdb/deploy's convention.
+    postgres_password: CHANGEME
+    esdb_api_key: CHANGEME
+    nso_username: CHANGEME
+    nso_password: CHANGEME
+  environment:
+    BACKEND_IMAGE_TAG: "{{ backend_image_tag }}"
+    POSTGRES_PASSWORD: "{{ postgres_password }}"
+    ESDB_API_KEY: "{{ esdb_api_key }}"
+    NSO_USERNAME: "{{ nso_username }}"
+    NSO_PASSWORD: "{{ nso_password }}"
+  roles:
+    - { role: roles/oscars_deploy }
