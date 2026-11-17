@@ -1,0 +1,28 @@
+name: oscars
+
+deploy:
+  remote: false
+  commands:
+    - name: Deploy ocd-stack
+      command: |
+        helm upgrade ocd-stack oci://wharf.es.net/ocd-helm/ocd-stack \
+          --install \
+          --set oscars.backend.image.location=${OKTETO_BUILD_OSCARS_BACKEND_IMAGE}
+
+destroy:
+  commands:
+    - helm uninstall ocd-stack
+    - kubectl delete pvc -l app.kubernetes.io/instance=ocd-stack
+
+build:
+  oscars-backend:
+    context: .
+    dockerfile: deploy/devel/backend.dockerfile
+
+dev:
+  oscars-backend:
+    image: "registry.ocd-staging.es.net/${OKTETO_NAMESPACE}/oscars-backend:okteto"
+    forward:
+      - 9201:9201
+    sync:
+      - ./backend/src:/build/backend/src
