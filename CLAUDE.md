@@ -23,11 +23,13 @@ Local development uses Docker Compose via a separate `ocd-stack` sibling repo (e
 - The `topo-net` external Docker network referenced in this repo's `docker-compose.yml` is declared here, not created by ocd-stack — ensure it exists (`docker network create topo-net`) before bringing services up standalone.
 - `ocd-stack`'s own `make setup` expects `../oscars` to be a sibling checkout (cloned from `git@github.com:esnet/oscars.git`).
 
-### Okteto/Kubernetes migration (in progress, not yet reached OSCARS)
+### Okteto/Kubernetes migration (planned, not yet started for OSCARS)
 
 This repo, along with its sibling repos, is being migrated off the `ocd-stack` Docker Compose workflow onto [Okteto](https://www.okteto.com/docs/)-managed Kubernetes (see `es-enterprise/docs/dev-env/local-development.md` and `esnet-esdb/docs/okteto_development.md` for the pattern already in use there: an `okteto.yaml`/`okteto.yml` manifest, a shared `../ocd-charts` Helm chart repo with one subchart per service, and `just`/`make` recipes like `up`/`deploy`/`destroy`/`mirror-prod-db`).
 
-**As of this writing, OSCARS itself has not been migrated**: `../ocd-charts/charts/` has subcharts for `esnet-esdb`, `esnet-nso`, `namesurfer`, `orchestrator`, and `prefix-manager`, but no `oscars` chart. A past attempt exists on the stale, abandoned branch `os-377-oscars-okteto` (May 2025) — it predates the current Helm-chart convention and used raw `kubectl apply` of hand-written k8s manifests (`k8/*.yml`) plus External Secrets instead, so it should be treated as historical reference only, not a starting point to resume from. When OSCARS's Okteto migration does happen, expect it to follow the es-enterprise/esnet-esdb pattern (an `oscars` subchart added to `../ocd-charts`, an `okteto.yaml` here, `just`-based dev commands) rather than the old branch's approach — and any staging/production deploy automation work (e.g. Ansible/AAP-based, see `esnet-esdb/docs/release_process.md`'s pattern) designed before that migration lands should be treated as provisional, since Okteto/Helm may become the actual deploy path instead.
+**As of this writing, OSCARS itself has not been migrated, but it is actively planned**, tracked in Jira under epic **PLATFORM-1013** ("Deploy Okteto for OSCARS", assigned `sbgriffin@es.net`, status `To Do`) with three `Ready`/Highest-priority child stories: **OCD-926** ("K8: OSCARS can be deployed via chart"), **OCD-927** ("K8: OSCARS can be developed via Okteto"), and **OCD-924** ("K8: OSCARS 'make' command parity") — none started yet as of this writing. A related, separately-tracked story **OCD-929** ("K8: Topo/Discovery 'make' command parity") covers `../topo-discovery`'s own migration. Two earlier attempts at the same epic, **POR-109**/**POR-110**, were both cancelled before `PLATFORM-1013` was created.
+
+`../ocd-charts/charts/` currently has subcharts for `esnet-esdb`, `esnet-nso`, `namesurfer`, `orchestrator`, and `prefix-manager`, but no `oscars` chart yet — that gap is exactly what `OCD-926` covers. A past attempt exists on the stale, abandoned branch `os-377-oscars-okteto` (tracked as Jira story **OS-377**, "Okteto for OSCARS backend (dev)", status `Done`, scoped dev-only — "production deployment is currently out of scope") from May 2025; it predates the current Helm-chart convention and used raw `kubectl apply` of hand-written k8s manifests (`k8/*.yml`) plus External Secrets instead, so it should be treated as historical reference only, not a starting point to resume from. When `PLATFORM-1013`'s work actually starts, expect it to follow the es-enterprise/esnet-esdb pattern (an `oscars` subchart added to `../ocd-charts`, an `okteto.yaml` here, `just`-based dev commands) rather than the old branch's approach — and any staging/production deploy automation work done before then (e.g. the Ansible/AAP scaffold under `deploy/`, modeled on `esnet-esdb/docs/release_process.md`'s pattern) should be treated as provisional, since Okteto/Helm may become the actual deploy path instead once `OCD-926` lands.
 
 ## Common commands
 
@@ -131,7 +133,7 @@ Request flow: **Web API** (REST v2 / GraphQL / "simple" API) → **`resv.svc.Con
 1. OSCARS's actual target deployment mechanism on `oscars-staging.es.net` (docker-compose pulling the `backend:publish`-tagged image is the natural fit, but unconfirmed) — this determines the whole shape of `oscars_deploy`.
 2. Whether registering a new AAP job template in barad-dur is self-service or requires an infra/INF team — not documented anywhere found so far.
 
-Also note the Okteto migration above: if OSCARS's own migration lands first, staging deploys may go through Okteto/Helm instead of this AAP/Ansible path.
+Also note the Okteto migration above: `PLATFORM-1013`/`OCD-926` are actively planned (Highest priority, `Ready`) even though not yet started — if that work lands first, staging deploys may go through Okteto/Helm instead of this AAP/Ansible path.
 
 ## Contribution conventions
 
