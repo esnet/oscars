@@ -21,6 +21,9 @@ import java.util.Map;
 @Component
 public class EsdbEquipProxy {
 
+    private static final String ROLE_NAME = "Core Router";
+    private static final String STATE_NAME = "Production";
+
     private final ESDBProxy esdbProxy;
 
     public EsdbEquipProxy(ESDBProxy esdbProxy) {
@@ -40,12 +43,23 @@ public class EsdbEquipProxy {
     }
 
     public List<EsdbEquip> gqlEsdbEquipmentList() throws Exception {
-        // Only retrieve equipment with the role of "Core Router" (UUID "95ed0ea2-cdea-42ba-90c2-94ed749653c3")
-        // with equipment state of "Production" (UUID "fbd63047-7bfd-412b-858d-05fbd4837939")
+        // Role/state UUIDs are generated per ESDB instance (not stable across
+        // environments), so resolve them by name instead of hardcoding one.
+        String roleUuid = esdbProxy.gqlEquipmentRoleUuidByName(ROLE_NAME);
+        String stateUuid = esdbProxy.gqlEquipmentStateUuidByName(STATE_NAME);
+
         List<String> roleUUIDs = new ArrayList<>();
         List<String> stateUUIDs = new ArrayList<>();
-        roleUUIDs.add("95ed0ea2-cdea-42ba-90c2-94ed749653c3");
-        stateUUIDs.add("fbd63047-7bfd-412b-858d-05fbd4837939");
+        if (roleUuid != null) {
+            roleUUIDs.add(roleUuid);
+        } else {
+            log.warn("no ESDB equipment role found named '{}'", ROLE_NAME);
+        }
+        if (stateUuid != null) {
+            stateUUIDs.add(stateUuid);
+        } else {
+            log.warn("no ESDB equipment state found named '{}'", STATE_NAME);
+        }
         return gqlEsdbEquipmentList(null, null, null, null, null, roleUUIDs, stateUUIDs);
     }
 

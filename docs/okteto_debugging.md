@@ -61,11 +61,23 @@ kubectl get pods
 ```
 
 If `oscars-backend-external-secret` or `ocd-stack-oscars-db-external-secret` show `SecretSyncedError`
-in `kubectl get externalsecret`, Vault doesn't have real values populated for your environment yet
-(see CLAUDE.md's blocker list) — for a personal sandbox you can delete those `ExternalSecret`
-resources and `kubectl create secret generic` plain placeholder secrets with the same name/keys
-instead. **Never do this against a shared staging/prod namespace** — see the project's own
-no-placeholder-secrets convention.
+in `kubectl get externalsecret`, Vault doesn't have real values populated for your identity yet (see
+CLAUDE.md's blocker list) — this is expected for most new developers on day one, since the Vault
+keys involved require org-level access. Run:
+
+```bash
+make okteto-seed-secrets
+```
+
+This creates `oscars-backend-secrets` (keys: `POSTGRES_PASSWORD`, `ESDB_API_KEY`, `NSO_USERNAME`,
+`NSO_PASSWORD`) and `ocd-stack-oscars-db-external-secret` (key: `POSTGRES_PASSWORD`, matching the
+first so backend↔DB auth actually works) with safe, clearly-fake placeholder values — but only for
+whichever of the two hasn't already synced real data from Vault, so it never overwrites a real
+secret. It refuses to run against anything but your own personal Okteto namespace, and it's safe to
+re-run any time (e.g. after `make okteto-deploy`, which otherwise re-applies the still-failing
+`ExternalSecret` on every redeploy) — once Vault access works for your identity, this becomes a
+no-op and your real synced secrets are left untouched. **Never do this against a shared staging/prod
+namespace** — see the project's own no-placeholder-secrets convention.
 
 ## 3. Enter dev mode with debugging + hot-reload
 

@@ -50,6 +50,10 @@ okteto-down:  ## Exit dev mode and restore the normal oscars-backend pod
 okteto-build-dev:  ## Rebuild just the oscars-backend dev image (e.g. after changing pom.xml)
 	okteto build oscars-backend-dev
 
+.PHONY: okteto-seed-secrets
+okteto-seed-secrets:  ## Seed fake placeholder values for ExternalSecrets that can't sync from Vault (personal sandboxes only)
+	deploy/devel/seed-dev-secrets.sh
+
 # PROVISIONAL - see deploy/deploy_staging_west.yml for open questions (deploy
 # mechanism unconfirmed, no AAP template registered yet). Mirrors esnet-esdb's
 # deploy-staging-west target/pattern.

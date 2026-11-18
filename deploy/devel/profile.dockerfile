@@ -1,4 +1,4 @@
-FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:25-alpine
+FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:27-alpine
 
 ARG FILENAME="recording.jfr"
 ARG WEB_TARGET_HOST=oscars-backend

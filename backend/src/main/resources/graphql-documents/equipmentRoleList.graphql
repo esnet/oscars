@@ -1,0 +1,8 @@
+query equipmentRoleList($search: String) {
+    equipmentRoleList(search: $search) {
+        list {
+            uuid
+            name
+        }
+    }
+}

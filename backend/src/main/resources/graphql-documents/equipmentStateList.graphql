@@ -1,0 +1,8 @@
+query equipmentStateList($search: String) {
+    equipmentStateList(search: $search) {
+        list {
+            uuid
+            name
+        }
+    }
+}

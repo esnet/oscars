@@ -9,6 +9,8 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.EsdbProperties;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbBandwidthUtilization;
+import net.es.oscars.dto.esdb.gql.GraphqlEsdbEquipmentRoleLookup;
+import net.es.oscars.dto.esdb.gql.GraphqlEsdbEquipmentStateLookup;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganization;
 import net.es.oscars.dto.esdb.gql.GraphqlEsdbOrganizationType;
 import net.es.topo.common.dto.esdb.*;
@@ -111,6 +113,56 @@ public class ESDBProxy {
         return response
                 .field("organizationTypeList.list")
                 .toEntityList(GraphqlEsdbOrganizationType.class);
+    }
+
+    /**
+     * Look up an ESDB equipment role's UUID by name. Role UUIDs are generated
+     * per ESDB instance (see esdb's EquipmentRole model), so they aren't
+     * portable across instances -- resolve by the stable name instead of
+     * hardcoding one.
+     * @param name The exact role name to search for, e.g. "Core Router".
+     * @return The matching role's UUID, or null if none is found.
+     */
+    public String gqlEquipmentRoleUuidByName(String name) {
+        HttpSyncGraphQlClient graphQlClient = createGraphqlClient();
+        GraphQlClient.RequestSpec requestSpec = graphQlClient
+                .documentName("equipmentRoleList")
+                .variable("search", name);
+
+        ClientGraphQlResponse response = requestSpec.executeSync();
+        List<GraphqlEsdbEquipmentRoleLookup> list = response
+                .field("equipmentRoleList.list")
+                .toEntityList(GraphqlEsdbEquipmentRoleLookup.class);
+
+        return list.stream()
+                .filter(role -> name.equals(role.getName()))
+                .map(GraphqlEsdbEquipmentRoleLookup::getUuid)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Look up an ESDB equipment state's UUID by name. Same per-instance-UUID
+     * caveat as {@link #gqlEquipmentRoleUuidByName(String)}.
+     * @param name The exact state name to search for, e.g. "Production".
+     * @return The matching state's UUID, or null if none is found.
+     */
+    public String gqlEquipmentStateUuidByName(String name) {
+        HttpSyncGraphQlClient graphQlClient = createGraphqlClient();
+        GraphQlClient.RequestSpec requestSpec = graphQlClient
+                .documentName("equipmentStateList")
+                .variable("search", name);
+
+        ClientGraphQlResponse response = requestSpec.executeSync();
+        List<GraphqlEsdbEquipmentStateLookup> list = response
+                .field("equipmentStateList.list")
+                .toEntityList(GraphqlEsdbEquipmentStateLookup.class);
+
+        return list.stream()
+                .filter(state -> name.equals(state.getName()))
+                .map(GraphqlEsdbEquipmentStateLookup::getUuid)
+                .findFirst()
+                .orElse(null);
     }
 
     /**

@@ -1,4 +1,4 @@
-FROM wharf.es.net/dockerhub-proxy/library/maven:3.9.15-amazoncorretto-25-debian AS builder
+FROM wharf.es.net/dockerhub-proxy/library/maven:3.10.0-amazoncorretto-27-debian AS builder
 
 WORKDIR /build/backend
 COPY backend/.remoteRepositoryFilters .remoteRepositoryFilters
@@ -28,7 +28,7 @@ RUN mv ${JAR_FILE} backend.jar
 RUN java -Djarmode=tools -jar backend.jar extract --layers --destination layers
 
 # 2. run stage
-FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:25-alpine
+FROM wharf.es.net/dockerhub-proxy/library/amazoncorretto:27-alpine
 RUN addgroup -S oscars && adduser -S oscars -G oscars
 RUN mkdir -p /app
 RUN chown oscars -R /app

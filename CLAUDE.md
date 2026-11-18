@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 OSCARS (On-demand Secure Circuits and Advance Reservation System) is ESnet's network circuit reservation system. It validates and holds network resources (ports/VLANs/bandwidth), computes paths across the topology, and provisions circuits on network devices via Cisco NSO.
 
 Two main modules:
-- **`backend/`** — Spring Boot (Java 25) application: reservation logic, path computation, topology, southbound provisioning, REST/GraphQL/SOAP APIs. Actively developed; this is the system of record for L2VPN/reservation logic.
+- **`backend/`** — Spring Boot (Java 27) application: reservation logic, path computation, topology, southbound provisioning, REST/GraphQL/SOAP APIs. Actively developed; this is the system of record for L2VPN/reservation logic.
 - **`frontend/`** — React 16 + MobX + webpack 4 web UI (`frontend/README.md` has frontend-specific build/IDE notes). **Legacy and effectively frozen** (last commit Sep 2025, vs. ongoing backend work) — superseded by the "LSP Builder" module in the sibling `../es-enterprise` monorepo (Next.js/React 18, under `apps/ese-web/src/pages/oscars`), part of the "OSCARS 2.0" initiative. That app talks to this repo's `oscars-backend` REST API directly (gated by `OSCARS_ENABLED`/`NEXT_PUBLIC_OSCARS_ENABLED` feature flags and `OSCARS_GROUPS` JWT group membership) — it does not replace or call into this repo's `frontend/`. New frontend work should generally go there, not in `frontend/`, unless told otherwise.
 
 Local development uses Docker Compose via a separate `ocd-stack` sibling repo (expected at `../ocd-stack`), referenced by the top-level `Makefile`. OrbStack is used instead of Docker Desktop.
