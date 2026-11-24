@@ -1,5 +1,6 @@
 package net.es.oscars.sb.nso.cache;
 
+import lombok.Locked;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.sb.nso.NsoProxy;
 import net.es.oscars.sb.nso.dto.*;
@@ -10,6 +11,9 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Component
 @Slf4j
@@ -24,6 +28,14 @@ public class NsoServiceConfigCache {
     public static final String BBL = "bbl";
     public static final String DEVICE_LIST = "device-list";
 
+    private final Lock vplsLock = new ReentrantLock();
+    private final Lock lspLock = new ReentrantLock();
+    private final Lock portLock = new ReentrantLock();
+    private final Lock bblLock = new ReentrantLock();
+    private final Lock systemLock = new ReentrantLock();
+    private final Lock devicelistLock = new ReentrantLock();
+
+
     public NsoServiceConfigCache(NsoProxy nsoProxy) {
         this.nsoProxy = nsoProxy;
     }
@@ -36,6 +48,7 @@ public class NsoServiceConfigCache {
     }
 
     @Cacheable(value = "service-config", key = "#root.target.VPLS")
+    @Locked("vplsLock")
     public NsoVplsResponse getVpls() {
         FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.VPLS);
         if (serviceConfig == null || !serviceConfig.getSuccessful()) {
@@ -46,6 +59,7 @@ public class NsoServiceConfigCache {
 
 
     @Cacheable(value = "service-config", key = "#root.target.LSP")
+    @Locked("lspLock")
     public NsoLspResponse getLsps() {
         FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.LSP);
         if (serviceConfig == null || !serviceConfig.getSuccessful()) {
@@ -56,6 +70,7 @@ public class NsoServiceConfigCache {
 
 
     @Cacheable(value = "service-config", key = "#root.target.PORT")
+    @Locked("portLock")
     public NsoPortResponse getPort() {
         FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.PORT);
         if (serviceConfig == null || !serviceConfig.getSuccessful()) {
@@ -66,6 +81,7 @@ public class NsoServiceConfigCache {
 
 
     @Cacheable(value = "service-config", key = "#root.target.SYSTEM")
+    @Locked("systemLock")
     public NsoSystemResponse getSystem() {
         FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.SYSTEM);
         if (serviceConfig == null || !serviceConfig.getSuccessful()) {
@@ -76,6 +92,7 @@ public class NsoServiceConfigCache {
 
 
     @Cacheable(value = "service-config", key = "#root.target.BBL")
+    @Locked("bblLock")
     public NsoBBLResponse getBBL() {
         FromNsoServiceConfig serviceConfig = nsoProxy.getNsoServiceConfig(NsoService.BBL);
         if (serviceConfig == null || !serviceConfig.getSuccessful()) {
@@ -85,6 +102,7 @@ public class NsoServiceConfigCache {
     }
 
     @Cacheable(value = "service-config", key = "#root.target.DEVICE_LIST")
+    @Locked("devicelistLock")
     public FromNsoDeviceList getDeviceList() {
         return nsoProxy.getNsoDeviceList();
     }

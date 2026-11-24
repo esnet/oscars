@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.es.oscars.app.props.AuthProperties;
+import net.es.oscars.app.props.StartupProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -41,9 +42,11 @@ public class SecurityConfig {
     public static String ROLE_OSCARS_ADMIN = "ROLE_OSCARS_ADMIN";
 
     private final AuthProperties authProperties;
+    private final StartupProperties startupProperties;
 
-    public SecurityConfig(AuthProperties authProperties) {
+    public SecurityConfig(AuthProperties authProperties, StartupProperties startupProperties) {
         this.authProperties = authProperties;
+        this.startupProperties = startupProperties;
     }
 
     @Bean
@@ -55,7 +58,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain clientFilterChain(HttpSecurity http) {
 
-        http.securityMatcher("/api/**", "/services/**")
+        http.securityMatcher("/api/**", "/services/**", "/error", "/")
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize ->
                         authorize.anyRequest().permitAll()
@@ -68,7 +71,7 @@ public class SecurityConfig {
     @Order(2)
     @Bean
     public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) {
-        if (!authProperties.isOauthEnabled()) {
+        if (!authProperties.isOauthEnabled() || startupProperties.getStandalone()) {
             http.securityMatcher("/protected/**")
                     .cors(Customizer.withDefaults())
                     .authorizeHttpRequests(authorize ->

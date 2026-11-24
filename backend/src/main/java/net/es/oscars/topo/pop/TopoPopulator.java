@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import org.springframework.util.ResourceUtils;
 import org.springframework.web.client.ResourceAccessException;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -87,7 +88,8 @@ public class TopoPopulator {
 
         } else if (startupProperties.getStandalone()) {
             log.info("loading standalone topology from config/topology.json");
-            var jsonFile = new ClassPathResource("config/topology.json").getFile();
+            var jsonFile = ResourceUtils.getFile("file://app//config/topology.json");
+
             oscarsOneTopo = mapper.readValue(jsonFile, OscarsOneTopo.class);
         } else {
             oscarsOneTopo = topoGenerator.generate();

@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import net.es.oscars.app.Startup;
 import net.es.oscars.app.exc.StartupException;
+import net.es.oscars.app.props.StartupProperties;
 import net.es.oscars.resv.enums.DeploymentState;
 import net.es.oscars.resv.enums.Phase;
 import net.es.oscars.resv.enums.State;
@@ -31,6 +32,7 @@ import net.es.topo.common.dto.nso.NsoLSP;
 import net.es.topo.common.dto.nso.NsoVPLS;
 import net.es.topo.common.dto.nso.enums.NsoVplsSdpPrecedence;
 import org.springframework.data.util.Pair;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -47,16 +49,24 @@ public class NsoLiveStatusController {
     private final NsoAdapter nsoAdapter;
     private final NsoLiveStatusMgr nsoLiveStatusMgr;
     private final ConnService connSvc;
+    private final StartupProperties startupProperties;
 
     private final Startup startup;
 
     public NsoLiveStatusController(
             NsoAdapter nsoAdapter, NsoLiveStatusMgr nsoLiveStatusMgr,
-            ConnService connSvc, Startup startup) {
+            ConnService connSvc, StartupProperties startupProperties, Startup startup) {
         this.nsoAdapter = nsoAdapter;
         this.nsoLiveStatusMgr = nsoLiveStatusMgr;
         this.connSvc = connSvc;
+        this.startupProperties = startupProperties;
         this.startup = startup;
+    }
+
+    @ExceptionHandler(StartupException.class)
+    @ResponseStatus(value = HttpStatus.SERVICE_UNAVAILABLE)
+    public void handleStartup() {
+        log.warn("Still in startup");
     }
 
     @RequestMapping(value = "/api/mac/info", method = RequestMethod.POST)
@@ -88,6 +98,10 @@ public class NsoLiveStatusController {
                 }
             }
         }
+        if (startupProperties.getStandalone()) {
+            canGetLiveStatus = false;
+            message = "in standalone mode";
+        }
         if (!canGetLiveStatus) {
             response.setResults(Collections.emptyList());
             response.setMessage(message);
@@ -95,7 +109,7 @@ public class NsoLiveStatusController {
         }
 
         // filter and extract request data
-        RequestData requestData = requestData = getRequestData(request, conn);
+        RequestData requestData = getRequestData(request, conn);
 
         // the question is if we move this into the list with the results
         // since entries can have a different timestamp based on the if-older-than criteria
@@ -140,13 +154,18 @@ public class NsoLiveStatusController {
                 }
             }
         }
+
+        if (startupProperties.getStandalone()) {
+            canGetLiveStatus = false;
+            message = "in standalone mode";
+        }
+
         if (!canGetLiveStatus) {
             response.setResults(Collections.emptyList());
             response.setMessage(message);
             response.setState(OperationalState.DOWN);
             return response;
         }
-
 
         // filter and extract request data
         RequestData requestData = getRequestData(request, conn);
