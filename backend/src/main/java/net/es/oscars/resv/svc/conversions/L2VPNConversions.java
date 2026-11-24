@@ -313,6 +313,10 @@ public class L2VPNConversions {
                     .build());
         }
         for (Bundle bundle : l2VPNRequest.getBundles()) {
+            boolean protect = false;
+            if (bundle.getProtection().equals(Protection.LOOSE)) {
+                protect = true;
+            }
             LSP primary = null;
             for (LSP lsp : bundle.getLsps()) {
                 if (lsp.getRole().equals(Role.PRIMARY)) {
@@ -336,6 +340,7 @@ public class L2VPNConversions {
                         .ero(ero)
                         .exclude(new ArrayList<>(bundle.getConstraints().excludedUrns()))
                         .pceMode(PceMode.BEST)
+                        .protect(protect)
                         .build());
 
             }
